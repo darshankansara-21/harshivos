@@ -1,0 +1,17 @@
+# HARSHIVOS — release signing configuration TEMPLATE.
+#
+# Copy this file to `android/key.properties` (same folder) and fill in your
+# real values. The real key.properties and the .jks keystore are git-ignored
+# and must NEVER be committed.
+#
+# 1) Create a keystore (once) on your build machine:
+#    keytool -genkey -v -keystore %USERPROFILE%\harshivos-release.jks ^
+#      -keyalg RSA -keysize 2048 -validity 10000 -alias harshivos
+#
+# 2) Copy this file to key.properties and set the four values below.
+#    storeFile must be an ABSOLUTE path to your .jks file.
+
+storePassword=your_keystore_password
+keyPassword=your_key_password
+keyAlias=harshivos
+storeFile=C:\\Users\\YOU\\harshivos-release.jks

@@ -23,5 +23,10 @@ google-services.json
 GoogleService-Info.plist
 lib/firebase_options.dart
 
+# Android release signing — NEVER commit these
+android/key.properties
+*.jks
+*.keystore
+
 # Build logs
 _logs/
