@@ -1,0 +1,44 @@
+name: harshivos
+description: "HARSHIVOS — The world's first AI-powered Autism Companion focused on Regulation, Communication, Learning, and Emotional Wellness."
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+  flutter: ">=3.22.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management
+  flutter_riverpod: ^2.5.1
+
+  # UI / Design
+  google_fonts: ^6.2.1
+
+  # Voice (Help Me Talk + Social Story narration)
+  flutter_tts: ^4.0.2
+
+  # Procedural sound effects (Bubble Pop, Music Garden) — no audio assets,
+  # tones are synthesised to WAV bytes at runtime.
+  audioplayers: ^6.1.0
+
+  # Local offline-first persistence
+  shared_preferences: ^2.3.2
+
+  # AI abstraction layer (Gemini / OpenAI over HTTP)
+  http: ^1.2.2
+
+  # IDs for regulation log entries
+  uuid: ^4.5.1
+
+dev_dependencies:
+  flutter_lints: ^4.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/config/

@@ -1,0 +1,12 @@
+{
+  "_comment": "AI tiering. provider: 'auto' (recommended) prefers a local Ollama daemon, then Gemini Flash (needs a key in secrets.json), else the offline Mock. Force a single tier with 'ollama' | 'gemini' | 'mock'.",
+  "provider": "auto",
+  "temperature": 0.7,
+  "ollama": {
+    "baseUrl": "http://localhost:11434",
+    "model": "llama3.2"
+  },
+  "gemini": {
+    "model": "gemini-1.5-flash"
+  }
+}
