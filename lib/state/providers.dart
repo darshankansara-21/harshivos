@@ -107,4 +107,9 @@ final recommendedToysProvider = Provider((ref) {
 });
 
 /// The child's display name (editable in settings; defaults to Harshiv).
+/// The initial value is overridden from storage in `main()`.
 final childNameProvider = StateProvider<String>((ref) => 'Harshiv');
+
+/// Whether the first-launch child profile wizard has been completed.
+/// Overridden from storage in `main()` so returning families skip the wizard.
+final profileCompleteProvider = StateProvider<bool>((ref) => false);

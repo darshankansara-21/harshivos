@@ -32,6 +32,10 @@ Future<void> main() async {
     ProviderScope(
       overrides: <Override>[
         localStorageProvider.overrideWithValue(storage),
+        childNameProvider.overrideWith(
+            (ref) => storage.readString('child_name', fallback: 'Harshiv')),
+        profileCompleteProvider
+            .overrideWith((ref) => storage.readBool('profile_complete')),
       ],
       child: const HarshivApp(),
     ),

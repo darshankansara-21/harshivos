@@ -40,4 +40,16 @@ class LocalStorage {
       _prefs.getInt(key) ?? fallback;
 
   Future<void> writeInt(String key, int value) => _prefs.setInt(key, value);
+
+  String readString(String key, {String fallback = ''}) =>
+      _prefs.getString(key) ?? fallback;
+
+  Future<void> writeString(String key, String value) =>
+      _prefs.setString(key, value);
+
+  bool readBool(String key, {bool fallback = false}) =>
+      _prefs.getBool(key) ?? fallback;
+
+  Future<void> writeBool(String key, bool value) =>
+      _prefs.setBool(key, value);
 }

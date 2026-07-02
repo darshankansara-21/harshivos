@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/theme/app_theme.dart';
+import 'features/lifeskills/profile_wizard_screen.dart';
 import 'features/world/world_screen.dart';
+import 'state/providers.dart';
 
 /// Root of the HARSHIVOS experience.
 ///
@@ -12,13 +14,14 @@ class HarshivApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final profileDone = ref.watch(profileCompleteProvider);
     return MaterialApp(
       title: 'HarshivOS',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: ThemeMode.dark,
-      home: const WorldScreen(),
+      home: profileDone ? const WorldScreen() : const ProfileWizardScreen(),
     );
   }
 }
