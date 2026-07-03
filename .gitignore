@@ -30,3 +30,6 @@ android/key.properties
 
 # Build logs
 _logs/
+
+# Local release-validation evidence renders
+evidence/
