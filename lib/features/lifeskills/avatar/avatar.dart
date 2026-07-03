@@ -35,6 +35,8 @@ enum AvatarPose {
   dress,
   potty,
   bath,
+  // Appended at the END so persisted pose indices stay stable.
+  school,
 }
 
 /// How the character feels. Drives eyes, brows, mouth, blush and body language.
@@ -251,6 +253,7 @@ AvatarEmotion emotionForPose(AvatarPose pose) {
     case AvatarPose.wave:
     case AvatarPose.point:
     case AvatarPose.walk:
+    case AvatarPose.school:
     case AvatarPose.dress:
       return AvatarEmotion.happy;
     case AvatarPose.brush:
@@ -347,6 +350,7 @@ class _Face {
     this.tear = false,
     this.sweat = false,
     this.sparkle = false,
+    this.cheeks = false,
     this.pupil = Offset.zero,
   });
 
@@ -360,10 +364,11 @@ class _Face {
   final bool tear;
   final bool sweat;
   final bool sparkle;
+  final bool cheeks; // raised-cheek highlight for a genuine smile
   final Offset pupil; // fractional pupil offset
 }
 
-enum _Mouth { smile, grin, openSmile, frown, grimace, flat, wavy, o }
+enum _Mouth { smile, grin, openSmile, bigGrin, frown, grimace, flat, wavy, o }
 
 class _CharacterPainter extends CustomPainter {
   _CharacterPainter({
@@ -452,15 +457,18 @@ class _CharacterPainter extends CustomPainter {
         );
       case AvatarEmotion.excited:
         return _Face(
-          eyeOpen: 1,
-          browLift: 0.20,
-          browTilt: -0.02,
-          mouth: _Mouth.openSmile,
-          blush: 0.7,
+          // Happy squint + raised cheeks + a wide grin read as JOY, not the
+          // wide-eyed round-mouth look that reads as surprise.
+          eyeOpen: blinking ? 0.08 : 0.8,
+          browLift: 0.14,
+          browTilt: -0.04,
+          mouth: _Mouth.bigGrin,
+          blush: 0.85,
           headTilt: 0.05 * math.sin(t * math.pi * 4),
           bounce: 2.2,
           sparkle: true,
-          pupil: Offset(0, -0.05),
+          cheeks: true,
+          pupil: const Offset(0, 0.02),
         );
       case AvatarEmotion.proud:
         return _Face(
@@ -598,7 +606,7 @@ class _CharacterPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
     final hipY = bodyTop + s * 0.28;
     double swing = 0;
-    if (pose == AvatarPose.walk) {
+    if (pose == AvatarPose.walk || pose == AvatarPose.school) {
       swing = math.sin(t * math.pi * 4) * s * 0.05;
     }
     if (pose == AvatarPose.sit || pose == AvatarPose.potty) {
@@ -691,8 +699,14 @@ class _CharacterPainter extends CustomPainter {
         lHand = Offset(cx - s * 0.11, shoulderY + s * 0.15);
         rHand = Offset(cx + s * 0.11, shoulderY + s * 0.15);
         break;
-      case AvatarPose.idle:
       case AvatarPose.walk:
+      case AvatarPose.school:
+        // Arms swing opposite the legs for a believable stride.
+        final sw = math.sin(t * math.pi * 4) * s * 0.06;
+        lHand = Offset(cx - s * 0.14, shoulderY + s * 0.17 - sw);
+        rHand = Offset(cx + s * 0.14, shoulderY + s * 0.17 + sw);
+        break;
+      case AvatarPose.idle:
       case AvatarPose.sit:
       case AvatarPose.potty:
         final sway = math.sin(t * math.pi * 2) * s * 0.012 * face.bounce;
@@ -703,9 +717,14 @@ class _CharacterPainter extends CustomPainter {
 
     _arm(canvas, lShoulder, lHand, paint, s);
     _arm(canvas, rShoulder, rHand, paint, s);
-    final hand = Paint()..color = config.skin;
-    canvas.drawCircle(lHand, s * 0.04, hand);
-    canvas.drawCircle(rHand, s * 0.04, hand);
+    // Real hands with fingers; open/spread for gestures, relaxed otherwise.
+    final open = pose == AvatarPose.wave ||
+        pose == AvatarPose.cheer ||
+        pose == AvatarPose.clap ||
+        pose == AvatarPose.hold ||
+        pose == AvatarPose.point;
+    _hand(canvas, lHand, lShoulder, s, open: open);
+    _hand(canvas, rHand, rShoulder, s, open: open);
     _rHand = rHand;
     _lHand = lHand;
   }
@@ -719,6 +738,34 @@ class _CharacterPainter extends CustomPainter {
         ..quadraticBezierTo(mid.dx, mid.dy, b.dx, b.dy),
       paint,
     );
+  }
+
+  /// A soft hand with four fingers and a thumb, oriented along the forearm.
+  /// [open] fans the fingers for a wave / clap / reach; otherwise they rest.
+  void _hand(Canvas canvas, Offset wrist, Offset from, double s,
+      {bool open = false}) {
+    final ang = math.atan2(wrist.dy - from.dy, wrist.dx - from.dx);
+    final palmR = s * 0.042;
+    // Palm.
+    canvas.drawCircle(wrist, palmR, Paint()..color = config.skin);
+    final finger = Paint()
+      ..color = config.skin
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = s * 0.020;
+    const count = 4;
+    final spread = open ? 0.34 : 0.20;
+    final len = palmR * (open ? 1.5 : 1.0);
+    final base = wrist + Offset(math.cos(ang), math.sin(ang)) * palmR * 0.4;
+    for (int i = 0; i < count; i++) {
+      final fa = ang + (i - (count - 1) / 2) * spread;
+      final tip = base + Offset(math.cos(fa), math.sin(fa)) * (palmR + len);
+      canvas.drawLine(base, tip, finger);
+    }
+    // Thumb, splayed to one side.
+    final ta = ang - (open ? 1.15 : 0.85);
+    final thumbTip = wrist + Offset(math.cos(ta), math.sin(ta)) * palmR * 1.4;
+    canvas.drawLine(wrist, thumbTip,
+        finger..strokeWidth = s * 0.022);
   }
 
   // ---- Head, hair, face ---------------------------------------------------
@@ -779,14 +826,29 @@ class _CharacterPainter extends CustomPainter {
       case HairStyle.short:
         final path = Path()
           ..addArc(
-              Rect.fromCircle(center: c, radius: r * 1.05), math.pi, math.pi)
-          ..lineTo(c.dx + r * 0.75, c.dy + r * 0.12)
-          ..quadraticBezierTo(c.dx + r * 0.4, c.dy - r * 0.15, c.dx + r * 0.1,
-              c.dy - r * 0.05)
-          ..quadraticBezierTo(
-              c.dx - r * 0.2, c.dy + r * 0.05, c.dx - r * 0.75, c.dy + r * 0.12)
+              Rect.fromCircle(center: c, radius: r * 1.06), math.pi, math.pi)
+          ..lineTo(c.dx + r * 0.78, c.dy + r * 0.02)
+          // Right side sweeps up and across into a soft side-part fringe that
+          // sits above the brows (no low 'helmet' line over the eyes).
+          ..quadraticBezierTo(c.dx + r * 0.5, c.dy - r * 0.12, c.dx + r * 0.16,
+              c.dy - r * 0.14)
+          ..quadraticBezierTo(c.dx - r * 0.02, c.dy - r * 0.16, c.dx - r * 0.30,
+              c.dy - r * 0.09)
+          ..quadraticBezierTo(c.dx - r * 0.52, c.dy - r * 0.02, c.dx - r * 0.78,
+              c.dy + r * 0.02)
           ..close();
         canvas.drawPath(path, paint);
+        // A soft swept fringe tuft for a friendly, un-helmeted silhouette.
+        canvas.drawPath(
+          Path()
+            ..moveTo(c.dx + r * 0.18, c.dy - r * 0.14)
+            ..quadraticBezierTo(
+                c.dx - r * 0.08, c.dy - r * 0.02, c.dx - r * 0.32, c.dy + r * 0.07)
+            ..quadraticBezierTo(
+                c.dx - r * 0.02, c.dy - r * 0.06, c.dx + r * 0.18, c.dy - r * 0.14)
+            ..close(),
+          paint,
+        );
         _hairSheen(canvas, c, r, hi);
         break;
       case HairStyle.buzz:
@@ -888,6 +950,15 @@ class _CharacterPainter extends CustomPainter {
     // Nose hint.
     canvas.drawCircle(Offset(c.dx, c.dy + r * 0.34),
         r * 0.045, Paint()..color = _darken(config.skin, 0.10));
+
+    // Raised-cheek highlights make a smile read as genuine joy.
+    if (f.cheeks) {
+      final hl = Paint()
+        ..color = Colors.white.withOpacity(0.14)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 0.06);
+      canvas.drawCircle(Offset(c.dx - r * 0.5, c.dy + r * 0.34), r * 0.18, hl);
+      canvas.drawCircle(Offset(c.dx + r * 0.5, c.dy + r * 0.34), r * 0.18, hl);
+    }
 
     _mouth(canvas, Offset(c.dx, c.dy + r * 0.62), r, f.mouth);
 
@@ -1081,6 +1152,37 @@ class _CharacterPainter extends CustomPainter {
             Rect.fromCenter(
                 center: Offset(c.dx, rect.bottom - r * 0.1),
                 width: r * 0.28,
+                height: r * 0.16),
+            tongue);
+        break;
+      case _Mouth.bigGrin:
+        // A broad, upturned open smile — wider than tall so it reads as a
+        // joyful laugh rather than a round 'surprised' O.
+        final rect =
+            Rect.fromCenter(center: c, width: r * 0.74, height: r * 0.46);
+        final path = Path()
+          ..moveTo(rect.left, rect.center.dy - rect.height * 0.12)
+          ..quadraticBezierTo(c.dx, rect.top - rect.height * 0.28, rect.right,
+              rect.center.dy - rect.height * 0.12)
+          ..quadraticBezierTo(c.dx, rect.bottom + rect.height * 0.18, rect.left,
+              rect.center.dy - rect.height * 0.12)
+          ..close();
+        canvas.drawPath(path, fill);
+        // Upper teeth strip following the smile curve.
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(rect.left + r * 0.07,
+                rect.center.dy - rect.height * 0.22, rect.width - r * 0.14,
+                r * 0.13),
+            Radius.circular(r * 0.05),
+          ),
+          teeth,
+        );
+        // Tongue peeking at the bottom.
+        canvas.drawOval(
+            Rect.fromCenter(
+                center: Offset(c.dx, rect.bottom - r * 0.05),
+                width: r * 0.32,
                 height: r * 0.16),
             tongue);
         break;
@@ -1389,8 +1491,7 @@ class _CharacterPainter extends CustomPainter {
             Offset(headC.dx + headR * 0.6, headC.dy - headR - (t * s * 0.2)));
         break;
       case AvatarPose.hold:
-        canvas.drawCircle(_rHand, s * 0.045, Paint()..color = config.skin);
-        canvas.drawCircle(_lHand, s * 0.045, Paint()..color = config.skin);
+        // Hands are now drawn with fingers by _hand(); nothing extra needed.
         break;
       case AvatarPose.dress:
         // A shirt held up in front.
@@ -1401,6 +1502,47 @@ class _CharacterPainter extends CustomPainter {
         canvas.drawRRect(
           RRect.fromRectAndRadius(r, Radius.circular(s * 0.03)),
           Paint()..color = config.favoriteColor.withOpacity(0.9),
+        );
+        break;
+      case AvatarPose.school:
+        // A backpack — the universal 'going to school' signal.
+        final bx = headC.dx;
+        final bodyTop = headC.dy + headR * 0.82;
+        final strap = Paint()
+          ..color = _darken(config.favoriteColor, 0.05)
+          ..strokeWidth = s * 0.028
+          ..strokeCap = StrokeCap.round
+          ..style = PaintingStyle.stroke;
+        canvas.drawLine(Offset(bx - s * 0.09, bodyTop + s * 0.01),
+            Offset(bx - s * 0.05, bodyTop + s * 0.20), strap);
+        canvas.drawLine(Offset(bx + s * 0.09, bodyTop + s * 0.01),
+            Offset(bx + s * 0.05, bodyTop + s * 0.20), strap);
+        final pack = Rect.fromCenter(
+            center: Offset(bx + s * 0.21, bodyTop + s * 0.13),
+            width: s * 0.16,
+            height: s * 0.22);
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(pack, Radius.circular(s * 0.045)),
+          Paint()
+            ..shader = LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: <Color>[
+                _lighten(config.favoriteColor, 0.2),
+                config.favoriteColor,
+                _darken(config.favoriteColor, 0.18),
+              ],
+            ).createShader(pack),
+        );
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromCenter(
+                center: Offset(pack.center.dx, pack.center.dy + s * 0.03),
+                width: s * 0.10,
+                height: s * 0.09),
+            Radius.circular(s * 0.02),
+          ),
+          Paint()..color = _darken(config.favoriteColor, 0.12),
         );
         break;
       case AvatarPose.idle:

@@ -173,6 +173,15 @@ void main() {
     await shot('10_brushing_teeth', _base, AvatarPose.brush, null);
     await shot('11_holding_hands', _base, AvatarPose.hold, null);
     await shot('12_potty', _base, AvatarPose.potty, null);
+    await shot('13_nervous', _base, AvatarPose.idle, AvatarEmotion.nervous);
+    await shot('14_school', AvatarConfig.harshiv, AvatarPose.school, null);
+    await shot('15_sad', _base, AvatarPose.idle, AvatarEmotion.sad);
+    await shot('16_tired', _base, AvatarPose.idle, AvatarEmotion.tired);
+    // Elevation checks: excited must read as JOY (not surprise); walking must
+    // look distinct from idle; hands must show fingers.
+    await shot('17_excited_joy', _base, AvatarPose.idle, AvatarEmotion.excited);
+    await shot('18_walking', AvatarConfig.harshiv, AvatarPose.walk, null);
+    await shot('19_wave_hand', _base, AvatarPose.wave, AvatarEmotion.happy);
   });
 
   // -------------------------------------------------------------------------

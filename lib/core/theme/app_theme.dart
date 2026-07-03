@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'app_colors.dart';
 
 /// Material 3 theme tuned for a soft, premium, low-stimulation feel.
 class AppTheme {
   AppTheme._();
+
+  /// The bundled font family (see pubspec `fonts:`). Kept as a constant so
+  /// every screen shares one offline-first source of truth.
+  static const String fontFamily = 'Nunito';
 
   static ThemeData dark() {
     final base = ColorScheme.fromSeed(
@@ -28,17 +31,17 @@ class AppTheme {
   }
 
   static ThemeData _common(ColorScheme scheme, Brightness brightness) {
-    final textTheme = GoogleFonts.nunitoTextTheme(
-      brightness == Brightness.dark
-          ? ThemeData.dark().textTheme
-          : ThemeData.light().textTheme,
-    );
+    final textTheme = (brightness == Brightness.dark
+            ? ThemeData.dark().textTheme
+            : ThemeData.light().textTheme)
+        .apply(fontFamily: fontFamily);
 
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
       colorScheme: scheme,
       scaffoldBackgroundColor: Colors.transparent,
+      fontFamily: fontFamily,
       textTheme: textTheme.apply(
         bodyColor: AppColors.textPrimary,
         displayColor: AppColors.textPrimary,

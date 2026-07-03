@@ -60,3 +60,18 @@ flutter:
   assets:
     - assets/config/
     - assets/icon/
+
+  # Bundled locally so the app is fully offline-first (airplane / hospital /
+  # clinic). Nunito is a variable font (OFL); the same file is declared at the
+  # weights the theme uses so FontWeight maps to the wght axis.
+  fonts:
+    - family: Nunito
+      fonts:
+        - asset: assets/fonts/Nunito-VariableFont_wght.ttf
+          weight: 400
+        - asset: assets/fonts/Nunito-VariableFont_wght.ttf
+          weight: 600
+        - asset: assets/fonts/Nunito-VariableFont_wght.ttf
+          weight: 700
+        - asset: assets/fonts/Nunito-VariableFont_wght.ttf
+          weight: 800
