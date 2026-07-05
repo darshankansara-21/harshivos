@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -404,7 +406,8 @@ class _StepSceneState extends State<_StepScene>
         child: Stack(
           alignment: Alignment.center,
           children: <Widget>[
-            // Big emoji, gently bobbing.
+            // Family photo for this step (if the parent added one), otherwise
+            // a big emoji — both gently bobbing.
             AnimatedBuilder(
               animation: _bob,
               builder: (context, child) {
@@ -412,9 +415,9 @@ class _StepSceneState extends State<_StepScene>
                 return Align(
                   alignment: const Alignment(-0.55, -0.15),
                   child: Transform.translate(
-                      offset: Offset(0, dy),
-                      child: Text(step.emoji,
-                          style: const TextStyle(fontSize: 92))),
+                    offset: Offset(0, dy),
+                    child: _StepVisual(step: step),
+                  ),
                 );
               },
             ),
@@ -449,6 +452,40 @@ class _StepSceneState extends State<_StepScene>
         ),
       ),
     );
+  }
+}
+
+class _StepVisual extends StatelessWidget {
+  const _StepVisual({required this.step});
+  final RoutineStep step;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasPhoto = step.photoPath != null &&
+        !kIsWeb &&
+        File(step.photoPath!).existsSync();
+    if (hasPhoto) {
+      return Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.white.withOpacity(0.6), width: 3),
+          boxShadow: <BoxShadow>[
+            BoxShadow(
+                color: step.accent.withOpacity(0.5),
+                blurRadius: 24,
+                spreadRadius: 1),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Image.file(
+          File(step.photoPath!),
+          width: 132,
+          height: 132,
+          fit: BoxFit.cover,
+        ),
+      );
+    }
+    return Text(step.emoji, style: const TextStyle(fontSize: 92));
   }
 }
 

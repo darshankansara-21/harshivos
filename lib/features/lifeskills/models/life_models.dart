@@ -46,6 +46,7 @@ class RoutineStep {
     int? timerSeconds,
     Color? accent,
     String? photoPath,
+    bool clearPhoto = false,
   }) {
     return RoutineStep(
       title: title ?? this.title,
@@ -55,7 +56,7 @@ class RoutineStep {
       kind: kind ?? this.kind,
       timerSeconds: timerSeconds ?? this.timerSeconds,
       accent: accent ?? this.accent,
-      photoPath: photoPath ?? this.photoPath,
+      photoPath: clearPhoto ? null : (photoPath ?? this.photoPath),
     );
   }
 

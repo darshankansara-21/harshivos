@@ -33,6 +33,14 @@ dependencies:
   # IDs for regulation log entries
   uuid: ^4.5.1
 
+  # Parents attach their own photos to routine steps (Life Skills Builder).
+  # Federated plugin — gallery/camera on mobile, file picker on web/desktop.
+  image_picker: ^1.1.2
+
+  # Stable app-owned directory to copy routine photos into (persists across
+  # restarts; picker paths can be temporary).
+  path_provider: ^2.1.4
+
 dev_dependencies:
   flutter_lints: ^4.0.0
   flutter_test:

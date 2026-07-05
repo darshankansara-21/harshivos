@@ -1,11 +1,16 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/widgets/harshiv_scaffold.dart';
 import '../../state/providers.dart';
 import 'models/life_models.dart';
+import 'photo_store.dart';
 import 'state/lifeskills_providers.dart';
 
 /// Parents create their own family routines here — either by describing a goal
@@ -187,6 +192,79 @@ class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
             emoji: _guessEmoji(result),
           ));
     }
+  }
+
+  Future<void> _addPhoto(int i) async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: const Color(0xFF1B1836),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            const SizedBox(height: 12),
+            Container(
+              width: 42,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text('Add a photo for this step',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_camera_rounded,
+                  color: Color(0xFF4CC9F0)),
+              title: const Text('Take a photo',
+                  style: TextStyle(color: Colors.white)),
+              onTap: () => Navigator.pop(ctx, 'camera'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_rounded,
+                  color: Color(0xFF06D6A0)),
+              title: const Text('Choose from gallery',
+                  style: TextStyle(color: Colors.white)),
+              onTap: () => Navigator.pop(ctx, 'gallery'),
+            ),
+            if (_steps[i].photoPath != null)
+              ListTile(
+                leading: const Icon(Icons.delete_outline_rounded,
+                    color: Color(0xFFEF476F)),
+                title: const Text('Remove photo',
+                    style: TextStyle(color: Colors.white)),
+                onTap: () => Navigator.pop(ctx, 'remove'),
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || choice == null) return;
+    if (choice == 'remove') {
+      _removePhoto(i);
+      return;
+    }
+    final source =
+        choice == 'camera' ? ImageSource.camera : ImageSource.gallery;
+    final path = await RoutinePhotoStore.pick(source);
+    if (!mounted || path == null) return;
+    setState(() => _steps[i] = _steps[i].copyWith(photoPath: path));
+  }
+
+  void _removePhoto(int i) {
+    HapticFeedback.selectionClick();
+    setState(() => _steps[i] = _steps[i].copyWith(clearPhoto: true));
   }
 
   void _save() {
@@ -414,6 +492,9 @@ class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
 
   Widget _stepTile(int i) {
     final s = _steps[i];
+    final hasPhoto = s.photoPath != null &&
+        !kIsWeb &&
+        File(s.photoPath!).existsSync();
     return Container(
       margin: const EdgeInsets.only(top: 10),
       padding: const EdgeInsets.all(12),
@@ -424,7 +505,18 @@ class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
       ),
       child: Row(
         children: <Widget>[
-          Text(s.emoji, style: const TextStyle(fontSize: 26)),
+          if (hasPhoto)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.file(
+                File(s.photoPath!),
+                width: 48,
+                height: 48,
+                fit: BoxFit.cover,
+              ),
+            )
+          else
+            Text(s.emoji, style: const TextStyle(fontSize: 26)),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -441,6 +533,18 @@ class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
                         const TextStyle(color: Colors.white60, fontSize: 13)),
               ],
             ),
+          ),
+          IconButton(
+            icon: Icon(
+              s.photoPath != null
+                  ? Icons.image_rounded
+                  : Icons.add_a_photo_rounded,
+              color: s.photoPath != null
+                  ? const Color(0xFF06D6A0)
+                  : Colors.white54,
+              size: 20,
+            ),
+            onPressed: () => _addPhoto(i),
           ),
           IconButton(
             icon: const Icon(Icons.edit_rounded,
