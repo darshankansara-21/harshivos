@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../services/audio/tone_player.dart';
+
 /// An old telephone rotary dial fidget toy.
 ///
 /// A centered disc with ten finger holes (0-9). Drag a hole clockwise to the
@@ -94,6 +96,7 @@ class _RotaryDialToyState extends State<RotaryDialToy>
       _returnVelocity = 0;
       _returning = false;
       HapticFeedback.mediumImpact();
+      TonePlayer.instance.playThock(pitch: 0.8);
     } else {
       _emitTicks();
     }
@@ -107,6 +110,7 @@ class _RotaryDialToyState extends State<RotaryDialToy>
     if (idx != _lastTickIndex) {
       _lastTickIndex = idx;
       HapticFeedback.selectionClick();
+      TonePlayer.instance.playTick();
     }
   }
 
@@ -136,6 +140,7 @@ class _RotaryDialToyState extends State<RotaryDialToy>
     final int newIdx = (target / _holeStep).floor();
     if (newIdx != prevIdx) {
       HapticFeedback.selectionClick();
+      TonePlayer.instance.playTick();
     }
     setState(() => _rotation = target);
   }

@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/widgets/harshiv_scaffold.dart';
 import 'universe_catalog.dart';
+import 'universe_state.dart';
 
 /// Hidden diagnostics — reached by long-pressing the toy counter on the Toy
 /// Universe screen. Gives hard proof of what is actually built: totals, gaps
 /// and a per-toy audit. No assumptions.
-class ToyDebugScreen extends StatelessWidget {
+class ToyDebugScreen extends ConsumerWidget {
   const ToyDebugScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final total = kToyUniverse.length;
     final working = kToyUniverse.where((t) => t.working).length;
     final broken = kToyUniverse.where((t) => !t.working).length;
@@ -19,6 +21,10 @@ class ToyDebugScreen extends StatelessWidget {
     const placeholder = 0;
     final counts = toyCountsByCategory();
     final gaps = emptyToyCategories();
+
+    final mostPlayed = ref.watch(mostPlayedProvider);
+    final leastPlayed = ref.watch(leastPlayedProvider);
+    final avgSeconds = ref.watch(averagePlaySecondsProvider);
 
     return HarshivScaffold(
       child: CustomScrollView(
@@ -92,6 +98,26 @@ class ToyDebugScreen extends StatelessWidget {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 22, 16, 6),
+              child: Text('Play analytics',
+                  style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800)),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _AnalyticsPanel(
+                mostPlayed: mostPlayed,
+                leastPlayed: leastPlayed,
+                avgSeconds: avgSeconds,
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 22, 16, 6),
               child: Text('Per-toy audit',
                   style: TextStyle(
                       color: Colors.white.withOpacity(0.9),
@@ -106,6 +132,129 @@ class ToyDebugScreen extends StatelessWidget {
             ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 28)),
+        ],
+      ),
+    );
+  }
+}
+
+/// Live usage insights: most/least played toys and average session length.
+/// Empty until the child has actually played, so early builds read honestly.
+class _AnalyticsPanel extends StatelessWidget {
+  const _AnalyticsPanel({
+    required this.mostPlayed,
+    required this.leastPlayed,
+    required this.avgSeconds,
+  });
+
+  final List<ToyStat> mostPlayed;
+  final List<ToyStat> leastPlayed;
+  final int avgSeconds;
+
+  String _fmt(Duration d) {
+    if (d.inSeconds <= 0) return '\u2014';
+    if (d.inMinutes >= 1) return '${d.inMinutes}m ${d.inSeconds % 60}s';
+    return '${d.inSeconds}s';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (mostPlayed.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.06),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Text('No plays recorded yet \u2014 stats appear once toys are used.',
+            style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 14)),
+      );
+    }
+
+    final top = mostPlayed.take(5).toList();
+    final bottom = leastPlayed.take(5).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF7C3AED).withOpacity(0.18),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFF7C3AED)),
+          ),
+          child: Row(
+            children: <Widget>[
+              const Text('\u23F1\uFE0F', style: TextStyle(fontSize: 22)),
+              const SizedBox(width: 12),
+              const Text('Avg play duration',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700)),
+              const Spacer(),
+              Text(avgSeconds > 0 ? '${avgSeconds}s' : '\u2014',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        Text('Most played',
+            style: TextStyle(
+                color: Colors.white.withOpacity(0.85),
+                fontSize: 15,
+                fontWeight: FontWeight.w800)),
+        const SizedBox(height: 6),
+        for (final s in top)
+          _PlayRow(emoji: s.toy.emoji, name: s.toy.name, plays: s.plays, avg: _fmt(s.average)),
+        const SizedBox(height: 14),
+        Text('Least played',
+            style: TextStyle(
+                color: Colors.white.withOpacity(0.85),
+                fontSize: 15,
+                fontWeight: FontWeight.w800)),
+        const SizedBox(height: 6),
+        for (final s in bottom)
+          _PlayRow(emoji: s.toy.emoji, name: s.toy.name, plays: s.plays, avg: _fmt(s.average)),
+      ],
+    );
+  }
+}
+
+class _PlayRow extends StatelessWidget {
+  const _PlayRow({
+    required this.emoji,
+    required this.name,
+    required this.plays,
+    required this.avg,
+  });
+  final String emoji;
+  final String name;
+  final int plays;
+  final String avg;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: <Widget>[
+          Text(emoji, style: const TextStyle(fontSize: 18)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Colors.white, fontSize: 14)),
+          ),
+          Text('$plays plays  \u00B7  $avg',
+              style: TextStyle(
+                  color: Colors.white.withOpacity(0.6), fontSize: 13)),
         ],
       ),
     );

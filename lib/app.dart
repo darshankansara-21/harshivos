@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/theme/app_theme.dart';
 import 'features/lifeskills/profile_wizard_screen.dart';
-import 'features/world/world_screen.dart';
+import 'features/universe/toy_universe_screen.dart';
 import 'state/providers.dart';
 
 /// Root of the HARSHIVOS experience.
@@ -21,7 +21,7 @@ class HarshivApp extends ConsumerWidget {
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: ThemeMode.dark,
-      home: profileDone ? const WorldScreen() : const ProfileWizardScreen(),
+      home: profileDone ? const ToyUniverseScreen() : const ProfileWizardScreen(),
     );
   }
 }

@@ -2,6 +2,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../services/audio/tone_player.dart';
+
 /// A glowing 3-arm fidget spinner that spins with momentum and friction decay.
 ///
 /// Flick it (pan with velocity) to spin; it keeps spinning and gradually
@@ -103,6 +105,7 @@ class _FidgetSpinnerToyState extends State<FidgetSpinnerToy>
     _angularVelocity += sign * tangential;
     _angularVelocity = _angularVelocity.clamp(-40.0, 40.0);
     HapticFeedback.mediumImpact();
+    TonePlayer.instance.playWhir();
   }
 
   void _onTap() {
@@ -110,6 +113,7 @@ class _FidgetSpinnerToyState extends State<FidgetSpinnerToy>
     _angularVelocity += sign * 6.0;
     _angularVelocity = _angularVelocity.clamp(-40.0, 40.0);
     HapticFeedback.lightImpact();
+    TonePlayer.instance.playWhir();
   }
 
   @override

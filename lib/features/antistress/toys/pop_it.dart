@@ -2,6 +2,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../services/audio/tone_player.dart';
+
 /// A full-bleed silicone "pop it" fidget board.
 ///
 /// A responsive grid of large rounded-square bubbles arranged in soft pastel
@@ -47,6 +49,7 @@ class _PopItToyState extends State<PopItToy> {
 
   void _togglePop(int index) {
     HapticFeedback.mediumImpact();
+    TonePlayer.instance.playPop(0.35 + (index % _columns) / _columns * 0.4);
     setState(() {
       _popped[index] = !_popped[index];
     });

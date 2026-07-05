@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../services/audio/tone_player.dart';
+
 /// A full-bleed calculator-style keypad of big clicky buttons.
 ///
 /// Tap digits to watch them scroll across a little display; the clear key
@@ -19,6 +21,7 @@ class _KeypadToyState extends State<KeypadToy> {
 
   void _press(String label) {
     HapticFeedback.selectionClick();
+    TonePlayer.instance.playThock();
     setState(() {
       _display = (_display + label);
       if (_display.length > _maxDigits) {
@@ -29,6 +32,7 @@ class _KeypadToyState extends State<KeypadToy> {
 
   void _clear() {
     HapticFeedback.mediumImpact();
+    TonePlayer.instance.playClick();
     setState(() => _display = '');
   }
 

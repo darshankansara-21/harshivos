@@ -2,6 +2,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../services/audio/tone_player.dart';
+
 /// A full-bleed squishy stress ball fidget toy.
 ///
 /// One big squishy gradient ball centered on screen. Press-and-drag deforms it
@@ -50,6 +52,7 @@ class _StressBallToyState extends State<StressBallToy>
 
   void _start(Offset local, Size size) {
     HapticFeedback.mediumImpact();
+    TonePlayer.instance.playSquish();
     _spring.stop();
     setState(() {
       _isPressing = true;

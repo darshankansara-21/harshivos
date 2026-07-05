@@ -2,6 +2,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../services/audio/tone_player.dart';
+
 /// A calm fidget toy: a combination padlock face with four vertical number
 /// dials (0-9). Drag each dial up or down to scroll the numbers like an
 /// odometer wheel, with a detent haptic per number snap. There is no correct
@@ -191,6 +193,7 @@ class _NumberDialState extends State<_NumberDial>
     if (nearest != _lastDetent) {
       _lastDetent = nearest;
       HapticFeedback.selectionClick();
+      TonePlayer.instance.playTick();
     }
   }
 

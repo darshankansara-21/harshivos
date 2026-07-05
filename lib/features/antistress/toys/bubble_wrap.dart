@@ -2,6 +2,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../services/audio/tone_player.dart';
+
 /// A full-bleed classic plastic bubble wrap fidget surface.
 ///
 /// A dense grid of glossy translucent bubbles. Tapping a bubble pops it: it
@@ -37,6 +39,7 @@ class _BubbleWrapToyState extends State<BubbleWrapToy> {
       return;
     }
     HapticFeedback.selectionClick();
+    TonePlayer.instance.playPop(0.75);
     setState(() {
       _popped[index] = true;
     });

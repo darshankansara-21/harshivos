@@ -60,6 +60,112 @@ class TonePlayer {
     await _play(freq, seconds: 0.16, wave: _Wave.sine, attack: 0.004, decay: 6);
   }
 
+  // ---------------------------------------------------------------------------
+  // Mechanical one-shots for the fidget toys. These mix a short pitched "body"
+  // with white noise and a very fast decay so they read as physical clicks,
+  // ticks and thocks rather than musical notes.
+  // ---------------------------------------------------------------------------
+
+  final math.Random _rng = math.Random();
+
+  /// A crisp mechanical click — pen clicks, keypad keys, switch flips.
+  /// [pitch] scales the body frequency (1.0 = default).
+  Future<void> playClick({double pitch = 1.0}) async {
+    await _playNoise(
+        _synthClick(900 * pitch, 0.05, 90, 0.6), volume: 0.55);
+  }
+
+  /// A deeper, softer key press "thock".
+  Future<void> playThock({double pitch = 1.0}) async {
+    await _playNoise(
+        _synthClick(260 * pitch, 0.08, 55, 0.45), volume: 0.6);
+  }
+
+  /// A light detent "tick" — rotary dial notches, combo-lock wheels.
+  Future<void> playTick() async {
+    await _playNoise(_synthClick(1500, 0.03, 140, 0.7), volume: 0.4);
+  }
+
+  /// A toggle click; slightly brighter for the "on" position.
+  Future<void> playSwitch({required bool on}) async {
+    await _playNoise(
+        _synthClick(on ? 1100 : 700, 0.045, 100, 0.65), volume: 0.5);
+  }
+
+  /// A soft low "squish" for the stress ball.
+  Future<void> playSquish() async {
+    await _playNoise(_synthClick(180, 0.16, 22, 0.35), volume: 0.5);
+  }
+
+  /// A rising ratchet buzz for the zipper.
+  Future<void> playZip() async {
+    await _playNoise(_synthZip(0.20), volume: 0.5);
+  }
+
+  /// A soft airy whir for the fidget spinner (call once per flick).
+  Future<void> playWhir() async {
+    await _playNoise(_synthWhir(0.55), volume: 0.6);
+  }
+
+  Future<void> _playNoise(Uint8List bytes, {double volume = 0.6}) async {
+    try {
+      await _ensureReady();
+      await _player.play(BytesSource(bytes), volume: volume);
+    } catch (_) {
+      // Best-effort: never let audio crash a toy.
+    }
+  }
+
+  /// A short pitched body blended with white noise and a fast exponential
+  /// decay — the building block for clicks, ticks and thocks.
+  Uint8List _synthClick(
+      double bodyFreq, double seconds, double decay, double noiseMix) {
+    final frames = (seconds * _sampleRate).round();
+    final data = Int16List(frames);
+    final twoPiF = 2 * math.pi * bodyFreq;
+    for (var i = 0; i < frames; i++) {
+      final t = i / _sampleRate;
+      final env = math.exp(-t * decay);
+      final body = math.sin(twoPiF * t);
+      final noise = _rng.nextDouble() * 2 - 1;
+      final s = body * (1 - noiseMix) + noise * noiseMix;
+      data[i] = (s * env * 32767 * 0.7).round().clamp(-32768, 32767);
+    }
+    return _wrapWav(data);
+  }
+
+  /// A noise burst gated by a buzz whose rate rises over time — a zip sound.
+  Uint8List _synthZip(double seconds) {
+    final frames = (seconds * _sampleRate).round();
+    final data = Int16List(frames);
+    for (var i = 0; i < frames; i++) {
+      final t = i / _sampleRate;
+      final prog = t / seconds;
+      final rate = 60 + prog * 200;
+      final buzz = math.sin(2 * math.pi * rate * t) >= 0 ? 1.0 : -1.0;
+      final noise = _rng.nextDouble() * 2 - 1;
+      final env = math.sin(math.pi * prog);
+      final s = noise * buzz;
+      data[i] = (s * env * 32767 * 0.5).round().clamp(-32768, 32767);
+    }
+    return _wrapWav(data);
+  }
+
+  /// Low-passed noise with a soft decay — an airy spinner whir.
+  Uint8List _synthWhir(double seconds) {
+    final frames = (seconds * _sampleRate).round();
+    final data = Int16List(frames);
+    double prev = 0;
+    for (var i = 0; i < frames; i++) {
+      final t = i / _sampleRate;
+      final env = math.exp(-t * 5);
+      final noise = _rng.nextDouble() * 2 - 1;
+      prev = prev * 0.92 + noise * 0.08;
+      data[i] = (prev * env * 32767 * 3.0).round().clamp(-32768, 32767);
+    }
+    return _wrapWav(data);
+  }
+
   Future<void> _play(
     double freq, {
     required double seconds,

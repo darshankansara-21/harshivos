@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../services/audio/tone_player.dart';
+
 /// A full-bleed retractable click-pen drawn with shapes.
 ///
 /// Tap the plunger to click the tip out, tap again to retract. A springy
@@ -44,6 +46,7 @@ class _ClickPenToyState extends State<ClickPenToy>
       _extended = !_extended;
       _clicks++;
     });
+    TonePlayer.instance.playClick(pitch: _extended ? 1.15 : 0.85);
     if (_extended) {
       _controller.forward(from: 0);
     } else {

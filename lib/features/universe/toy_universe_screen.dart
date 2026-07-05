@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/widgets/harshiv_scaffold.dart';
 import '../../state/providers.dart';
 import '../antistress/antistress_player_screen.dart';
+import '../world/world_screen.dart';
 import 'toy_debug_screen.dart';
 import 'universe_catalog.dart';
 import 'universe_state.dart';
@@ -21,6 +22,7 @@ class ToyUniverseScreen extends ConsumerWidget {
       BuildContext context, WidgetRef ref, UniverseToy toy) async {
     HapticFeedback.selectionClick();
     ref.read(toyUsageProvider.notifier).record(toy.id);
+    final started = DateTime.now();
     if (toy.launch == ToyLaunch.screen) {
       await Navigator.of(context).push(
         MaterialPageRoute<void>(builder: (_) => toy.build()),
@@ -36,6 +38,10 @@ class ToyUniverseScreen extends ConsumerWidget {
         ),
       );
     }
+    // Back from the toy — log how long it was played for analytics.
+    ref
+        .read(toyUsageProvider.notifier)
+        .recordDuration(toy.id, DateTime.now().difference(started));
   }
 
   @override
@@ -98,6 +104,13 @@ class ToyUniverseScreen extends ConsumerWidget {
           SliverToBoxAdapter(
             child: _CategoryChips(counts: sortedCounts),
           ),
+          SliverToBoxAdapter(
+            child: _ExploreWorldsButton(
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const WorldScreen()),
+              ),
+            ),
+          ),
           if (favorites.isNotEmpty)
             _RailSliver(title: 'Favorites', emoji: '\u2764\uFE0F', toys: favorites),
           if (recents.isNotEmpty)
@@ -132,6 +145,55 @@ class ToyUniverseScreen extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// A prominent doorway back to the immersive World home. Toys are the front
+/// door now; this keeps every existing world one tap away.
+class _ExploreWorldsButton extends StatelessWidget {
+  const _ExploreWorldsButton({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 6, 20, 2),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: onTap,
+          child: Ink(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: const LinearGradient(
+                colors: <Color>[Color(0xFF1E3A8A), Color(0xFF36E0C0)],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+              child: Row(
+                children: <Widget>[
+                  const Text('🗺️', style: TextStyle(fontSize: 22)),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text('Explore Worlds',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800)),
+                  ),
+                  Icon(Icons.chevron_right_rounded,
+                      color: Colors.white.withOpacity(0.9)),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

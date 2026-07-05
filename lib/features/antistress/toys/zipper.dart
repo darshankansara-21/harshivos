@@ -2,6 +2,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../services/audio/tone_player.dart';
+
 /// A calm fidget toy: a big vertical zipper down the center of the screen.
 /// Drag the pull-tab up or down; teeth below the tab interlock (closed) while
 /// teeth above the tab separate (open). Haptic ticks fire as teeth mesh.
@@ -51,6 +53,7 @@ class _ZipperToyState extends State<ZipperToy>
     if (tooth != _lastToothTicked) {
       _lastToothTicked = tooth;
       HapticFeedback.selectionClick();
+      TonePlayer.instance.playTick();
     }
     setState(() => _position = next);
   }

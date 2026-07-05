@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../services/audio/tone_player.dart';
+
 /// A full-bleed panel of big chunky wall/breaker switches.
 ///
 /// Flip each one on/off with a sliding lever and a glowing indicator light.
@@ -38,6 +40,7 @@ class _SwitchBoardToyState extends State<SwitchBoardToy> {
     } else {
       HapticFeedback.lightImpact();
     }
+    TonePlayer.instance.playSwitch(on: _on[i]);
   }
 
   @override
