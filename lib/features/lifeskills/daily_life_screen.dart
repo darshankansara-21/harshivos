@@ -13,6 +13,7 @@ import 'models/life_models.dart';
 import 'progress_dashboard_screen.dart';
 import 'routine_player_screen.dart';
 import 'state/lifeskills_providers.dart';
+import 'success_binder_screen.dart';
 
 /// "My Daily Life" — the home of the Visual Life Skills world. A warm hub where
 /// the child's own avatar greets them, celebrates their streak, and invites them
@@ -157,6 +158,14 @@ class DailyLifeScreen extends ConsumerWidget {
             glow: const Color(0xFF06D6A0),
             onTap: () => Navigator.of(context).push(MaterialPageRoute(
                 builder: (_) => const ProgressDashboardScreen())),
+          ),
+          _ToolTile(
+            emoji: '🏆',
+            title: 'My Wins',
+            subtitle: 'Our success binder',
+            glow: const Color(0xFFFFD166),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => const SuccessBinderScreen())),
           ),
         ]),
       ),

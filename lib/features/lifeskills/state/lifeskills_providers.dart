@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../services/cloud/cloud_sync.dart';
@@ -172,6 +173,91 @@ final customRoutinesProvider =
     StateNotifierProvider<CustomRoutinesNotifier, List<LifeRoutine>>(
   (ref) => CustomRoutinesNotifier(ref),
 );
+
+// --------------------------------------------------------------------------
+// Success Binder / My Wins (a growing keepsake of proud moments)
+// --------------------------------------------------------------------------
+
+class WinsNotifier extends StateNotifier<List<Win>> {
+  WinsNotifier(this._ref) : super(const <Win>[]) {
+    _load();
+  }
+
+  static const _key = 'life_wins';
+  final Ref _ref;
+
+  void _load() {
+    final raw = _ref.read(localStorageProvider).readList(_key);
+    state = raw.map((e) => Win.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<void> _persist() async {
+    await _ref
+        .read(localStorageProvider)
+        .writeJson(_key, state.map((w) => w.toJson()).toList());
+    await _ref.read(cloudSyncProvider).push(
+      'life_wins',
+      <String, dynamic>{'wins': state.map((w) => w.toJson()).toList()},
+    );
+  }
+
+  static String _today() {
+    final now = DateTime.now();
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}-'
+        '${now.day.toString().padLeft(2, '0')}';
+  }
+
+  /// Newest wins first, so the binder reads like a fresh scrapbook page.
+  Future<void> add(Win win) async {
+    state = <Win>[win, ...state];
+    await _persist();
+  }
+
+  Future<void> remove(String id) async {
+    state = state.where((w) => w.id != id).toList();
+    await _persist();
+  }
+
+  /// Auto-captured when a routine is finished. De-duplicated to one per
+  /// routine per day so the binder celebrates without spamming.
+  Future<void> recordRoutineWin({
+    required String routineId,
+    required String title,
+    required String emoji,
+    required Color accent,
+  }) async {
+    final today = _today();
+    final already =
+        state.any((w) => w.routineId == routineId && w.dateIso == today);
+    if (already) return;
+    await add(Win(
+      id: 'win_${DateTime.now().microsecondsSinceEpoch}',
+      title: title,
+      dateIso: today,
+      note: 'Finished all by myself!',
+      emoji: emoji,
+      kind: WinKind.routine,
+      routineId: routineId,
+      accent: accent,
+    ));
+  }
+
+  /// A parent-added proud moment.
+  Future<void> addMoment(String title, {String emoji = '⭐', String note = ''}) {
+    return add(Win(
+      id: 'win_${DateTime.now().microsecondsSinceEpoch}',
+      title: title,
+      dateIso: _today(),
+      note: note,
+      emoji: emoji,
+      kind: WinKind.moment,
+      accent: const Color(0xFFFFD166),
+    ));
+  }
+}
+
+final winsProvider =
+    StateNotifierProvider<WinsNotifier, List<Win>>((ref) => WinsNotifier(ref));
 
 // --------------------------------------------------------------------------
 // Avatar configuration (the child's guide, saved once, used everywhere)

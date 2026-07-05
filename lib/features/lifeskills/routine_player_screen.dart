@@ -101,6 +101,15 @@ class _RoutinePlayerScreenState extends ConsumerState<RoutinePlayerScreen>
     if (!_completed) {
       _completed = true;
       ref.read(lifeProgressProvider.notifier).markComplete(widget.routine.id);
+      // Capture a proud moment in the Success Binder / My Wins.
+      ref.read(winsProvider.notifier).recordRoutineWin(
+            routineId: widget.routine.id,
+            title: widget.routine.title,
+            emoji: widget.routine.emoji,
+            accent: widget.routine.gradient.isNotEmpty
+                ? widget.routine.gradient.first
+                : const Color(0xFFFFD166),
+          );
     }
     final name = ref.read(childNameProvider);
     _speak('You did it, $name! Amazing job!');
