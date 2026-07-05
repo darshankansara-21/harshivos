@@ -17,6 +17,8 @@ import '../sensorylab/sensory_lab_screen.dart';
 import '../stories/social_stories_screen.dart';
 import '../talk/talk_screen.dart';
 import '../timer/visual_timer_screen.dart';
+import '../universe/toy_universe_screen.dart';
+import '../universe/universe_catalog.dart';
 import 'objects/bubble_machine.dart';
 import 'objects/calendar_board.dart';
 import 'objects/cloud_mobile.dart';
@@ -211,6 +213,24 @@ class WorldScreen extends ConsumerWidget {
                         ),
                       ),
                     ),
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: SafeArea(
+                        top: false,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+                          child: _ToyBoxButton(
+                            count: kToyUniverse.length,
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                  builder: (_) => const ToyUniverseScreen()),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 );
               },
@@ -290,6 +310,70 @@ class _Greeting extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// A big, irresistible pill that opens the flat Toy Box — every toy, one tap.
+class _ToyBoxButton extends StatelessWidget {
+  const _ToyBoxButton({required this.count, required this.onTap});
+  final int count;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(24),
+        onTap: onTap,
+        child: Ink(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            gradient: const LinearGradient(
+              colors: <Color>[Color(0xFF7C3AED), Color(0xFFEC4899)],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                  color: const Color(0xFF7C3AED).withOpacity(0.5),
+                  blurRadius: 22,
+                  spreadRadius: 1,
+                  offset: const Offset(0, 6)),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                const Text('🧸', style: TextStyle(fontSize: 24)),
+                const SizedBox(width: 10),
+                const Text('Toy Box',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 19,
+                        fontWeight: FontWeight.w900)),
+                const SizedBox(width: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.22),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text('$count toys',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800)),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
