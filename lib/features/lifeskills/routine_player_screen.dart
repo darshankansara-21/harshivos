@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
 import '../../state/providers.dart';
+import '../../models/activity_event.dart';
 import 'avatar/avatar.dart';
 import 'models/life_models.dart';
 import 'state/lifeskills_providers.dart';
@@ -103,6 +104,9 @@ class _RoutinePlayerScreenState extends ConsumerState<RoutinePlayerScreen>
     if (!_completed) {
       _completed = true;
       ref.read(lifeProgressProvider.notifier).markComplete(widget.routine.id);
+      ref.read(activityLogProvider.notifier).log(
+          ActivityType.routineCompleted, widget.routine.id,
+          label: widget.routine.title);
       // Capture a proud moment in the Success Binder / My Wins.
       ref.read(winsProvider.notifier).recordRoutineWin(
             routineId: widget.routine.id,

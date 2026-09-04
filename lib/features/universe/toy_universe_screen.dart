@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/widgets/harshiv_scaffold.dart';
+import '../../models/activity_event.dart';
 import '../../state/providers.dart';
 import '../antistress/antistress_player_screen.dart';
 import '../calm/calm_me_screen.dart';
@@ -10,6 +11,7 @@ import '../learn/learn_screen.dart';
 import '../lifeskills/avatar/avatar.dart';
 import '../lifeskills/avatar/pico.dart';
 import '../lifeskills/daily_life_screen.dart';
+import '../parent/activity_insights_screen.dart';
 import '../world/world_screen.dart';
 import '../lifeskills/profile_wizard_screen.dart';
 import '../settings/sensory_settings_screen.dart';
@@ -46,10 +48,15 @@ class ToyUniverseScreen extends ConsumerStatefulWidget {
         ),
       );
     }
-    // Back from the toy — log how long it was played for analytics.
-    ref
-        .read(toyUsageProvider.notifier)
-        .recordDuration(toy.id, DateTime.now().difference(started));
+    // Back from the toy — record duration for rails + the unified activity log.
+    final played = DateTime.now().difference(started);
+    ref.read(toyUsageProvider.notifier).recordDuration(toy.id, played);
+    ref.read(activityLogProvider.notifier).log(
+          ActivityType.toyPlayed,
+          toy.id,
+          seconds: played.inSeconds,
+          label: toy.name,
+        );
   }
 
   @override
@@ -123,6 +130,17 @@ class _ToyUniverseScreenState extends ConsumerState<ToyUniverseScreen> {
                       ),
                     ),
                     // Hidden debug entry: long-press the counter chip.
+                                        IconButton(
+                                          tooltip: 'Activity insights',
+                                          icon: const Icon(Icons.insights_rounded,
+                                              color: Colors.white, size: 26),
+                                          onPressed: () => Navigator.of(context).push(
+                                            MaterialPageRoute<void>(
+                                              builder: (_) =>
+                                                  const ActivityInsightsScreen(),
+                                            ),
+                                          ),
+                                        ),
                                         IconButton(
                                           tooltip: 'Sensory settings',
                                           icon: const Icon(Icons.tune_rounded,

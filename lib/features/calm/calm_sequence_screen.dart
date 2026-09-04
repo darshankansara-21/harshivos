@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/regulation_entry.dart';
 import '../../state/providers.dart';
+import '../../models/activity_event.dart';
 import '../play/toys/toys_particles.dart';
 import '../play/toys/toys_water.dart';
 import 'breathing_exercise.dart';
@@ -79,6 +80,9 @@ class _CalmSequenceScreenState extends ConsumerState<CalmSequenceScreen> {
   }
 
   void _complete(double calmAfter) {
+    ref.read(activityLogProvider.notifier).log(
+        ActivityType.calmCompleted, widget.mood.name,
+        label: widget.mood.label);
     ref.read(regulationLogProvider.notifier).logSession(
       toyIds: <String>['water_ripples', 'particle_galaxy'],
       mood: widget.mood,

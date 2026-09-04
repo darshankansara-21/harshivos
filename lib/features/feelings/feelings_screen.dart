@@ -2,9 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/harshiv_scaffold.dart';
+import '../../models/activity_event.dart';
+import '../../state/providers.dart';
 import '../lifeskills/avatar/avatar.dart';
 
 /// Maps each feeling to the Hari expression that mirrors it, so the child sees
@@ -135,18 +138,20 @@ const List<_Feeling> _feelings = <_Feeling>[
 /// Feelings check-in: a calm, visual-first screen where the child picks an
 /// emotion and is offered gentle, suitable coping strategies. There are no
 /// wrong choices — every feeling is welcomed and validated.
-class FeelingsScreen extends StatefulWidget {
+class FeelingsScreen extends ConsumerStatefulWidget {
   const FeelingsScreen({super.key});
 
   @override
-  State<FeelingsScreen> createState() => _FeelingsScreenState();
+  ConsumerState<FeelingsScreen> createState() => _FeelingsScreenState();
 }
 
-class _FeelingsScreenState extends State<FeelingsScreen> {
+class _FeelingsScreenState extends ConsumerState<FeelingsScreen> {
   _Feeling? _selected;
 
   void _selectFeeling(_Feeling feeling) {
     HapticFeedback.mediumImpact();
+    ref.read(activityLogProvider.notifier).log(
+        ActivityType.feelingChosen, feeling.label, label: feeling.label);
     setState(() => _selected = feeling);
   }
 

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
 import '../../core/widgets/harshiv_scaffold.dart';
+import '../../models/activity_event.dart';
 import '../../models/communication_item.dart';
 import '../../state/providers.dart';
 import 'communication_data.dart';
@@ -107,6 +108,8 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
 
   void _addWord(_Word word, {String? spokenText}) {
     setState(() => _strip.add(word));
+    ref.read(activityLogProvider.notifier).log(
+        ActivityType.spoke, word.label, label: word.label);
     // Instant voice — never await anything on the tap path.
     _speak(spokenText ?? word.label, emoji: word.emoji, color: word.color);
   }
@@ -151,6 +154,7 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
               const SizedBox(height: 10),
               _coreWordRow(),
               const SizedBox(height: 12),
+              _favStrip(),
               _recentStrip(),
               _categoryBar(),
               const SizedBox(height: 10),
@@ -169,6 +173,11 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
                     return _ItemTile(
                       item: item,
                       color: accent,
+                      favorite: ref.watch(talkFavoritesProvider).contains(item.label),
+                      onFavorite: () {
+                        HapticFeedback.mediumImpact();
+                        ref.read(talkFavoritesProvider.notifier).toggle(item.label);
+                      },
                       onTap: () {
                         ref.read(talkRecentsProvider.notifier).record(item.label);
                         _addWord(
@@ -288,6 +297,76 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
   }
 
   // The child's real vocabulary, surfaced. Empty until they speak something.
+  Widget _favStrip() {
+    final favs = ref.watch(talkFavoritesProvider);
+    final items =
+        favs.map(itemByLabel).whereType<CommunicationItem>().toList();
+    if (items.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        const Padding(
+          padding: EdgeInsets.only(left: 4, bottom: 6),
+          child: Row(
+            children: <Widget>[
+              Icon(Icons.star_rounded, color: Color(0xFFFFD166), size: 18),
+              SizedBox(width: 6),
+              Text('Favorites',
+                  style: TextStyle(
+                      color: Colors.white70,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14)),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 56,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: items.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (context, i) {
+              final item = items[i];
+              final color = _colorFor(item.category);
+              return GestureDetector(
+                onTap: () {
+                  ref.read(talkRecentsProvider.notifier).record(item.label);
+                  _addWord(_Word(item.label, item.emoji, color),
+                      spokenText: item.phrase);
+                },
+                onLongPress: () {
+                  HapticFeedback.mediumImpact();
+                  ref.read(talkFavoritesProvider.notifier).toggle(item.label);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.16),
+                    borderRadius: BorderRadius.circular(18),
+                    border:
+                        Border.all(color: const Color(0xFFFFD166), width: 1.6),
+                  ),
+                  child: Row(
+                    children: <Widget>[
+                      Text(item.emoji, style: const TextStyle(fontSize: 24)),
+                      const SizedBox(width: 8),
+                      Text(item.label,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 16)),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 12),
+      ],
+    );
+  }
+
   Widget _recentStrip() {
     final recents = ref.watch(talkRecentsProvider);
     final items =
@@ -487,10 +566,17 @@ class _CoreChip extends StatelessWidget {
 /// A communication tile — big picture, always-visible word, coloured ring,
 /// and a clear press response (no sound required to know it worked).
 class _ItemTile extends StatefulWidget {
-  const _ItemTile({required this.item, required this.color, required this.onTap});
+  const _ItemTile(
+      {required this.item,
+      required this.color,
+      required this.onTap,
+      this.onFavorite,
+      this.favorite = false});
   final CommunicationItem item;
   final Color color;
   final VoidCallback onTap;
+  final VoidCallback? onFavorite;
+  final bool favorite;
 
   @override
   State<_ItemTile> createState() => _ItemTileState();
@@ -506,36 +592,48 @@ class _ItemTileState extends State<_ItemTile> {
       onTapUp: (_) => setState(() => _pressed = false),
       onTapCancel: () => setState(() => _pressed = false),
       onTap: widget.onTap,
+      onLongPress: widget.onFavorite,
       child: AnimatedScale(
         scale: _pressed ? 0.93 : 1.0,
         duration: const Duration(milliseconds: 110),
         curve: Curves.easeOut,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          decoration: BoxDecoration(
-            color: widget.color.withOpacity(_pressed ? 0.26 : 0.12),
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(
-              color: widget.color.withOpacity(_pressed ? 0.95 : 0.55),
-              width: _pressed ? 2.2 : 1.6,
-            ),
-            boxShadow: _pressed
-                ? <BoxShadow>[BoxShadow(color: widget.color.withOpacity(0.5), blurRadius: 22)]
-                : const <BoxShadow>[],
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Text(widget.item.emoji, style: const TextStyle(fontSize: 52)),
-              const SizedBox(height: 8),
-              Text(
-                widget.item.label,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18),
+        child: Stack(
+          children: <Widget>[
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              decoration: BoxDecoration(
+                color: widget.color.withOpacity(_pressed ? 0.26 : 0.12),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(
+                  color: widget.color.withOpacity(_pressed ? 0.95 : 0.55),
+                  width: _pressed ? 2.2 : 1.6,
+                ),
+                boxShadow: _pressed
+                    ? <BoxShadow>[BoxShadow(color: widget.color.withOpacity(0.5), blurRadius: 22)]
+                    : const <BoxShadow>[],
               ),
-            ],
-          ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Text(widget.item.emoji, style: const TextStyle(fontSize: 52)),
+                  const SizedBox(height: 8),
+                  Text(
+                    widget.item.label,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18),
+                  ),
+                ],
+              ),
+            ),
+            if (widget.favorite)
+              const Positioned(
+                top: 8,
+                right: 10,
+                child: Icon(Icons.star_rounded,
+                    color: Color(0xFFFFD166), size: 22),
+              ),
+          ],
         ),
       ),
     );

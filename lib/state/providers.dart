@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
+import '../models/activity_event.dart';
 import '../models/regulation_entry.dart';
 import '../models/sensory_profile.dart';
 import '../services/ai/ai_provider.dart';
@@ -198,3 +199,161 @@ final talkRecentsProvider =
     StateNotifierProvider<TalkRecentsNotifier, List<String>>(
   (ref) => TalkRecentsNotifier(ref.watch(localStorageProvider)),
 );
+
+/// AAC words a family has starred as favourites — always surfaced first so a
+/// child's most important words are reachable under stress.
+class TalkFavoritesNotifier extends StateNotifier<Set<String>> {
+  TalkFavoritesNotifier(this._storage) : super(<String>{}) {
+    state = _storage.readList(_key).map((e) => e.toString()).toSet();
+  }
+
+  static const String _key = 'talk_favorites';
+  final LocalStorage _storage;
+
+  bool isFavorite(String label) => state.contains(label);
+
+  Future<void> toggle(String label) async {
+    final next = Set<String>.from(state);
+    if (!next.add(label)) next.remove(label);
+    state = next;
+    await _storage.writeJson(_key, next.toList());
+  }
+}
+
+final talkFavoritesProvider =
+    StateNotifierProvider<TalkFavoritesNotifier, Set<String>>(
+  (ref) => TalkFavoritesNotifier(ref.watch(localStorageProvider)),
+);
+
+// ---------------------------------------------------------------------------
+// Unified activity event log — ONE honest, local-only source of truth that
+// personalization and parent insights read from. Privacy-first: never leaves
+// the device, capped, and only records what the child actually did.
+// ---------------------------------------------------------------------------
+
+class ActivityLogNotifier extends StateNotifier<List<ActivityEvent>> {
+  ActivityLogNotifier(this._storage) : super(const <ActivityEvent>[]) {
+    state = _storage
+        .readList(_key)
+        .map((e) => ActivityEvent.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  static const String _key = 'activity_log';
+  static const int _max = 1000;
+  final LocalStorage _storage;
+
+  Future<void> log(ActivityType type, String target,
+      {int seconds = 0, String? label}) async {
+    final ev = ActivityEvent(
+      type: type,
+      target: target,
+      at: DateTime.now(),
+      seconds: seconds,
+      label: label,
+    );
+    final next = <ActivityEvent>[...state, ev];
+    if (next.length > _max) next.removeRange(0, next.length - _max);
+    state = next;
+    await _storage.writeJson(_key, next.map((e) => e.toJson()).toList());
+  }
+}
+
+final activityLogProvider =
+    StateNotifierProvider<ActivityLogNotifier, List<ActivityEvent>>(
+  (ref) => ActivityLogNotifier(ref.watch(localStorageProvider)),
+);
+
+/// A parent-friendly, deterministic summary of the child's activity. NOT AI:
+/// pure aggregation of the local event log. Framed as observations, never
+/// clinical conclusions.
+class ActivityInsights {
+  const ActivityInsights({
+    required this.eventsToday,
+    required this.minutes7d,
+    required this.topActivities,
+    required this.topWords,
+    required this.feelings,
+    required this.routinesCompleted7d,
+    required this.calmCompleted7d,
+    required this.activeHours,
+  });
+
+  final int eventsToday;
+  final int minutes7d;
+  final List<MapEntry<String, int>> topActivities; // label -> count
+  final List<MapEntry<String, int>> topWords; // label -> count
+  final List<MapEntry<String, int>> feelings; // mood -> count
+  final int routinesCompleted7d;
+  final int calmCompleted7d;
+  final List<int> activeHours; // most active hours 0-23
+
+  bool get hasData => eventsToday > 0 || minutes7d > 0 || topActivities.isNotEmpty;
+
+  factory ActivityInsights.from(List<ActivityEvent> events) {
+    final now = DateTime.now();
+    final startToday = DateTime(now.year, now.month, now.day);
+    final weekAgo = now.subtract(const Duration(days: 7));
+
+    var eventsToday = 0;
+    var seconds7d = 0;
+    var routines = 0;
+    var calm = 0;
+    final actCount = <String, int>{};
+    final wordCount = <String, int>{};
+    final feelingCount = <String, int>{};
+    final hourCount = <int, int>{};
+
+    for (final e in events) {
+      if (e.at.isAfter(startToday)) eventsToday++;
+      if (e.at.isAfter(weekAgo)) {
+        seconds7d += e.seconds;
+        hourCount.update(e.at.hour, (v) => v + 1, ifAbsent: () => 1);
+        final name = e.label ?? e.target;
+        switch (e.type) {
+          case ActivityType.toyPlayed:
+          case ActivityType.gamePlayed:
+            actCount.update(name, (v) => v + 1, ifAbsent: () => 1);
+            break;
+          case ActivityType.spoke:
+            wordCount.update(name, (v) => v + 1, ifAbsent: () => 1);
+            break;
+          case ActivityType.feelingChosen:
+            feelingCount.update(name, (v) => v + 1, ifAbsent: () => 1);
+            break;
+          case ActivityType.routineCompleted:
+            routines++;
+            break;
+          case ActivityType.calmCompleted:
+            calm++;
+            actCount.update(name, (v) => v + 1, ifAbsent: () => 1);
+            break;
+        }
+      }
+    }
+
+    List<MapEntry<String, int>> top(Map<String, int> m, int n) {
+      final l = m.entries.toList()
+        ..sort((a, b) => b.value.compareTo(a.value));
+      return l.take(n).toList();
+    }
+
+    final hours = hourCount.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    return ActivityInsights(
+      eventsToday: eventsToday,
+      minutes7d: (seconds7d / 60).round(),
+      topActivities: top(actCount, 5),
+      topWords: top(wordCount, 5),
+      feelings: top(feelingCount, 5),
+      routinesCompleted7d: routines,
+      calmCompleted7d: calm,
+      activeHours: hours.take(3).map((e) => e.key).toList(),
+    );
+  }
+}
+
+final activityInsightsProvider = Provider<ActivityInsights>((ref) {
+  return ActivityInsights.from(ref.watch(activityLogProvider));
+});
