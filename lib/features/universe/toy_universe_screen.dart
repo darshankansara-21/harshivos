@@ -84,6 +84,7 @@ class _ToyUniverseScreenState extends ConsumerState<ToyUniverseScreen> {
     final recents = ref.watch(recentToysProvider);
     final loved = ref.watch(mostLovedToysProvider);
     final fresh = ref.watch(newToysProvider);
+    final recommended = ref.watch(recommendedUniverseToysProvider);
     final counts = toyCountsByCategory();
     final total = kToyUniverse.where((t) => t.working).length;
 
@@ -159,9 +160,20 @@ class _ToyUniverseScreenState extends ConsumerState<ToyUniverseScreen> {
           SliverToBoxAdapter(
             child: _HariGreeting(name: name),
           ),
+          if (recommended.isNotEmpty)
+            _RailSliver(
+                title: 'Start Playing', emoji: '\u25B6\uFE0F', toys: recommended),
           SliverToBoxAdapter(
             child: _CoreDestinations(onPlay: _scrollToToys),
           ),
+          if (favorites.isNotEmpty)
+            _RailSliver(title: 'Favorites', emoji: '\u2764\uFE0F', toys: favorites),
+          if (recents.isNotEmpty)
+            _RailSliver(title: 'Recently Played', emoji: '\u23F1\uFE0F', toys: recents),
+          if (loved.isNotEmpty)
+            _RailSliver(title: 'Most Loved', emoji: '\u2B50', toys: loved),
+          if (fresh.isNotEmpty)
+            _RailSliver(title: 'New', emoji: '\u2728', toys: fresh),
           SliverToBoxAdapter(
             child: _CategoryChips(counts: sortedCounts),
           ),
@@ -172,14 +184,6 @@ class _ToyUniverseScreenState extends ConsumerState<ToyUniverseScreen> {
               ),
             ),
           ),
-          if (favorites.isNotEmpty)
-            _RailSliver(title: 'Favorites', emoji: '\u2764\uFE0F', toys: favorites),
-          if (recents.isNotEmpty)
-            _RailSliver(title: 'Recently Played', emoji: '\u23F1\uFE0F', toys: recents),
-          if (loved.isNotEmpty)
-            _RailSliver(title: 'Most Loved', emoji: '\u2B50', toys: loved),
-          if (fresh.isNotEmpty)
-            _RailSliver(title: 'New', emoji: '\u2728', toys: fresh),
           SliverToBoxAdapter(
             child: Padding(
               key: _allToysKey,
@@ -411,9 +415,9 @@ class _DestinationCard extends StatelessWidget {
           onTap();
         },
         child: Ink(
-          height: 94,
+          height: 60,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(18),
             gradient: LinearGradient(
               colors: colors,
               begin: Alignment.topLeft,
@@ -421,25 +425,25 @@ class _DestinationCard extends StatelessWidget {
             ),
             boxShadow: <BoxShadow>[
               BoxShadow(
-                color: colors.last.withOpacity(0.35),
-                blurRadius: 14,
-                offset: const Offset(0, 6),
+                color: colors.last.withOpacity(0.28),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              Text(emoji, style: const TextStyle(fontSize: 30)),
-              const SizedBox(height: 4),
+              Text(emoji, style: const TextStyle(fontSize: 22)),
+              const SizedBox(height: 2),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 3),
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   child: Text(label,
                       style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 13.5,
+                          fontSize: 11,
                           fontWeight: FontWeight.w800)),
                 ),
               ),

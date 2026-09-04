@@ -162,6 +162,59 @@ final newToysProvider = Provider<List<UniverseToy>>((ref) {
   return kToyUniverse.where((t) => t.isNew).toList();
 });
 
+/// A transparent, on-device "For You" list. NOT AI: it surfaces toys from the
+/// categories a child has recently chosen (recency-weighted), excluding ones
+/// they've already played. On first launch it offers immediate-delight sensory
+/// toys, so there is always something real to tap right away.
+final recommendedUniverseToysProvider = Provider<List<UniverseToy>>((ref) {
+  final usage = ref.watch(toyUsageProvider);
+  final recents = usage.recents;
+  final played = usage.counts.keys.toSet();
+
+  List<UniverseToy> firstLaunch() {
+    final sensory = kToyUniverse
+        .where((t) => t.working && t.category == ToyCategory.sensory)
+        .take(8)
+        .toList();
+    if (sensory.isNotEmpty) return sensory;
+    return kToyUniverse.where((t) => t.working).take(8).toList();
+  }
+
+  if (recents.isEmpty) return firstLaunch();
+
+  final catScore = <ToyCategory, int>{};
+  for (var i = 0; i < recents.length; i++) {
+    final toy = kToyUniverseById[recents[i]];
+    if (toy == null) continue;
+    catScore.update(toy.category, (v) => v + (recents.length - i),
+        ifAbsent: () => recents.length - i);
+  }
+  final cats = catScore.keys.toList()
+    ..sort((a, b) => catScore[b]!.compareTo(catScore[a]!));
+
+  final out = <UniverseToy>[];
+  for (final cat in cats) {
+    for (final t in kToyUniverse) {
+      if (out.length >= 8) break;
+      if (t.working &&
+          t.category == cat &&
+          !played.contains(t.id) &&
+          !out.contains(t)) {
+        out.add(t);
+      }
+    }
+    if (out.length >= 8) break;
+  }
+  // Backfill with any unplayed toy so the rail is always useful.
+  if (out.length < 6) {
+    for (final t in kToyUniverse) {
+      if (out.length >= 8) break;
+      if (t.working && !played.contains(t.id) && !out.contains(t)) out.add(t);
+    }
+  }
+  return out.isEmpty ? firstLaunch() : out;
+});
+
 // ---------------------------------------------------------------------------
 // Analytics — what the child actually plays, so we can learn and tune.
 // ---------------------------------------------------------------------------

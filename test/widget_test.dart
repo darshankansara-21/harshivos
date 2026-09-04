@@ -61,7 +61,7 @@ void main() {
 
     expect(find.textContaining('Toy Box'), findsOneWidget);
     expect(find.textContaining('toys to play'), findsOneWidget);
-    expect(find.text('Explore Worlds'), findsOneWidget);
+    expect(find.textContaining('Start Playing'), findsOneWidget);
     expect(find.byTooltip('My avatar'), findsOneWidget);
   });
 
