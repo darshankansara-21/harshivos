@@ -508,6 +508,9 @@ class _CharacterPainter extends CustomPainter {
     _body(canvas, cx, bodyTop, s);
     _arms(canvas, cx, bodyTop, headC, headR, s, face);
 
+    // A small childlike neck connects head to hoodie.
+    _neck(canvas, cx, headC, headR, bodyTop, s);
+
     // The whole head group tilts together (endearing + expressive).
     canvas.save();
     canvas.translate(headC.dx, headC.dy);
@@ -903,7 +906,38 @@ class _CharacterPainter extends CustomPainter {
       ),
       Paint()..color = Colors.white.withOpacity(0.12),
     );
+    // Rounded shoulders so the hoodie has visible breadth and the sleeves
+    // have a believable origin.
+    for (final sx in <double>[-1, 1]) {
+      final sc = Offset(cx + sx * w * 0.44, bodyTop + s * 0.03);
+      canvas.drawCircle(sc, s * 0.058 + s * 0.012, Paint()..color = _ink);
+      canvas.drawCircle(
+          sc, s * 0.058, Paint()..color = _lighten(config.shirt, 0.08));
+    }
     _chestHeart(canvas, Offset(cx, bodyTop + h * 0.33), s * 0.058);
+  }
+
+  void _neck(Canvas canvas, double cx, Offset headC, double headR,
+      double bodyTop, double s) {
+    final top = headC.dy + headR * 0.70;
+    final bottom = bodyTop + s * 0.03;
+    final w = s * 0.095;
+    final rect = RRect.fromRectAndRadius(
+      Rect.fromLTRB(cx - w / 2, top, cx + w / 2, bottom),
+      Radius.circular(s * 0.03),
+    );
+    canvas.drawRRect(rect.inflate(s * 0.008), Paint()..color = _ink);
+    canvas.drawRRect(rect, Paint()..color = _darken(config.skin, 0.05));
+    // Soft chin shadow for depth.
+    canvas.drawOval(
+      Rect.fromCenter(
+          center: Offset(cx, top + s * 0.005),
+          width: w * 1.7,
+          height: s * 0.03),
+      Paint()
+        ..color = Colors.black.withOpacity(0.10)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.012),
+    );
   }
 
   void _chestHeart(Canvas canvas, Offset c, double size) {
@@ -932,71 +966,101 @@ class _CharacterPainter extends CustomPainter {
   void _legs(Canvas canvas, double cx, double bodyTop, double s) {
     final hipY = bodyTop + s * 0.30;
     const legColor = Color(0xFF3C4A6B);
-    void leg(Offset a, Offset b) {
-      canvas.drawLine(
-          a,
-          b,
-          Paint()
-            ..color = _ink
-            ..strokeCap = StrokeCap.round
-            ..strokeWidth = s * 0.104
-            ..style = PaintingStyle.stroke);
-      canvas.drawLine(
-          a,
-          b,
-          Paint()
-            ..color = legColor
-            ..strokeCap = StrokeCap.round
-            ..strokeWidth = s * 0.08
-            ..style = PaintingStyle.stroke);
+    final sit = pose == AvatarPose.sit || pose == AvatarPose.potty;
+    final walking = pose == AvatarPose.walk ||
+        pose == AvatarPose.school ||
+        pose == AvatarPose.run;
+    final swing = walking
+        ? math.sin(t * math.pi * (pose == AvatarPose.run ? 8 : 4)) * s * 0.06
+        : 0.0;
+
+    void legPart(Offset hip, Offset knee, Offset ankle, Offset toe) {
+      _capsuleC(canvas, hip, knee, s * 0.088, legColor, s);
+      _capsuleC(canvas, knee, ankle, s * 0.078, legColor, s);
+      _foot(canvas, ankle, toe, s);
     }
 
-    double swing = 0;
-    if (pose == AvatarPose.walk ||
-        pose == AvatarPose.school ||
-        pose == AvatarPose.run) {
-      swing =
-          math.sin(t * math.pi * (pose == AvatarPose.run ? 8 : 4)) * s * 0.05;
-    }
-    if (pose == AvatarPose.sit || pose == AvatarPose.potty) {
-      leg(Offset(cx - s * 0.07, hipY), Offset(cx - s * 0.15, hipY + s * 0.02));
-      leg(Offset(cx + s * 0.07, hipY), Offset(cx + s * 0.15, hipY + s * 0.02));
-      _shoe(canvas, Offset(cx - s * 0.16, hipY + s * 0.03), s);
-      _shoe(canvas, Offset(cx + s * 0.16, hipY + s * 0.03), s);
+    if (sit) {
+      final lHip = Offset(cx - s * 0.08, hipY);
+      final rHip = Offset(cx + s * 0.08, hipY);
+      final lKnee = Offset(cx - s * 0.14, hipY + s * 0.03);
+      final rKnee = Offset(cx + s * 0.14, hipY + s * 0.03);
+      final lAnkle = Offset(cx - s * 0.15, hipY + s * 0.10);
+      final rAnkle = Offset(cx + s * 0.15, hipY + s * 0.10);
+      legPart(lHip, lKnee, lAnkle, lAnkle + Offset(-s * 0.07, 0));
+      legPart(rHip, rKnee, rAnkle, rAnkle + Offset(s * 0.07, 0));
       return;
     }
-    leg(Offset(cx - s * 0.07, hipY),
-        Offset(cx - s * 0.07 + swing, hipY + s * 0.11));
-    leg(Offset(cx + s * 0.07, hipY),
-        Offset(cx + s * 0.07 - swing, hipY + s * 0.11));
-    _shoe(canvas, Offset(cx - s * 0.07 + swing, hipY + s * 0.13), s);
-    _shoe(canvas, Offset(cx + s * 0.07 - swing, hipY + s * 0.13), s);
+    final lHip = Offset(cx - s * 0.075, hipY);
+    final rHip = Offset(cx + s * 0.075, hipY);
+    final lKnee = Offset(lHip.dx + swing * 0.4, hipY + s * 0.07);
+    final rKnee = Offset(rHip.dx - swing * 0.4, hipY + s * 0.07);
+    final lAnkle = Offset(lHip.dx + swing, hipY + s * 0.14);
+    final rAnkle = Offset(rHip.dx - swing, hipY + s * 0.14);
+    legPart(lHip, lKnee, lAnkle, lAnkle + Offset(-s * 0.06, 0));
+    legPart(rHip, rKnee, rAnkle, rAnkle + Offset(s * 0.06, 0));
   }
 
-  void _shoe(Canvas canvas, Offset c, double s) {
-    canvas.drawOval(
-      Rect.fromCenter(center: c, width: s * 0.10, height: s * 0.055),
-      Paint()..color = _darken(config.favoriteColor, 0.1),
-    );
-    canvas.drawOval(
-      Rect.fromCenter(
-          center: Offset(c.dx, c.dy - s * 0.01),
-          width: s * 0.08,
-          height: s * 0.02),
-      Paint()..color = Colors.white.withOpacity(0.55),
-    );
+  void _capsuleC(
+      Canvas canvas, Offset a, Offset b, double w, Color color, double s) {
+    canvas.drawLine(
+        a,
+        b,
+        Paint()
+          ..color = _ink
+          ..strokeCap = StrokeCap.round
+          ..strokeWidth = w + s * 0.018
+          ..style = PaintingStyle.stroke);
+    canvas.drawLine(
+        a,
+        b,
+        Paint()
+          ..color = color
+          ..strokeCap = StrokeCap.round
+          ..strokeWidth = w
+          ..style = PaintingStyle.stroke);
+  }
+
+  // A directional child shoe: rounded sole pointing toward [toe].
+  void _foot(Canvas canvas, Offset ankle, Offset toe, double s) {
+    final dir = toe - ankle;
+    final len = dir.distance;
+    final n = len < 1e-3 ? const Offset(1, 0) : dir / len;
+    final heel = ankle - n * s * 0.012;
+    final tip = ankle + n * s * 0.085 + Offset(0, s * 0.008);
+    canvas.drawLine(
+        heel,
+        tip,
+        Paint()
+          ..color = _ink
+          ..strokeCap = StrokeCap.round
+          ..strokeWidth = s * 0.078
+          ..style = PaintingStyle.stroke);
+    canvas.drawLine(
+        heel,
+        tip,
+        Paint()
+          ..color = _darken(config.favoriteColor, 0.05)
+          ..strokeCap = StrokeCap.round
+          ..strokeWidth = s * 0.056
+          ..style = PaintingStyle.stroke);
+    canvas.drawCircle(
+        tip, s * 0.03, Paint()..color = _lighten(config.favoriteColor, 0.16));
+    canvas.drawLine(
+        heel + Offset(0, s * 0.028),
+        tip + Offset(0, s * 0.022),
+        Paint()
+          ..color = Colors.white.withOpacity(0.6)
+          ..strokeCap = StrokeCap.round
+          ..strokeWidth = s * 0.012
+          ..style = PaintingStyle.stroke);
   }
 
   void _arms(Canvas canvas, double cx, double bodyTop, Offset headC,
       double headR, double s, _Face face) {
-    final paint = Paint()
-      ..color = config.skin
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = s * 0.072
-      ..style = PaintingStyle.stroke;
-    final shoulderY = bodyTop + s * 0.03;
-    final lShoulder = Offset(cx - s * 0.13, shoulderY);
-    final rShoulder = Offset(cx + s * 0.13, shoulderY);
+    final shoulderY = bodyTop + s * 0.02;
+    final lShoulder = Offset(cx - s * 0.14, shoulderY);
+    final rShoulder = Offset(cx + s * 0.14, shoulderY);
 
     Offset lHand = Offset(cx - s * 0.17, shoulderY + s * 0.17);
     Offset rHand = Offset(cx + s * 0.17, shoulderY + s * 0.17);
@@ -1057,8 +1121,8 @@ class _CharacterPainter extends CustomPainter {
       case AvatarPose.sit:
       case AvatarPose.potty:
         final sway = math.sin(t * math.pi * 2) * s * 0.012 * face.bounce;
-        lHand = Offset(cx - s * 0.17, shoulderY + s * 0.17 + sway);
-        rHand = Offset(cx + s * 0.17, shoulderY + s * 0.17 - sway);
+        lHand = Offset(cx - s * 0.205, shoulderY + s * 0.19 + sway);
+        rHand = Offset(cx + s * 0.205, shoulderY + s * 0.19 - sway);
         break;
       case AvatarPose.jump:
         lHand = Offset(cx - s * 0.20, headC.dy - s * 0.03);
@@ -1102,9 +1166,6 @@ class _CharacterPainter extends CustomPainter {
         break;
     }
 
-    _arm(canvas, lShoulder, lHand, paint, s);
-    _arm(canvas, rShoulder, rHand, paint, s);
-    // Real hands with fingers; open/spread for gestures, relaxed otherwise.
     final open = pose == AvatarPose.wave ||
         pose == AvatarPose.cheer ||
         pose == AvatarPose.clap ||
@@ -1113,27 +1174,56 @@ class _CharacterPainter extends CustomPainter {
         pose == AvatarPose.jump ||
         pose == AvatarPose.stretch ||
         pose == AvatarPose.help;
+    _limb(canvas, lShoulder, lHand, s, left: true);
+    _limb(canvas, rShoulder, rHand, s, left: false);
     _hand(canvas, lHand, lShoulder, s, open: open);
     _hand(canvas, rHand, rShoulder, s, open: open);
     _rHand = rHand;
     _lHand = lHand;
   }
 
-  void _arm(Canvas canvas, Offset a, Offset b, Paint paint, double s) {
-    final mid = Offset((a.dx + b.dx) / 2 + (b.dx - a.dx) * 0.12,
-        (a.dy + b.dy) / 2 + s * 0.02);
-    final path = Path()
-      ..moveTo(a.dx, a.dy)
-      ..quadraticBezierTo(mid.dx, mid.dy, b.dx, b.dy);
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = _ink
-        ..strokeCap = StrokeCap.round
-        ..strokeWidth = paint.strokeWidth + s * 0.022
-        ..style = PaintingStyle.stroke,
-    );
-    canvas.drawPath(path, paint);
+  /// One arm as a sleeve (hoodie) + forearm (skin) with a soft elbow bend, so
+  /// limbs clearly originate from the torso and read as real, connected arms.
+  void _limb(Canvas canvas, Offset shoulder, Offset hand, double s,
+      {required bool left}) {
+    final dir = hand - shoulder;
+    final len = dir.distance;
+    final n = len < 1e-3 ? const Offset(0, 1) : dir / len;
+    final perp = Offset(-n.dy, n.dx);
+    final outward = left ? -1.0 : 1.0;
+    final elbow = shoulder + n * (len * 0.45) + perp * (s * 0.03 * outward);
+    _capsule(canvas, shoulder, elbow, s * 0.094, config.shirt, s);
+    _capsule(canvas, elbow, hand, s * 0.07, config.skin, s);
+    canvas.drawCircle(
+        elbow, s * 0.044, Paint()..color = _darken(config.shirt, 0.06));
+  }
+
+  void _capsule(
+      Canvas canvas, Offset a, Offset b, double w, Color color, double s) {
+    canvas.drawLine(
+        a,
+        b,
+        Paint()
+          ..color = _ink
+          ..strokeCap = StrokeCap.round
+          ..strokeWidth = w + s * 0.02
+          ..style = PaintingStyle.stroke);
+    canvas.drawLine(
+        a,
+        b,
+        Paint()
+          ..color = color
+          ..strokeCap = StrokeCap.round
+          ..strokeWidth = w
+          ..style = PaintingStyle.stroke);
+    canvas.drawLine(
+        a,
+        Offset.lerp(a, b, 0.5)!,
+        Paint()
+          ..color = Colors.white.withOpacity(0.10)
+          ..strokeCap = StrokeCap.round
+          ..strokeWidth = w * 0.42
+          ..style = PaintingStyle.stroke);
   }
 
   /// A soft, friendly hand — outlined rounded palm with plump round-capped

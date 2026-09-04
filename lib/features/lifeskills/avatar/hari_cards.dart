@@ -207,12 +207,14 @@ class _CalmingStrategyCardState extends ConsumerState<CalmingStrategyCard> {
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           SizedBox(
-            height: 120,
+            height: 104,
             child: Hari(emotion: s.emotion, pose: s.pose),
           ),
           const SizedBox(height: 8),
           Text(s.title,
               textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                   color: Colors.white,
                   fontSize: 16,
@@ -220,6 +222,8 @@ class _CalmingStrategyCardState extends ConsumerState<CalmingStrategyCard> {
           const SizedBox(height: 4),
           Text(_tried ? "You've got this. 💙" : s.phrase,
               textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                   color: Colors.white.withOpacity(0.8), fontSize: 13)),
           const SizedBox(height: 10),

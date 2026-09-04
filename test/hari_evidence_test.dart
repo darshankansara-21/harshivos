@@ -110,30 +110,27 @@ void main() {
   });
 
   testWidgets('Hari emotions sheet', (tester) async {
-    final key = await _sheet(tester, 'HARI — validation set', <Widget>[
-      _tile('Default Hari', const Hari()),
-      _tile('Harshiv preset', Hari(config: AvatarConfig.harshiv)),
-      _tile('BAHA left',
-          const Hari(device: HearingDevice.baha, hearingSide: HearingSide.left)),
-      _tile('BAHA right',
-          const Hari(device: HearingDevice.baha, hearingSide: HearingSide.right)),
-      _tile('Happy', const Hari(emotion: HariEmotion.happy)),
+    final key = await _sheet(tester, 'HARI — polish validation', <Widget>[
+      _tile('Standing', const Hari()),
+      _tile('Waving', const Hari(emotion: HariEmotion.happy, pose: HariPose.wave)),
+      _tile('Walking', const Hari(emotion: HariEmotion.happy, pose: HariPose.walk)),
+      _tile('Sitting', const Hari(emotion: HariEmotion.calm, pose: HariPose.sit)),
       _tile('Excited', const Hari(emotion: HariEmotion.excited)),
       _tile('Calm', const Hari(emotion: HariEmotion.calm)),
       _tile('Sad', const Hari(emotion: HariEmotion.sad)),
       _tile('Worried', const Hari(emotion: HariEmotion.worried)),
       _tile('Frustrated', const Hari(emotion: HariEmotion.frustrated)),
       _tile('Proud', const Hari(emotion: HariEmotion.proud)),
-      _tile('Thinking', const Hari(emotion: HariEmotion.thinking)),
-      _tile('Sleeping',
-          const Hari(emotion: HariEmotion.sleepy, pose: HariPose.sleep)),
+      _tile('Breathing',
+          const Hari(emotion: HariEmotion.calm, pose: HariPose.breathe)),
       _tile('Brushing',
           const Hari(emotion: HariEmotion.happy, pose: HariPose.brush)),
-      _tile('School',
-          const Hari(emotion: HariEmotion.happy, pose: HariPose.school)),
-      _tile('Calming down',
-          const Hari(emotion: HariEmotion.calm, pose: HariPose.breathe)),
-    ], size: const Size(660, 780));
+      _tile('Sleeping',
+          const Hari(emotion: HariEmotion.sleepy, pose: HariPose.sleep)),
+      _tile('BAHA',
+          const Hari(emotion: HariEmotion.happy, device: HearingDevice.baha)),
+      _tile('Harshiv', Hari(config: AvatarConfig.harshiv)),
+    ], size: const Size(660, 760));
     await _grab(tester, key, 'evidence/hari/01_emotions.png');
   });
 

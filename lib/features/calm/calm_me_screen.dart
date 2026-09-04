@@ -52,14 +52,14 @@ class CalmMeScreen extends StatelessWidget {
                 style: TextStyle(color: Colors.white70)),
           ),
           SizedBox(
-            height: 262,
+            height: 300,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
               itemCount: kCalmingStrategies.length,
               separatorBuilder: (_, __) => const SizedBox(width: 12),
               itemBuilder: (context, i) => SizedBox(
-                width: 190,
+                width: 200,
                 child: CalmingStrategyCard(strategy: kCalmingStrategies[i]),
               ),
             ),
