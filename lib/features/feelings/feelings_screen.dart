@@ -795,12 +795,16 @@ class _ChooseAnotherButton extends StatelessWidget {
         children: <Widget>[
           const Icon(Icons.grid_view_rounded, color: Colors.white, size: 24),
           const SizedBox(width: 12),
-          const Text(
-            'Choose another feeling',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
+          const Flexible(
+            child: Text(
+              'Choose another feeling',
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],

@@ -975,8 +975,8 @@ class _CharacterPainter extends CustomPainter {
         : 0.0;
 
     void legPart(Offset hip, Offset knee, Offset ankle, Offset toe) {
-      _capsuleC(canvas, hip, knee, s * 0.088, legColor, s);
-      _capsuleC(canvas, knee, ankle, s * 0.078, legColor, s);
+      _fillLimb(canvas, hip, knee, s * 0.052, s * 0.044, legColor, s);
+      _fillLimb(canvas, knee, ankle, s * 0.044, s * 0.038, legColor, s);
       _foot(canvas, ankle, toe, s);
     }
 
@@ -999,26 +999,6 @@ class _CharacterPainter extends CustomPainter {
     final rAnkle = Offset(rHip.dx - swing, hipY + s * 0.14);
     legPart(lHip, lKnee, lAnkle, lAnkle + Offset(-s * 0.06, 0));
     legPart(rHip, rKnee, rAnkle, rAnkle + Offset(s * 0.06, 0));
-  }
-
-  void _capsuleC(
-      Canvas canvas, Offset a, Offset b, double w, Color color, double s) {
-    canvas.drawLine(
-        a,
-        b,
-        Paint()
-          ..color = _ink
-          ..strokeCap = StrokeCap.round
-          ..strokeWidth = w + s * 0.018
-          ..style = PaintingStyle.stroke);
-    canvas.drawLine(
-        a,
-        b,
-        Paint()
-          ..color = color
-          ..strokeCap = StrokeCap.round
-          ..strokeWidth = w
-          ..style = PaintingStyle.stroke);
   }
 
   // A directional child shoe: rounded sole pointing toward [toe].
@@ -1182,8 +1162,8 @@ class _CharacterPainter extends CustomPainter {
     _lHand = lHand;
   }
 
-  /// One arm as a sleeve (hoodie) + forearm (skin) with a soft elbow bend, so
-  /// limbs clearly originate from the torso and read as real, connected arms.
+  /// One arm as a sleeve (hoodie) + forearm (skin), both FILLED tapered
+  /// shapes with rounded joints — real volume, not a stroke.
   void _limb(Canvas canvas, Offset shoulder, Offset hand, double s,
       {required bool left}) {
     final dir = hand - shoulder;
@@ -1191,39 +1171,44 @@ class _CharacterPainter extends CustomPainter {
     final n = len < 1e-3 ? const Offset(0, 1) : dir / len;
     final perp = Offset(-n.dy, n.dx);
     final outward = left ? -1.0 : 1.0;
-    final elbow = shoulder + n * (len * 0.45) + perp * (s * 0.03 * outward);
-    _capsule(canvas, shoulder, elbow, s * 0.094, config.shirt, s);
-    _capsule(canvas, elbow, hand, s * 0.07, config.skin, s);
-    canvas.drawCircle(
-        elbow, s * 0.044, Paint()..color = _darken(config.shirt, 0.06));
+    final elbow = shoulder + n * (len * 0.46) + perp * (s * 0.035 * outward);
+    _fillLimb(canvas, shoulder, elbow, s * 0.056, s * 0.046, config.shirt, s);
+    _fillLimb(canvas, elbow, hand, s * 0.044, s * 0.037, config.skin, s);
   }
 
-  void _capsule(
-      Canvas canvas, Offset a, Offset b, double w, Color color, double s) {
-    canvas.drawLine(
-        a,
-        b,
-        Paint()
-          ..color = _ink
-          ..strokeCap = StrokeCap.round
-          ..strokeWidth = w + s * 0.02
-          ..style = PaintingStyle.stroke);
-    canvas.drawLine(
-        a,
-        b,
-        Paint()
-          ..color = color
-          ..strokeCap = StrokeCap.round
-          ..strokeWidth = w
-          ..style = PaintingStyle.stroke);
-    canvas.drawLine(
-        a,
-        Offset.lerp(a, b, 0.5)!,
-        Paint()
-          ..color = Colors.white.withOpacity(0.10)
-          ..strokeCap = StrokeCap.round
-          ..strokeWidth = w * 0.42
-          ..style = PaintingStyle.stroke);
+  /// A filled tapered limb segment with rounded joints, ink outline and a soft
+  /// form highlight down one edge.
+  void _fillLimb(Canvas canvas, Offset a, Offset b, double wa, double wb,
+      Color color, double s) {
+    final ink = s * 0.013;
+    final inkP = Paint()..color = _ink;
+    canvas.drawPath(_quad(a, b, wa + ink, wb + ink), inkP);
+    canvas.drawCircle(a, wa + ink, inkP);
+    canvas.drawCircle(b, wb + ink, inkP);
+    final cp = Paint()..color = color;
+    canvas.drawPath(_quad(a, b, wa, wb), cp);
+    canvas.drawCircle(a, wa, cp);
+    canvas.drawCircle(b, wb, cp);
+    final d = b - a;
+    final n = d.distance < 1e-3 ? const Offset(0, 1) : d / d.distance;
+    final perp = Offset(-n.dy, n.dx);
+    canvas.drawPath(
+      _quad(a + perp * (wa * 0.42), b + perp * (wb * 0.42), wa * 0.26,
+          wb * 0.26),
+      Paint()..color = Colors.white.withOpacity(0.10),
+    );
+  }
+
+  Path _quad(Offset a, Offset b, double wa, double wb) {
+    final d = b - a;
+    final n = d.distance < 1e-3 ? const Offset(0, 1) : d / d.distance;
+    final perp = Offset(-n.dy, n.dx);
+    return Path()
+      ..moveTo(a.dx + perp.dx * wa, a.dy + perp.dy * wa)
+      ..lineTo(b.dx + perp.dx * wb, b.dy + perp.dy * wb)
+      ..lineTo(b.dx - perp.dx * wb, b.dy - perp.dy * wb)
+      ..lineTo(a.dx - perp.dx * wa, a.dy - perp.dy * wa)
+      ..close();
   }
 
   /// A soft, friendly hand — outlined rounded palm with plump round-capped
@@ -1283,48 +1268,81 @@ class _CharacterPainter extends CustomPainter {
   // ---- Head, hair, face ---------------------------------------------------
 
   void _head(Canvas canvas, Offset c, double r) {
-    final rect = Rect.fromCenter(center: c, width: r * 2.04, height: r * 2.02);
     // Ears behind the head, outlined.
     for (final sign in <double>[-1, 1]) {
       final e = Rect.fromCenter(
-          center: Offset(c.dx + sign * r * 0.98, c.dy + r * 0.08),
-          width: r * 0.42,
-          height: r * 0.52);
-      canvas.drawOval(e.inflate(r * 0.04), Paint()..color = _ink);
+          center: Offset(c.dx + sign * r * 0.92, c.dy + r * 0.14),
+          width: r * 0.44,
+          height: r * 0.54);
+      canvas.drawOval(e.inflate(r * 0.045), Paint()..color = _ink);
       canvas.drawOval(e, Paint()..color = config.skin);
       canvas.drawArc(
-          e.deflate(r * 0.08),
+          e.deflate(r * 0.09),
           sign < 0 ? -0.6 : math.pi - 0.6,
           1.6,
           false,
           Paint()
             ..color = _darken(config.skin, 0.14)
             ..style = PaintingStyle.stroke
-            ..strokeWidth = r * 0.03);
+            ..strokeWidth = r * 0.025);
     }
-    // Soft outline + rounded head fill.
-    canvas.drawOval(rect.inflate(r * 0.05), Paint()..color = _ink);
-    canvas.drawOval(
-      rect,
+    // Soft, path-based child face (rounded cranium, full cheeks, gentle chin).
+    final face = _facePath(c, r);
+    canvas.drawPath(
+      face,
       Paint()
         ..shader = RadialGradient(
-          center: const Alignment(-0.32, -0.42),
-          radius: 1.12,
-          colors: <Color>[_lighten(config.skin, 0.16), config.skin],
-        ).createShader(rect),
+          center: const Alignment(-0.3, -0.42),
+          radius: 1.15,
+          colors: <Color>[
+            _lighten(config.skin, 0.17),
+            config.skin,
+            _darken(config.skin, 0.05),
+          ],
+          stops: const <double>[0.0, 0.7, 1.0],
+        ).createShader(Rect.fromCircle(center: c, radius: r * 1.1)),
     );
-    // Soft rim light for a gentle 3D feel.
-    canvas.drawArc(
-      Rect.fromCircle(center: c, radius: r * 0.95),
-      -math.pi * 0.42,
-      math.pi * 0.7,
-      false,
+    canvas.drawPath(
+      face,
       Paint()
-        ..color = Colors.white.withOpacity(0.18)
+        ..color = _ink
         ..style = PaintingStyle.stroke
-        ..strokeWidth = r * 0.06
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 0.04),
+        ..strokeWidth = r * 0.05
+        ..strokeJoin = StrokeJoin.round,
     );
+    // Form light + jaw occlusion, clipped to the face.
+    canvas.save();
+    canvas.clipPath(face);
+    canvas.drawCircle(
+      Offset(c.dx - r * 0.52, c.dy - r * 0.46),
+      r * 0.55,
+      Paint()
+        ..color = Colors.white.withOpacity(0.12)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 0.22),
+    );
+    canvas.drawCircle(
+      Offset(c.dx + r * 0.32, c.dy + r * 0.78),
+      r * 0.5,
+      Paint()
+        ..color = _darken(config.skin, 0.10).withOpacity(0.35)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 0.2),
+    );
+    canvas.restore();
+  }
+
+  /// A soft child face silhouette: rounded cranium, full cheeks, gentle chin.
+  Path _facePath(Offset c, double r) {
+    return Path()
+      ..moveTo(c.dx, c.dy - r * 1.0)
+      ..cubicTo(c.dx + r * 0.86, c.dy - r * 1.0, c.dx + r * 1.0,
+          c.dy - r * 0.25, c.dx + r * 0.94, c.dy + r * 0.30)
+      ..cubicTo(c.dx + r * 0.9, c.dy + r * 0.74, c.dx + r * 0.52,
+          c.dy + r * 1.03, c.dx, c.dy + r * 1.05)
+      ..cubicTo(c.dx - r * 0.52, c.dy + r * 1.03, c.dx - r * 0.9,
+          c.dy + r * 0.74, c.dx - r * 0.94, c.dy + r * 0.30)
+      ..cubicTo(c.dx - r * 1.0, c.dy - r * 0.25, c.dx - r * 0.86,
+          c.dy - r * 1.0, c.dx, c.dy - r * 1.0)
+      ..close();
   }
 
   void _hair(Canvas canvas, Offset c, double r) {
@@ -1338,30 +1356,41 @@ class _CharacterPainter extends CustomPainter {
 
     switch (config.hair) {
       case HairStyle.short:
-        final path = Path()
-          ..addArc(
-              Rect.fromCircle(center: c, radius: r * 1.04), math.pi, math.pi)
-          // A light, swept side-part fringe that sits ABOVE the brows so the
-          // eyes stay open and friendly (never a helmet over the face).
-          ..lineTo(c.dx + r * 0.86, c.dy - r * 0.40)
-          ..quadraticBezierTo(c.dx + r * 0.46, c.dy - r * 0.62, c.dx + r * 0.06,
-              c.dy - r * 0.52)
-          ..quadraticBezierTo(c.dx - r * 0.30, c.dy - r * 0.44, c.dx - r * 0.62,
-              c.dy - r * 0.54)
-          ..quadraticBezierTo(c.dx - r * 0.82, c.dy - r * 0.48, c.dx - r * 0.86,
-              c.dy - r * 0.40)
+        // A soft rounded cap with lock scallops at the fringe, above the brows.
+        final cap = Path()
+          ..moveTo(c.dx - r * 0.96, c.dy + r * 0.06)
+          ..cubicTo(c.dx - r * 1.04, c.dy - r * 0.72, c.dx - r * 0.5,
+              c.dy - r * 1.16, c.dx, c.dy - r * 1.13)
+          ..cubicTo(c.dx + r * 0.5, c.dy - r * 1.16, c.dx + r * 1.04,
+              c.dy - r * 0.72, c.dx + r * 0.96, c.dy + r * 0.06)
+          ..cubicTo(c.dx + r * 0.72, c.dy - r * 0.34, c.dx + r * 0.54,
+              c.dy - r * 0.30, c.dx + r * 0.36, c.dy - r * 0.44)
+          ..cubicTo(c.dx + r * 0.22, c.dy - r * 0.30, c.dx + r * 0.10,
+              c.dy - r * 0.34, c.dx - r * 0.04, c.dy - r * 0.48)
+          ..cubicTo(c.dx - r * 0.20, c.dy - r * 0.32, c.dx - r * 0.34,
+              c.dy - r * 0.34, c.dx - r * 0.50, c.dy - r * 0.46)
+          ..cubicTo(c.dx - r * 0.70, c.dy - r * 0.34, c.dx - r * 0.86,
+              c.dy - r * 0.18, c.dx - r * 0.96, c.dy + r * 0.06)
           ..close();
-        canvas.drawPath(path, paint);
-        // A soft swept fringe tuft for a friendly, un-helmeted silhouette.
+        canvas.drawPath(cap, paint);
+        canvas.drawPath(
+          cap,
+          Paint()
+            ..color = _ink
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = r * 0.04
+            ..strokeJoin = StrokeJoin.round,
+        );
+        // A soft parted lock highlight for texture.
         canvas.drawPath(
           Path()
-            ..moveTo(c.dx + r * 0.42, c.dy - r * 0.52)
-            ..quadraticBezierTo(c.dx + r * 0.02, c.dy - r * 0.40, c.dx - r * 0.32,
-                c.dy - r * 0.48)
-            ..quadraticBezierTo(c.dx + r * 0.04, c.dy - r * 0.60, c.dx + r * 0.42,
-                c.dy - r * 0.52)
+            ..moveTo(c.dx - r * 0.1, c.dy - r * 0.95)
+            ..cubicTo(c.dx + r * 0.3, c.dy - r * 0.9, c.dx + r * 0.5,
+                c.dy - r * 0.5, c.dx + r * 0.34, c.dy - r * 0.44)
+            ..cubicTo(c.dx + r * 0.4, c.dy - r * 0.7, c.dx + r * 0.1,
+                c.dy - r * 0.86, c.dx - r * 0.1, c.dy - r * 0.95)
             ..close(),
-          paint,
+          Paint()..color = Colors.white.withOpacity(0.12),
         );
         _hairSheen(canvas, c, r, hi);
         break;
