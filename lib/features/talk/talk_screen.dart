@@ -7,6 +7,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 
 import '../../core/widgets/harshiv_scaffold.dart';
 import '../../models/communication_item.dart';
+import '../../state/providers.dart';
 import 'communication_data.dart';
 
 /// A high-frequency "core word" — always available, the way real AAC systems
@@ -97,14 +98,17 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
     _bloomTimer = Timer(const Duration(milliseconds: 1500), () {
       if (mounted) setState(() => _bloomText = null);
     });
+    final volume = ref.read(sensoryPreferencesProvider).volumeScale;
     await _tts.stop();
+    if (volume <= 0) return;
+    await _tts.setVolume(volume);
     await _tts.speak(text);
   }
 
-  void _addWord(_Word word) {
+  void _addWord(_Word word, {String? spokenText}) {
     setState(() => _strip.add(word));
     // Instant voice — never await anything on the tap path.
-    _speak(word.label, emoji: word.emoji, color: word.color);
+    _speak(spokenText ?? word.label, emoji: word.emoji, color: word.color);
   }
 
   void _speakSentence() {
@@ -147,6 +151,7 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
               const SizedBox(height: 10),
               _coreWordRow(),
               const SizedBox(height: 12),
+              _recentStrip(),
               _categoryBar(),
               const SizedBox(height: 10),
               Expanded(
@@ -164,7 +169,13 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
                     return _ItemTile(
                       item: item,
                       color: accent,
-                      onTap: () => _addWord(_Word(item.label, item.emoji, accent)),
+                      onTap: () {
+                        ref.read(talkRecentsProvider.notifier).record(item.label);
+                        _addWord(
+                          _Word(item.label, item.emoji, accent),
+                          spokenText: item.phrase,
+                        );
+                      },
                     );
                   },
                 ),
@@ -273,6 +284,66 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
           );
         },
       ),
+    );
+  }
+
+  // The child's real vocabulary, surfaced. Empty until they speak something.
+  Widget _recentStrip() {
+    final recents = ref.watch(talkRecentsProvider);
+    final items =
+        recents.map(itemByLabel).whereType<CommunicationItem>().toList();
+    if (items.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        const Padding(
+          padding: EdgeInsets.only(left: 4, bottom: 6),
+          child: Text('Recent',
+              style: TextStyle(
+                  color: Colors.white70,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14)),
+        ),
+        SizedBox(
+          height: 56,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: items.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (context, i) {
+              final item = items[i];
+              final color = _colorFor(item.category);
+              return GestureDetector(
+                onTap: () {
+                  ref.read(talkRecentsProvider.notifier).record(item.label);
+                  _addWord(_Word(item.label, item.emoji, color),
+                      spokenText: item.phrase);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.16),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: color.withOpacity(0.7), width: 1.4),
+                  ),
+                  child: Row(
+                    children: <Widget>[
+                      Text(item.emoji, style: const TextStyle(fontSize: 24)),
+                      const SizedBox(width: 8),
+                      Text(item.label,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 16)),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 12),
+      ],
     );
   }
 

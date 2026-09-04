@@ -7,13 +7,11 @@ import '../../state/providers.dart';
 import 'avatar/avatar.dart';
 import 'state/lifeskills_providers.dart';
 
-/// First-launch wizard: build the child's own character.
-///
-/// Name → boy/girl → skin → hair → eyes → clothing/favourite colour →
-/// hearing device → glasses → meet your character. Every choice updates the
-/// live preview so the child literally watches themselves come to life.
+/// Quick first-launch setup, with an optional full character editor.
 class ProfileWizardScreen extends ConsumerStatefulWidget {
-  const ProfileWizardScreen({super.key});
+  const ProfileWizardScreen({super.key, this.fullEditor = false});
+
+  final bool fullEditor;
 
   @override
   ConsumerState<ProfileWizardScreen> createState() =>
@@ -24,7 +22,8 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
   final _nameCtrl = TextEditingController();
   AvatarConfig _draft = const AvatarConfig();
   int _step = 0;
-  static const _lastStep = 7;
+
+  int get _lastStep => widget.fullEditor ? 7 : 1;
 
   @override
   void initState() {
@@ -61,6 +60,7 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
     await storage.writeString('child_name', name);
     await storage.writeBool('profile_complete', true);
     ref.read(profileCompleteProvider.notifier).state = true;
+    if (widget.fullEditor && mounted) Navigator.of(context).pop();
   }
 
   void _next() {
@@ -162,7 +162,11 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: <Widget>[
                         Text(
-                          _step >= _lastStep ? "Let's go!" : 'Next',
+                          _step >= _lastStep
+                            ? widget.fullEditor
+                              ? 'Save'
+                              : "Let's go!"
+                            : 'Next',
                           style: const TextStyle(
                               color: Colors.white,
                               fontSize: 19,
@@ -187,6 +191,9 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
   }
 
   Widget _stepBody() {
+    if (!widget.fullEditor) {
+      return _step == 0 ? _nameStep() : _finalStep();
+    }
     switch (_step) {
       case 0:
         return _nameStep();

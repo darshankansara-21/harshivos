@@ -5,6 +5,8 @@ import '../../core/theme/app_colors.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/harshiv_scaffold.dart';
 import '../../models/regulation_entry.dart';
+import '../lifeskills/avatar/hari_cards.dart';
+import '../lifeskills/avatar/pico.dart';
 import 'calm_sequence_screen.dart';
 
 /// Calm Me — one-tap emergency regulation. Big, low-pressure mood buttons.
@@ -32,14 +34,43 @@ class CalmMeScreen extends StatelessWidget {
                 onPressed: () => Navigator.of(context).pop(),
               ),
               const SizedBox(width: 4),
-              const Text('How do you feel?',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white)),
+              const Expanded(
+                child: Text('How do you feel?',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white)),
+              ),
+              const SizedBox(
+                width: 52,
+                height: 52,
+                child: PicoWidget(mood: PicoMood.comforting),
+              ),
+              const SizedBox(width: 8),
             ],
           ),
           const Padding(
-            padding: EdgeInsets.fromLTRB(20, 4, 20, 12),
-            child: Text('Tap how you feel. We will get calm together.',
+            padding: EdgeInsets.fromLTRB(20, 4, 20, 6),
+            child: Text('Try a calming idea with Hari, or tell me how you feel.',
                 style: TextStyle(color: Colors.white70)),
+          ),
+          SizedBox(
+            height: 262,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+              itemCount: kCalmingStrategies.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              itemBuilder: (context, i) => SizedBox(
+                width: 190,
+                child: CalmingStrategyCard(strategy: kCalmingStrategies[i]),
+              ),
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(20, 10, 20, 4),
+            child: Text('How do you feel right now?',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800)),
           ),
           Expanded(
             child: ListView.separated(

@@ -71,8 +71,7 @@ class _Spot {
 /// HARSHIVOS' home is not a menu — it is a place. The child enters a magical
 /// treehouse at dusk and *discovers* every feature by touching a living object:
 /// a bubble machine to breathe, a toy phone to talk, a storybook to read, a
-/// train to learn, a cloud to feel, an owl who fetches a grown-up. The therapy
-/// is invisible; the play is everything.
+/// train to learn, a cloud to feel, and an owl who fetches a grown-up.
 class WorldScreen extends ConsumerWidget {
   const WorldScreen({super.key});
 

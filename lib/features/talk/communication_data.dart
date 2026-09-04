@@ -9,11 +9,13 @@ const List<CommunicationItem> kCommunicationItems = <CommunicationItem>[
   CommunicationItem(label: 'Snack', emoji: '🍪', category: 'Food', phrase: 'I want a snack'),
   CommunicationItem(label: 'Pizza', emoji: '🍕', category: 'Food', phrase: 'I want pizza'),
   CommunicationItem(label: 'Rice', emoji: '🍚', category: 'Food', phrase: 'I want rice'),
+  CommunicationItem(label: 'Hungry', emoji: '🍽️', category: 'Food', phrase: 'I am hungry'),
   CommunicationItem(label: 'More', emoji: '➕', category: 'Food', phrase: 'I want more'),
   // Drink
   CommunicationItem(label: 'Water', emoji: '💧', category: 'Drink', phrase: 'I want water'),
   CommunicationItem(label: 'Milk', emoji: '🥛', category: 'Drink', phrase: 'I want milk'),
   CommunicationItem(label: 'Juice', emoji: '🧃', category: 'Drink', phrase: 'I want juice'),
+  CommunicationItem(label: 'Thirsty', emoji: '🥤', category: 'Drink', phrase: 'I am thirsty'),
   // Emotions
   CommunicationItem(label: 'Happy', emoji: '😊', category: 'Emotions', phrase: 'I feel happy'),
   CommunicationItem(label: 'Sad', emoji: '😢', category: 'Emotions', phrase: 'I feel sad'),
@@ -37,6 +39,8 @@ const List<CommunicationItem> kCommunicationItems = <CommunicationItem>[
   CommunicationItem(label: 'Toilet', emoji: '🚽', category: 'Needs', phrase: 'I need the toilet'),
   CommunicationItem(label: 'Help', emoji: '🙋', category: 'Needs', phrase: 'I need help'),
   CommunicationItem(label: 'Break', emoji: '⏸️', category: 'Needs', phrase: 'I need a break'),
+  CommunicationItem(label: 'Hurt', emoji: '🩹', category: 'Needs', phrase: 'I am hurt'),
+  CommunicationItem(label: "Don't want", emoji: '🙅', category: 'Needs', phrase: "I don't want that"),
   CommunicationItem(label: 'Hug', emoji: '🤗', category: 'Needs', phrase: 'I need a hug'),
   CommunicationItem(label: 'Quiet', emoji: '🤫', category: 'Needs', phrase: 'I need it quiet'),
   CommunicationItem(label: 'Yes', emoji: '👍', category: 'Needs', phrase: 'Yes'),
@@ -55,3 +59,11 @@ const List<CommunicationItem> kCommunicationItems = <CommunicationItem>[
 
 List<CommunicationItem> itemsForCategory(String category) =>
     kCommunicationItems.where((i) => i.category == category).toList();
+
+/// Look up a card by its label (used to rebuild the child's recent words).
+CommunicationItem? itemByLabel(String label) {
+  for (final item in kCommunicationItems) {
+    if (item.label == label) return item;
+  }
+  return null;
+}

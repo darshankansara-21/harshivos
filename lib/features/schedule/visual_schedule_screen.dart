@@ -7,7 +7,7 @@ import 'package:flutter/services.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/harshiv_scaffold.dart';
 
-/// Visual Schedule / Daily Routine — the #1 evidence-based autism support.
+/// Visual Schedule / Daily Routine.
 ///
 /// A calm, visual-first list of routine steps. Predictability lowers anxiety,
 /// so every step is a big emoji + one short word. Tapping a step marks it

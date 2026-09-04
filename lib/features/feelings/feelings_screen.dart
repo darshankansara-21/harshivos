@@ -5,6 +5,22 @@ import 'package:flutter/services.dart';
 
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/harshiv_scaffold.dart';
+import '../lifeskills/avatar/avatar.dart';
+
+/// Maps each feeling to the Hari expression that mirrors it, so the child sees
+/// their friend feel it too.
+const Map<String, AvatarEmotion> _feelingEmotion = <String, AvatarEmotion>{
+  'Happy': AvatarEmotion.happy,
+  'Sad': AvatarEmotion.sad,
+  'Angry': AvatarEmotion.angry,
+  'Scared': AvatarEmotion.scared,
+  'Tired': AvatarEmotion.sleepy,
+  'Calm': AvatarEmotion.calm,
+  'Excited': AvatarEmotion.excited,
+  'Worried': AvatarEmotion.worried,
+  'Yucky': AvatarEmotion.overwhelmed,
+  'Confused': AvatarEmotion.confused,
+};
 
 /// A single emotion the child can choose, with its own calm colour,
 /// a gentle validating message, and a set of coping strategies that suit it.
@@ -463,9 +479,13 @@ class _FloatingFaceState extends State<_FloatingFace>
           ),
         );
       },
-      child: Text(
-        widget.feeling.emoji,
-        style: const TextStyle(fontSize: 76),
+      child: SizedBox(
+        width: 116,
+        height: 116,
+        child: Hari(
+          emotion:
+              _feelingEmotion[widget.feeling.label] ?? AvatarEmotion.happy,
+        ),
       ),
     );
   }

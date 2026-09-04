@@ -5,7 +5,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/widgets/harshiv_scaffold.dart';
 import '../../state/providers.dart';
 import '../antistress/antistress_player_screen.dart';
+import '../calm/calm_me_screen.dart';
+import '../learn/learn_screen.dart';
+import '../lifeskills/avatar/avatar.dart';
+import '../lifeskills/avatar/pico.dart';
+import '../lifeskills/daily_life_screen.dart';
 import '../world/world_screen.dart';
+import '../lifeskills/profile_wizard_screen.dart';
+import '../settings/sensory_settings_screen.dart';
+import '../talk/talk_screen.dart';
 import 'toy_debug_screen.dart';
 import 'universe_catalog.dart';
 import 'universe_state.dart';
@@ -14,7 +22,7 @@ import 'universe_state.dart';
 /// in a single step. No categories to decode, no portals to navigate. This is
 /// "Netflix for toys": rails of Favorites / Recently Played / Most Loved / New,
 /// then every toy below.
-class ToyUniverseScreen extends ConsumerWidget {
+class ToyUniverseScreen extends ConsumerStatefulWidget {
   const ToyUniverseScreen({super.key});
 
   /// Opens a toy immersively and records the play for the rails.
@@ -45,7 +53,32 @@ class ToyUniverseScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ToyUniverseScreen> createState() => _ToyUniverseScreenState();
+}
+
+class _ToyUniverseScreenState extends ConsumerState<ToyUniverseScreen> {
+  final ScrollController _scroll = ScrollController();
+  final GlobalKey _allToysKey = GlobalKey();
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  // Play is the home itself — bring the wall of toys into view.
+  void _scrollToToys() {
+    final ctx = _allToysKey.currentContext;
+    if (ctx == null) return;
+    Scrollable.ensureVisible(
+      ctx,
+      duration: const Duration(milliseconds: 450),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final name = ref.watch(childNameProvider);
     final favorites = ref.watch(favoriteToysProvider);
     final recents = ref.watch(recentToysProvider);
@@ -60,6 +93,7 @@ class ToyUniverseScreen extends ConsumerWidget {
     return HarshivScaffold(
       padding: EdgeInsets.zero,
       child: CustomScrollView(
+        controller: _scroll,
         slivers: <Widget>[
           SliverToBoxAdapter(
             child: SafeArea(
@@ -88,6 +122,27 @@ class ToyUniverseScreen extends ConsumerWidget {
                       ),
                     ),
                     // Hidden debug entry: long-press the counter chip.
+                                        IconButton(
+                                          tooltip: 'Sensory settings',
+                                          icon: const Icon(Icons.tune_rounded,
+                                              color: Colors.white, size: 28),
+                                          onPressed: () => Navigator.of(context).push(
+                                            MaterialPageRoute<void>(
+                                              builder: (_) => const SensorySettingsScreen(),
+                                            ),
+                                          ),
+                                        ),
+                                        IconButton(
+                                          tooltip: 'My avatar',
+                                          icon: const Icon(Icons.face_rounded,
+                                              color: Colors.white, size: 30),
+                                          onPressed: () => Navigator.of(context).push(
+                                            MaterialPageRoute<void>(
+                                              builder: (_) =>
+                                                  const ProfileWizardScreen(fullEditor: true),
+                                            ),
+                                          ),
+                                        ),
                     GestureDetector(
                       onLongPress: () {
                         HapticFeedback.mediumImpact();
@@ -100,6 +155,12 @@ class ToyUniverseScreen extends ConsumerWidget {
                 ),
               ),
             ),
+          ),
+          SliverToBoxAdapter(
+            child: _HariGreeting(name: name),
+          ),
+          SliverToBoxAdapter(
+            child: _CoreDestinations(onPlay: _scrollToToys),
           ),
           SliverToBoxAdapter(
             child: _CategoryChips(counts: sortedCounts),
@@ -119,10 +180,11 @@ class ToyUniverseScreen extends ConsumerWidget {
             _RailSliver(title: 'Most Loved', emoji: '\u2B50', toys: loved),
           if (fresh.isNotEmpty)
             _RailSliver(title: 'New', emoji: '\u2728', toys: fresh),
-          const SliverToBoxAdapter(
+          SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(20, 18, 20, 8),
-              child: Text('All Toys',
+              key: _allToysKey,
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+              child: const Text('All Toys',
                   style: TextStyle(
                       color: Colors.white,
                       fontSize: 20,
@@ -192,6 +254,196 @@ class _ExploreWorldsButton extends StatelessWidget {
                 ],
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A warm welcome from Hari and Pico — the first thing the child sees, so the
+/// app feels like meeting a friend, not opening a menu.
+class _HariGreeting extends StatelessWidget {
+  const _HariGreeting({required this.name});
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 2),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: const LinearGradient(
+            colors: <Color>[Color(0x263AA0FF), Color(0x2606D6A0)],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+          border: Border.all(color: Colors.white.withOpacity(0.10)),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Row(
+          children: <Widget>[
+            const SizedBox(
+              width: 76,
+              height: 92,
+              child: Hari(emotion: HariEmotion.happy, pose: HariPose.wave),
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Text('Hi, $name!',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 2),
+                  Text('Hari and Pico are ready to play.',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.75),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
+            const SizedBox(
+              width: 74,
+              height: 82,
+              child: PicoWidget(mood: PicoMood.excited),
+            ),
+            const SizedBox(width: 4),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The five core destinations, always one tap from the front door. Emoji-led
+/// and one word each so a non-reading child can navigate the whole app.
+class _CoreDestinations extends StatelessWidget {
+  const _CoreDestinations({required this.onPlay});
+  final VoidCallback onPlay;
+
+  @override
+  Widget build(BuildContext context) {
+    void go(Widget screen) => Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => screen),
+        );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 2),
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: _DestinationCard(
+              emoji: '\uD83E\uDDF8',
+              label: 'Play',
+              colors: const <Color>[Color(0xFF9B5DE5), Color(0xFFF15BB5)],
+              onTap: onPlay,
+            ),
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: _DestinationCard(
+              emoji: '\uD83C\uDF0A',
+              label: 'Calm',
+              colors: const <Color>[Color(0xFF0891B2), Color(0xFF06D6A0)],
+              onTap: () => go(const CalmMeScreen()),
+            ),
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: _DestinationCard(
+              emoji: '\uD83D\uDCAC',
+              label: 'Talk',
+              colors: const <Color>[Color(0xFF4361EE), Color(0xFF38B2F9)],
+              onTap: () => go(const TalkScreen()),
+            ),
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: _DestinationCard(
+              emoji: '\uD83C\uDF08',
+              label: 'Routines',
+              colors: const <Color>[Color(0xFFFF9E6D), Color(0xFFF7B801)],
+              onTap: () => go(const DailyLifeScreen()),
+            ),
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: _DestinationCard(
+              emoji: '\uD83C\uDF93',
+              label: 'Learn',
+              colors: const <Color>[Color(0xFF06D6A0), Color(0xFF43E97B)],
+              onTap: () => go(const LearnScreen()),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DestinationCard extends StatelessWidget {
+  const _DestinationCard({
+    required this.emoji,
+    required this.label,
+    required this.colors,
+    required this.onTap,
+  });
+  final String emoji;
+  final String label;
+  final List<Color> colors;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        child: Ink(
+          height: 94,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: LinearGradient(
+              colors: colors,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: colors.last.withOpacity(0.35),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Text(emoji, style: const TextStyle(fontSize: 30)),
+              const SizedBox(height: 4),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(label,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w800)),
+                ),
+              ),
+            ],
           ),
         ),
       ),

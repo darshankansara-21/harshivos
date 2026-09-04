@@ -23,6 +23,7 @@ class TonePlayer {
       List<AudioPlayer>.generate(_poolSize, (_) => AudioPlayer());
   int _next = 0;
   bool _ready = false;
+  double volumeScale = 1;
 
   /// A warm major-pentatonic scale (C D E G A) over two octaves — every
   /// combination sounds pleasant, which is exactly what a calm toy wants.
@@ -108,9 +109,11 @@ class TonePlayer {
   }
 
   Future<void> _playNoise(Uint8List bytes, {double volume = 0.6}) async {
+    if (volumeScale <= 0) return;
     try {
       await _ensureReady();
-      await _player.play(BytesSource(bytes), volume: volume);
+      await _player.play(BytesSource(bytes),
+          volume: (volume * volumeScale).clamp(0, 1));
     } catch (_) {
       // Best-effort: never let audio crash a toy.
     }
@@ -173,10 +176,12 @@ class TonePlayer {
     double attack = 0.01,
     double decay = 3.5,
   }) async {
+    if (volumeScale <= 0) return;
     try {
       await _ensureReady();
       final bytes = _synth(freq, seconds, wave, attack, decay);
-      await _player.play(BytesSource(bytes), volume: 0.7);
+        await _player.play(BytesSource(bytes),
+          volume: (0.7 * volumeScale).clamp(0, 1));
     } catch (_) {
       // Best-effort: never let audio crash a toy.
     }

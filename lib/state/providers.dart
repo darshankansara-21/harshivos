@@ -113,3 +113,88 @@ final childNameProvider = StateProvider<String>((ref) => 'Harshiv');
 /// Whether the first-launch child profile wizard has been completed.
 /// Overridden from storage in `main()` so returning families skip the wizard.
 final profileCompleteProvider = StateProvider<bool>((ref) => false);
+
+enum AudioLevel { off, soft, normal }
+
+class SensoryPreferences {
+  const SensoryPreferences({
+    this.audioLevel = AudioLevel.normal,
+    this.reduceMotion = false,
+  });
+
+  final AudioLevel audioLevel;
+  final bool reduceMotion;
+
+  double get volumeScale => switch (audioLevel) {
+        AudioLevel.off => 0,
+        AudioLevel.soft => 0.35,
+        AudioLevel.normal => 1,
+      };
+
+  SensoryPreferences copyWith({
+    AudioLevel? audioLevel,
+    bool? reduceMotion,
+  }) =>
+      SensoryPreferences(
+        audioLevel: audioLevel ?? this.audioLevel,
+        reduceMotion: reduceMotion ?? this.reduceMotion,
+      );
+}
+
+class SensoryPreferencesNotifier extends StateNotifier<SensoryPreferences> {
+  SensoryPreferencesNotifier(this._storage)
+      : super(SensoryPreferences(
+          audioLevel: AudioLevel.values.firstWhere(
+            (level) =>
+                level.name ==
+                _storage.readString(
+                  'audio_level',
+                  fallback: AudioLevel.normal.name,
+                ),
+            orElse: () => AudioLevel.normal,
+          ),
+          reduceMotion: _storage.readBool('reduce_motion'),
+        ));
+
+  final LocalStorage _storage;
+
+  Future<void> setAudioLevel(AudioLevel value) async {
+    state = state.copyWith(audioLevel: value);
+    await _storage.writeString('audio_level', value.name);
+  }
+
+  Future<void> setReduceMotion(bool value) async {
+    state = state.copyWith(reduceMotion: value);
+    await _storage.writeBool('reduce_motion', value);
+  }
+}
+
+final sensoryPreferencesProvider = StateNotifierProvider<
+    SensoryPreferencesNotifier, SensoryPreferences>(
+  (ref) => SensoryPreferencesNotifier(ref.watch(localStorageProvider)),
+);
+
+/// The child's most recently spoken AAC words, most-recent first. Surfaces a
+/// child's real vocabulary at the top of the board so their actual needs are
+/// always one tap away.
+class TalkRecentsNotifier extends StateNotifier<List<String>> {
+  TalkRecentsNotifier(this._storage) : super(const <String>[]) {
+    state = _storage.readList(_key).map((e) => e.toString()).toList();
+  }
+
+  static const String _key = 'talk_recents';
+  static const int _max = 6;
+  final LocalStorage _storage;
+
+  Future<void> record(String label) async {
+    final next = <String>[label, ...state.where((e) => e != label)];
+    if (next.length > _max) next.removeRange(_max, next.length);
+    state = next;
+    await _storage.writeJson(_key, next);
+  }
+}
+
+final talkRecentsProvider =
+    StateNotifierProvider<TalkRecentsNotifier, List<String>>(
+  (ref) => TalkRecentsNotifier(ref.watch(localStorageProvider)),
+);

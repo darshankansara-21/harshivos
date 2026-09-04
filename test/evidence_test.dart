@@ -216,17 +216,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
     }
 
-    await next(); // gender
-    await next(); // skin
-    await next(); // hair
-    await _grab(tester, key, 'evidence/phase2/03_hair.png');
-    await next(); // eyes
-    await _grab(tester, key, 'evidence/phase2/04_eyes.png');
-    await next(); // clothing
-    await next(); // device
-    await _grab(tester, key, 'evidence/phase2/05_hearing_device.png');
-    await next(); // final
-    await _grab(tester, key, 'evidence/phase2/06_final_preview.png');
+    await next();
+    await _grab(tester, key, 'evidence/phase2/03_final_preview.png');
 
     await tester.tap(find.text("Let's go!"));
     await tester.pump(const Duration(milliseconds: 500));

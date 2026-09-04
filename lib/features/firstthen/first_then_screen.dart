@@ -7,7 +7,7 @@ import 'package:flutter/services.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/harshiv_scaffold.dart';
 
-/// A First–Then board: the classic ABA transition & motivation tool.
+/// A low-pressure First-Then board for predictable transitions and choices.
 ///
 /// "First we do X, Then you get Y." Two huge cards sit side by side (or stacked
 /// on narrow screens). The child taps a slot to select it, then taps a picture
