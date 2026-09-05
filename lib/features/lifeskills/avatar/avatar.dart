@@ -145,19 +145,19 @@ class AvatarConfig {
     glasses: false,
   );
 
-  /// HARI — the universal HARSHIVOS friend. A warm, culturally-neutral look
-  /// with a signature soft hoodie. Hari is never defined by a device (none by
-  /// default); families add one only when personalising their own avatar.
+  /// HARI — the universal HARSHIVOS friend, matched to the approved reference:
+  /// warm skin, big tousled brown hair, a blue tee with a white heart, and a
+  /// blue hearing aid worn with pride (representation is core to the brand).
   static const AvatarConfig hari = AvatarConfig(
-    gender: AvatarGender.neutral,
+    gender: AvatarGender.boy,
     skin: Color(0xFFF3C7A0),
     hair: HairStyle.short,
-    hairColor: Color(0xFF4A2F1C),
-    eyeColor: Color(0xFF4A2E1C),
-    shirt: Color(0xFFEFF2F7),
-    favoriteColor: Color(0xFF3AA0FF),
-    device: HearingDevice.none,
-    hearingSide: HearingSide.both,
+    hairColor: Color(0xFF43301F),
+    eyeColor: Color(0xFF3A2A1C),
+    shirt: Color(0xFF3D9BE9),
+    favoriteColor: Color(0xFF3D9BE9),
+    device: HearingDevice.hearingAid,
+    hearingSide: HearingSide.left,
     glasses: false,
   );
 
@@ -839,28 +839,28 @@ class _CharacterPainter extends CustomPainter {
   }
 
   void _body(Canvas canvas, double cx, double bodyTop, double s) {
-    final w = s * 0.33;
-    final h = s * 0.30;
+    final w = s * 0.34;
+    final h = s * 0.24;
     final rect = RRect.fromRectAndCorners(
       Rect.fromLTWH(cx - w / 2, bodyTop, w, h),
-      topLeft: Radius.circular(s * 0.16),
-      topRight: Radius.circular(s * 0.16),
-      bottomLeft: Radius.circular(s * 0.15),
-      bottomRight: Radius.circular(s * 0.15),
+      topLeft: Radius.circular(s * 0.15),
+      topRight: Radius.circular(s * 0.15),
+      bottomLeft: Radius.circular(s * 0.11),
+      bottomRight: Radius.circular(s * 0.11),
     );
-    // Hood resting behind the neck (peeks above the collar).
+    // Collar shadow at the neckline.
     canvas.drawArc(
       Rect.fromCenter(
-          center: Offset(cx, bodyTop + s * 0.005),
-          width: s * 0.30,
-          height: s * 0.18),
-      math.pi + 0.25,
-      math.pi - 0.5,
+          center: Offset(cx, bodyTop + s * 0.004),
+          width: s * 0.15,
+          height: s * 0.08),
+      0.2,
+      math.pi - 0.4,
       false,
       Paint()
-        ..color = _darken(config.shirt, 0.12)
+        ..color = _darken(config.shirt, 0.14)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = s * 0.055
+        ..strokeWidth = s * 0.022
         ..strokeCap = StrokeCap.round,
     );
     // Outline + soft hoodie fill.
@@ -878,25 +878,15 @@ class _CharacterPainter extends CustomPainter {
           ],
         ).createShader(rect.outerRect),
     );
-    // Front pocket.
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromCenter(
-            center: Offset(cx, bodyTop + h * 0.66),
-            width: w * 0.58,
-            height: h * 0.26),
-        Radius.circular(s * 0.03),
-      ),
-      Paint()..color = _darken(config.shirt, 0.09),
-    );
+    // Favourite-colour cuff at the hem.
     // Soft hoodie hem ribbing (same cloth, slightly darker) so it reads as
-    // the bottom of the hoodie rather than a bright waistband.
+    // the bottom of the tee rather than a bright waistband.
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromLTWH(cx - w / 2, bodyTop + h - s * 0.052, w, s * 0.052),
-        Radius.circular(s * 0.03),
+        Rect.fromLTWH(cx - w / 2, bodyTop + h - s * 0.03, w, s * 0.03),
+        Radius.circular(s * 0.02),
       ),
-      Paint()..color = _darken(config.shirt, 0.16),
+      Paint()..color = _darken(config.shirt, 0.14),
     );
     // Soft shoulder highlight.
     canvas.drawRRect(
@@ -915,7 +905,7 @@ class _CharacterPainter extends CustomPainter {
       canvas.drawCircle(
           sc, s * 0.058, Paint()..color = _lighten(config.shirt, 0.08));
     }
-    _chestHeart(canvas, Offset(cx, bodyTop + h * 0.33), s * 0.058);
+    _chestHeart(canvas, Offset(cx, bodyTop + h * 0.42), s * 0.058);
   }
 
   void _neck(Canvas canvas, double cx, Offset headC, double headR,
@@ -965,8 +955,8 @@ class _CharacterPainter extends CustomPainter {
   }
 
   void _legs(Canvas canvas, double cx, double bodyTop, double s) {
-    final hipY = bodyTop + s * 0.30;
-    const legColor = Color(0xFF3C4A6B);
+    final hipY = bodyTop + s * 0.235;
+    const shorts = Color(0xFF2E3A5C);
     final sit = pose == AvatarPose.sit || pose == AvatarPose.potty;
     final walking = pose == AvatarPose.walk ||
         pose == AvatarPose.school ||
@@ -975,29 +965,42 @@ class _CharacterPainter extends CustomPainter {
         ? math.sin(t * math.pi * (pose == AvatarPose.run ? 8 : 4)) * s * 0.06
         : 0.0;
 
+    // Navy shorts waist so the two legs read as one garment under the tee.
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(
+            center: Offset(cx, hipY + s * 0.012),
+            width: s * 0.26,
+            height: s * 0.12),
+        Radius.circular(s * 0.05),
+      ),
+      Paint()..color = shorts,
+    );
+
     void legPart(Offset hip, Offset knee, Offset ankle, Offset toe) {
-      _fillLimb(canvas, hip, knee, s * 0.052, s * 0.044, legColor, s);
-      _fillLimb(canvas, knee, ankle, s * 0.044, s * 0.038, legColor, s);
+      // Upper leg = navy shorts; lower leg = bare skin.
+      _fillLimb(canvas, hip, knee, s * 0.06, s * 0.05, shorts, s);
+      _fillLimb(canvas, knee, ankle, s * 0.046, s * 0.04, config.skin, s);
       _foot(canvas, ankle, toe, s);
     }
 
     if (sit) {
-      final lHip = Offset(cx - s * 0.08, hipY);
-      final rHip = Offset(cx + s * 0.08, hipY);
-      final lKnee = Offset(cx - s * 0.14, hipY + s * 0.03);
-      final rKnee = Offset(cx + s * 0.14, hipY + s * 0.03);
-      final lAnkle = Offset(cx - s * 0.15, hipY + s * 0.10);
-      final rAnkle = Offset(cx + s * 0.15, hipY + s * 0.10);
+      final lHip = Offset(cx - s * 0.085, hipY);
+      final rHip = Offset(cx + s * 0.085, hipY);
+      final lKnee = Offset(cx - s * 0.15, hipY + s * 0.05);
+      final rKnee = Offset(cx + s * 0.15, hipY + s * 0.05);
+      final lAnkle = Offset(cx - s * 0.16, hipY + s * 0.14);
+      final rAnkle = Offset(cx + s * 0.16, hipY + s * 0.14);
       legPart(lHip, lKnee, lAnkle, lAnkle + Offset(-s * 0.07, 0));
       legPart(rHip, rKnee, rAnkle, rAnkle + Offset(s * 0.07, 0));
       return;
     }
-    final lHip = Offset(cx - s * 0.075, hipY);
-    final rHip = Offset(cx + s * 0.075, hipY);
-    final lKnee = Offset(lHip.dx + swing * 0.4, hipY + s * 0.07);
-    final rKnee = Offset(rHip.dx - swing * 0.4, hipY + s * 0.07);
-    final lAnkle = Offset(lHip.dx + swing, hipY + s * 0.14);
-    final rAnkle = Offset(rHip.dx - swing, hipY + s * 0.14);
+    final lHip = Offset(cx - s * 0.08, hipY);
+    final rHip = Offset(cx + s * 0.08, hipY);
+    final lKnee = Offset(lHip.dx + swing * 0.4, hipY + s * 0.10);
+    final rKnee = Offset(rHip.dx - swing * 0.4, hipY + s * 0.10);
+    final lAnkle = Offset(lHip.dx + swing, hipY + s * 0.21);
+    final rAnkle = Offset(rHip.dx - swing, hipY + s * 0.21);
     legPart(lHip, lKnee, lAnkle, lAnkle + Offset(-s * 0.06, 0));
     legPart(rHip, rKnee, rAnkle, rAnkle + Offset(s * 0.06, 0));
   }
@@ -1358,41 +1361,44 @@ class _CharacterPainter extends CustomPainter {
 
     switch (config.hair) {
       case HairStyle.short:
-        // A soft rounded cap with lock scallops at the fringe, above the brows.
-        final cap = Path()
-          ..moveTo(c.dx - r * 0.96, c.dy + r * 0.06)
-          ..cubicTo(c.dx - r * 1.04, c.dy - r * 0.72, c.dx - r * 0.5,
-              c.dy - r * 1.16, c.dx, c.dy - r * 1.13)
-          ..cubicTo(c.dx + r * 0.5, c.dy - r * 1.16, c.dx + r * 1.04,
-              c.dy - r * 0.72, c.dx + r * 0.96, c.dy + r * 0.06)
-          ..cubicTo(c.dx + r * 0.72, c.dy - r * 0.34, c.dx + r * 0.54,
-              c.dy - r * 0.30, c.dx + r * 0.36, c.dy - r * 0.44)
-          ..cubicTo(c.dx + r * 0.22, c.dy - r * 0.30, c.dx + r * 0.10,
-              c.dy - r * 0.34, c.dx - r * 0.04, c.dy - r * 0.48)
-          ..cubicTo(c.dx - r * 0.20, c.dy - r * 0.32, c.dx - r * 0.34,
-              c.dy - r * 0.34, c.dx - r * 0.50, c.dy - r * 0.46)
-          ..cubicTo(c.dx - r * 0.70, c.dy - r * 0.34, c.dx - r * 0.86,
-              c.dy - r * 0.18, c.dx - r * 0.96, c.dy + r * 0.06)
-          ..close();
-        canvas.drawPath(cap, paint);
-        canvas.drawPath(
-          cap,
+        // Big, tousled, voluminous hair — Hari's signature look. Built from a
+        // cluster of soft lobes so the silhouette reads as real hair volume,
+        // with a fringe that frames the forehead just above the brows.
+        const lobes = <(double, double, double)>[
+          (0.0, -1.16, 0.58), // crown
+          (-0.30, -1.22, 0.44),
+          (0.32, -1.20, 0.46),
+          (0.02, -1.40, 0.34), // top tuft
+          (-0.60, -0.98, 0.52), // upper left mass
+          (0.62, -0.96, 0.52), // upper right mass
+          (-0.95, -0.42, 0.44), // left side over temple
+          (0.95, -0.42, 0.44), // right side over temple
+          (-0.80, -1.16, 0.32), // left top tuft
+          (0.82, -1.14, 0.34), // right top tuft
+        ];
+        const fringe = <(double, double, double)>[
+          (-0.55, -0.86, 0.26),
+          (-0.18, -0.92, 0.26),
+          (0.20, -0.92, 0.26),
+          (0.55, -0.86, 0.26),
+        ];
+        const all = <(double, double, double)>[...lobes, ...fringe];
+        final inkP = Paint()..color = _ink;
+        for (final l in all) {
+          canvas.drawCircle(Offset(c.dx + l.$1 * r, c.dy + l.$2 * r),
+              l.$3 * r + r * 0.03, inkP);
+        }
+        for (final l in all) {
+          canvas.drawCircle(
+              Offset(c.dx + l.$1 * r, c.dy + l.$2 * r), l.$3 * r, paint);
+        }
+        // Soft volume highlight toward the light.
+        canvas.drawCircle(
+          Offset(c.dx - r * 0.30, c.dy - r * 1.02),
+          r * 0.36,
           Paint()
-            ..color = _ink
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = r * 0.04
-            ..strokeJoin = StrokeJoin.round,
-        );
-        // A soft parted lock highlight for texture.
-        canvas.drawPath(
-          Path()
-            ..moveTo(c.dx - r * 0.1, c.dy - r * 0.95)
-            ..cubicTo(c.dx + r * 0.3, c.dy - r * 0.9, c.dx + r * 0.5,
-                c.dy - r * 0.5, c.dx + r * 0.34, c.dy - r * 0.44)
-            ..cubicTo(c.dx + r * 0.4, c.dy - r * 0.7, c.dx + r * 0.1,
-                c.dy - r * 0.86, c.dx - r * 0.1, c.dy - r * 0.95)
-            ..close(),
-          Paint()..color = Colors.white.withOpacity(0.12),
+            ..color = Colors.white.withOpacity(0.16)
+            ..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 0.20),
         );
         _hairSheen(canvas, c, r, hi);
         break;
