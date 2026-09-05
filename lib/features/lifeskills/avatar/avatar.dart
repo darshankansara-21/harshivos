@@ -1460,9 +1460,9 @@ class _CharacterPainter extends CustomPainter {
   }
 
   void _face(Canvas canvas, Offset c, double r, _Face f) {
-    final eyeY = c.dy + r * 0.04;
-    final eyeDx = r * 0.40;
-    final eyeR = r * 0.36;
+    final eyeY = c.dy + r * 0.05;
+    final eyeDx = r * 0.42;
+    final eyeR = r * 0.40;
 
     // Eyebrows.
     _brow(canvas, Offset(c.dx - eyeDx, eyeY - eyeR - r * 0.06), r, f, left: true);
