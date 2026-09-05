@@ -140,6 +140,13 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
             Expanded(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 260),
+                layoutBuilder: (currentChild, previousChildren) => Stack(
+                  alignment: Alignment.topCenter,
+                  children: <Widget>[
+                    ...previousChildren,
+                    if (currentChild != null) currentChild,
+                  ],
+                ),
                 child: SingleChildScrollView(
                   key: ValueKey<int>(_step),
                   padding: const EdgeInsets.fromLTRB(22, 8, 22, 16),
