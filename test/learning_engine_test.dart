@@ -93,4 +93,55 @@ void main() {
     expect(games.length, 1);
     expect(games.first.target, 'learn_colors');
   });
+
+  testWidgets('completing a sorting game logs one real gamePlayed event',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(900, 1100));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final storage = LocalStorage(await SharedPreferences.getInstance());
+
+    final container = ProviderContainer(overrides: <Override>[
+      localStorageProvider.overrideWithValue(storage),
+    ]);
+    addTearDown(container.dispose);
+
+    final pack = kSortPacks.firstWhere((p) => p.id == 'sort_animal_food');
+    final emojiToCategory = <String, int>{
+      for (final it in pack.items) it.emoji: it.category,
+    };
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(home: SortingGameScreen(pack: pack)),
+      ),
+    );
+    await tester.pump();
+
+    for (var i = 0; i < 8; i++) {
+      // The shown item is the large 96px emoji; find which one is on screen.
+      String? shown;
+      for (final t in tester.widgetList<Text>(find.byType(Text))) {
+        if (emojiToCategory.containsKey(t.data)) {
+          shown = t.data;
+          break;
+        }
+      }
+      expect(shown, isNotNull, reason: 'an item should be shown');
+      final correctBin =
+          emojiToCategory[shown] == 0 ? pack.categoryA : pack.categoryB;
+      await tester.tap(find.text(correctBin));
+      await tester.pump();
+    }
+
+    expect(find.text('You did it!'), findsOneWidget);
+
+    final games = container
+        .read(activityLogProvider)
+        .where((e) => e.type == ActivityType.gamePlayed)
+        .toList();
+    expect(games.length, 1);
+    expect(games.first.target, 'sort_animal_food');
+  });
 }

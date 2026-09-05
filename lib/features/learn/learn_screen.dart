@@ -33,6 +33,9 @@ class LearnScreen extends StatelessWidget {
         for (final pack in kLearnPacks)
           _LearnActivity(pack.title, pack.emoji, pack.gradient,
               (context) => LearningGameScreen(pack: pack)),
+        for (final pack in kSortPacks)
+          _LearnActivity(pack.title, pack.emoji, pack.gradient,
+              (context) => SortingGameScreen(pack: pack)),
       ];
 
   @override
@@ -103,6 +106,8 @@ class _ActivityTile extends StatelessWidget {
           ),
           const Spacer(),
           Text(activity.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
           const SizedBox(height: 4),
           const Text('Tap to play',

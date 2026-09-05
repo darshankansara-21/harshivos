@@ -478,3 +478,347 @@ const List<LearnPack> kLearnPacks = <LearnPack>[
     ],
   ),
 ];
+
+// ===========================================================================
+// SECOND MECHANIC — categorization / sorting.
+// A distinct early-learning + behavioral skill: not "find the X" but "which
+// group does this belong to?". Shares the same no-fail, adaptive-length,
+// reinforcement and real-tracking infrastructure.
+// ===========================================================================
+
+/// One item that belongs to exactly one of a pack's two categories.
+class SortItem {
+  const SortItem(this.emoji, this.category);
+  final String emoji;
+
+  /// 0 = first category, 1 = second category.
+  final int category;
+}
+
+/// A sorting pack: two named bins and the items that belong to each.
+class SortPack {
+  const SortPack({
+    required this.id,
+    required this.title,
+    required this.emoji,
+    required this.gradient,
+    required this.categoryA,
+    required this.categoryB,
+    required this.items,
+  });
+
+  final String id;
+  final String title;
+  final String emoji;
+  final List<Color> gradient;
+  final String categoryA;
+  final String categoryB;
+  final List<SortItem> items;
+}
+
+/// The sorting game: an item appears, the child taps which group it belongs to.
+/// No-fail (a wrong tap gently invites another try), fixed-length, and logs a
+/// single real [ActivityType.gamePlayed] event on completion.
+class SortingGameScreen extends ConsumerStatefulWidget {
+  const SortingGameScreen({super.key, required this.pack});
+  final SortPack pack;
+
+  @override
+  ConsumerState<SortingGameScreen> createState() => _SortingGameScreenState();
+}
+
+class _SortingGameScreenState extends ConsumerState<SortingGameScreen> {
+  static const int _roundsTarget = 8;
+
+  final math.Random _rnd = math.Random();
+  int _score = 0;
+  int _round = 0;
+  bool _justWrong = false;
+  bool _done = false;
+  late SortItem _current;
+  late final DateTime _startedAt;
+
+  @override
+  void initState() {
+    super.initState();
+    _startedAt = DateTime.now();
+    _nextItem();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _speakPrompt());
+  }
+
+  double get _volume => ref.read(sensoryPreferencesProvider).volumeScale;
+
+  void _speakPrompt() {
+    HariVoice.instance.speak('Where does it go?', volume: _volume);
+  }
+
+  void _nextItem() {
+    _current = widget.pack.items[_rnd.nextInt(widget.pack.items.length)];
+    _justWrong = false;
+  }
+
+  void _choose(int category) {
+    if (_done) return;
+    if (category == _current.category) {
+      HapticFeedback.mediumImpact();
+      TonePlayer.instance.playNote(3 + _round);
+      setState(() {
+        _score++;
+        _round++;
+        if (_round >= _roundsTarget) {
+          _finish();
+        } else {
+          _nextItem();
+        }
+      });
+      if (!_done) _speakPrompt();
+    } else {
+      HapticFeedback.selectionClick();
+      setState(() => _justWrong = true);
+    }
+  }
+
+  void _finish() {
+    _done = true;
+    final seconds = DateTime.now().difference(_startedAt).inSeconds;
+    ref.read(activityLogProvider.notifier).log(
+          ActivityType.gamePlayed,
+          widget.pack.id,
+          seconds: seconds,
+          label: widget.pack.title,
+        );
+  }
+
+  void _playAgain() {
+    setState(() {
+      _score = 0;
+      _round = 0;
+      _done = false;
+      _nextItem();
+    });
+    _speakPrompt();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pack = widget.pack;
+    return Scaffold(
+      backgroundColor: const Color(0xFF1B1140),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        title: Text(pack.title),
+        actions: <Widget>[
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Center(
+              child: Text('⭐ $_score',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
+      ),
+      body: SafeArea(child: _done ? _buildDone(pack) : _buildRound(pack)),
+    );
+  }
+
+  Widget _buildRound(SortPack pack) {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: <Widget>[
+          _ProgressDots(total: _roundsTarget, done: _round),
+          const Spacer(),
+          GestureDetector(
+            onTap: _speakPrompt,
+            child: Text(_current.emoji, style: const TextStyle(fontSize: 96)),
+          ),
+          const SizedBox(height: 8),
+          Text('Where does it go?',
+              style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 20)),
+          SizedBox(
+            height: 26,
+            child: _justWrong
+                ? const Text('Try the other one 💪',
+                    style: TextStyle(color: Colors.amberAccent))
+                : const SizedBox.shrink(),
+          ),
+          const Spacer(),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: _SortBin(
+                    label: pack.categoryA,
+                    color: pack.gradient.first,
+                    onTap: () => _choose(0)),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _SortBin(
+                    label: pack.categoryB,
+                    color: pack.gradient.last,
+                    onTap: () => _choose(1)),
+              ),
+            ],
+          ),
+          const Spacer(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDone(SortPack pack) {
+    return Padding(
+      padding: const EdgeInsets.all(28),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          Container(
+            width: 96,
+            height: 96,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(colors: pack.gradient),
+            ),
+            child: const Text('🌟', style: TextStyle(fontSize: 48)),
+          ),
+          const SizedBox(height: 20),
+          const Text('You did it!',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900)),
+          const SizedBox(height: 8),
+          Text('$_score out of $_roundsTarget',
+              style: const TextStyle(color: Colors.white70, fontSize: 18)),
+          const SizedBox(height: 28),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: _playAgain,
+              icon: const Icon(Icons.replay_rounded),
+              label: const Text('Play again'),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () => Navigator.of(context).pop(),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Colors.white38),
+              ),
+              child: const Text('All done',
+                  style: TextStyle(color: Colors.white)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SortBin extends StatelessWidget {
+  const _SortBin(
+      {required this.label, required this.color, required this.onTap});
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 132,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          color: color.withOpacity(0.16),
+          border: Border.all(color: color.withOpacity(0.8), width: 2),
+        ),
+        child: Text(label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.w800)),
+      ),
+    );
+  }
+}
+
+/// Curated sorting packs — each becomes a real game via [SortingGameScreen].
+const List<SortPack> kSortPacks = <SortPack>[
+  SortPack(
+    id: 'sort_animal_food',
+    title: 'Animals & Food',
+    emoji: '🐮',
+    gradient: <Color>[Color(0xFF43E97B), Color(0xFFFF8E53)],
+    categoryA: 'Animal',
+    categoryB: 'Food',
+    items: <SortItem>[
+      SortItem('🐶', 0),
+      SortItem('🐱', 0),
+      SortItem('🐮', 0),
+      SortItem('🐔', 0),
+      SortItem('🐟', 0),
+      SortItem('🐰', 0),
+      SortItem('🍎', 1),
+      SortItem('🍌', 1),
+      SortItem('🍞', 1),
+      SortItem('🥕', 1),
+      SortItem('🧀', 1),
+      SortItem('🍪', 1),
+    ],
+  ),
+  SortPack(
+    id: 'sort_fruit_veg',
+    title: 'Fruit & Veg',
+    emoji: '🍎',
+    gradient: <Color>[Color(0xFFFF6B6B), Color(0xFF43E97B)],
+    categoryA: 'Fruit',
+    categoryB: 'Vegetable',
+    items: <SortItem>[
+      SortItem('🍎', 0),
+      SortItem('🍌', 0),
+      SortItem('🍇', 0),
+      SortItem('🍓', 0),
+      SortItem('🍊', 0),
+      SortItem('🍉', 0),
+      SortItem('🥕', 1),
+      SortItem('🥦', 1),
+      SortItem('🌽', 1),
+      SortItem('🥔', 1),
+      SortItem('🍅', 1),
+      SortItem('🥬', 1),
+    ],
+  ),
+  SortPack(
+    id: 'sort_animal_thing',
+    title: 'Animals & Toys',
+    emoji: '🧸',
+    gradient: <Color>[Color(0xFF4FACFE), Color(0xFF9B8CFF)],
+    categoryA: 'Animal',
+    categoryB: 'Toy',
+    items: <SortItem>[
+      SortItem('🐶', 0),
+      SortItem('🐴', 0),
+      SortItem('🐸', 0),
+      SortItem('🐘', 0),
+      SortItem('🦆', 0),
+      SortItem('🐑', 0),
+      SortItem('⚽', 1),
+      SortItem('🧸', 1),
+      SortItem('🪁', 1),
+      SortItem('🥁', 1),
+      SortItem('🧩', 1),
+      SortItem('🚗', 1),
+    ],
+  ),
+];
+
