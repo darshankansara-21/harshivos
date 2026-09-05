@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/harshiv_scaffold.dart';
 import 'emotion_match_game.dart';
+import 'learning_engine.dart';
 import 'matching_pairs_game.dart';
 
 class _LearnActivity {
@@ -18,20 +19,25 @@ class _LearnActivity {
 class LearnScreen extends StatelessWidget {
   const LearnScreen({super.key});
 
-  // Every activity here is a real, finished, no-fail game. We ship fewer real
-  // games rather than a wall of "coming soon" dead-ends.
-  static const List<_LearnActivity> _activities = <_LearnActivity>[
-    _LearnActivity('Emotion Match', '🎭', <Color>[Color(0xFFA18CD1), Color(0xFFFBC2EB)],
-      _emotionBuilder),
-    _LearnActivity('Matching Pairs', '🃏', <Color>[Color(0xFF43E97B), Color(0xFF38F9D7)],
-      _pairsBuilder),
-  ];
-
+  // Every activity here is a real, finished, no-fail game. The first two are
+  // bespoke; the rest are powered by the shared learning engine (one adaptive
+  // mechanic + curated content packs) — real depth, no "coming soon" tiles.
   static Widget _emotionBuilder(BuildContext context) => const EmotionMatchGame();
   static Widget _pairsBuilder(BuildContext context) => const MatchingPairsGame();
 
+  static List<_LearnActivity> _buildActivities() => <_LearnActivity>[
+        const _LearnActivity('Emotion Match', '🎭',
+            <Color>[Color(0xFFA18CD1), Color(0xFFFBC2EB)], _emotionBuilder),
+        const _LearnActivity('Matching Pairs', '🃏',
+            <Color>[Color(0xFF43E97B), Color(0xFF38F9D7)], _pairsBuilder),
+        for (final pack in kLearnPacks)
+          _LearnActivity(pack.title, pack.emoji, pack.gradient,
+              (context) => LearningGameScreen(pack: pack)),
+      ];
+
   @override
   Widget build(BuildContext context) {
+    final activities = _buildActivities();
     return HarshivScaffold(
       child: CustomScrollView(
         slivers: <Widget>[
@@ -62,8 +68,8 @@ class LearnScreen extends StatelessWidget {
               childAspectRatio: 1.0,
             ),
             delegate: SliverChildBuilderDelegate(
-              (context, i) => _ActivityTile(activity: _activities[i]),
-              childCount: _activities.length,
+              (context, i) => _ActivityTile(activity: activities[i]),
+              childCount: activities.length,
             ),
           ),
         ],
