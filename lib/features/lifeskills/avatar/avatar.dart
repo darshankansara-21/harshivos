@@ -889,13 +889,14 @@ class _CharacterPainter extends CustomPainter {
       ),
       Paint()..color = _darken(config.shirt, 0.09),
     );
-    // Favourite-colour cuff at the hem.
+    // Soft hoodie hem ribbing (same cloth, slightly darker) so it reads as
+    // the bottom of the hoodie rather than a bright waistband.
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromLTWH(cx - w / 2, bodyTop + h - s * 0.035, w, s * 0.045),
-        Radius.circular(s * 0.02),
+        Rect.fromLTWH(cx - w / 2, bodyTop + h - s * 0.052, w, s * 0.052),
+        Radius.circular(s * 0.03),
       ),
-      Paint()..color = config.favoriteColor.withOpacity(0.92),
+      Paint()..color = _darken(config.shirt, 0.16),
     );
     // Soft shoulder highlight.
     canvas.drawRRect(
@@ -1006,34 +1007,35 @@ class _CharacterPainter extends CustomPainter {
     final dir = toe - ankle;
     final len = dir.distance;
     final n = len < 1e-3 ? const Offset(1, 0) : dir / len;
-    final heel = ankle - n * s * 0.012;
-    final tip = ankle + n * s * 0.085 + Offset(0, s * 0.008);
+    final heel = ankle - n * s * 0.012 + Offset(0, s * 0.004);
+    final tip = ankle + n * s * 0.09 + Offset(0, s * 0.012);
+    // Ink outline.
     canvas.drawLine(
         heel,
         tip,
         Paint()
           ..color = _ink
           ..strokeCap = StrokeCap.round
-          ..strokeWidth = s * 0.078
-          ..style = PaintingStyle.stroke);
+          ..strokeWidth = s * 0.09);
+    // Shoe upper in the child's favourite colour.
     canvas.drawLine(
         heel,
         tip,
         Paint()
-          ..color = _darken(config.favoriteColor, 0.05)
+          ..color = _darken(config.favoriteColor, 0.02)
           ..strokeCap = StrokeCap.round
-          ..strokeWidth = s * 0.056
-          ..style = PaintingStyle.stroke);
+          ..strokeWidth = s * 0.066);
+    // Rounded toe cap.
     canvas.drawCircle(
-        tip, s * 0.03, Paint()..color = _lighten(config.favoriteColor, 0.16));
+        tip, s * 0.03, Paint()..color = _lighten(config.favoriteColor, 0.2));
+    // Bright white sole.
     canvas.drawLine(
-        heel + Offset(0, s * 0.028),
-        tip + Offset(0, s * 0.022),
+        heel + Offset(0, s * 0.03),
+        tip + Offset(0, s * 0.024),
         Paint()
-          ..color = Colors.white.withOpacity(0.6)
+          ..color = Colors.white.withOpacity(0.92)
           ..strokeCap = StrokeCap.round
-          ..strokeWidth = s * 0.012
-          ..style = PaintingStyle.stroke);
+          ..strokeWidth = s * 0.02);
   }
 
   void _arms(Canvas canvas, double cx, double bodyTop, Offset headC,
@@ -1101,8 +1103,8 @@ class _CharacterPainter extends CustomPainter {
       case AvatarPose.sit:
       case AvatarPose.potty:
         final sway = math.sin(t * math.pi * 2) * s * 0.012 * face.bounce;
-        lHand = Offset(cx - s * 0.205, shoulderY + s * 0.19 + sway);
-        rHand = Offset(cx + s * 0.205, shoulderY + s * 0.19 - sway);
+        lHand = Offset(cx - s * 0.16, shoulderY + s * 0.215 + sway);
+        rHand = Offset(cx + s * 0.16, shoulderY + s * 0.215 - sway);
         break;
       case AvatarPose.jump:
         lHand = Offset(cx - s * 0.20, headC.dy - s * 0.03);
