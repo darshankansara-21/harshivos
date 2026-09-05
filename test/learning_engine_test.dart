@@ -41,9 +41,12 @@ void main() {
     // Preservation: the two bespoke games must still be present.
     expect(find.text('Emotion Match'), findsOneWidget);
     expect(find.text('Matching Pairs'), findsOneWidget);
-    // Added depth from the shared engine.
-    expect(find.text('Colors'), findsOneWidget);
+    // Added depth from the shared engine (Colors may also appear in the
+    // real-data "Try next" suggestion card, so allow one or more).
+    expect(find.text('Colors'), findsWidgets);
     expect(find.text('Animals'), findsOneWidget);
+    // The transparent, real-data suggestion is shown.
+    expect(find.text('Try next'), findsOneWidget);
   });
 
   testWidgets('completing an engine game logs one real gamePlayed event',
