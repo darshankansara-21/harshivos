@@ -63,16 +63,10 @@ class AnalyticsScreen extends ConsumerWidget {
                   const Text('No sessions yet',
                       style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
                   const SizedBox(height: 6),
-                  const Text('Play in the toybox or use Calm Me, and HARSHIVOS will '
-                      'start learning what helps. Want a quick preview?',
+                  const Text('Play in the toybox or use Calm Me, and these insights '
+                      'will build from what actually happens on this device.',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.white70)),
-                  const SizedBox(height: 12),
-                  FilledButton.icon(
-                    onPressed: () => _seedDemo(ref),
-                    icon: const Icon(Icons.auto_graph_rounded),
-                    label: const Text('Generate sample insights'),
-                  ),
                 ],
               ),
             ),
@@ -112,27 +106,6 @@ class AnalyticsScreen extends ConsumerWidget {
         ],
       ),
     );
-  }
-
-  void _seedDemo(WidgetRef ref) {
-    final notifier = ref.read(regulationLogProvider.notifier);
-    final samples = <(String, CalmMood, double, double)>[
-      ('particle_galaxy', CalmMood.overwhelmed, 0.1, 0.85),
-      ('water_ripples', CalmMood.anxious, 0.2, 0.8),
-      ('particle_galaxy', CalmMood.frustrated, 0.2, 0.9),
-      ('bubble_pop', CalmMood.frustrated, 0.25, 0.6),
-      ('fluid_sim', CalmMood.sad, 0.3, 0.7),
-      ('water_ripples', CalmMood.tired, 0.35, 0.75),
-      ('fireworks', CalmMood.overwhelmed, 0.15, 0.5),
-    ];
-    for (final s in samples) {
-      notifier.logSession(
-        toyIds: <String>[s.$1],
-        mood: s.$2,
-        calmBefore: s.$3,
-        calmAfter: s.$4,
-      );
-    }
   }
 }
 

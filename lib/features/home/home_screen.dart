@@ -64,8 +64,8 @@ class HomeScreen extends ConsumerWidget {
         (_) => const SocialStoriesScreen()),
     _Destination('Learn', 'Playful micro-games', '🧠', AppColors.learnGradient,
         (_) => const LearnScreen()),
-    _Destination('Parent Copilot', 'AI for caregivers', '👨‍👩‍👦', AppColors.parentGradient,
-        (_) => const ParentCopilotScreen()),
+    _Destination('Caregiver Guide', 'Gentle strategies', '👨‍👩‍👦', AppColors.parentGradient,
+        (_) => const CaregiverGuideScreen()),
   ];
 
   @override

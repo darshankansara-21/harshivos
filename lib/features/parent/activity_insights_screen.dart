@@ -79,6 +79,7 @@ class ActivityInsightsScreen extends ConsumerWidget {
                   ),
                 ],
               ),
+              if (i.patterns.isNotEmpty) _PatternsSection(patterns: i.patterns),
               _ChipsSection(
                   title: '$name recently enjoyed',
                   emoji: '🧸',
@@ -232,6 +233,57 @@ class _ChipsSection extends StatelessWidget {
                       fontWeight: FontWeight.w700)),
             );
           }).toList(),
+        ),
+      ],
+    );
+  }
+}
+
+/// Honest, deterministic week-over-week observations from the local log.
+class _PatternsSection extends StatelessWidget {
+  const _PatternsSection({required this.patterns});
+  final List<String> patterns;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        const Padding(
+          padding: EdgeInsets.fromLTRB(4, 20, 4, 8),
+          child: Text('📈  This week vs last week',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800)),
+        ),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            color: Colors.white.withOpacity(0.06),
+            border: Border.all(color: Colors.white12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              for (final p in patterns)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      const Text('•  ', style: TextStyle(color: Colors.white54)),
+                      Expanded(
+                        child: Text(p,
+                            style: const TextStyle(
+                                color: Colors.white70, fontSize: 14)),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
         ),
       ],
     );

@@ -7,8 +7,10 @@ import '../../services/ai/ai_provider.dart';
 import '../../state/providers.dart';
 import 'story_reader_screen.dart';
 
-/// Social Stories — caregiver enters a situation; the AI layer writes a gentle,
-/// first-person story with illustrations + narration to rehearse it.
+/// Social Stories — caregiver picks a situation; we build a gentle, predictable
+/// first-person story from curated templates to rehearse it together. Offline
+/// and template-based (not AI); the calm, repetitive wording is what makes
+/// social stories effective.
 class SocialStoriesScreen extends ConsumerStatefulWidget {
   const SocialStoriesScreen({super.key});
 

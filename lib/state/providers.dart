@@ -277,6 +277,7 @@ class ActivityInsights {
     required this.routinesCompleted7d,
     required this.calmCompleted7d,
     required this.activeHours,
+    required this.patterns,
   });
 
   final int eventsToday;
@@ -287,6 +288,7 @@ class ActivityInsights {
   final int routinesCompleted7d;
   final int calmCompleted7d;
   final List<int> activeHours; // most active hours 0-23
+  final List<String> patterns; // honest week-over-week observations
 
   bool get hasData => eventsToday > 0 || minutes7d > 0 || topActivities.isNotEmpty;
 
@@ -294,6 +296,7 @@ class ActivityInsights {
     final now = DateTime.now();
     final startToday = DateTime(now.year, now.month, now.day);
     final weekAgo = now.subtract(const Duration(days: 7));
+    final twoWeeksAgo = now.subtract(const Duration(days: 14));
 
     var eventsToday = 0;
     var seconds7d = 0;
@@ -304,8 +307,35 @@ class ActivityInsights {
     final feelingCount = <String, int>{};
     final hourCount = <int, int>{};
 
+    // Category buckets for the current week vs the week before (for patterns).
+    final thisWeek = <String, int>{};
+    final prevWeek = <String, int>{};
+
+    String bucket(ActivityType t) {
+      switch (t) {
+        case ActivityType.toyPlayed:
+        case ActivityType.gamePlayed:
+          return 'Play';
+        case ActivityType.spoke:
+          return 'Talking';
+        case ActivityType.feelingChosen:
+          return 'Feelings check-ins';
+        case ActivityType.routineCompleted:
+          return 'Routines';
+        case ActivityType.calmCompleted:
+          return 'Calm activities';
+      }
+    }
+
     for (final e in events) {
       if (e.at.isAfter(startToday)) eventsToday++;
+
+      if (e.at.isAfter(weekAgo)) {
+        thisWeek.update(bucket(e.type), (v) => v + 1, ifAbsent: () => 1);
+      } else if (e.at.isAfter(twoWeeksAgo)) {
+        prevWeek.update(bucket(e.type), (v) => v + 1, ifAbsent: () => 1);
+      }
+
       if (e.at.isAfter(weekAgo)) {
         seconds7d += e.seconds;
         hourCount.update(e.at.hour, (v) => v + 1, ifAbsent: () => 1);
@@ -341,6 +371,24 @@ class ActivityInsights {
     final hours = hourCount.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
+    // Honest, deterministic week-over-week observations. Only emitted when
+    // there is enough data in the previous week to be a fair comparison.
+    final patterns = <String>[];
+    final categories = <String>{...thisWeek.keys, ...prevWeek.keys};
+    for (final c in categories) {
+      final t = thisWeek[c] ?? 0;
+      final p = prevWeek[c] ?? 0;
+      if (p == 0 && t == 0) continue;
+      if (p == 0) continue; // no fair baseline last week
+      if (t == p) {
+        patterns.add('$c: about the same as last week ($t vs $p).');
+      } else if (t > p) {
+        patterns.add('$c: used more this week ($t vs $p).');
+      } else {
+        patterns.add('$c: used less this week ($t vs $p).');
+      }
+    }
+
     return ActivityInsights(
       eventsToday: eventsToday,
       minutes7d: (seconds7d / 60).round(),
@@ -350,6 +398,7 @@ class ActivityInsights {
       routinesCompleted7d: routines,
       calmCompleted7d: calm,
       activeHours: hours.take(3).map((e) => e.key).toList(),
+      patterns: patterns,
     );
   }
 }

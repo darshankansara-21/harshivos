@@ -154,7 +154,7 @@ class WorldScreen extends ConsumerWidget {
   // Route builders (kept as const top-level tear-off targets).
   static Widget _b0(BuildContext c) => const FeelingsScreen();
   static Widget _b1(BuildContext c) => const SocialStoriesScreen();
-  static Widget _b2(BuildContext c) => const ParentCopilotScreen();
+  static Widget _b2(BuildContext c) => const CaregiverGuideScreen();
   static Widget _b3(BuildContext c) => const SensoryLabScreen();
   static Widget _b4(BuildContext c) => const TalkScreen();
   static Widget _b5(BuildContext c) => const PlayHubScreen();
