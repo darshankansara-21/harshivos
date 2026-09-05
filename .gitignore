@@ -31,5 +31,12 @@ android/key.properties
 # Build logs
 _logs/
 
+# Local release-validation scratch (analyze/test/build capture files)
+analyze_last.txt
+build_*.txt
+test_*.txt
+tr.json
+tr.txt
+
 # Local release-validation evidence renders
 evidence/
