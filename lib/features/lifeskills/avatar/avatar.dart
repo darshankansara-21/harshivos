@@ -489,14 +489,16 @@ class _CharacterPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final s = size.shortestSide;
+    // Scale to leave margin so the full silhouette (tall hair + feet) never
+    // clips inside a bounded box; a small upward shift balances top/bottom.
+    final s = size.shortestSide * 0.86;
     final cx = size.width / 2;
     final face = _resolveFace();
 
     // Gentle vertical breathing / bounce, tuned per emotion.
     final wobble = math.sin(t * math.pi * 2);
     final breathe = wobble * s * 0.012 * face.bounce;
-    final cy = size.height / 2 + breathe;
+    final cy = size.height / 2 - s * 0.025 + breathe;
 
     // Childlike chibi proportions: a big, expressive head over a soft body.
     final headR = s * 0.20;
