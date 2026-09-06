@@ -17,6 +17,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:harshivos/features/lifeskills/avatar/avatar.dart';
 import 'package:harshivos/features/lifeskills/avatar/hari_cards.dart';
+import 'package:harshivos/features/lifeskills/avatar/hari_pico_scene.dart';
 import 'package:harshivos/features/lifeskills/avatar/pico.dart';
 import 'package:harshivos/features/lifeskills/data/routine_library.dart';
 import 'package:harshivos/features/lifeskills/routine_player_screen.dart';
@@ -231,6 +232,20 @@ void main() {
       ),
     ));
     await _grab(tester, key, 'evidence/hari/03_together_cards.png');
+  });
+
+  testWidgets('Hari and Pico reusable interaction moments', (tester) async {
+    await _captureMatrix(
+      tester,
+      title: 'HARI + PICO - relationship moments',
+      path: 'evidence/hari/10_relationship_moments.png',
+      tiles: HariPicoMoment.values
+          .map((moment) => _tile(
+                moment.name,
+                HariPicoScene(moment: moment, animate: false),
+              ))
+          .toList(),
+    );
   });
 
   testWidgets('Hari scale range and meal routine stay unobscured', (tester) async {

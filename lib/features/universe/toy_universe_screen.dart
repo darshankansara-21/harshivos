@@ -9,7 +9,7 @@ import '../antistress/antistress_player_screen.dart';
 import '../calm/calm_me_screen.dart';
 import '../learn/learn_screen.dart';
 import '../lifeskills/avatar/avatar.dart';
-import '../lifeskills/avatar/pico.dart';
+import '../lifeskills/avatar/hari_pico_scene.dart';
 import '../lifeskills/daily_life_screen.dart';
 import '../parent/activity_insights_screen.dart';
 import '../world/world_screen.dart';
@@ -307,9 +307,9 @@ class _HariGreeting extends StatelessWidget {
         child: Row(
           children: <Widget>[
             const SizedBox(
-              width: 76,
+              width: 92,
               height: 92,
-              child: Hari(emotion: HariEmotion.happy, pose: HariPose.wave),
+              child: HariPicoScene(),
             ),
             Expanded(
               child: Column(
@@ -331,11 +331,6 @@ class _HariGreeting extends StatelessWidget {
                           fontWeight: FontWeight.w600)),
                 ],
               ),
-            ),
-            const SizedBox(
-              width: 74,
-              height: 82,
-              child: PicoWidget(mood: PicoMood.excited),
             ),
             const SizedBox(width: 4),
           ],
