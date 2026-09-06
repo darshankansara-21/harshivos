@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'hari_master.dart';
+
 // ---------------------------------------------------------------------------
 // HARSHIVOS Character System
 // ---------------------------------------------------------------------------
@@ -428,6 +430,18 @@ class Hari extends StatelessWidget {
   Widget build(BuildContext context) {
     final resolved = config ??
         AvatarConfig.hari.copyWith(device: device, hearingSide: hearingSide);
+    if (config == null &&
+        pose == HariPose.wave &&
+        emotion == HariEmotion.happy &&
+        device == HearingDevice.none) {
+      return HariMasterWidget(
+        emotion: emotion,
+        pose: pose,
+        device: device,
+        hearingSide: hearingSide,
+        animate: animate,
+      );
+    }
     return AvatarWidget(
       config: resolved,
       emotion: emotion,
@@ -1363,44 +1377,65 @@ class _CharacterPainter extends CustomPainter {
 
     switch (config.hair) {
       case HairStyle.short:
-        // Big, tousled, voluminous hair — Hari's signature look. Built from a
-        // cluster of soft lobes so the silhouette reads as real hair volume,
-        // with a fringe that frames the forehead just above the brows.
-        const lobes = <(double, double, double)>[
-          (0.0, -1.16, 0.58), // crown
-          (-0.30, -1.22, 0.44),
-          (0.32, -1.20, 0.46),
-          (0.02, -1.40, 0.34), // top tuft
-          (-0.60, -0.98, 0.52), // upper left mass
-          (0.62, -0.96, 0.52), // upper right mass
-          (-0.95, -0.42, 0.44), // left side over temple
-          (0.95, -0.42, 0.44), // right side over temple
-          (-0.80, -1.16, 0.32), // left top tuft
-          (0.82, -1.14, 0.34), // right top tuft
-        ];
-        const fringe = <(double, double, double)>[
-          (-0.55, -0.86, 0.26),
-          (-0.18, -0.92, 0.26),
-          (0.20, -0.92, 0.26),
-          (0.55, -0.86, 0.26),
-        ];
-        const all = <(double, double, double)>[...lobes, ...fringe];
-        final inkP = Paint()..color = _ink;
-        for (final l in all) {
-          canvas.drawCircle(Offset(c.dx + l.$1 * r, c.dy + l.$2 * r),
-              l.$3 * r + r * 0.03, inkP);
+        // Hari's signature hair is one designed silhouette with distinct
+        // directional locks, not a cluster of circular "cloud" shapes.
+        final silhouette = Path()
+          ..moveTo(c.dx - r * 0.93, c.dy + r * 0.13)
+          ..cubicTo(c.dx - r * 1.18, c.dy - r * 0.24, c.dx - r * 1.02,
+              c.dy - r * 0.83, c.dx - r * 0.66, c.dy - r * 1.13)
+          ..cubicTo(c.dx - r * 0.42, c.dy - r * 1.48, c.dx - r * 0.14,
+              c.dy - r * 1.32, c.dx, c.dy - r * 1.50)
+          ..cubicTo(c.dx + r * 0.22, c.dy - r * 1.36, c.dx + r * 0.49,
+              c.dy - r * 1.43, c.dx + r * 0.70, c.dy - r * 1.10)
+          ..cubicTo(c.dx + r * 1.05, c.dy - r * 0.85, c.dx + r * 1.19,
+              c.dy - r * 0.28, c.dx + r * 0.91, c.dy + r * 0.15)
+          ..cubicTo(c.dx + r * 0.70, c.dy + r * 0.33, c.dx + r * 0.58,
+              c.dy - r * 0.18, c.dx + r * 0.33, c.dy - r * 0.41)
+          ..cubicTo(c.dx + r * 0.12, c.dy - r * 0.19, c.dx - r * 0.13,
+              c.dy - r * 0.18, c.dx - r * 0.29, c.dy - r * 0.42)
+          ..cubicTo(c.dx - r * 0.55, c.dy - r * 0.16, c.dx - r * 0.69,
+              c.dy + r * 0.29, c.dx - r * 0.93, c.dy + r * 0.13)
+          ..close();
+        canvas.drawPath(
+            silhouette,
+            Paint()
+              ..color = _ink
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = r * 0.075
+              ..strokeJoin = StrokeJoin.round);
+        canvas.drawPath(silhouette, paint);
+
+        void lock(double startX, double endX, double endY) {
+          final lockPath = Path()
+            ..moveTo(c.dx + startX * r, c.dy - r * 0.78)
+            ..cubicTo(c.dx + (startX + endX) * r * 0.55,
+                c.dy - r * 0.64, c.dx + endX * r, c.dy - r * 0.34,
+                c.dx + endX * r, c.dy + endY * r);
+          canvas.drawPath(
+              lockPath,
+              Paint()
+                ..color = _darken(config.hairColor, 0.16)
+                ..style = PaintingStyle.stroke
+                ..strokeWidth = r * 0.13
+                ..strokeCap = StrokeCap.round);
+          canvas.drawPath(
+              lockPath,
+              Paint()
+                ..color = _lighten(config.hairColor, 0.04)
+                ..style = PaintingStyle.stroke
+                ..strokeWidth = r * 0.085
+                ..strokeCap = StrokeCap.round);
         }
-        for (final l in all) {
-          canvas.drawCircle(
-              Offset(c.dx + l.$1 * r, c.dy + l.$2 * r), l.$3 * r, paint);
-        }
-        // Soft volume highlight toward the light.
-        canvas.drawCircle(
-          Offset(c.dx - r * 0.30, c.dy - r * 1.02),
-          r * 0.36,
-          Paint()
-            ..color = Colors.white.withOpacity(0.16)
-            ..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 0.20),
+
+        lock(-0.54, -0.40, -0.28);
+        lock(-0.18, -0.08, -0.18);
+        lock(0.22, 0.35, -0.29);
+        canvas.drawOval(
+          Rect.fromCenter(
+              center: Offset(c.dx - r * 0.28, c.dy - r * 1.04),
+              width: r * 0.56,
+              height: r * 0.30),
+          Paint()..color = Colors.white.withOpacity(0.12),
         );
         _hairSheen(canvas, c, r, hi);
         break;

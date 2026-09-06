@@ -16,6 +16,7 @@ dependencies:
 
   # UI / Design
   google_fonts: ^6.2.1
+  flutter_svg: ^2.1.0
 
   # Voice (Help Me Talk + Social Story narration)
   flutter_tts: ^4.0.2
@@ -68,6 +69,7 @@ flutter:
   assets:
     - assets/config/
     - assets/icon/
+    - assets/characters/
 
   # Bundled locally so the app is fully offline-first (airplane / hospital /
   # clinic). Nunito is a variable font (OFL); the same file is declared at the

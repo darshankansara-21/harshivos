@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 560">
+  <defs>
+    <linearGradient id="skin" x1="0" y1="0" x2=".75" y2="1"><stop stop-color="#ffd9b9"/><stop offset="1" stop-color="#edaa81"/></linearGradient>
+    <linearGradient id="shirt" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#38b9f1"/><stop offset="1" stop-color="#1477d0"/></linearGradient>
+    <linearGradient id="hair" x1="0" y1="0" x2=".7" y2="1"><stop stop-color="#76503a"/><stop offset="1" stop-color="#38251e"/></linearGradient>
+    <linearGradient id="shoe" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#55bfff"/><stop offset="1" stop-color="#1e5dbe"/></linearGradient>
+  </defs>
+  <ellipse cx="200" cy="525" rx="112" ry="17" fill="#17213a" opacity=".18"/>
+  <g stroke="#27304a" stroke-width="7" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M141 382l-9 80" stroke="url(#skin)" stroke-width="31"/>
+    <path d="M259 382l9 80" stroke="url(#skin)" stroke-width="31"/>
+    <path d="M130 467c-26 3-44 17-43 31 2 15 42 14 67 1l-2-24z" fill="url(#shoe)"/>
+    <path d="M270 467c26 3 44 17 43 31-2 15-42 14-67 1l2-24z" fill="url(#shoe)"/>
+    <path d="M106 495c19 5 35 2 48-4M294 495c-19 5-35 2-48-4" stroke="#fff" stroke-width="7"/>
+    <path d="M121 337l-29 54" stroke="url(#skin)" stroke-width="32"/>
+    <path d="M279 337l43-176" stroke="url(#skin)" stroke-width="34"/>
+    <path d="M116 316l-17 49M284 316l26-105" stroke="url(#shirt)" stroke-width="48"/>
+    <path d="M80 384c7-5 15-2 19 4l6 7c3 4 1 9-3 11-4 2-8 0-10-4-1 6-7 9-13 8-7-2-10-9-8-16 1-4 4-8 9-10z" fill="url(#skin)"/>
+    <path d="M79 400c4 3 8 3 12 1M82 406c4 2 7 1 10-1" fill="none" stroke="#ce8d70" stroke-width="4"/>
+    <path d="M316 134c-8 8-7 21 1 27 9 7 20 3 24-7 3-8-1-17-8-21-6-3-12-3-17 1z" fill="url(#skin)"/>
+    <path d="M317 143l-8-16M325 139l-2-19M332 141l5-16M337 147l11-9" fill="none" stroke="#ce8d70" stroke-width="5"/>
+    <path d="M128 303c4-41 29-62 72-62s68 21 72 62l-11 96H139l-11-96z" fill="url(#shirt)"/>
+    <path d="M146 393h108l-4 30c-12 7-24 10-36 8l-14-8-14 8c-12 2-24-1-36-8l-4-30z" fill="#273b70"/>
+    <path d="M150 397h100" fill="none" stroke="#506197" stroke-width="5"/>
+    <path d="M174 319c-15-17-36-2 1 28l25 22 25-22c37-30 16-45 1-28-9-10-21 1-26 9-5-8-17-19-26-9z" fill="none" stroke="#fff" stroke-width="9"/>
+    <path d="M200 80c-76 0-121 48-114 133 4 67 45 108 114 108s110-41 114-108C321 128 276 80 200 80z" fill="url(#skin)"/>
+    <ellipse cx="86" cy="221" rx="18" ry="27" fill="url(#skin)"/><ellipse cx="314" cy="221" rx="18" ry="27" fill="url(#skin)"/>
+    <path d="M97 196c-10-75 28-126 103-129 76-2 112 50 103 128-17-21-30-32-48-42-6 22-28 42-53 47-19 4-42-5-57-20-9 8-22 15-45 16z" fill="url(#hair)"/>
+    <path d="M120 158c18-42 49-63 88-65M155 132c18-20 39-31 61-33" fill="none" stroke="#a87551" stroke-width="11" opacity=".7"/>
+    <path d="M108 180c22-1 41-15 53-39 4 37 27 59 54 62 24-2 43-19 51-48 10 16 24 29 38 37" fill="none" stroke="#483026" stroke-width="25"/>
+    <path d="M145 211c13-12 30-12 42-2M213 209c12-10 29-10 42 2" fill="none" stroke="#4b3328" stroke-width="8"/>
+    <ellipse cx="165" cy="233" rx="24" ry="29" fill="#fff" stroke="none"/><ellipse cx="235" cy="233" rx="24" ry="29" fill="#fff" stroke="none"/>
+    <circle cx="170" cy="238" r="15" fill="#573827" stroke="none"/><circle cx="230" cy="238" r="15" fill="#573827" stroke="none"/><circle cx="176" cy="231" r="5" fill="#fff" stroke="none"/><circle cx="236" cy="231" r="5" fill="#fff" stroke="none"/>
+    <path d="M196 252c3 3 5 3 8 0" fill="none" stroke="#ce8d70" stroke-width="6"/>
+    <ellipse cx="139" cy="270" rx="20" ry="11" fill="#f39991" opacity=".45" stroke="none"/><ellipse cx="261" cy="270" rx="20" ry="11" fill="#f39991" opacity=".45" stroke="none"/>
+    <path d="M171 278c18 23 40 23 58 0" fill="none" stroke="#983f39" stroke-width="9"/>
+    <path d="M105 217c-14 3-18 21-9 30" fill="none" stroke="#2f9de9" stroke-width="8"/>
+    <rect x="94" y="204" width="18" height="29" rx="9" fill="#26a7e8"/>
+    <circle cx="103" cy="212" r="4" fill="#dff8ff" stroke="none"/>
+  </g>
+</svg>

@@ -18,6 +18,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:harshivos/features/lifeskills/avatar/avatar.dart';
 import 'package:harshivos/features/lifeskills/avatar/hari_cards.dart';
 import 'package:harshivos/features/lifeskills/avatar/pico.dart';
+import 'package:harshivos/features/lifeskills/data/routine_library.dart';
+import 'package:harshivos/features/lifeskills/routine_player_screen.dart';
 import 'package:harshivos/services/storage/local_storage.dart';
 import 'package:harshivos/state/providers.dart';
 
@@ -98,6 +100,17 @@ Future<GlobalKey> _sheet(
     ),
   ));
   return key;
+}
+
+Future<void> _captureMatrix(
+  WidgetTester tester, {
+  required String title,
+  required List<Widget> tiles,
+  required String path,
+}) async {
+  final key = await _sheet(tester, title, tiles, size: const Size(720, 900));
+  expect(tester.takeException(), isNull);
+  await _grab(tester, key, path);
 }
 
 void main() {
@@ -218,5 +231,110 @@ void main() {
       ),
     ));
     await _grab(tester, key, 'evidence/hari/03_together_cards.png');
+  });
+
+  testWidgets('Hari scale range and meal routine stay unobscured', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(700, 420));
+    final scaleKey = GlobalKey();
+    await tester.pumpWidget(RepaintBoundary(
+      key: scaleKey,
+      child: const Directionality(
+        textDirection: TextDirection.ltr,
+        child: ColoredBox(
+          color: Color(0xFF0B1026),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              SizedBox(width: 100, height: 100, child: Hari(animate: false)),
+              SizedBox(width: 200, height: 200, child: Hari(animate: false)),
+              SizedBox(width: 320, height: 320, child: Hari(animate: false)),
+            ],
+          ),
+        ),
+      ),
+    ));
+    expect(tester.takeException(), isNull);
+    await _grab(tester, scaleKey, 'evidence/hari/04_scale_range.png');
+
+    final meal = RoutineLibrary.routineById('meal')!;
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    final mealKey = GlobalKey();
+    await tester.pumpWidget(RepaintBoundary(
+      key: mealKey,
+      child: ProviderScope(
+        overrides: <Override>[
+          localStorageProvider.overrideWithValue(
+            LocalStorage(await SharedPreferences.getInstance()),
+          ),
+        ],
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: RoutinePlayerScreen(routine: meal),
+        ),
+      ),
+    ));
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(tester.takeException(), isNull,
+        reason: 'meal cover must reserve space above its fixed CTA');
+    await _grab(tester, mealKey, 'evidence/hari/05_meal_cover.png');
+
+    await tester.tap(find.text("Let's Go!"));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 450));
+    expect(tester.takeException(), isNull,
+        reason: 'meal step must not overlap its fixed action row');
+    await _grab(tester, mealKey, 'evidence/hari/06_meal_step.png');
+  });
+
+  testWidgets('every Hari expression, pose, and device renders', (tester) async {
+    await _captureMatrix(
+      tester,
+      title: 'HARI - all emotions',
+      path: 'evidence/hari/07_all_emotions.png',
+      tiles: AvatarEmotion.values
+          .map((emotion) => _tile(
+                emotion.name,
+                Hari(emotion: emotion, animate: false),
+              ))
+          .toList(),
+    );
+
+    await _captureMatrix(
+      tester,
+      title: 'HARI - all poses',
+      path: 'evidence/hari/08_all_poses.png',
+      tiles: AvatarPose.values
+          .map((pose) => _tile(
+                pose.name,
+                Hari(pose: pose, animate: false),
+              ))
+          .toList(),
+    );
+
+    await _captureMatrix(
+      tester,
+      title: 'HARI - personalisation and devices',
+      path: 'evidence/hari/09_devices.png',
+      tiles: <Widget>[
+        ...HearingDevice.values.expand(
+          (device) => HearingSide.values.map(
+            (side) => _tile(
+              '${device.name} ${side.name}',
+              Hari(
+                device: device,
+                hearingSide: side,
+                animate: false,
+              ),
+            ),
+          ),
+        ),
+        _tile(
+          'glasses',
+          Hari(config: AvatarConfig.hari.copyWith(glasses: true), animate: false),
+        ),
+        _tile('Harshiv BAHA', Hari(config: AvatarConfig.harshiv, animate: false)),
+      ],
+    );
   });
 }
