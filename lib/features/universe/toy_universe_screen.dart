@@ -10,7 +10,6 @@ import '../antistress/antistress_player_screen.dart';
 import '../calm/calm_me_screen.dart';
 import '../experiences/experience_catalog.dart';
 import '../learn/learn_screen.dart';
-import '../lifeskills/avatar/avatar.dart';
 import '../lifeskills/avatar/hari_pico_scene.dart';
 import '../lifeskills/daily_life_screen.dart';
 import '../parent/activity_insights_screen.dart';
