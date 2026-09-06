@@ -13,8 +13,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:harshivos/features/adventures/adventure_engine.dart';
+import 'package:harshivos/features/adventures/adventure_hub_screen.dart';
 import 'package:harshivos/features/calm/calm_me_screen.dart';
 import 'package:harshivos/features/feelings/feelings_screen.dart';
+import 'package:harshivos/features/learn/learn_screen.dart';
 import 'package:harshivos/features/universe/toy_universe_screen.dart';
 import 'package:harshivos/services/storage/local_storage.dart';
 import 'package:harshivos/state/providers.dart';
@@ -103,5 +106,25 @@ void main() {
     final key =
         await _pump(tester, const CalmMeScreen(), const Size(520, 1040));
     await _grab(tester, key, 'evidence/inapp/04_calm_pico.png');
+  });
+
+  testWidgets('Adventures hub — child joins Hari and Pico', (tester) async {
+    final key = await _pump(
+        tester, const AdventureHubScreen(), const Size(390, 844));
+    await _grab(tester, key, 'evidence/inapp/05_adventures_hub.png');
+  });
+
+  testWidgets('Adventure play — relationship moment scene', (tester) async {
+    final key = await _pump(
+      tester,
+      AdventurePlayScreen(experience: kAdventureExperiences.first),
+      const Size(390, 844),
+    );
+    await _grab(tester, key, 'evidence/inapp/06_adventure_play.png');
+  });
+
+  testWidgets('Learn hub — phone', (tester) async {
+    final key = await _pump(tester, const LearnScreen(), const Size(390, 844));
+    await _grab(tester, key, 'evidence/inapp/07_learn_phone.png');
   });
 }

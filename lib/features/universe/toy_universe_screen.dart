@@ -5,8 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/widgets/harshiv_scaffold.dart';
 import '../../models/activity_event.dart';
 import '../../state/providers.dart';
+import '../adventures/adventure_hub_screen.dart';
 import '../antistress/antistress_player_screen.dart';
 import '../calm/calm_me_screen.dart';
+import '../experiences/experience_catalog.dart';
 import '../learn/learn_screen.dart';
 import '../lifeskills/avatar/avatar.dart';
 import '../lifeskills/avatar/hari_pico_scene.dart';
@@ -184,6 +186,9 @@ class _ToyUniverseScreenState extends ConsumerState<ToyUniverseScreen> {
           SliverToBoxAdapter(
             child: _CoreDestinations(onPlay: _scrollToToys),
           ),
+          const SliverToBoxAdapter(
+            child: _AdventureRoadmapCard(),
+          ),
           if (favorites.isNotEmpty)
             _RailSliver(title: 'Favorites', emoji: '\u2764\uFE0F', toys: favorites),
           if (recents.isNotEmpty)
@@ -340,7 +345,7 @@ class _HariGreeting extends StatelessWidget {
   }
 }
 
-/// The five core destinations, always one tap from the front door. Emoji-led
+/// The six core destinations, always one tap from the front door. Emoji-led
 /// and one word each so a non-reading child can navigate the whole app.
 class _CoreDestinations extends StatelessWidget {
   const _CoreDestinations({required this.onPlay});
@@ -361,6 +366,15 @@ class _CoreDestinations extends StatelessWidget {
               label: 'Play',
               colors: const <Color>[Color(0xFF9B5DE5), Color(0xFFF15BB5)],
               onTap: onPlay,
+            ),
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: _DestinationCard(
+              emoji: '\uD83D\uDDFA\uFE0F',
+              label: 'Adventure',
+              colors: const <Color>[Color(0xFF5E60CE), Color(0xFF4EA8DE)],
+              onTap: () => go(const AdventureHubScreen()),
             ),
           ),
           const SizedBox(width: 9),
@@ -461,6 +475,68 @@ class _DestinationCard extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AdventureRoadmapCard extends StatelessWidget {
+  const _AdventureRoadmapCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final live = ExperienceCatalog.currentTotal;
+    final capacity = ExperienceCatalog.projectedCapacity;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 2),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const AdventureHubScreen(),
+            ),
+          ),
+          child: Ink(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: const LinearGradient(
+                colors: <Color>[Color(0x346A5AE0), Color(0x3424C6DC)],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+              border: Border.all(color: Colors.white.withOpacity(0.10)),
+            ),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            child: Row(
+              children: <Widget>[
+                const Text('🧭', style: TextStyle(fontSize: 24)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      const Text('Adventures with Hari & Pico',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w900)),
+                      const SizedBox(height: 2),
+                      Text('Live: $live  •  Capacity: $capacity',
+                          style: TextStyle(
+                              color: Colors.white.withOpacity(0.72),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_rounded,
+                    color: Colors.white70, size: 20),
+              ],
+            ),
           ),
         ),
       ),

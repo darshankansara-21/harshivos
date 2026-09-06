@@ -315,6 +315,7 @@ class ActivityInsights {
       switch (t) {
         case ActivityType.toyPlayed:
         case ActivityType.gamePlayed:
+        case ActivityType.adventurePlayed:
           return 'Play';
         case ActivityType.spoke:
           return 'Talking';
@@ -343,6 +344,7 @@ class ActivityInsights {
         switch (e.type) {
           case ActivityType.toyPlayed:
           case ActivityType.gamePlayed:
+          case ActivityType.adventurePlayed:
             actCount.update(name, (v) => v + 1, ifAbsent: () => 1);
             break;
           case ActivityType.spoke:

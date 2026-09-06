@@ -10,6 +10,7 @@ enum ActivityType {
   feelingChosen,
   routineCompleted,
   gamePlayed,
+  adventurePlayed,
 }
 
 class ActivityEvent {

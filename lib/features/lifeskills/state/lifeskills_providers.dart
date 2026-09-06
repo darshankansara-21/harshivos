@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../services/cloud/cloud_sync.dart';
 import '../../../state/providers.dart';
 import '../avatar/avatar.dart';
+import '../avatar/avatar_profile.dart';
 import '../models/life_models.dart';
 
 /// The child's Life Skills progress — completions, streaks, favourites and a
@@ -287,3 +288,16 @@ final avatarConfigProvider =
     StateNotifierProvider<AvatarConfigNotifier, AvatarConfig>(
   (ref) => AvatarConfigNotifier(ref),
 );
+
+/// The child avatar profile used by experience engines.
+final childAvatarProfileProvider = Provider<AvatarProfile>((ref) {
+  final name = ref.watch(childNameProvider).trim();
+  final avatar = ref.watch(avatarConfigProvider);
+  final safeName = name.isEmpty ? 'Friend' : name;
+  return AvatarProfile(
+    id: 'child-main',
+    name: safeName,
+    avatar: avatar,
+    joinHeroWorld: true,
+  );
+});
