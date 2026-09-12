@@ -15,6 +15,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:harshivos/features/adventures/adventure_engine.dart';
 import 'package:harshivos/features/adventures/adventure_hub_screen.dart';
+import 'package:harshivos/features/antistress/antistress_hub_screen.dart';
 import 'package:harshivos/features/calm/calm_me_screen.dart';
 import 'package:harshivos/features/feelings/feelings_screen.dart';
 import 'package:harshivos/features/learn/learn_screen.dart';
@@ -126,5 +127,11 @@ void main() {
   testWidgets('Learn hub — phone', (tester) async {
     final key = await _pump(tester, const LearnScreen(), const Size(390, 844));
     await _grab(tester, key, 'evidence/inapp/07_learn_phone.png');
+  });
+
+  testWidgets('Antistress hub — adult stress busters tile', (tester) async {
+    final key = await _pump(
+        tester, const AntistressHubScreen(), const Size(390, 844));
+    await _grab(tester, key, 'evidence/inapp/09_antistress_adult_top3.png');
   });
 }

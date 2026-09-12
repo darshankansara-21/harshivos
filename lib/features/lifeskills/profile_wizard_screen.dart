@@ -21,6 +21,7 @@ class ProfileWizardScreen extends ConsumerStatefulWidget {
 class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
   final _nameCtrl = TextEditingController();
   AvatarConfig _draft = const AvatarConfig();
+  AvatarConfig? _customBeforeHarshiv;
   int _step = 0;
 
   int get _lastStep => 1;
@@ -45,8 +46,17 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
   void _applyHarshiv() {
     HapticFeedback.mediumImpact();
     setState(() {
+      _customBeforeHarshiv ??= _draft;
       _draft = AvatarConfig.harshiv;
       if (_nameCtrl.text.trim().isEmpty) _nameCtrl.text = 'Harshiv';
+    });
+  }
+
+  void _applyCustom() {
+    HapticFeedback.selectionClick();
+    setState(() {
+      _draft = _customBeforeHarshiv ?? const AvatarConfig();
+      _customBeforeHarshiv = null;
     });
   }
 
@@ -324,7 +334,6 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
         ),
       ),
       const SizedBox(height: 16),
-      _harshivButton(),
     ]);
   }
 
@@ -426,35 +435,44 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
       );
 
   Widget _harshivButton() {
+    final usingPreset = _draft == AvatarConfig.harshiv;
     return GestureDetector(
-      onTap: _applyHarshiv,
+      onTap: usingPreset ? _applyCustom : _applyHarshiv,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-              colors: <Color>[Color(0xFF0891B2), Color(0xFF06D6A0)]),
+          gradient: LinearGradient(colors: usingPreset
+              ? const <Color>[Color(0xFF6D5DF6), Color(0xFF3A86FF)]
+              : const <Color>[Color(0xFF0891B2), Color(0xFF06D6A0)]),
           borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white.withOpacity(0.2)),
         ),
-        child: const Row(
+        child: Row(
           children: <Widget>[
-            Text('💙', style: TextStyle(fontSize: 22)),
-            SizedBox(width: 12),
+            Text(usingPreset ? '✨' : '💙', style: const TextStyle(fontSize: 22)),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text('Harshiv Mode',
-                      style: TextStyle(
+                  Text(usingPreset ? 'Custom Mode' : 'Harshiv Mode',
+                      style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.w900)),
-                  Text('Unilateral BAHA · sensory-calm look',
-                      style:
-                          TextStyle(color: Colors.white70, fontSize: 12.5)),
+                  Text(
+                    usingPreset
+                        ? 'Tap to switch back and customize fully'
+                        : 'Preset: unilateral BAHA · sensory-calm look',
+                    style: const TextStyle(color: Colors.white70, fontSize: 12.5),
+                  ),
                 ],
               ),
             ),
-            Icon(Icons.auto_awesome_rounded, color: Colors.white),
+            Icon(
+              usingPreset ? Icons.tune_rounded : Icons.auto_awesome_rounded,
+              color: Colors.white,
+            ),
           ],
         ),
       ),

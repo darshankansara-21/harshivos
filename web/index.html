@@ -94,6 +94,16 @@
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
   <script>
+    // Avoid stale cached web bundles during local smoke tests.
+    (function () {
+      var host = window.location.hostname;
+      var local = host === 'localhost' || host === '127.0.0.1';
+      if (!local || !('serviceWorker' in navigator)) return;
+      navigator.serviceWorker.getRegistrations().then(function (regs) {
+        regs.forEach(function (r) { r.unregister(); });
+      });
+    })();
+
     window.addEventListener('flutter-first-frame', function () {
       var splash = document.getElementById('splash');
       if (splash) {
