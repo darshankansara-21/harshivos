@@ -2,8 +2,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import 'hari_master.dart';
-
 // ---------------------------------------------------------------------------
 // HARSHIVOS Character System
 // ---------------------------------------------------------------------------
@@ -430,18 +428,9 @@ class Hari extends StatelessWidget {
   Widget build(BuildContext context) {
     final resolved = config ??
         AvatarConfig.hari.copyWith(device: device, hearingSide: hearingSide);
-    // The authored Hari mascot art (emotion busts + standing hero) is used
-    // whenever no custom child config is supplied and no hearing device is
-    // requested; otherwise the procedural rig renders the personalized avatar.
-    if (config == null && device == HearingDevice.none) {
-      return HariMasterWidget(
-        emotion: emotion,
-        pose: pose,
-        device: device,
-        hearingSide: hearingSide,
-        animate: animate,
-      );
-    }
+    // Production-safe default: always render from the clean procedural rig.
+    // This avoids any contaminated raster extraction path while preserving all
+    // pose/emotion/device combinations consistently.
     return AvatarWidget(
       config: resolved,
       emotion: emotion,
@@ -452,36 +441,21 @@ class Hari extends StatelessWidget {
 }
 
 /// Renders the child's own avatar as authored Pixar-style Hari art, choosing
-/// the look from the saved [AvatarConfig] (device + glasses). Falls back to the
-/// procedural rig if the art is missing.
+/// the look directly from [AvatarConfig] with the same procedural rig used
+/// across the app so every customization combination stays clean and stable.
 class ChildAvatar extends StatelessWidget {
   const ChildAvatar({super.key, required this.config, this.animate = true});
 
   final AvatarConfig config;
   final bool animate;
 
-  String get _look {
-    if (config.glasses) return 'glasses';
-    if (config.device == HearingDevice.cochlear) return 'cochlear';
-    return 'hearing_aid';
-  }
-
   @override
   Widget build(BuildContext context) {
-    return RepaintBoundary(
-      child: Image.asset(
-        'assets/characters/looks/$_look.png',
-        fit: BoxFit.contain,
-        alignment: Alignment.bottomCenter,
-        filterQuality: FilterQuality.high,
-        semanticLabel: 'Your avatar',
-        errorBuilder: (context, error, stack) => AvatarWidget(
-          config: config,
-          pose: AvatarPose.wave,
-          emotion: AvatarEmotion.happy,
-          animate: animate,
-        ),
-      ),
+    return AvatarWidget(
+      config: config,
+      pose: AvatarPose.wave,
+      emotion: AvatarEmotion.happy,
+      animate: animate,
     );
   }
 }

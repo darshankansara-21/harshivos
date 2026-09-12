@@ -8,9 +8,9 @@ import '../../state/providers.dart';
 import '../adventures/adventure_hub_screen.dart';
 import '../antistress/antistress_player_screen.dart';
 import '../calm/calm_me_screen.dart';
+import '../companion/companion.dart';
 import '../experiences/experience_catalog.dart';
 import '../learn/learn_screen.dart';
-import '../lifeskills/avatar/hari_pico_scene.dart';
 import '../lifeskills/daily_life_screen.dart';
 import '../parent/activity_insights_screen.dart';
 import '../world/world_screen.dart';
@@ -289,9 +289,28 @@ class _ExploreWorldsButton extends StatelessWidget {
 
 /// A warm welcome from Hari and Pico — the first thing the child sees, so the
 /// app feels like meeting a friend, not opening a menu.
-class _HariGreeting extends StatelessWidget {
+class _HariGreeting extends StatefulWidget {
   const _HariGreeting({required this.name});
   final String name;
+
+  @override
+  State<_HariGreeting> createState() => _HariGreetingState();
+}
+
+class _HariGreetingState extends State<_HariGreeting> {
+  final CompanionController _companion = CompanionController();
+
+  @override
+  void initState() {
+    super.initState();
+    _companion.setReaction(CompanionReaction.happy);
+  }
+
+  @override
+  void dispose() {
+    _companion.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -310,17 +329,20 @@ class _HariGreeting extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         child: Row(
           children: <Widget>[
-            const SizedBox(
-              width: 92,
-              height: 92,
-              child: HariPicoScene(),
+            SizedBox(
+              width: 112,
+              height: 94,
+              child: CompanionView(
+                controller: _companion,
+                animate: true,
+              ),
             ),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  Text('Hi, $name!',
+                  Text('Hi, ${widget.name}!',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(

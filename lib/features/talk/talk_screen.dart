@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
 import '../../core/widgets/harshiv_scaffold.dart';
+import '../companion/companion.dart';
 import '../../models/activity_event.dart';
 import '../../models/communication_item.dart';
 import '../../state/providers.dart';
@@ -70,6 +71,7 @@ class TalkScreen extends ConsumerStatefulWidget {
 
 class _TalkScreenState extends ConsumerState<TalkScreen> {
   final FlutterTts _tts = FlutterTts();
+  final CompanionController _companion = CompanionController();
   String _category = kTalkCategories.first;
   final List<_Word> _strip = <_Word>[];
 
@@ -81,6 +83,7 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
   @override
   void initState() {
     super.initState();
+    _companion.setReaction(CompanionReaction.curious);
     _tts
       ..setSpeechRate(0.42)
       ..setPitch(1.05)
@@ -88,6 +91,7 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
   }
 
   Future<void> _speak(String text, {String? emoji, Color color = Colors.white}) async {
+    _companion.react(CompanionReaction.encouraging);
     HapticFeedback.mediumImpact();
     // Mirror the speech visually — this is how Harshiv "hears" it.
     _bloomTimer?.cancel();
@@ -107,6 +111,11 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
   }
 
   void _addWord(_Word word, {String? spokenText}) {
+    if ((_strip.length + 1) % 3 == 0) {
+      _companion.pair();
+    } else {
+      _companion.tap();
+    }
     setState(() => _strip.add(word));
     ref.read(activityLogProvider.notifier).log(
         ActivityType.spoke, word.label, label: word.label);
@@ -116,6 +125,7 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
 
   void _speakSentence() {
     if (_strip.isEmpty) return;
+    _companion.celebrate();
     _speak(_strip.map((w) => w.label).join(' '), color: Colors.white);
   }
 
@@ -127,6 +137,7 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
 
   void _clear() {
     if (_strip.isEmpty) return;
+    _companion.calm();
     HapticFeedback.selectionClick();
     setState(_strip.clear);
   }
@@ -134,6 +145,7 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
   @override
   void dispose() {
     _bloomTimer?.cancel();
+    _companion.dispose();
     _tts.stop();
     super.dispose();
   }
@@ -190,6 +202,15 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
                 ),
               ),
             ],
+          ),
+          Positioned(
+            right: 8,
+            bottom: 8,
+            width: 146,
+            height: 126,
+            child: IgnorePointer(
+              child: CompanionView(controller: _companion),
+            ),
           ),
           if (_bloomText != null) _SpeakBloom(text: _bloomText!, emoji: _bloomEmoji, color: _bloomColor),
         ],

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../companion/companion.dart';
 import '../../models/toy_meta.dart';
 import '../../state/providers.dart';
 import 'toy_registry.dart';
@@ -21,8 +22,15 @@ class ToyPlayerScreen extends ConsumerStatefulWidget {
 
 class _ToyPlayerScreenState extends ConsumerState<ToyPlayerScreen> {
   final DateTime _start = DateTime.now();
+  final CompanionController _companion = CompanionController();
   bool _chromeVisible = true;
   RegulationLogNotifier? _logger;
+
+  @override
+  void initState() {
+    super.initState();
+    _companion.setReaction(reactionForToyIdle(widget.toy.id));
+  }
 
   @override
   void didChangeDependencies() {
@@ -38,6 +46,7 @@ class _ToyPlayerScreenState extends ConsumerState<ToyPlayerScreen> {
     if (DateTime.now().difference(_start).inSeconds >= 3) {
       _logger?.logSession(toyIds: <String>[widget.toy.id]);
     }
+    _companion.dispose();
     super.dispose();
   }
 
@@ -50,8 +59,24 @@ class _ToyPlayerScreenState extends ConsumerState<ToyPlayerScreen> {
         children: <Widget>[
           Positioned.fill(
             child: GestureDetector(
-              onLongPress: () => setState(() => _chromeVisible = !_chromeVisible),
+              onTapDown: (_) => _companion.react(
+                reactionForToyTap(widget.toy.id),
+                hold: const Duration(milliseconds: 1100),
+              ),
+              onLongPress: () {
+                _companion.pair();
+                setState(() => _chromeVisible = !_chromeVisible);
+              },
               child: buildToy(widget.toy.id),
+            ),
+          ),
+          Positioned(
+            left: 10,
+            bottom: 10,
+            width: 160,
+            height: 136,
+            child: IgnorePointer(
+              child: CompanionView(controller: _companion),
             ),
           ),
           AnimatedOpacity(

@@ -236,6 +236,23 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
   }
 
   Widget _lookCard(String look, String label, bool on, VoidCallback onTap) {
+    final AvatarConfig lookConfig = switch (look) {
+      'cochlear' => _draft.copyWith(
+          device: HearingDevice.cochlear,
+          hearingSide: HearingSide.left,
+          glasses: false,
+        ),
+      'glasses' => _draft.copyWith(
+          device: HearingDevice.hearingAid,
+          hearingSide: HearingSide.left,
+          glasses: true,
+        ),
+      _ => _draft.copyWith(
+          device: HearingDevice.hearingAid,
+          hearingSide: HearingSide.left,
+          glasses: false,
+        ),
+    };
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -253,8 +270,7 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
           children: <Widget>[
             SizedBox(
               height: 74,
-              child: Image.asset('assets/characters/looks/$look.png',
-                  fit: BoxFit.contain),
+              child: ChildAvatar(config: lookConfig, animate: false),
             ),
             const SizedBox(height: 6),
             Text(label,

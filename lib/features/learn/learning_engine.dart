@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../companion/companion.dart';
 import '../../models/activity_event.dart';
 import '../../services/audio/tone_player.dart';
 import '../../services/voice/hari_voice.dart';
@@ -58,6 +59,7 @@ class _LearningGameScreenState extends ConsumerState<LearningGameScreen> {
   static const int _roundsTarget = 8;
 
   final math.Random _rnd = math.Random();
+  final CompanionController _companion = CompanionController();
   int _difficulty = 2; // number of choices (2..6)
   int _streak = 0;
   int _score = 0;
@@ -74,8 +76,15 @@ class _LearningGameScreenState extends ConsumerState<LearningGameScreen> {
   void initState() {
     super.initState();
     _startedAt = DateTime.now();
+    _companion.setReaction(CompanionReaction.curious);
     _newRound();
     WidgetsBinding.instance.addPostFrameCallback((_) => _speakPrompt());
+  }
+
+  @override
+  void dispose() {
+    _companion.dispose();
+    super.dispose();
   }
 
   double get _volume => ref.read(sensoryPreferencesProvider).volumeScale;
@@ -96,6 +105,11 @@ class _LearningGameScreenState extends ConsumerState<LearningGameScreen> {
   void _pick(LearnItem choice) {
     if (_done) return;
     if (choice.label == _target.label) {
+      if ((_score + 1) % 4 == 0) {
+        _companion.dance();
+      } else {
+        _companion.react(CompanionReaction.happy);
+      }
       HapticFeedback.mediumImpact();
       TonePlayer.instance.playNote(3 + _streak); // gentle rising reward
       setState(() {
@@ -111,6 +125,7 @@ class _LearningGameScreenState extends ConsumerState<LearningGameScreen> {
       });
       if (!_done) _speakPrompt();
     } else {
+      _companion.react(CompanionReaction.encouraging);
       HapticFeedback.selectionClick();
       setState(() {
         _streak = 0;
@@ -122,6 +137,7 @@ class _LearningGameScreenState extends ConsumerState<LearningGameScreen> {
 
   void _finish() {
     _done = true;
+    _companion.celebrate();
     final seconds = DateTime.now().difference(_startedAt).inSeconds;
     ref.read(activityLogProvider.notifier).log(
           ActivityType.gamePlayed,
@@ -165,7 +181,22 @@ class _LearningGameScreenState extends ConsumerState<LearningGameScreen> {
         ],
       ),
       body: SafeArea(
-        child: _done ? _buildDone(pack) : _buildRound(pack),
+        child: Stack(
+          children: <Widget>[
+            Positioned.fill(
+              child: _done ? _buildDone(pack) : _buildRound(pack),
+            ),
+            Positioned(
+              right: 12,
+              bottom: 8,
+              width: 154,
+              height: 132,
+              child: IgnorePointer(
+                child: CompanionView(controller: _companion),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -531,6 +562,7 @@ class _SortingGameScreenState extends ConsumerState<SortingGameScreen> {
   static const int _roundsTarget = 8;
 
   final math.Random _rnd = math.Random();
+  final CompanionController _companion = CompanionController();
   int _score = 0;
   int _round = 0;
   bool _justWrong = false;
@@ -542,8 +574,15 @@ class _SortingGameScreenState extends ConsumerState<SortingGameScreen> {
   void initState() {
     super.initState();
     _startedAt = DateTime.now();
+    _companion.setReaction(CompanionReaction.curious);
     _nextItem();
     WidgetsBinding.instance.addPostFrameCallback((_) => _speakPrompt());
+  }
+
+  @override
+  void dispose() {
+    _companion.dispose();
+    super.dispose();
   }
 
   double get _volume => ref.read(sensoryPreferencesProvider).volumeScale;
@@ -560,6 +599,11 @@ class _SortingGameScreenState extends ConsumerState<SortingGameScreen> {
   void _choose(int category) {
     if (_done) return;
     if (category == _current.category) {
+      if ((_score + 1) % 4 == 0) {
+        _companion.dance();
+      } else {
+        _companion.react(CompanionReaction.proud);
+      }
       HapticFeedback.mediumImpact();
       TonePlayer.instance.playNote(3 + _round);
       setState(() {
@@ -573,6 +617,7 @@ class _SortingGameScreenState extends ConsumerState<SortingGameScreen> {
       });
       if (!_done) _speakPrompt();
     } else {
+      _companion.react(CompanionReaction.encouraging);
       HapticFeedback.selectionClick();
       setState(() => _justWrong = true);
     }
@@ -580,6 +625,7 @@ class _SortingGameScreenState extends ConsumerState<SortingGameScreen> {
 
   void _finish() {
     _done = true;
+    _companion.celebrate();
     final seconds = DateTime.now().difference(_startedAt).inSeconds;
     ref.read(activityLogProvider.notifier).log(
           ActivityType.gamePlayed,
@@ -620,7 +666,22 @@ class _SortingGameScreenState extends ConsumerState<SortingGameScreen> {
           ),
         ],
       ),
-      body: SafeArea(child: _done ? _buildDone(pack) : _buildRound(pack)),
+      body: SafeArea(
+        child: Stack(
+          children: <Widget>[
+            Positioned.fill(child: _done ? _buildDone(pack) : _buildRound(pack)),
+            Positioned(
+              right: 12,
+              bottom: 8,
+              width: 154,
+              height: 132,
+              child: IgnorePointer(
+                child: CompanionView(controller: _companion),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

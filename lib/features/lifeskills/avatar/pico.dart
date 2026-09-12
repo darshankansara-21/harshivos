@@ -70,39 +70,19 @@ class _PicoWidgetState extends State<PicoWidget>
 
   @override
   Widget build(BuildContext context) {
-    // Authored Pico art per mood is preferred; the animated painter is a safe
-    // fallback so Pico always appears even without the PNGs.
-    final asset = 'assets/characters/pico/${_moodArt(widget.mood)}.png';
-    return Image.asset(
-      asset,
-      fit: BoxFit.contain,
-      alignment: Alignment.bottomCenter,
-      filterQuality: FilterQuality.high,
-      errorBuilder: (context, error, stack) => AnimatedBuilder(
-        animation: _c,
-        builder: (context, _) => CustomPaint(
-          size: Size.infinite,
-          painter: _PicoPainter(
-            mood: widget.mood,
-            t: _c.value,
-            fur: widget.furColor,
-            bandana: widget.bandanaColor,
-          ),
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (context, _) => CustomPaint(
+        size: Size.infinite,
+        painter: _PicoPainter(
+          mood: widget.mood,
+          t: _c.value,
+          fur: widget.furColor,
+          bandana: widget.bandanaColor,
         ),
       ),
     );
   }
-
-  static String _moodArt(PicoMood mood) => switch (mood) {
-        PicoMood.happy => 'happy',
-        PicoMood.excited => 'playful',
-        PicoMood.celebrating => 'playful',
-        PicoMood.curious => 'curious',
-        PicoMood.sleepy => 'sleepy',
-        PicoMood.calm => 'calm',
-        PicoMood.comforting => 'loving',
-        PicoMood.worried => 'calm',
-      };
 }
 
 class _PicoPainter extends CustomPainter {
