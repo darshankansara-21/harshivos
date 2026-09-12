@@ -40,3 +40,6 @@ tr.txt
 
 # Local release-validation evidence renders
 evidence/
+test_companion.log
+*.log
+validation/
