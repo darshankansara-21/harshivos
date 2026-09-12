@@ -23,7 +23,7 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
   AvatarConfig _draft = const AvatarConfig();
   int _step = 0;
 
-  int get _lastStep => widget.fullEditor ? 7 : 1;
+  int get _lastStep => 1;
 
   @override
   void initState() {
@@ -80,7 +80,6 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final celebrate = _step == _lastStep;
     return HarshivScaffold(
       padding: EdgeInsets.zero,
       child: SafeArea(
@@ -130,12 +129,7 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
                 border: Border.all(
                     color: Colors.white.withOpacity(0.12), width: 1.5),
               ),
-              child: AvatarWidget(
-                config: _draft,
-                pose: celebrate ? AvatarPose.cheer : AvatarPose.wave,
-                emotion:
-                    celebrate ? AvatarEmotion.excited : AvatarEmotion.happy,
-              ),
+              child: ChildAvatar(config: _draft),
             ),
             Expanded(
               child: AnimatedSwitcher(
@@ -198,47 +192,83 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
   }
 
   Widget _stepBody() {
-    if (!widget.fullEditor) {
-      return _step == 0 ? _nameStep() : _finalStep();
+    return _step == 0 ? _nameStep() : _lookStep();
+  }
+
+  // The three authored Hari looks the child can choose from.
+  Widget _lookStep() {
+    final selected = _draft.glasses
+        ? 'glasses'
+        : _draft.device == HearingDevice.cochlear
+            ? 'cochlear'
+            : 'hearing_aid';
+    void pick(String look) {
+      switch (look) {
+        case 'hearing_aid':
+          _set(_draft.copyWith(device: HearingDevice.hearingAid, glasses: false));
+        case 'cochlear':
+          _set(_draft.copyWith(device: HearingDevice.cochlear, glasses: false));
+        case 'glasses':
+          _set(_draft.copyWith(device: HearingDevice.hearingAid, glasses: true));
+      }
     }
-    switch (_step) {
-      case 0:
-        return _nameStep();
-      case 1:
-        return _genderStep();
-      case 2:
-        return _panel("Choose a skin tone", [
-          _swatchRow(AvatarConfig.skinTones, _draft.skin,
-              (c) => _set(_draft.copyWith(skin: c))),
-        ]);
-      case 3:
-        return _panel("Pick a hairstyle", [
-          _hairStyleRow(),
-          const SizedBox(height: 16),
-          _sub('Hair colour'),
-          _swatchRow(AvatarConfig.hairColors, _draft.hairColor,
-              (c) => _set(_draft.copyWith(hairColor: c))),
-        ]);
-      case 4:
-        return _panel("Eye colour", [
-          _swatchRow(AvatarConfig.eyeColors, _draft.eyeColor,
-              (c) => _set(_draft.copyWith(eyeColor: c))),
-        ]);
-      case 5:
-        return _panel("Clothes & favourite colour", [
-          _sub('Shirt'),
-          _swatchRow(AvatarConfig.shirtColors, _draft.shirt,
-              (c) => _set(_draft.copyWith(shirt: c))),
-          const SizedBox(height: 16),
-          _sub('Favourite colour (shoes, accents & device)'),
-          _swatchRow(AvatarConfig.favoriteColors, _draft.favoriteColor,
-              (c) => _set(_draft.copyWith(favoriteColor: c))),
-        ]);
-      case 6:
-        return _deviceStep();
-      default:
-        return _finalStep();
-    }
+
+    const looks = <(String, String)>[
+      ('hearing_aid', 'Hearing Aid'),
+      ('cochlear', 'Cochlear'),
+      ('glasses', 'Glasses'),
+    ];
+    return _panel('Pick your look', [
+      const Text('Hari can look like you. Tap a look — change it anytime.',
+          style: TextStyle(color: Colors.white70, fontSize: 13.5)),
+      const SizedBox(height: 14),
+      Row(
+        children: <Widget>[
+          for (final l in looks) ...<Widget>[
+            Expanded(child: _lookCard(l.$1, l.$2, selected == l.$1, () => pick(l.$1))),
+            if (l != looks.last) const SizedBox(width: 10),
+          ],
+        ],
+      ),
+      const SizedBox(height: 16),
+      _harshivButton(),
+    ]);
+  }
+
+  Widget _lookCard(String look, String label, bool on, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: on ? const Color(0x3306D6A0) : Colors.white.withOpacity(0.06),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: on ? const Color(0xFF06D6A0) : Colors.white.withOpacity(0.12),
+            width: on ? 2.4 : 1.2,
+          ),
+        ),
+        child: Column(
+          children: <Widget>[
+            SizedBox(
+              height: 74,
+              child: Image.asset('assets/characters/looks/$look.png',
+                  fit: BoxFit.contain),
+            ),
+            const SizedBox(height: 6),
+            Text(label,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800)),
+          ],
+        ),
+      ),
+    );
   }
 
   // ---- Steps --------------------------------------------------------------

@@ -36,31 +36,39 @@ class HariPicoScene extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final size = constraints.biggest.shortestSide;
-        return Stack(
-          fit: StackFit.expand,
-          clipBehavior: Clip.none,
-          children: <Widget>[
-            Align(
-              alignment: Alignment(values.$4, values.$6),
-              child: SizedBox(
-                width: size * 0.62,
-                height: size * 0.88,
-                child: Hari(
-                  pose: values.$1,
-                  emotion: values.$2,
-                  animate: animate,
+        // If a single authored hero image (Hari + Pico together) is bundled,
+        // show it as one artwork; otherwise compose the two characters.
+        return Image.asset(
+          'assets/characters/hari_pico_hero.png',
+          fit: BoxFit.contain,
+          alignment: Alignment.center,
+          filterQuality: FilterQuality.high,
+          errorBuilder: (context, error, stack) => Stack(
+            fit: StackFit.expand,
+            clipBehavior: Clip.none,
+            children: <Widget>[
+              Align(
+                alignment: Alignment(values.$4, values.$6),
+                child: SizedBox(
+                  width: size * 0.62,
+                  height: size * 0.88,
+                  child: Hari(
+                    pose: values.$1,
+                    emotion: values.$2,
+                    animate: animate,
+                  ),
                 ),
               ),
-            ),
-            Align(
-              alignment: Alignment(values.$5, values.$7),
-              child: SizedBox(
-                width: size * 0.38,
-                height: size * 0.48,
-                child: PicoWidget(mood: values.$3, animate: animate),
+              Align(
+                alignment: Alignment(values.$5, values.$7),
+                child: SizedBox(
+                  width: size * 0.38,
+                  height: size * 0.48,
+                  child: PicoWidget(mood: values.$3, animate: animate),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );

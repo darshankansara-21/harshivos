@@ -70,6 +70,10 @@ flutter:
     - assets/config/
     - assets/icon/
     - assets/characters/
+    - assets/characters/emotions/
+    - assets/characters/pico/
+    - assets/characters/actions/
+    - assets/characters/looks/
 
   # Bundled locally so the app is fully offline-first (airplane / hospital /
   # clinic). Nunito is a variable font (OFL); the same file is declared at the

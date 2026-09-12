@@ -70,19 +70,39 @@ class _PicoWidgetState extends State<PicoWidget>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _c,
-      builder: (context, _) => CustomPaint(
-        size: Size.infinite,
-        painter: _PicoPainter(
-          mood: widget.mood,
-          t: _c.value,
-          fur: widget.furColor,
-          bandana: widget.bandanaColor,
+    // Authored Pico art per mood is preferred; the animated painter is a safe
+    // fallback so Pico always appears even without the PNGs.
+    final asset = 'assets/characters/pico/${_moodArt(widget.mood)}.png';
+    return Image.asset(
+      asset,
+      fit: BoxFit.contain,
+      alignment: Alignment.bottomCenter,
+      filterQuality: FilterQuality.high,
+      errorBuilder: (context, error, stack) => AnimatedBuilder(
+        animation: _c,
+        builder: (context, _) => CustomPaint(
+          size: Size.infinite,
+          painter: _PicoPainter(
+            mood: widget.mood,
+            t: _c.value,
+            fur: widget.furColor,
+            bandana: widget.bandanaColor,
+          ),
         ),
       ),
     );
   }
+
+  static String _moodArt(PicoMood mood) => switch (mood) {
+        PicoMood.happy => 'happy',
+        PicoMood.excited => 'playful',
+        PicoMood.celebrating => 'playful',
+        PicoMood.curious => 'curious',
+        PicoMood.sleepy => 'sleepy',
+        PicoMood.calm => 'calm',
+        PicoMood.comforting => 'loving',
+        PicoMood.worried => 'calm',
+      };
 }
 
 class _PicoPainter extends CustomPainter {
@@ -121,7 +141,7 @@ class _PicoPainter extends CustomPainter {
     final lying = mood == PicoMood.sleepy;
 
     final cy = size.height / 2 + bounce + (lying ? s * 0.08 : 0);
-    final headR = s * 0.22;
+    final headR = s * 0.245;
     final headC = Offset(cx, cy - s * 0.05);
 
     _shadow(canvas, Offset(cx, cy + s * 0.30), s, excited);
@@ -148,10 +168,10 @@ class _PicoPainter extends CustomPainter {
   }
 
   void _body(Canvas canvas, double cx, double cy, double s, bool lying) {
-    final bodyC = Offset(cx, cy + s * 0.16);
+    final bodyC = Offset(cx, cy + s * 0.19);
     final rect = lying
-        ? Rect.fromCenter(center: bodyC, width: s * 0.44, height: s * 0.22)
-        : Rect.fromCenter(center: bodyC, width: s * 0.32, height: s * 0.30);
+      ? Rect.fromCenter(center: bodyC, width: s * 0.48, height: s * 0.24)
+      : Rect.fromCenter(center: bodyC, width: s * 0.35, height: s * 0.30);
     canvas.drawRRect(
       RRect.fromRectAndRadius(rect, Radius.circular(s * 0.14)),
       Paint()
@@ -178,16 +198,16 @@ class _PicoPainter extends CustomPainter {
         ..strokeCap = StrokeCap.round,
     );
     // Little front paws.
-    final pawY = rect.bottom - s * 0.02;
+    final pawY = rect.bottom - s * 0.01;
     for (final dx in <double>[-s * 0.08, s * 0.08]) {
       canvas.drawOval(
         Rect.fromCenter(
-            center: Offset(cx + dx, pawY), width: s * 0.11, height: s * 0.07),
+            center: Offset(cx + dx, pawY), width: s * 0.12, height: s * 0.075),
         Paint()..color = _lighten(fur, 0.10),
       );
       canvas.drawOval(
         Rect.fromCenter(
-            center: Offset(cx + dx, pawY), width: s * 0.11, height: s * 0.07),
+            center: Offset(cx + dx, pawY), width: s * 0.12, height: s * 0.075),
         _outline(s * 0.018),
       );
     }
@@ -227,21 +247,21 @@ class _PicoPainter extends CustomPainter {
       _ => 2.5,
     };
     final wag = math.sin(t * math.pi * speed) * s * 0.10;
-    final base = Offset(cx + s * 0.15, cy + s * 0.16);
-    final tip = Offset(base.dx + s * 0.14, base.dy - s * 0.10 + wag);
-    final mid = Offset(base.dx + s * 0.14, base.dy + wag * 0.4);
+    final base = Offset(cx + s * 0.14, cy + s * 0.17);
+    final tip = Offset(base.dx + s * 0.10, base.dy - s * 0.08 + wag * 0.8);
+    final mid = Offset(base.dx + s * 0.10, base.dy + wag * 0.25);
     canvas.drawPath(
       Path()
         ..moveTo(base.dx, base.dy)
         ..quadraticBezierTo(mid.dx, mid.dy, tip.dx, tip.dy),
       Paint()
         ..color = fur
-        ..strokeWidth = s * 0.06
+        ..strokeWidth = s * 0.075
         ..strokeCap = StrokeCap.round
         ..style = PaintingStyle.stroke,
     );
-    canvas.drawCircle(tip, s * 0.045, Paint()..color = _lighten(fur, 0.12));
-    canvas.drawCircle(tip, s * 0.045, _outline(s * 0.018));
+      canvas.drawCircle(tip, s * 0.052, Paint()..color = _lighten(fur, 0.12));
+      canvas.drawCircle(tip, s * 0.052, _outline(s * 0.018));
   }
 
   void _ears(Canvas canvas, Offset c, double r) {
@@ -260,14 +280,14 @@ class _PicoPainter extends CustomPainter {
   void _ear(Canvas canvas, Offset c, double r,
       {required bool left, required double droop, required double flop}) {
     final dir = left ? -1.0 : 1.0;
-    final top = Offset(c.dx + dir * r * 0.72, c.dy - r * 0.55);
+    final top = Offset(c.dx + dir * r * 0.66, c.dy - r * 0.52);
     final drop = r * (0.6 + droop * 0.7);
     final path = Path()
       ..moveTo(top.dx, top.dy)
-      ..quadraticBezierTo(c.dx + dir * r * 1.15, c.dy - r * 0.1 + flop,
-          c.dx + dir * r * 0.85, c.dy + drop + flop)
-      ..quadraticBezierTo(c.dx + dir * r * 0.45, c.dy + drop * 0.7 + flop,
-          c.dx + dir * r * 0.4, c.dy - r * 0.35)
+        ..quadraticBezierTo(c.dx + dir * r * 1.00, c.dy - r * 0.05 + flop,
+          c.dx + dir * r * 0.76, c.dy + drop + flop)
+        ..quadraticBezierTo(c.dx + dir * r * 0.42, c.dy + drop * 0.68 + flop,
+          c.dx + dir * r * 0.36, c.dy - r * 0.28)
       ..close();
     canvas.drawPath(path, Paint()..color = _darken(fur, 0.14));
     canvas.drawPath(path, _outline(r * 0.11));
@@ -294,8 +314,8 @@ class _PicoPainter extends CustomPainter {
     );
       canvas.drawOval(rect, _outline(r * 0.10));
     // Muzzle.
-    final muzzle =
-        Rect.fromCenter(center: Offset(c.dx, c.dy + r * 0.42), width: r * 1.05, height: r * 0.8);
+    final muzzle = Rect.fromCenter(
+      center: Offset(c.dx, c.dy + r * 0.44), width: r * 1.18, height: r * 0.88);
     canvas.drawOval(muzzle, Paint()..color = _muzzle);
     canvas.drawOval(muzzle, _outline(r * 0.055));
     canvas.drawArc(
@@ -350,7 +370,7 @@ class _PicoPainter extends CustomPainter {
         );
       } else {
         final wide = mood == PicoMood.curious || mood == PicoMood.excited;
-        final eyeR = r * (wide ? 0.26 : 0.22);
+        final eyeR = r * (wide ? 0.28 : 0.24);
         canvas.drawCircle(center, eyeR, Paint()..color = Colors.white);
         canvas.drawCircle(center, eyeR, _outline(r * 0.035));
         final look = switch (mood) {
