@@ -91,7 +91,7 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
   }
 
   Future<void> _speak(String text, {String? emoji, Color color = Colors.white}) async {
-    _companion.react(CompanionReaction.encouraging);
+    _companion.encourage();
     HapticFeedback.mediumImpact();
     // Mirror the speech visually — this is how Harshiv "hears" it.
     _bloomTimer?.cancel();

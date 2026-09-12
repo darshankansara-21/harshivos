@@ -25,6 +25,14 @@ enum CompanionReaction {
   dance,
 }
 
+class _CompanionBeat {
+  const _CompanionBeat(this.reaction, this.durationMs, {this.bounce = true});
+
+  final CompanionReaction reaction;
+  final int durationMs;
+  final bool bounce;
+}
+
 CompanionReaction reactionForToyIdle(String toyId) {
   final id = toyId.toLowerCase();
   if (id.contains('music')) return CompanionReaction.dance;
@@ -63,6 +71,7 @@ class CompanionController extends ChangeNotifier {
   int _energy = 0;
   Timer? _revert;
   Timer? _decay;
+  final List<Timer> _scriptTimers = <Timer>[];
 
   CompanionReaction get reaction => _reaction;
 
@@ -72,14 +81,46 @@ class CompanionController extends ChangeNotifier {
   /// 0..6 — rises with rapid interaction, drives escalating excitement.
   int get energy => _energy;
 
+  void _setNow(CompanionReaction r, {bool bounce = true}) {
+    _reaction = r;
+    if (bounce) _pulse++;
+    notifyListeners();
+  }
+
+  void _clearScriptTimers() {
+    for (final t in _scriptTimers) {
+      t.cancel();
+    }
+    _scriptTimers.clear();
+  }
+
+  void _startSequence(
+    List<_CompanionBeat> beats, {
+    CompanionReaction settle = CompanionReaction.idle,
+  }) {
+    _clearScriptTimers();
+    _revert?.cancel();
+    var elapsedMs = 0;
+    for (final beat in beats) {
+      final at = elapsedMs;
+      _scriptTimers.add(Timer(Duration(milliseconds: at), () {
+        _setNow(beat.reaction, bounce: beat.bounce);
+      }));
+      elapsedMs += beat.durationMs;
+    }
+    _scriptTimers.add(Timer(Duration(milliseconds: elapsedMs), () {
+      _reaction = _energy > 0 ? CompanionReaction.happy : settle;
+      notifyListeners();
+    }));
+  }
+
   void react(
     CompanionReaction r, {
     Duration hold = const Duration(milliseconds: 1500),
     bool bounce = true,
   }) {
-    _reaction = r;
-    if (bounce) _pulse++;
-    notifyListeners();
+    _clearScriptTimers();
+    _setNow(r, bounce: bounce);
     _revert?.cancel();
     _revert = Timer(hold, () {
       _reaction =
@@ -91,12 +132,16 @@ class CompanionController extends ChangeNotifier {
   /// Generic "the child did something" — escalates energy into excitement.
   void tap() {
     _energy = math.min(_energy + 1, 6);
-    final r = _energy >= 4
+    final response = _energy >= 4
         ? CompanionReaction.excited
         : _energy >= 2
             ? CompanionReaction.happy
             : CompanionReaction.curious;
-    react(r, hold: const Duration(milliseconds: 1200));
+    _startSequence(<_CompanionBeat>[
+      const _CompanionBeat(CompanionReaction.curious, 150, bounce: false),
+      _CompanionBeat(response, 420),
+      const _CompanionBeat(CompanionReaction.happy, 460, bounce: false),
+    ], settle: CompanionReaction.happy);
     _decay?.cancel();
     _decay = Timer(const Duration(milliseconds: 2600), () {
       _energy = 0;
@@ -105,21 +150,83 @@ class CompanionController extends ChangeNotifier {
     });
   }
 
-  void celebrate() =>
-      react(CompanionReaction.celebrating, hold: const Duration(seconds: 2));
+  void celebrate() {
+    _startSequence(<_CompanionBeat>[
+      const _CompanionBeat(CompanionReaction.excited, 260),
+      const _CompanionBeat(CompanionReaction.celebrating, 760),
+      const _CompanionBeat(CompanionReaction.happy, 520, bounce: false),
+    ], settle: CompanionReaction.happy);
+  }
 
-    void pair() => react(CompanionReaction.pair,
-      hold: const Duration(milliseconds: 1400));
+  void pair() {
+    _startSequence(<_CompanionBeat>[
+      const _CompanionBeat(CompanionReaction.curious, 180, bounce: false),
+      const _CompanionBeat(CompanionReaction.pair, 600),
+      const _CompanionBeat(CompanionReaction.happy, 500, bounce: false),
+    ], settle: CompanionReaction.happy);
+  }
 
-    void dance() =>
-      react(CompanionReaction.dance, hold: const Duration(milliseconds: 2200));
+  void dance() {
+    _startSequence(<_CompanionBeat>[
+      const _CompanionBeat(CompanionReaction.curious, 180, bounce: false),
+      const _CompanionBeat(CompanionReaction.dance, 900),
+      const _CompanionBeat(CompanionReaction.celebrating, 560),
+      const _CompanionBeat(CompanionReaction.happy, 540, bounce: false),
+    ], settle: CompanionReaction.happy);
+  }
+
+  void encourage() {
+    _startSequence(<_CompanionBeat>[
+      const _CompanionBeat(CompanionReaction.curious, 120, bounce: false),
+      const _CompanionBeat(CompanionReaction.encouraging, 520),
+      const _CompanionBeat(CompanionReaction.happy, 420, bounce: false),
+    ], settle: CompanionReaction.happy);
+  }
+
+  void reactToToyTap(String toyId) {
+    final id = toyId.toLowerCase();
+    if (id.contains('music')) {
+      dance();
+      return;
+    }
+    if (id.contains('bubble') || id.contains('particle') || id.contains('fireworks')) {
+      _startSequence(<_CompanionBeat>[
+        const _CompanionBeat(CompanionReaction.curious, 150, bounce: false),
+        const _CompanionBeat(CompanionReaction.excited, 380),
+        const _CompanionBeat(CompanionReaction.celebrating, 640),
+        const _CompanionBeat(CompanionReaction.happy, 420, bounce: false),
+      ], settle: CompanionReaction.happy);
+      return;
+    }
+    if (id.contains('sand') || id.contains('water') || id.contains('calm')) {
+      _startSequence(<_CompanionBeat>[
+        const _CompanionBeat(CompanionReaction.curious, 160, bounce: false),
+        const _CompanionBeat(CompanionReaction.soothing, 520),
+        const _CompanionBeat(CompanionReaction.calm, 760, bounce: false),
+      ], settle: CompanionReaction.calm);
+      return;
+    }
+    if (id.contains('draw') || id.contains('paint') || id.contains('color')) {
+      _startSequence(<_CompanionBeat>[
+        const _CompanionBeat(CompanionReaction.thinking, 180, bounce: false),
+        const _CompanionBeat(CompanionReaction.proud, 560),
+        const _CompanionBeat(CompanionReaction.encouraging, 500),
+      ], settle: CompanionReaction.happy);
+      return;
+    }
+    tap();
+  }
 
   void calm() {
     _energy = 0;
-    react(CompanionReaction.calm, hold: const Duration(seconds: 4));
+    _startSequence(<_CompanionBeat>[
+      const _CompanionBeat(CompanionReaction.soothing, 480, bounce: false),
+      const _CompanionBeat(CompanionReaction.calm, 920, bounce: false),
+    ], settle: CompanionReaction.calm);
   }
 
   void setReaction(CompanionReaction r) {
+    _clearScriptTimers();
     _revert?.cancel();
     _decay?.cancel();
     _reaction = r;
@@ -128,6 +235,7 @@ class CompanionController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _clearScriptTimers();
     _revert?.cancel();
     _decay?.cancel();
     super.dispose();
@@ -236,12 +344,32 @@ class _CompanionViewState extends State<CompanionView>
         final picoSide = math.sin((t + 0.71) * math.pi * 2) * 1.9;
         final dance = widget.controller.reaction == CompanionReaction.dance;
         final pair = widget.controller.reaction == CompanionReaction.pair;
+        final reaction = widget.controller.reaction;
         final phase = (t * 4).floor() % 4;
         final hariPose = dance
           ? (phase.isEven ? AvatarPose.jump : AvatarPose.clap)
           : pair
             ? AvatarPose.point
-            : AvatarPose.idle;
+            : reaction == CompanionReaction.encouraging
+              ? AvatarPose.point
+              : reaction == CompanionReaction.proud
+                ? AvatarPose.clap
+                : reaction == CompanionReaction.surprised
+                  ? AvatarPose.jump
+                  : reaction == CompanionReaction.thinking ||
+                      reaction == CompanionReaction.curious
+                    ? AvatarPose.think
+                    : reaction == CompanionReaction.calm ||
+                        reaction == CompanionReaction.soothing
+                      ? AvatarPose.breathe
+                      : reaction == CompanionReaction.sleepy
+                        ? AvatarPose.sleep
+                        : reaction == CompanionReaction.excited
+                          ? AvatarPose.wave
+                          : reaction ==
+                              CompanionReaction.celebrating
+                            ? AvatarPose.cheer
+                            : AvatarPose.idle;
         final danceScaleHari = dance ? 1.07 + math.sin(t * math.pi * 8) * 0.05 : 1.0;
         final danceScalePico = dance ? 1.06 + math.sin((t + 0.35) * math.pi * 7) * 0.06 : 1.0;
         final b = Curves.elasticOut.transform(_bounce.value.clamp(0.0, 1.0));

@@ -59,10 +59,7 @@ class _ToyPlayerScreenState extends ConsumerState<ToyPlayerScreen> {
         children: <Widget>[
           Positioned.fill(
             child: GestureDetector(
-              onTapDown: (_) => _companion.react(
-                reactionForToyTap(widget.toy.id),
-                hold: const Duration(milliseconds: 1100),
-              ),
+              onTapDown: (_) => _companion.reactToToyTap(widget.toy.id),
               onLongPress: () {
                 _companion.pair();
                 setState(() => _chromeVisible = !_chromeVisible);

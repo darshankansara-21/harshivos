@@ -125,7 +125,7 @@ class _LearningGameScreenState extends ConsumerState<LearningGameScreen> {
       });
       if (!_done) _speakPrompt();
     } else {
-      _companion.react(CompanionReaction.encouraging);
+      _companion.encourage();
       HapticFeedback.selectionClick();
       setState(() {
         _streak = 0;
@@ -617,7 +617,7 @@ class _SortingGameScreenState extends ConsumerState<SortingGameScreen> {
       });
       if (!_done) _speakPrompt();
     } else {
-      _companion.react(CompanionReaction.encouraging);
+      _companion.encourage();
       HapticFeedback.selectionClick();
       setState(() => _justWrong = true);
     }

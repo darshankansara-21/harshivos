@@ -6,6 +6,7 @@ import '../../core/widgets/harshiv_scaffold.dart';
 import '../experiences/experience_catalog.dart';
 import '../../models/activity_event.dart';
 import '../../state/providers.dart';
+import '../companion/companion.dart';
 import '../lifeskills/avatar/avatar.dart';
 import '../lifeskills/avatar/hari_pico_scene.dart';
 import '../lifeskills/state/lifeskills_providers.dart';
@@ -249,15 +250,42 @@ class AdventurePlayScreen extends ConsumerStatefulWidget {
 class _AdventurePlayScreenState extends ConsumerState<AdventurePlayScreen> {
   int _step = 0;
   String _reply = '';
+  final CompanionController _companion = CompanionController();
   late final DateTime _started;
 
   @override
   void initState() {
     super.initState();
     _started = DateTime.now();
+    _playMoment(widget.experience.steps.first.moment);
+  }
+
+  @override
+  void dispose() {
+    _companion.dispose();
+    super.dispose();
+  }
+
+  void _playMoment(HariPicoMoment moment) {
+    switch (moment) {
+      case HariPicoMoment.greeting:
+        _companion.pair();
+      case HariPicoMoment.reacting:
+        _companion.react(CompanionReaction.curious,
+            hold: const Duration(milliseconds: 900));
+      case HariPicoMoment.encouraging:
+        _companion.encourage();
+      case HariPicoMoment.celebrating:
+        _companion.celebrate();
+      case HariPicoMoment.calm:
+        _companion.calm();
+      case HariPicoMoment.play:
+        _companion.dance();
+    }
   }
 
   Future<void> _finish() async {
+    _companion.celebrate();
     final sec = DateTime.now().difference(_started).inSeconds;
     await ref.read(activityLogProvider.notifier).log(
           ActivityType.adventurePlayed,
@@ -353,7 +381,9 @@ class _AdventurePlayScreenState extends ConsumerState<AdventurePlayScreen> {
                       children: <Widget>[
                         Expanded(
                           flex: 3,
-                          child: HariPicoScene(moment: current.moment),
+                          child: IgnorePointer(
+                            child: CompanionView(controller: _companion),
+                          ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -399,7 +429,10 @@ class _AdventurePlayScreenState extends ConsumerState<AdventurePlayScreen> {
                       for (final c in current.choices)
                         ActionChip(
                           label: Text(c.label),
-                          onPressed: () => setState(() => _reply = c.reply),
+                          onPressed: () {
+                            _companion.encourage();
+                            setState(() => _reply = c.reply);
+                          },
                           labelStyle: const TextStyle(
                               color: Colors.white, fontWeight: FontWeight.w700),
                           backgroundColor: Colors.white.withOpacity(0.14),
@@ -427,6 +460,7 @@ class _AdventurePlayScreenState extends ConsumerState<AdventurePlayScreen> {
                           return;
                         }
                         setState(() => _step++);
+                        _playMoment(steps[_step].moment);
                       },
                       icon: Icon(done
                           ? Icons.celebration_rounded
