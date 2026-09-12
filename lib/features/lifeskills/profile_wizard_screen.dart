@@ -25,6 +25,7 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
   int _step = 0;
 
   int get _lastStep => 1;
+  int get _visualSteps => 3;
 
   @override
   void initState() {
@@ -90,56 +91,54 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final stepLabel = '${(_step + 1).clamp(1, _visualSteps)} of $_visualSteps';
     return HarshivScaffold(
       padding: EdgeInsets.zero,
       child: SafeArea(
         child: Column(
           children: <Widget>[
-            // Progress dots.
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+              padding: const EdgeInsets.fromLTRB(18, 12, 18, 6),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: <Widget>[
-                  if (_step > 0)
-                    _round(Icons.arrow_back_rounded, _back)
-                  else
-                    const SizedBox(width: 44),
+                  _round(Icons.arrow_back_rounded, () {
+                    if (_step > 0) {
+                      _back();
+                      return;
+                    }
+                    Navigator.of(context).maybePop();
+                  }),
                   const Spacer(),
-                  ...List.generate(_lastStep + 1, (i) {
-                    final on = i <= _step;
+                  ...List.generate(_visualSteps, (i) {
+                    final on = i == _step;
                     return AnimatedContainer(
                       duration: const Duration(milliseconds: 220),
                       margin: const EdgeInsets.symmetric(horizontal: 3),
-                      width: i == _step ? 22 : 8,
+                      width: on ? 12 : 10,
                       height: 8,
                       decoration: BoxDecoration(
                         color: on
                             ? const Color(0xFF06D6A0)
-                            : Colors.white.withOpacity(0.18),
+                            : Colors.white.withOpacity(0.26),
                         borderRadius: BorderRadius.circular(4),
                       ),
                     );
                   }),
                   const Spacer(),
-                  const SizedBox(width: 44),
+                  SizedBox(
+                    width: 44,
+                    child: Text(
+                      stepLabel,
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(
+                          color: Colors.white70,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13),
+                    ),
+                  ),
                 ],
               ),
-            ),
-            // Live preview.
-            Container(
-              margin: const EdgeInsets.fromLTRB(20, 8, 20, 6),
-              height: 210,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(30),
-                gradient: const RadialGradient(
-                  center: Alignment(0, -0.3),
-                  radius: 1.1,
-                  colors: <Color>[Color(0xFF2A2350), Color(0xFF12102A)],
-                ),
-                border: Border.all(
-                    color: Colors.white.withOpacity(0.12), width: 1.5),
-              ),
-              child: ChildAvatar(config: _draft),
             ),
             Expanded(
               child: AnimatedSwitcher(
@@ -153,8 +152,13 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
                 ),
                 child: SingleChildScrollView(
                   key: ValueKey<int>(_step),
-                  padding: const EdgeInsets.fromLTRB(22, 8, 22, 16),
-                  child: _stepBody(),
+                  padding: const EdgeInsets.fromLTRB(22, 6, 22, 16),
+                  child: Column(
+                    children: <Widget>[
+                      if (_step == 0) _nameHero(),
+                      _stepBody(),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -205,6 +209,88 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
     return _step == 0 ? _nameStep() : _lookStep();
   }
 
+  Widget _nameHero() {
+    final shownName = _nameCtrl.text.trim().isEmpty ? 'friend' : _nameCtrl.text.trim();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: SizedBox(
+        height: 250,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: <Widget>[
+            const Expanded(
+              flex: 4,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text("What's your\nchild's name?",
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 26,
+                          height: 1.15,
+                          fontWeight: FontWeight.w900)),
+                  SizedBox(height: 10),
+                  Text(
+                    'This helps Hari be part of their journey\nand celebrate with them!',
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                      height: 1.25,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              flex: 5,
+              child: IgnorePointer(
+                child: Transform.translate(
+                  offset: const Offset(0, 8),
+                  child: ChildAvatar(config: _draft),
+                ),
+              ),
+            ),
+            Expanded(
+              flex: 3,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text('Hi $shownName! 💚',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      )),
+                  const SizedBox(height: 8),
+                  const Text(
+                    "Let's play, learn\nand explore together!",
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      height: 1.28,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // The three authored Hari looks the child can choose from.
   Widget _lookStep() {
     final selected = _draft.glasses
@@ -241,8 +327,6 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
           ],
         ],
       ),
-      const SizedBox(height: 16),
-      _harshivButton(),
     ]);
   }
 
@@ -314,27 +398,50 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
   // ---- Steps --------------------------------------------------------------
 
   Widget _nameStep() {
-    return _panel("What's your child's name?", [
-      TextField(
-        controller: _nameCtrl,
-        textCapitalization: TextCapitalization.words,
-        style: const TextStyle(
-            color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800),
-        decoration: InputDecoration(
-          hintText: 'Type a name',
-          hintStyle: TextStyle(color: Colors.white.withOpacity(0.4)),
-          filled: true,
-          fillColor: Colors.white.withOpacity(0.08),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
-            borderSide: BorderSide.none,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        TextField(
+          controller: _nameCtrl,
+          textCapitalization: TextCapitalization.words,
+          onChanged: (_) => setState(() {}),
+          style: const TextStyle(
+              color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800),
+          decoration: InputDecoration(
+            hintText: 'Type a name',
+            hintStyle: TextStyle(color: Colors.white.withOpacity(0.42)),
+            prefixIcon: const Icon(Icons.person_rounded, color: Colors.white54),
+            suffixIcon: _nameCtrl.text.trim().isEmpty
+                ? null
+                : IconButton(
+                    icon: const Icon(Icons.close_rounded, color: Colors.white70),
+                    onPressed: () {
+                      _nameCtrl.clear();
+                      setState(() {});
+                    },
+                  ),
+            filled: true,
+            fillColor: const Color(0x1FFFFFFF),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 18, vertical: 17),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(18),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(18),
+              borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(18),
+              borderSide: const BorderSide(color: Color(0xFF06D6A0), width: 1.8),
+            ),
           ),
         ),
-      ),
-      const SizedBox(height: 16),
-    ]);
+        const SizedBox(height: 16),
+        _harshivButton(),
+      ],
+    );
   }
 
   // ---- Reusable pieces ----------------------------------------------------
@@ -383,7 +490,7 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
                   Text(
                     usingPreset
                         ? 'Tap to switch back and customize fully'
-                        : 'Preset: unilateral BAHA · sensory-calm look',
+                        : 'Unilateral BAHA · sensory-calm look',
                     style: const TextStyle(color: Colors.white70, fontSize: 12.5),
                   ),
                 ],

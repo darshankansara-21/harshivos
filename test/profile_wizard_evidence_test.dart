@@ -30,7 +30,7 @@ Future<void> _grab(WidgetTester tester, GlobalKey key, String path) async {
 void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
 
-  testWidgets('Profile wizard look step is clean', (tester) async {
+  testWidgets('Profile wizard name and look steps are clean', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final storage = LocalStorage(await SharedPreferences.getInstance());
 
@@ -53,6 +53,8 @@ void main() {
     );
 
     await tester.pump(const Duration(milliseconds: 300));
+    await _grab(tester, key, 'evidence/inapp/08_avatar_name_step.png');
+
     await tester.tap(find.text('Next'));
     await tester.pump(const Duration(milliseconds: 500));
 
