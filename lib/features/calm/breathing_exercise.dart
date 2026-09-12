@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../lifeskills/avatar/pico.dart';
+
 /// A slow, looping breathing guide built for Harshiv:
 /// visual-first (never relies on sound), high-contrast, and predictable so he
 /// can *anticipate* each phase. The orb expands on inhale, holds, contracts on
@@ -143,9 +145,11 @@ class _BreathingExerciseState extends State<BreathingExercise>
                             ],
                           ),
                           child: Center(
-                            child: Text(
-                              phase.emoji,
-                              style: TextStyle(fontSize: orb * 0.28),
+                            child: SizedBox(
+                              width: orb * 0.6,
+                              height: orb * 0.6,
+                              // Pico breathes with the child — calm, in sync.
+                              child: const PicoWidget(mood: PicoMood.calm),
                             ),
                           ),
                         ),

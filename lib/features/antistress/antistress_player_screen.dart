@@ -1,11 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// Lightweight full-screen host for an Antistress fidget toy.
+import '../companion/companion.dart';
+
+/// Full-screen host for an Antistress fidget toy, now with a living Hari + Pico
+/// companion that watches and reacts as the child plays.
 ///
-/// The toy fills the whole canvas; a translucent back button floats on top.
-/// Kept deliberately dependency-free so the antistress toys stay self-contained.
-class AntistressPlayerScreen extends StatelessWidget {
+/// The toy fills the whole canvas; a translucent back button floats on top and
+/// the companions sit in the bottom-left, reacting to every touch.
+class AntistressPlayerScreen extends StatefulWidget {
   const AntistressPlayerScreen({
     super.key,
     required this.toy,
@@ -18,13 +23,54 @@ class AntistressPlayerScreen extends StatelessWidget {
   final String emoji;
 
   @override
+  State<AntistressPlayerScreen> createState() => _AntistressPlayerScreenState();
+}
+
+class _AntistressPlayerScreenState extends State<AntistressPlayerScreen> {
+  final CompanionController _companion = CompanionController();
+  Timer? _hello;
+
+  @override
+  void initState() {
+    super.initState();
+    _companion.setReaction(CompanionReaction.curious);
+    _hello = Timer(const Duration(milliseconds: 700),
+        () => _companion.react(CompanionReaction.happy));
+  }
+
+  @override
+  void dispose() {
+    _hello?.cancel();
+    _companion.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         fit: StackFit.expand,
         children: <Widget>[
-          Positioned.fill(child: toy),
+          // Toy fills the canvas; a passive listener lets the companions react
+          // to every touch without intercepting the toy's own gestures.
+          Positioned.fill(
+            child: Listener(
+              behavior: HitTestBehavior.deferToChild,
+              onPointerDown: (_) => _companion.tap(),
+              child: widget.toy,
+            ),
+          ),
+          // Living companions — never block the toy.
+          Positioned(
+            left: 10,
+            bottom: 10,
+            width: 150,
+            height: 132,
+            child: IgnorePointer(
+              child: CompanionView(controller: _companion),
+            ),
+          ),
           SafeArea(
             child: Align(
               alignment: Alignment.topLeft,
@@ -42,14 +88,14 @@ class AntistressPlayerScreen extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
                     Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(
                         color: Colors.black.withOpacity(0.35),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        '$emoji  $title',
+                        '${widget.emoji}  ${widget.title}',
                         style: const TextStyle(
                             color: Colors.white, fontWeight: FontWeight.w700),
                       ),
