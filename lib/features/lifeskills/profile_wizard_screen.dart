@@ -223,6 +223,7 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
           style: TextStyle(color: Colors.white70, fontSize: 13.5)),
       const SizedBox(height: 14),
       Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           for (final l in looks) ...<Widget>[
             Expanded(child: _lookCard(l.$1, l.$2, selected == l.$1, () => pick(l.$1))),
@@ -257,7 +258,7 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.fromLTRB(8, 8, 8, 10),
         decoration: BoxDecoration(
           color: on ? const Color(0x3306D6A0) : Colors.white.withOpacity(0.06),
           borderRadius: BorderRadius.circular(18),
@@ -268,11 +269,24 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
         ),
         child: Column(
           children: <Widget>[
-            SizedBox(
-              height: 74,
-              child: ChildAvatar(config: lookConfig, animate: false),
+            Container(
+              height: 92,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                gradient: const LinearGradient(
+                  colors: <Color>[Color(0x1AFFFFFF), Color(0x05FFFFFF)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+                border: Border.all(color: Colors.white.withOpacity(0.1)),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: ChildAvatar(config: lookConfig, animate: false),
+              ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(label,
                 textAlign: TextAlign.center,
                 maxLines: 1,
