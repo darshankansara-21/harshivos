@@ -108,7 +108,11 @@
       var splash = document.getElementById('splash');
       if (splash) {
         splash.style.opacity = '0';
-        setTimeout(function () { splash.remove(); }, 700);
+        setTimeout(function () {
+          if (splash && splash.parentNode) {
+            splash.parentNode.removeChild(splash);
+          }
+        }, 700);
       }
     });
   </script>
