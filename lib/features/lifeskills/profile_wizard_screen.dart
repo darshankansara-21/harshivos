@@ -20,7 +20,7 @@ class ProfileWizardScreen extends ConsumerStatefulWidget {
 
 class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
   final _nameCtrl = TextEditingController();
-  AvatarConfig _draft = const AvatarConfig();
+  AvatarConfig _draft = AvatarConfig.hari;
   AvatarConfig? _customBeforeHarshiv;
   int _step = 0;
 
@@ -31,6 +31,14 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
   void initState() {
     super.initState();
     _nameCtrl.text = ref.read(childNameProvider);
+    if (widget.fullEditor) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {
+          _draft = ref.read(avatarConfigProvider);
+        });
+      });
+    }
   }
 
   @override
@@ -56,9 +64,23 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
   void _applyCustom() {
     HapticFeedback.selectionClick();
     setState(() {
-      _draft = _customBeforeHarshiv ?? const AvatarConfig();
+      _draft = _customBeforeHarshiv ?? AvatarConfig.hari;
       _customBeforeHarshiv = null;
     });
+  }
+
+  AvatarConfig _canonicalHari(
+    AvatarConfig source, {
+    HearingDevice? device,
+    HearingSide? hearingSide,
+    bool? glasses,
+  }) {
+    return AvatarConfig.hari.copyWith(
+      device: device ?? source.device,
+      hearingSide: hearingSide ?? source.hearingSide,
+      glasses: glasses ?? source.glasses,
+      favoriteColor: source.favoriteColor,
+    );
   }
 
   Future<void> _finish() async {
@@ -252,7 +274,11 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
               child: IgnorePointer(
                 child: Transform.translate(
                   offset: const Offset(0, 8),
-                  child: ChildAvatar(config: _draft),
+                  child: Hari(
+                    config: _canonicalHari(_draft),
+                    pose: HariPose.wave,
+                    emotion: HariEmotion.happy,
+                  ),
                 ),
               ),
             ),
@@ -332,17 +358,20 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
 
   Widget _lookCard(String look, String label, bool on, VoidCallback onTap) {
     final AvatarConfig lookConfig = switch (look) {
-      'cochlear' => _draft.copyWith(
+      'cochlear' => _canonicalHari(
+          _draft,
           device: HearingDevice.cochlear,
           hearingSide: HearingSide.left,
           glasses: false,
         ),
-      'glasses' => _draft.copyWith(
+      'glasses' => _canonicalHari(
+          _draft,
           device: HearingDevice.hearingAid,
           hearingSide: HearingSide.left,
           glasses: true,
         ),
-      _ => _draft.copyWith(
+      _ => _canonicalHari(
+          _draft,
           device: HearingDevice.hearingAid,
           hearingSide: HearingSide.left,
           glasses: false,
@@ -377,7 +406,12 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
               ),
               child: Padding(
                 padding: const EdgeInsets.only(top: 4),
-                child: ChildAvatar(config: lookConfig, animate: false),
+                child: Hari(
+                  config: lookConfig,
+                  pose: HariPose.wave,
+                  emotion: HariEmotion.happy,
+                  animate: false,
+                ),
               ),
             ),
             const SizedBox(height: 8),
