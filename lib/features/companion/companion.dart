@@ -39,6 +39,12 @@ enum ExperienceEvent {
   routineCompleted,
 }
 
+class CompanionEventNotification extends Notification {
+  const CompanionEventNotification(this.event);
+
+  final ExperienceEvent event;
+}
+
 class _CompanionBeat {
   const _CompanionBeat(this.reaction, this.durationMs, {this.bounce = true});
 
@@ -95,8 +101,12 @@ class CompanionController extends ChangeNotifier {
   CompanionReaction _reaction = CompanionReaction.idle;
   int _pulse = 0;
   int _energy = 0;
+  final Map<ExperienceEvent, int> _eventCounts = <ExperienceEvent, int>{};
+  DateTime? _lastSmallReactionAt;
+  int _activePriority = 0;
   Timer? _revert;
   Timer? _decay;
+  Timer? _priorityReset;
   final List<Timer> _scriptTimers = <Timer>[];
 
   CompanionReaction get reaction => _reaction;
@@ -106,6 +116,8 @@ class CompanionController extends ChangeNotifier {
 
   /// 0..6 — rises with rapid interaction, drives escalating excitement.
   int get energy => _energy;
+
+  int eventCount(ExperienceEvent event) => _eventCounts[event] ?? 0;
 
   void _setNow(CompanionReaction r, {bool bounce = true}) {
     _reaction = r;
@@ -123,11 +135,17 @@ class CompanionController extends ChangeNotifier {
   void _startSequence(
     List<_CompanionBeat> beats, {
     CompanionReaction settle = CompanionReaction.idle,
+    int priority = 2,
   }) {
+    if (priority < _activePriority) return;
+    _activePriority = priority;
+    _priorityReset?.cancel();
     _clearScriptTimers();
     _revert?.cancel();
-    var elapsedMs = 0;
-    for (final beat in beats) {
+    if (beats.isEmpty) return;
+    _setNow(beats.first.reaction, bounce: beats.first.bounce);
+    var elapsedMs = beats.first.durationMs;
+    for (final beat in beats.skip(1)) {
       final at = elapsedMs;
       _scriptTimers.add(Timer(Duration(milliseconds: at), () {
         _setNow(beat.reaction, bounce: beat.bounce);
@@ -136,21 +154,29 @@ class CompanionController extends ChangeNotifier {
     }
     _scriptTimers.add(Timer(Duration(milliseconds: elapsedMs), () {
       _reaction = _energy > 0 ? CompanionReaction.happy : settle;
+      _activePriority = 0;
       notifyListeners();
     }));
+    _priorityReset = Timer(Duration(milliseconds: elapsedMs + 50), () {
+      _activePriority = 0;
+    });
   }
 
   void react(
     CompanionReaction r, {
     Duration hold = const Duration(milliseconds: 1500),
     bool bounce = true,
+    int priority = 1,
   }) {
+    if (priority < _activePriority) return;
+    _activePriority = priority;
     _clearScriptTimers();
     _setNow(r, bounce: bounce);
     _revert?.cancel();
     _revert = Timer(hold, () {
       _reaction =
           _energy > 0 ? CompanionReaction.happy : CompanionReaction.idle;
+      _activePriority = 0;
       notifyListeners();
     });
   }
@@ -158,16 +184,18 @@ class CompanionController extends ChangeNotifier {
   /// Generic "the child did something" — escalates energy into excitement.
   void tap() {
     _energy = math.min(_energy + 1, 6);
-    final response = _energy >= 4
-        ? CompanionReaction.excited
-        : _energy >= 2
-            ? CompanionReaction.happy
-            : CompanionReaction.curious;
-    _startSequence(<_CompanionBeat>[
-      const _CompanionBeat(CompanionReaction.curious, 150, bounce: false),
-      _CompanionBeat(response, 420),
-      const _CompanionBeat(CompanionReaction.happy, 460, bounce: false),
-    ], settle: CompanionReaction.happy);
+    final now = DateTime.now();
+    final canReact = _lastSmallReactionAt == null ||
+        now.difference(_lastSmallReactionAt!) >=
+            const Duration(milliseconds: 450);
+    if (canReact && _activePriority == 0) {
+      _lastSmallReactionAt = now;
+      react(
+        _energy >= 3 ? CompanionReaction.happy : CompanionReaction.curious,
+        hold: const Duration(milliseconds: 520),
+        bounce: false,
+      );
+    }
     _decay?.cancel();
     _decay = Timer(const Duration(milliseconds: 2600), () {
       _energy = 0;
@@ -181,7 +209,7 @@ class CompanionController extends ChangeNotifier {
       const _CompanionBeat(CompanionReaction.excited, 260),
       const _CompanionBeat(CompanionReaction.celebrating, 760),
       const _CompanionBeat(CompanionReaction.happy, 520, bounce: false),
-    ], settle: CompanionReaction.happy);
+    ], settle: CompanionReaction.happy, priority: 3);
   }
 
   void pair() {
@@ -189,7 +217,7 @@ class CompanionController extends ChangeNotifier {
       const _CompanionBeat(CompanionReaction.curious, 180, bounce: false),
       const _CompanionBeat(CompanionReaction.pair, 600),
       const _CompanionBeat(CompanionReaction.happy, 500, bounce: false),
-    ], settle: CompanionReaction.happy);
+    ], settle: CompanionReaction.happy, priority: 3);
   }
 
   void dance() {
@@ -198,7 +226,7 @@ class CompanionController extends ChangeNotifier {
       const _CompanionBeat(CompanionReaction.dance, 900),
       const _CompanionBeat(CompanionReaction.celebrating, 560),
       const _CompanionBeat(CompanionReaction.happy, 540, bounce: false),
-    ], settle: CompanionReaction.happy);
+    ], settle: CompanionReaction.happy, priority: 3);
   }
 
   void encourage() {
@@ -214,27 +242,51 @@ class CompanionController extends ChangeNotifier {
   }
 
   void reactToEvent(ExperienceEvent event, {String? toyId}) {
+    final count = (_eventCounts[event] ?? 0) + 1;
+    _eventCounts[event] = count;
     switch (event) {
       case ExperienceEvent.bubblePopped:
-        _startSequence(<_CompanionBeat>[
-          const _CompanionBeat(CompanionReaction.curious, 150, bounce: false),
-          const _CompanionBeat(CompanionReaction.excited, 380),
-          const _CompanionBeat(CompanionReaction.celebrating, 640),
-          const _CompanionBeat(CompanionReaction.happy, 420, bounce: false),
-        ], settle: CompanionReaction.happy);
+        if (count % 50 == 0) {
+          celebrate();
+        } else if (count % 25 == 0) {
+          dance();
+        } else if (count % 10 == 0) {
+          pair();
+        } else if (count % 5 == 0) {
+          _startSequence(<_CompanionBeat>[
+            const _CompanionBeat(CompanionReaction.proud, 720),
+            const _CompanionBeat(
+                CompanionReaction.happy, 420, bounce: false),
+          ], settle: CompanionReaction.happy, priority: 3);
+        } else {
+          tap();
+        }
         return;
       case ExperienceEvent.sandDrawn:
-        _startSequence(<_CompanionBeat>[
-          const _CompanionBeat(CompanionReaction.thinking, 180, bounce: false),
-          const _CompanionBeat(CompanionReaction.proud, 560),
-          const _CompanionBeat(CompanionReaction.encouraging, 500),
-        ], settle: CompanionReaction.happy);
+        if (count % 12 == 0) {
+          _startSequence(<_CompanionBeat>[
+            const _CompanionBeat(CompanionReaction.thinking, 180, bounce: false),
+            const _CompanionBeat(CompanionReaction.proud, 560),
+            const _CompanionBeat(CompanionReaction.happy, 420, bounce: false),
+          ], settle: CompanionReaction.happy, priority: 3);
+        } else {
+          tap();
+        }
         return;
       case ExperienceEvent.musicStarted:
-        dance();
+        if (toyId?.toLowerCase().contains('music') ?? false) {
+          if (count % 8 == 0) {
+            dance();
+          } else {
+            tap();
+          }
+        } else {
+          dance();
+        }
         return;
       case ExperienceEvent.correctAnswer:
-        react(CompanionReaction.happy, hold: const Duration(milliseconds: 900));
+        react(CompanionReaction.happy,
+            hold: const Duration(milliseconds: 900), bounce: false);
         return;
       case ExperienceEvent.incorrectAnswer:
         encourage();
@@ -279,6 +331,8 @@ class CompanionController extends ChangeNotifier {
     _clearScriptTimers();
     _revert?.cancel();
     _decay?.cancel();
+    _priorityReset?.cancel();
+    _activePriority = 0;
     super.dispose();
   }
 }

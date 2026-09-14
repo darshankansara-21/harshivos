@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../services/audio/tone_player.dart';
 import '../theme/app_colors.dart';
 
 /// Frosted-glass surface used throughout the app (glassmorphism).
@@ -62,6 +63,7 @@ class _GlassCardState extends State<GlassCard> {
                 ? null
                 : () {
                     HapticFeedback.selectionClick();
+                    TonePlayer.instance.playCue(SoundCue.navigation);
                     widget.onTap!.call();
                   },
             onHighlightChanged: _setPressed,

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../services/audio/tone_player.dart';
 import '../companion/companion.dart';
 
 /// An adaptive emotion-recognition game. Difficulty (number of choices) rises
@@ -62,18 +63,21 @@ class _EmotionMatchGameState extends State<EmotionMatchGame>
     if (choice == _target) {
       _companion.reactToEvent(ExperienceEvent.correctAnswer);
       HapticFeedback.mediumImpact();
+      TonePlayer.instance.playCue(SoundCue.correct);
       setState(() {
         _score++;
         _streak++;
         if (_streak % 3 == 0 && _difficulty < 5) _difficulty++;
         if (_score > 0 && _score % 8 == 0) {
           _companion.reactToEvent(ExperienceEvent.gameCompleted);
+          TonePlayer.instance.playCue(SoundCue.completion);
         }
         _newRound();
       });
     } else {
       _companion.reactToEvent(ExperienceEvent.incorrectAnswer);
       HapticFeedback.selectionClick();
+      TonePlayer.instance.playCue(SoundCue.gentleRetry);
       setState(() {
         _streak = 0;
         if (_difficulty > 2) _difficulty--;

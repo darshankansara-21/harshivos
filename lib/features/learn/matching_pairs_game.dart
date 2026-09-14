@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../services/audio/tone_player.dart';
 import '../companion/companion.dart';
 
 /// Matching Pairs — a calm, no-fail memory game.
@@ -84,6 +85,7 @@ class _MatchingPairsGameState extends State<MatchingPairsGame> {
       // Match!
       _companion.reactToEvent(ExperienceEvent.correctAnswer);
       HapticFeedback.mediumImpact();
+      TonePlayer.instance.playCue(SoundCue.correct);
       setState(() {
         _first!.matched = true;
         card.matched = true;
@@ -93,12 +95,14 @@ class _MatchingPairsGameState extends State<MatchingPairsGame> {
         _wins++;
         if (_pairs < 8) _pairs++; // gently grow next round
         _companion.reactToEvent(ExperienceEvent.gameCompleted);
+        TonePlayer.instance.playCue(SoundCue.completion);
         await Future<void>.delayed(const Duration(milliseconds: 700));
         if (mounted) _celebrate();
       }
     } else {
       // No match — turn both back after a beat. Never a fail state.
       _companion.reactToEvent(ExperienceEvent.incorrectAnswer);
+      TonePlayer.instance.playCue(SoundCue.gentleRetry);
       _busy = true;
       final firstCard = _first!;
       _first = null;

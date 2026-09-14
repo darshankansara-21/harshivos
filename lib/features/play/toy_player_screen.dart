@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../companion/companion.dart';
 import '../../models/toy_meta.dart';
+import '../../services/audio/tone_player.dart';
 import '../../state/providers.dart';
 import 'toy_registry.dart';
 
@@ -58,16 +59,22 @@ class _ToyPlayerScreenState extends ConsumerState<ToyPlayerScreen> {
         fit: StackFit.expand,
         children: <Widget>[
           Positioned.fill(
-            child: GestureDetector(
-              onTapDown: (_) => _companion.reactToEvent(
-                eventForToyTap(widget.toy.id),
-                toyId: widget.toy.id,
-              ),
-              onLongPress: () {
-                _companion.pair();
-                setState(() => _chromeVisible = !_chromeVisible);
+            child: NotificationListener<CompanionEventNotification>(
+              onNotification: (notification) {
+                _companion.reactToEvent(notification.event, toyId: widget.toy.id);
+                return true;
               },
-              child: buildToy(widget.toy.id),
+              child: GestureDetector(
+                onTapDown: (_) => _companion.reactToEvent(
+                  eventForToyTap(widget.toy.id),
+                  toyId: widget.toy.id,
+                ),
+                onLongPress: () {
+                  _companion.pair();
+                  setState(() => _chromeVisible = !_chromeVisible);
+                },
+                child: buildToy(widget.toy.id),
+              ),
             ),
           ),
           Positioned(
@@ -137,7 +144,11 @@ class _RoundButton extends StatelessWidget {
       shape: const CircleBorder(),
       child: InkWell(
         customBorder: const CircleBorder(),
-        onTap: onTap,
+        onTap: () {
+          HapticFeedback.selectionClick();
+          TonePlayer.instance.playCue(SoundCue.navigation);
+          onTap();
+        },
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Icon(icon, color: Colors.white, size: 26),

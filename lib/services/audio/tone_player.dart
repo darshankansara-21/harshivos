@@ -2,6 +2,18 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/widgets.dart';
+
+enum SoundCue {
+  tap,
+  navigation,
+  selection,
+  correct,
+  gentleRetry,
+  milestone,
+  completion,
+  calm,
+}
 
 /// Lightweight procedural sound engine for the sensory toys.
 ///
@@ -18,12 +30,14 @@ class TonePlayer {
 
   static const int _sampleRate = 44100;
   static const int _poolSize = 8;
-
-  final List<AudioPlayer> _pool =
-      List<AudioPlayer>.generate(_poolSize, (_) => AudioPlayer());
+  final List<AudioPlayer> _pool = <AudioPlayer>[];
   int _next = 0;
   bool _ready = false;
   double volumeScale = 1;
+
+  bool get _audioAvailable => !WidgetsBinding.instance.runtimeType
+      .toString()
+      .contains('TestWidgetsFlutterBinding');
 
   /// A warm major-pentatonic scale (C D E G A) over two octaves — every
   /// combination sounds pleasant, which is exactly what a calm toy wants.
@@ -32,13 +46,16 @@ class TonePlayer {
     523.25, 587.33, 659.25, 783.99, 880.00, // C5 D5 E5 G5 A5
   ];
 
-  Future<void> _ensureReady() async {
-    if (_ready) return;
+  Future<bool> _ensureReady() async {
+    if (!_audioAvailable) return false;
+    if (_ready) return true;
+    _pool.addAll(List<AudioPlayer>.generate(_poolSize, (_) => AudioPlayer()));
     _ready = true;
     for (final p in _pool) {
       await p.setReleaseMode(ReleaseMode.stop);
       await p.setPlayerMode(PlayerMode.lowLatency);
     }
+    return true;
   }
 
   AudioPlayer get _player {
@@ -51,6 +68,46 @@ class TonePlayer {
   Future<void> playNote(int index, {double seconds = 0.45}) async {
     final freq = pentatonic[index % pentatonic.length];
     await _play(freq, seconds: seconds, wave: _Wave.triangle, attack: 0.01);
+  }
+
+  final Map<SoundCue, DateTime> _lastCueAt = <SoundCue, DateTime>{};
+
+  Future<void> playCue(SoundCue cue) async {
+    if (volumeScale <= 0 || !_audioAvailable) return;
+    final now = DateTime.now();
+    final last = _lastCueAt[cue];
+    final cooldown = switch (cue) {
+      SoundCue.tap || SoundCue.selection => 90,
+      SoundCue.navigation => 160,
+      SoundCue.correct || SoundCue.gentleRetry => 220,
+      SoundCue.milestone || SoundCue.completion => 700,
+      SoundCue.calm => 500,
+    };
+    if (last != null && now.difference(last).inMilliseconds < cooldown) return;
+    _lastCueAt[cue] = now;
+
+    switch (cue) {
+      case SoundCue.tap:
+        await playClick(pitch: 1.15);
+      case SoundCue.navigation:
+        await playNote(2, seconds: 0.12);
+      case SoundCue.selection:
+        await playPop(0.35);
+      case SoundCue.correct:
+        await playNote(5, seconds: 0.24);
+      case SoundCue.gentleRetry:
+        await _play(220,
+            seconds: 0.18, wave: _Wave.sine, attack: 0.02, decay: 7);
+      case SoundCue.milestone:
+        await playNote(7, seconds: 0.3);
+      case SoundCue.completion:
+        await playNote(5, seconds: 0.22);
+        await Future<void>.delayed(const Duration(milliseconds: 90));
+        await playNote(8, seconds: 0.42);
+      case SoundCue.calm:
+        await _play(196,
+            seconds: 0.55, wave: _Wave.sine, attack: 0.08, decay: 3.2);
+    }
   }
 
   /// Play a soft "pop" — a short pitched blip whose frequency rises with the
@@ -111,7 +168,7 @@ class TonePlayer {
   Future<void> _playNoise(Uint8List bytes, {double volume = 0.6}) async {
     if (volumeScale <= 0) return;
     try {
-      await _ensureReady();
+      if (!await _ensureReady()) return;
       await _player.play(BytesSource(bytes),
           volume: (volume * volumeScale).clamp(0, 1));
     } catch (_) {
@@ -178,7 +235,7 @@ class TonePlayer {
   }) async {
     if (volumeScale <= 0) return;
     try {
-      await _ensureReady();
+      if (!await _ensureReady()) return;
       final bytes = _synth(freq, seconds, wave, attack, decay);
         await _player.play(BytesSource(bytes),
           volume: (0.7 * volumeScale).clamp(0, 1));

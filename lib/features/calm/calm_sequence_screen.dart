@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../services/audio/tone_player.dart';
 import '../../models/regulation_entry.dart';
 import '../../state/providers.dart';
 import '../../models/activity_event.dart';
@@ -60,6 +61,7 @@ class _CalmSequenceScreenState extends ConsumerState<CalmSequenceScreen> {
 
   void _startStep() {
     _companion.reactToEvent(ExperienceEvent.calmStarted);
+    TonePlayer.instance.playCue(SoundCue.calm);
     _remaining = _steps[_index].seconds;
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
@@ -85,6 +87,7 @@ class _CalmSequenceScreenState extends ConsumerState<CalmSequenceScreen> {
 
   void _complete(double calmAfter) {
     _companion.reactToEvent(ExperienceEvent.gameCompleted);
+    TonePlayer.instance.playCue(SoundCue.completion);
     ref.read(activityLogProvider.notifier).log(
         ActivityType.calmCompleted, widget.mood.name,
         label: widget.mood.label);

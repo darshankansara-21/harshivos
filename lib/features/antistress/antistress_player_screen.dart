@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../companion/companion.dart';
+import '../../services/audio/tone_player.dart';
 
 /// Full-screen host for an Antistress fidget toy, now with a living Hari + Pico
 /// companion that watches and reacts as the child plays.
@@ -83,6 +84,7 @@ class _AntistressPlayerScreenState extends State<AntistressPlayerScreen> {
                       icon: Icons.arrow_back_rounded,
                       onTap: () {
                         HapticFeedback.lightImpact();
+                        TonePlayer.instance.playCue(SoundCue.navigation);
                         Navigator.of(context).pop();
                       },
                     ),

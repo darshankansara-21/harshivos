@@ -365,6 +365,11 @@ final List<UniverseToy> kToyUniverse = <UniverseToy>[
     category: ToyCategory.creative, inputs: const [ToyInput.tap, ToyInput.drag],
     engagement: ToyEngagement.deep, build: _play('marble_run'),
   ),
+  UniverseToy(
+    id: 'snack_studio', name: 'Pocket Picnic', emoji: '🧺', color: const Color(0xFF06D6A0),
+    category: ToyCategory.creative, inputs: const [ToyInput.tap, ToyInput.sound],
+    engagement: ToyEngagement.deep, build: _play('snack_studio'), isNew: true,
+  ),
 
   // ---- Sensory Lab: premium physics experiences (6) ----
   const UniverseToy(

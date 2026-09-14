@@ -1,3 +1,4 @@
+import '../../services/audio/tone_player.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -112,6 +113,7 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
 
   void _addWord(_Word word, {String? spokenText}) {
     _companion.reactToEvent(ExperienceEvent.aacSelected);
+    TonePlayer.instance.playCue(SoundCue.selection);
     if ((_strip.length + 1) % 3 == 0) _companion.pair();
     setState(() => _strip.add(word));
     ref.read(activityLogProvider.notifier).log(
@@ -123,6 +125,7 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
   void _speakSentence() {
     if (_strip.isEmpty) return;
     _companion.celebrate();
+    TonePlayer.instance.playCue(SoundCue.completion);
     _speak(_strip.map((w) => w.label).join(' '), color: Colors.white);
   }
 

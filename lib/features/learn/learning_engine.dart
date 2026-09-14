@@ -108,7 +108,9 @@ class _LearningGameScreenState extends ConsumerState<LearningGameScreen> {
       _companion.reactToEvent(ExperienceEvent.correctAnswer);
       if ((_score + 1) % 4 == 0) _companion.reactToEvent(ExperienceEvent.musicStarted);
       HapticFeedback.mediumImpact();
-      TonePlayer.instance.playNote(3 + _streak); // gentle rising reward
+        TonePlayer.instance.playCue((_score + 1) % 4 == 0
+          ? SoundCue.milestone
+          : SoundCue.correct);
       setState(() {
         _score++;
         _streak++;
@@ -124,6 +126,7 @@ class _LearningGameScreenState extends ConsumerState<LearningGameScreen> {
     } else {
       _companion.reactToEvent(ExperienceEvent.incorrectAnswer);
       HapticFeedback.selectionClick();
+      TonePlayer.instance.playCue(SoundCue.gentleRetry);
       setState(() {
         _streak = 0;
         if (_difficulty > 2) _difficulty--;
@@ -135,6 +138,7 @@ class _LearningGameScreenState extends ConsumerState<LearningGameScreen> {
   void _finish() {
     _done = true;
     _companion.reactToEvent(ExperienceEvent.gameCompleted);
+    TonePlayer.instance.playCue(SoundCue.completion);
     final seconds = DateTime.now().difference(_startedAt).inSeconds;
     ref.read(activityLogProvider.notifier).log(
           ActivityType.gamePlayed,
@@ -602,7 +606,9 @@ class _SortingGameScreenState extends ConsumerState<SortingGameScreen> {
         _companion.react(CompanionReaction.proud);
       }
       HapticFeedback.mediumImpact();
-      TonePlayer.instance.playNote(3 + _round);
+        TonePlayer.instance.playCue((_score + 1) % 4 == 0
+          ? SoundCue.milestone
+          : SoundCue.correct);
       setState(() {
         _score++;
         _round++;
@@ -616,6 +622,7 @@ class _SortingGameScreenState extends ConsumerState<SortingGameScreen> {
     } else {
       _companion.encourage();
       HapticFeedback.selectionClick();
+      TonePlayer.instance.playCue(SoundCue.gentleRetry);
       setState(() => _justWrong = true);
     }
   }
@@ -623,6 +630,7 @@ class _SortingGameScreenState extends ConsumerState<SortingGameScreen> {
   void _finish() {
     _done = true;
     _companion.celebrate();
+    TonePlayer.instance.playCue(SoundCue.completion);
     final seconds = DateTime.now().difference(_startedAt).inSeconds;
     ref.read(activityLogProvider.notifier).log(
           ActivityType.gamePlayed,
