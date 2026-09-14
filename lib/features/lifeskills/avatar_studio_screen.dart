@@ -296,7 +296,7 @@ class _AvatarStudioScreenState extends ConsumerState<AvatarStudioScreen> {
               Text('💙', style: TextStyle(fontSize: 20)),
               SizedBox(width: 12),
               Expanded(
-                child: Text('Harshiv Mode — unilateral BAHA, sensory-calm',
+                child: Text('Preset Mode — unilateral BAHA, sensory-calm',
                     style: TextStyle(
                         color: Colors.white,
                         fontSize: 14,

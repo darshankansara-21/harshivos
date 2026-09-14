@@ -1,7 +1,7 @@
 name: harshivos
-description: "HarshivOS — a calm, offline-first companion for autistic and neurodivergent children: sensory play, communication, learning, daily routines, and emotional regulation."
+description: "WonderPlay - Play. Learn. Calm. Connect. A playful world where every child can explore, learn, and feel good."
 publish_to: "none"
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   sdk: ">=3.4.0 <4.0.0"

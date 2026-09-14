@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../companion/companion.dart';
+
 /// An adaptive emotion-recognition game. Difficulty (number of choices) rises
 /// after a streak of correct answers and eases after mistakes — so it stays in
 /// the "just right" zone without ever feeling like a test.
@@ -27,6 +29,7 @@ class _EmotionMatchGameState extends State<EmotionMatchGame>
   ];
 
   final math.Random _rnd = math.Random();
+  final CompanionController _companion = CompanionController();
   int _difficulty = 2; // number of choices (2..5)
   int _streak = 0;
   int _score = 0;
@@ -37,7 +40,14 @@ class _EmotionMatchGameState extends State<EmotionMatchGame>
   @override
   void initState() {
     super.initState();
+    _companion.setReaction(CompanionReaction.curious);
     _newRound();
+  }
+
+  @override
+  void dispose() {
+    _companion.dispose();
+    super.dispose();
   }
 
   void _newRound() {
@@ -50,15 +60,20 @@ class _EmotionMatchGameState extends State<EmotionMatchGame>
 
   void _pick((String, String) choice) {
     if (choice == _target) {
+      _companion.reactToEvent(ExperienceEvent.correctAnswer);
       HapticFeedback.mediumImpact();
       setState(() {
         _score++;
         _streak++;
         if (_streak % 3 == 0 && _difficulty < 5) _difficulty++;
+        if (_score > 0 && _score % 8 == 0) {
+          _companion.reactToEvent(ExperienceEvent.gameCompleted);
+        }
         _newRound();
       });
     } else {
-      HapticFeedback.heavyImpact();
+      _companion.reactToEvent(ExperienceEvent.incorrectAnswer);
+      HapticFeedback.selectionClick();
       setState(() {
         _streak = 0;
         if (_difficulty > 2) _difficulty--;
@@ -84,50 +99,63 @@ class _EmotionMatchGameState extends State<EmotionMatchGame>
         ],
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: <Widget>[
-              const Spacer(),
-              Text('Tap the face that is',
-                  style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 20)),
-              const SizedBox(height: 8),
-              Text(_target.$2,
-                  style: const TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.w800)),
-              if (_justWrong)
-                const Padding(
-                  padding: EdgeInsets.only(top: 10),
-                  child: Text('Try again — you can do it! 💪',
-                      style: TextStyle(color: Colors.amberAccent)),
-                ),
-              const Spacer(),
-              Wrap(
-                spacing: 18,
-                runSpacing: 18,
-                alignment: WrapAlignment.center,
+        child: Stack(
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
                 children: <Widget>[
-                  for (final c in _choices)
-                    GestureDetector(
-                      onTap: () => _pick(c),
-                      child: Container(
-                        width: 110,
-                        height: 110,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(28),
-                          color: Colors.white.withOpacity(0.10),
-                          border: Border.all(color: Colors.white24),
-                        ),
-                        child: Text(c.$1, style: const TextStyle(fontSize: 64)),
-                      ),
+                  const Spacer(),
+                  Text('Tap the face that is',
+                      style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 20)),
+                  const SizedBox(height: 8),
+                  Text(_target.$2,
+                      style: const TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.w800)),
+                  if (_justWrong)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 10),
+                      child: Text('Try again — you can do it! 💪',
+                          style: TextStyle(color: Colors.amberAccent)),
                     ),
+                  const Spacer(),
+                  Wrap(
+                    spacing: 18,
+                    runSpacing: 18,
+                    alignment: WrapAlignment.center,
+                    children: <Widget>[
+                      for (final c in _choices)
+                        GestureDetector(
+                          onTap: () => _pick(c),
+                          child: Container(
+                            width: 110,
+                            height: 110,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(28),
+                              color: Colors.white.withOpacity(0.10),
+                              border: Border.all(color: Colors.white24),
+                            ),
+                            child: Text(c.$1, style: const TextStyle(fontSize: 64)),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const Spacer(),
+                  Text('Level $_difficulty',
+                      style: const TextStyle(color: Colors.white38)),
                 ],
               ),
-              const Spacer(),
-              Text('Level $_difficulty',
-                  style: const TextStyle(color: Colors.white38)),
-            ],
-          ),
+            ),
+            Positioned(
+              right: 12,
+              bottom: 8,
+              width: 150,
+              height: 128,
+              child: IgnorePointer(
+                child: CompanionView(controller: _companion),
+              ),
+            ),
+          ],
         ),
       ),
     );

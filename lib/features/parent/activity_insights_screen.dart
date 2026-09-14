@@ -102,7 +102,7 @@ class ActivityInsightsScreen extends ConsumerWidget {
             ],
             const SizedBox(height: 20),
             Text(
-              'These notes come only from play on this device. HarshivOS does not '
+              'These notes come only from play on this device. WonderPlay does not '
               'diagnose or provide medical advice.',
               style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12),
             ),

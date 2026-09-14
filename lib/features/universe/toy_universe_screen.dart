@@ -67,6 +67,41 @@ class ToyUniverseScreen extends ConsumerStatefulWidget {
 class _ToyUniverseScreenState extends ConsumerState<ToyUniverseScreen> {
   final ScrollController _scroll = ScrollController();
   final GlobalKey _allToysKey = GlobalKey();
+  bool _meetShown = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowMeetSheet());
+  }
+
+  Future<void> _maybeShowMeetSheet() async {
+    if (!mounted || _meetShown) return;
+    final storage = ref.read(localStorageProvider);
+    final complete = ref.read(profileCompleteProvider);
+    if (!complete) return;
+    final shouldShow = storage.readBool('show_meet_hari_pico');
+    if (!shouldShow) return;
+    final seen = storage.readBool('met_hari_pico_v1');
+    if (seen || !mounted) return;
+    _meetShown = true;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: false,
+      backgroundColor: const Color(0xFF151C46),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (_) => _MeetHariPicoSheet(
+        onEnterPlay: () {
+          Navigator.of(context).pop();
+          _scrollToToys();
+        },
+      ),
+    );
+    await storage.writeBool('show_meet_hari_pico', false);
+    await storage.writeBool('met_hari_pico_v1', true);
+  }
 
   @override
   void dispose() {
@@ -109,67 +144,95 @@ class _ToyUniverseScreenState extends ConsumerState<ToyUniverseScreen> {
               bottom: false,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 12, 12, 4),
-                child: Row(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Text('$name\u2019s Toy Box',
-                              style: const TextStyle(
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        const Expanded(
+                          child: Padding(
+                            padding: EdgeInsets.only(top: 6),
+                            child: FittedBox(
+                              alignment: Alignment.centerLeft,
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                'WONDERPLAY',
+                                style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 30,
-                                  fontWeight: FontWeight.w900)),
-                          const SizedBox(height: 2),
-                          Text('$total toys to play  \u2728',
-                              style: TextStyle(
-                                  color: Colors.white.withOpacity(0.7),
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600)),
-                        ],
-                      ),
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Hidden debug entry: long-press the counter chip.
+                        IconButton(
+                          tooltip: 'Activity insights',
+                          icon: const Icon(Icons.insights_rounded,
+                              color: Colors.white, size: 26),
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const ActivityInsightsScreen(),
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Sensory settings',
+                          icon: const Icon(Icons.tune_rounded,
+                              color: Colors.white, size: 28),
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const SensorySettingsScreen(),
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'My avatar',
+                          icon: const Icon(Icons.face_rounded,
+                              color: Colors.white, size: 30),
+                          onPressed: () async {
+                            await Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) =>
+                                    const ProfileWizardScreen(fullEditor: true),
+                              ),
+                            );
+                            if (mounted) {
+                              await _maybeShowMeetSheet();
+                            }
+                          },
+                        ),
+                        GestureDetector(
+                          onLongPress: () {
+                            HapticFeedback.mediumImpact();
+                            Navigator.of(context).push(MaterialPageRoute<void>(
+                                builder: (_) => const ToyDebugScreen()));
+                          },
+                          child: _CountBadge(total: total),
+                        ),
+                      ],
                     ),
-                    // Hidden debug entry: long-press the counter chip.
-                                        IconButton(
-                                          tooltip: 'Activity insights',
-                                          icon: const Icon(Icons.insights_rounded,
-                                              color: Colors.white, size: 26),
-                                          onPressed: () => Navigator.of(context).push(
-                                            MaterialPageRoute<void>(
-                                              builder: (_) =>
-                                                  const ActivityInsightsScreen(),
-                                            ),
-                                          ),
-                                        ),
-                                        IconButton(
-                                          tooltip: 'Sensory settings',
-                                          icon: const Icon(Icons.tune_rounded,
-                                              color: Colors.white, size: 28),
-                                          onPressed: () => Navigator.of(context).push(
-                                            MaterialPageRoute<void>(
-                                              builder: (_) => const SensorySettingsScreen(),
-                                            ),
-                                          ),
-                                        ),
-                                        IconButton(
-                                          tooltip: 'My avatar',
-                                          icon: const Icon(Icons.face_rounded,
-                                              color: Colors.white, size: 30),
-                                          onPressed: () => Navigator.of(context).push(
-                                            MaterialPageRoute<void>(
-                                              builder: (_) =>
-                                                  const ProfileWizardScreen(fullEditor: true),
-                                            ),
-                                          ),
-                                        ),
-                    GestureDetector(
-                      onLongPress: () {
-                        HapticFeedback.mediumImpact();
-                        Navigator.of(context).push(MaterialPageRoute<void>(
-                            builder: (_) => const ToyDebugScreen()));
-                      },
-                      child: _CountBadge(total: total),
+                    const SizedBox(height: 3),
+                    const Text('Play. Learn. Calm. Connect.',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 2),
+                    Text(
+                      'A playful world where every child can explore, learn, and feel good.',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.64),
+                        fontSize: 12.8,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                 ),
@@ -287,6 +350,78 @@ class _ExploreWorldsButton extends StatelessWidget {
   }
 }
 
+class _MeetHariPicoSheet extends StatefulWidget {
+  const _MeetHariPicoSheet({required this.onEnterPlay});
+
+  final VoidCallback onEnterPlay;
+
+  @override
+  State<_MeetHariPicoSheet> createState() => _MeetHariPicoSheetState();
+}
+
+class _MeetHariPicoSheetState extends State<_MeetHariPicoSheet> {
+  final CompanionController _companion = CompanionController();
+
+  @override
+  void initState() {
+    super.initState();
+    _companion.setReaction(CompanionReaction.pair);
+  }
+
+  @override
+  void dispose() {
+    _companion.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              SizedBox(
+                width: 180,
+                height: 132,
+                child: CompanionView(controller: _companion),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Meet Hari and Pico',
+                style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'They play with you, celebrate with you, and help you feel calm.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white.withOpacity(0.78), fontSize: 14.5),
+              ),
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: widget.onEnterPlay,
+                  icon: const Icon(Icons.play_arrow_rounded),
+                  label: const Text('Enter Play World'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF06D6A0),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// A warm welcome from Hari and Pico — the first thing the child sees, so the
 /// app feels like meeting a friend, not opening a menu.
 class _HariGreeting extends StatefulWidget {
@@ -350,7 +485,7 @@ class _HariGreetingState extends State<_HariGreeting> {
                           fontSize: 18,
                           fontWeight: FontWeight.w900)),
                   const SizedBox(height: 2),
-                  Text('Hari and Pico are ready to play.',
+                    Text('Hari and Pico are ready to explore with you.',
                       style: TextStyle(
                           color: Colors.white.withOpacity(0.75),
                           fontSize: 13,
@@ -383,7 +518,7 @@ class _CoreDestinations extends StatelessWidget {
         children: <Widget>[
           Expanded(
             child: _DestinationCard(
-              emoji: '\uD83E\uDDF8',
+              emoji: '\u2B50',
               label: 'Play',
               colors: const <Color>[Color(0xFF9B5DE5), Color(0xFFF15BB5)],
               onTap: onPlay,

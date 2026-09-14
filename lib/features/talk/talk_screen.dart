@@ -111,11 +111,8 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
   }
 
   void _addWord(_Word word, {String? spokenText}) {
-    if ((_strip.length + 1) % 3 == 0) {
-      _companion.pair();
-    } else {
-      _companion.tap();
-    }
+    _companion.reactToEvent(ExperienceEvent.aacSelected);
+    if ((_strip.length + 1) % 3 == 0) _companion.pair();
     setState(() => _strip.add(word));
     ref.read(activityLogProvider.notifier).log(
         ActivityType.spoke, word.label, label: word.label);

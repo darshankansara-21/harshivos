@@ -166,8 +166,13 @@ class HariEmotionCard extends ConsumerWidget {
 /// A calming strategy Hari demonstrates. "Try it with me" plays the gentle
 /// voice cue and gives warm, no-pressure feedback.
 class CalmingStrategyCard extends ConsumerStatefulWidget {
-  const CalmingStrategyCard({super.key, required this.strategy});
+  const CalmingStrategyCard({
+    super.key,
+    required this.strategy,
+    this.onTry,
+  });
   final CalmingStrategy strategy;
+  final VoidCallback? onTry;
 
   @override
   ConsumerState<CalmingStrategyCard> createState() =>
@@ -179,6 +184,7 @@ class _CalmingStrategyCardState extends ConsumerState<CalmingStrategyCard> {
 
   void _try() {
     final s = widget.strategy;
+    widget.onTry?.call();
     HariVoice.instance.speak(s.phrase, volume: _voiceVolume(ref));
     setState(() => _tried = true);
     Future<void>.delayed(const Duration(seconds: 3), () {

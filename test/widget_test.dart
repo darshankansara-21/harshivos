@@ -1,6 +1,6 @@
-// Smoke test for HARSHIVOS.
+// Smoke test for WonderPlay.
 //
-// Verifies the app boots and renders the home toybox with its destinations.
+// Verifies the app boots and renders the WonderPlay home with destinations.
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -63,8 +63,8 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.textContaining('Toy Box'), findsOneWidget);
-    expect(find.textContaining('toys to play'), findsOneWidget);
+    expect(find.text('WONDERPLAY'), findsOneWidget);
+    expect(find.textContaining('Play. Learn. Calm. Connect.'), findsOneWidget);
     expect(find.textContaining('Start Playing'), findsOneWidget);
     expect(find.byTooltip('My avatar'), findsOneWidget);
   });
@@ -127,7 +127,7 @@ void main() {
     await tester.tap(find.byIcon(Icons.arrow_back_rounded).first);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 700));
-    expect(find.textContaining('Toy Box'), findsOneWidget);
+    expect(find.text('WONDERPLAY'), findsOneWidget);
 
     await tester.tap(find.text('🌊').first);
     await tester.pump();
@@ -154,7 +154,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 700));
 
-    await tester.tap(find.text('🧸').first);
+    await tester.tap(find.text('⭐').first);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 700));
     expect(find.text('All Toys'), findsOneWidget);

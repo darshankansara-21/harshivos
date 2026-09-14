@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'hari_master.dart';
+
 // ---------------------------------------------------------------------------
 // HARSHIVOS Character System
 // ---------------------------------------------------------------------------
@@ -426,23 +428,20 @@ class Hari extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final resolved = config ??
-        AvatarConfig.hari.copyWith(device: device, hearingSide: hearingSide);
-    // Production-safe default: always render from the clean procedural rig.
-    // This avoids any contaminated raster extraction path while preserving all
-    // pose/emotion/device combinations consistently.
-    return AvatarWidget(
-      config: resolved,
+    final resolved = config;
+    return HariMasterWidget(
       emotion: emotion,
       pose: pose,
+      device: resolved?.device ?? device,
+      hearingSide: resolved?.hearingSide ?? hearingSide,
+      glasses: resolved?.glasses ?? false,
       animate: animate,
     );
   }
 }
 
-/// Renders the child's own avatar as authored Pixar-style Hari art, choosing
-/// the look directly from [AvatarConfig] with the same procedural rig used
-/// across the app so every customization combination stays clean and stable.
+/// Renders the child's avatar through the same canonical Hari renderer used
+/// across the app, so Profile/Avatar never diverges from Home/Calm/Play.
 class ChildAvatar extends StatelessWidget {
   const ChildAvatar({super.key, required this.config, this.animate = true});
 
@@ -451,11 +450,13 @@ class ChildAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AvatarWidget(
-      config: config,
-      pose: AvatarPose.wave,
-      emotion: AvatarEmotion.happy,
-      animate: animate,
+    return RepaintBoundary(
+      child: Hari(
+        config: config,
+        emotion: HariEmotion.happy,
+        pose: HariPose.idle,
+        animate: animate,
+      ),
     );
   }
 }

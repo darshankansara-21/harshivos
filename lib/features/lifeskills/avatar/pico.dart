@@ -2,15 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-// ---------------------------------------------------------------------------
-// PICO — Hari's small companion.
-// ---------------------------------------------------------------------------
-// A warm, procedurally-drawn puppy (no image assets) with genuine behavioural
-// states. Pico is never wallpaper: he reacts, celebrates, and quietly sits
-// with the child during calm moments. Drop [PicoWidget] into any square box.
-// ---------------------------------------------------------------------------
-
-/// Pico's emotional/behavioural state. Drives eyes, ears, mouth, tail and body.
+/// Pico's emotional and behavioural states.
 enum PicoMood {
   happy,
   excited,
@@ -22,20 +14,16 @@ enum PicoMood {
   comforting,
 }
 
-/// The animated companion. Breathes, blinks, and wags with the [mood].
+/// Canonical Pico renderer: immutable approved artwork plus motion transforms.
 class PicoWidget extends StatefulWidget {
   const PicoWidget({
     super.key,
     this.mood = PicoMood.happy,
     this.animate = true,
-    this.furColor = const Color(0xFFF2B45A),
-    this.bandanaColor = const Color(0xFF3AA0FF),
   });
 
   final PicoMood mood;
   final bool animate;
-  final Color furColor;
-  final Color bandanaColor;
 
   @override
   State<PicoWidget> createState() => _PicoWidgetState();
@@ -43,446 +31,161 @@ class PicoWidget extends StatefulWidget {
 
 class _PicoWidgetState extends State<PicoWidget>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _c;
+  late final AnimationController _controller;
+
+  static const Map<PicoMood, String> _moodAsset = <PicoMood, String>{
+    PicoMood.happy: 'happy',
+    PicoMood.excited: 'playful',
+    PicoMood.curious: 'curious',
+    PicoMood.sleepy: 'sleepy',
+    PicoMood.calm: 'calm',
+    PicoMood.celebrating: 'playful',
+    PicoMood.worried: 'calm',
+    PicoMood.comforting: 'loving',
+  };
 
   @override
   void initState() {
     super.initState();
-    _c = AnimationController(vsync: this, duration: const Duration(seconds: 3));
-    if (widget.animate) _c.repeat();
+    _controller = AnimationController(
+      vsync: this,
+      duration: _motion(widget.mood).period,
+    );
+    if (widget.animate) _controller.repeat();
   }
 
   @override
-  void didUpdateWidget(covariant PicoWidget old) {
-    super.didUpdateWidget(old);
-    if (widget.animate && !_c.isAnimating) {
-      _c.repeat();
-    } else if (!widget.animate && _c.isAnimating) {
-      _c.stop();
+  void didUpdateWidget(covariant PicoWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final current = _motion(widget.mood);
+    if (_controller.duration != current.period) {
+      _controller.duration = current.period;
+      if (widget.animate) _controller.repeat();
+    }
+    if (widget.animate && !_controller.isAnimating) {
+      _controller.repeat();
+    } else if (!widget.animate && _controller.isAnimating) {
+      _controller.stop();
     }
   }
 
   @override
   void dispose() {
-    _c.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _c,
-      builder: (context, _) => CustomPaint(
-        size: Size.infinite,
-        painter: _PicoPainter(
-          mood: widget.mood,
-          t: _c.value,
-          fur: widget.furColor,
-          bandana: widget.bandanaColor,
-        ),
+    final motion = _motion(widget.mood);
+    final asset = 'assets/characters/pico/${_moodAsset[widget.mood]}.png';
+    return RepaintBoundary(
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) {
+          final phase = _controller.value * math.pi * 2;
+          final y = math.sin(phase) * motion.bobPx;
+          final x = math.sin(phase * 0.5 + 0.9) * motion.xDriftPx;
+          final tilt = math.sin(phase + motion.tiltLead) * motion.tiltRad;
+          final scale = 1 + (math.sin(phase + 1.1) * motion.breatheScale);
+          return Transform.translate(
+            offset: Offset(x, y),
+            child: Transform.rotate(
+              angle: tilt,
+              child: Transform.scale(
+                scale: scale,
+                alignment: Alignment.bottomCenter,
+                child: Image.asset(
+                  asset,
+                  fit: BoxFit.contain,
+                  alignment: Alignment.bottomCenter,
+                  filterQuality: FilterQuality.high,
+                  semanticLabel: 'Pico',
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
-}
 
-class _PicoPainter extends CustomPainter {
-  _PicoPainter({
-    required this.mood,
-    required this.t,
-    required this.fur,
-    required this.bandana,
-  });
-
-  final PicoMood mood;
-  final double t;
-  final Color fur;
-  final Color bandana;
-
-  static const Color _ink = Color(0xFF27304A);
-  static const Color _muzzle = Color(0xFFFFE3C4);
-
-  Paint _outline(double width) => Paint()
-    ..color = _ink
-    ..style = PaintingStyle.stroke
-    ..strokeWidth = width
-    ..strokeJoin = StrokeJoin.round
-    ..strokeCap = StrokeCap.round;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final s = size.shortestSide;
-    final cx = size.width / 2;
-    final wobble = math.sin(t * math.pi * 2);
-
-    // Per-mood body language.
-    final excited = mood == PicoMood.excited || mood == PicoMood.celebrating;
-    final bounceAmp = excited ? 0.03 : (mood == PicoMood.sleepy ? 0.004 : 0.014);
-    final bounce = wobble * s * bounceAmp;
-    final lying = mood == PicoMood.sleepy;
-
-    final cy = size.height / 2 + bounce + (lying ? s * 0.08 : 0);
-    final headR = s * 0.245;
-    final headC = Offset(cx, cy - s * 0.05);
-
-    _shadow(canvas, Offset(cx, cy + s * 0.30), s, excited);
-    _tail(canvas, cx, cy, s);
-    _body(canvas, cx, cy, s, lying);
-    _bandana(canvas, cx, cy, s);
-    _ears(canvas, headC, headR);
-    _head(canvas, headC, headR);
-    _face(canvas, headC, headR);
-    _extras(canvas, headC, headR, s);
-  }
-
-  Color _lighten(Color c, double a) => Color.lerp(c, Colors.white, a)!;
-  Color _darken(Color c, double a) => Color.lerp(c, Colors.black, a)!;
-
-  void _shadow(Canvas canvas, Offset c, double s, bool excited) {
-    canvas.drawOval(
-      Rect.fromCenter(
-          center: c, width: s * (excited ? 0.34 : 0.4), height: s * 0.08),
-      Paint()
-        ..color = Colors.black.withOpacity(0.16)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.025),
-    );
-  }
-
-  void _body(Canvas canvas, double cx, double cy, double s, bool lying) {
-    final bodyC = Offset(cx, cy + s * 0.19);
-    final rect = lying
-      ? Rect.fromCenter(center: bodyC, width: s * 0.48, height: s * 0.24)
-      : Rect.fromCenter(center: bodyC, width: s * 0.35, height: s * 0.30);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(rect, Radius.circular(s * 0.14)),
-      Paint()
-        ..shader = RadialGradient(
-          center: const Alignment(-0.3, -0.5),
-          radius: 1.1,
-          colors: <Color>[_lighten(fur, 0.16), fur, _darken(fur, 0.10)],
-        ).createShader(rect),
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(rect, Radius.circular(s * 0.14)),
-      _outline(s * 0.022),
-    );
-    canvas.drawArc(
-      Rect.fromLTWH(rect.left + s * 0.06, rect.top + s * 0.035,
-          rect.width * 0.52, rect.height * 0.44),
-      math.pi + 0.1,
-      1.25,
-      false,
-      Paint()
-        ..color = Colors.white.withOpacity(0.22)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = s * 0.025
-        ..strokeCap = StrokeCap.round,
-    );
-    // Little front paws.
-    final pawY = rect.bottom - s * 0.01;
-    for (final dx in <double>[-s * 0.08, s * 0.08]) {
-      canvas.drawOval(
-        Rect.fromCenter(
-            center: Offset(cx + dx, pawY), width: s * 0.12, height: s * 0.075),
-        Paint()..color = _lighten(fur, 0.10),
-      );
-      canvas.drawOval(
-        Rect.fromCenter(
-            center: Offset(cx + dx, pawY), width: s * 0.12, height: s * 0.075),
-        _outline(s * 0.018),
-      );
-    }
-  }
-
-  void _bandana(Canvas canvas, double cx, double cy, double s) {
-    final neckY = cy + s * 0.045;
-    final path = Path()
-      ..moveTo(cx - s * 0.16, neckY)
-      ..quadraticBezierTo(cx, neckY + s * 0.05, cx + s * 0.16, neckY)
-      ..lineTo(cx + s * 0.13, neckY + s * 0.03)
-      ..quadraticBezierTo(cx, neckY + s * 0.08, cx - s * 0.13, neckY + s * 0.03)
-      ..close();
-    canvas.drawPath(
-        path,
-        Paint()
-          ..shader = LinearGradient(
-            colors: <Color>[_lighten(bandana, 0.15), _darken(bandana, 0.08)],
-          ).createShader(path.getBounds()));
-        canvas.drawPath(path, _outline(s * 0.018));
-    // Knot + a tiny heart tag.
-    canvas.drawCircle(
-      Offset(cx - s * 0.12, neckY + s * 0.01), s * 0.03, Paint()..color = bandana);
-    canvas.drawCircle(
-      Offset(cx - s * 0.12, neckY + s * 0.01), s * 0.03, _outline(s * 0.014));
-    _heart(canvas, Offset(cx, neckY + s * 0.02), s * 0.028,
-        Colors.white.withOpacity(0.95));
-  }
-
-  void _tail(Canvas canvas, double cx, double cy, double s) {
-    // Wag speed rises with excitement.
-    final speed = switch (mood) {
-      PicoMood.excited || PicoMood.celebrating => 12.0,
-      PicoMood.happy => 7.0,
-      PicoMood.curious => 4.0,
-      PicoMood.sleepy => 0.6,
-      _ => 2.5,
-    };
-    final wag = math.sin(t * math.pi * speed) * s * 0.10;
-    final base = Offset(cx + s * 0.14, cy + s * 0.17);
-    final tip = Offset(base.dx + s * 0.10, base.dy - s * 0.08 + wag * 0.8);
-    final mid = Offset(base.dx + s * 0.10, base.dy + wag * 0.25);
-    canvas.drawPath(
-      Path()
-        ..moveTo(base.dx, base.dy)
-        ..quadraticBezierTo(mid.dx, mid.dy, tip.dx, tip.dy),
-      Paint()
-        ..color = fur
-        ..strokeWidth = s * 0.075
-        ..strokeCap = StrokeCap.round
-        ..style = PaintingStyle.stroke,
-    );
-      canvas.drawCircle(tip, s * 0.052, Paint()..color = _lighten(fur, 0.12));
-      canvas.drawCircle(tip, s * 0.052, _outline(s * 0.018));
-  }
-
-  void _ears(Canvas canvas, Offset c, double r) {
-    // Curious raises one ear; worried/sleepy droop both.
-    final droop = switch (mood) {
-      PicoMood.worried || PicoMood.sleepy => 1.0,
-      PicoMood.comforting || PicoMood.calm => 0.5,
-      _ => 0.15,
-    };
-    final flop = math.sin(t * math.pi * 2) * r * 0.05;
-    _ear(canvas, c, r, left: true, droop: droop, flop: flop);
-    final rightDroop = mood == PicoMood.curious ? -0.3 : droop;
-    _ear(canvas, c, r, left: false, droop: rightDroop, flop: -flop);
-  }
-
-  void _ear(Canvas canvas, Offset c, double r,
-      {required bool left, required double droop, required double flop}) {
-    final dir = left ? -1.0 : 1.0;
-    final top = Offset(c.dx + dir * r * 0.66, c.dy - r * 0.52);
-    final drop = r * (0.6 + droop * 0.7);
-    final path = Path()
-      ..moveTo(top.dx, top.dy)
-        ..quadraticBezierTo(c.dx + dir * r * 1.00, c.dy - r * 0.05 + flop,
-          c.dx + dir * r * 0.76, c.dy + drop + flop)
-        ..quadraticBezierTo(c.dx + dir * r * 0.42, c.dy + drop * 0.68 + flop,
-          c.dx + dir * r * 0.36, c.dy - r * 0.28)
-      ..close();
-    canvas.drawPath(path, Paint()..color = _darken(fur, 0.14));
-    canvas.drawPath(path, _outline(r * 0.11));
-    final inner = Path()
-      ..moveTo(top.dx + dir * r * 0.08, top.dy + r * 0.10)
-      ..quadraticBezierTo(c.dx + dir * r * 0.83, c.dy + r * 0.10,
-          c.dx + dir * r * 0.68, c.dy + drop * 0.62)
-      ..quadraticBezierTo(c.dx + dir * r * 0.50, c.dy + drop * 0.42,
-          c.dx + dir * r * 0.46, c.dy - r * 0.22)
-      ..close();
-    canvas.drawPath(inner, Paint()..color = _lighten(_darken(fur, 0.14), 0.12));
-  }
-
-  void _head(Canvas canvas, Offset c, double r) {
-    final rect = Rect.fromCenter(center: c, width: r * 2, height: r * 1.9);
-    canvas.drawOval(
-      rect,
-      Paint()
-        ..shader = RadialGradient(
-          center: const Alignment(-0.3, -0.4),
-          radius: 1.05,
-          colors: <Color>[_lighten(fur, 0.18), fur],
-        ).createShader(rect),
-    );
-      canvas.drawOval(rect, _outline(r * 0.10));
-    // Muzzle.
-    final muzzle = Rect.fromCenter(
-      center: Offset(c.dx, c.dy + r * 0.44), width: r * 1.18, height: r * 0.88);
-    canvas.drawOval(muzzle, Paint()..color = _muzzle);
-    canvas.drawOval(muzzle, _outline(r * 0.055));
-    canvas.drawArc(
-      Rect.fromLTWH(muzzle.left + r * 0.16, muzzle.top + r * 0.10,
-          muzzle.width * 0.36, muzzle.height * 0.28),
-      math.pi + 0.15,
-      1.1,
-      false,
-      Paint()
-        ..color = Colors.white.withOpacity(0.46)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = r * 0.055
-        ..strokeCap = StrokeCap.round,
-    );
-  }
-
-  void _face(Canvas canvas, Offset c, double r) {
-    final blink = t > 0.93 && t < 0.98;
-    final closed = mood == PicoMood.sleepy || blink;
-    final eyeDx = r * 0.42;
-    final eyeY = c.dy - r * 0.05;
-
-    // Brows for worried/comforting.
-    if (mood == PicoMood.worried || mood == PicoMood.comforting) {
-      final bp = Paint()
-        ..color = _darken(fur, 0.35)
-        ..strokeWidth = r * 0.06
-        ..strokeCap = StrokeCap.round
-        ..style = PaintingStyle.stroke;
-      for (final sign in <double>[-1, 1]) {
-        canvas.drawLine(
-          Offset(c.dx + sign * eyeDx - r * 0.12, eyeY - r * 0.34),
-          Offset(c.dx + sign * eyeDx + r * 0.12, eyeY - r * 0.24),
-          bp,
-        );
-      }
-    }
-
-    for (final sign in <double>[-1, 1]) {
-      final center = Offset(c.dx + sign * eyeDx, eyeY);
-      if (closed) {
-        canvas.drawArc(
-          Rect.fromCenter(center: center, width: r * 0.34, height: r * 0.2),
-          0.15,
-          math.pi - 0.3,
-          false,
-          Paint()
-            ..color = const Color(0xFF2A211A)
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = r * 0.06
-            ..strokeCap = StrokeCap.round,
-        );
-      } else {
-        final wide = mood == PicoMood.curious || mood == PicoMood.excited;
-        final eyeR = r * (wide ? 0.28 : 0.24);
-        canvas.drawCircle(center, eyeR, Paint()..color = Colors.white);
-        canvas.drawCircle(center, eyeR, _outline(r * 0.035));
-        final look = switch (mood) {
-          PicoMood.curious => const Offset(0.10, -0.06),
-          PicoMood.worried => const Offset(0, 0.10),
-          PicoMood.comforting => Offset(0, 0.04),
-          _ => Offset(math.sin(t * math.pi * 2) * 0.05, 0),
-        };
-        final pc = center + Offset(look.dx * r, look.dy * r);
-        canvas.drawCircle(pc, eyeR * 0.62, Paint()..color = const Color(0xFF241A12));
-        canvas.drawCircle(pc + Offset(-eyeR * 0.25, -eyeR * 0.3), eyeR * 0.28,
-            Paint()..color = Colors.white.withOpacity(0.95));
-      }
-    }
-
-    // Nose.
-    final nose = Offset(c.dx, c.dy + r * 0.18);
-    canvas.drawOval(
-      Rect.fromCenter(center: nose, width: r * 0.3, height: r * 0.22),
-      Paint()..color = const Color(0xFF2A211C),
-    );
-    canvas.drawCircle(nose + Offset(-r * 0.05, -r * 0.05), r * 0.04,
-        Paint()..color = Colors.white.withOpacity(0.8));
-
-    _mouth(canvas, Offset(c.dx, c.dy + r * 0.42), r);
-
-    // Cheeks for warm moods.
-    if (mood == PicoMood.happy ||
-        mood == PicoMood.excited ||
-        mood == PicoMood.celebrating ||
-        mood == PicoMood.comforting) {
-      final blush = Paint()
-        ..color = const Color(0xFFFF9BB0).withOpacity(0.35)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 0.05);
-      canvas.drawCircle(Offset(c.dx - r * 0.62, c.dy + r * 0.28), r * 0.13, blush);
-      canvas.drawCircle(Offset(c.dx + r * 0.62, c.dy + r * 0.28), r * 0.13, blush);
-    }
-  }
-
-  void _mouth(Canvas canvas, Offset c, double r) {
-    final line = Paint()
-      ..color = const Color(0xFF2A211C)
-      ..strokeWidth = r * 0.05
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
-    final open = mood == PicoMood.excited ||
-        mood == PicoMood.celebrating ||
-        mood == PicoMood.happy;
-    // Nose bridge to mouth.
-    canvas.drawLine(Offset(c.dx, c.dy - r * 0.18), Offset(c.dx, c.dy), line);
-    if (open) {
-      final rect = Rect.fromCenter(center: Offset(c.dx, c.dy + r * 0.04), width: r * 0.4, height: r * 0.34);
-      canvas.drawArc(rect, 0.1, math.pi - 0.2, false, line);
-      // Tongue.
-      canvas.drawOval(
-        Rect.fromCenter(
-            center: Offset(c.dx, c.dy + r * 0.16), width: r * 0.2, height: r * 0.18),
-        Paint()..color = const Color(0xFFF07A82),
-      );
-    } else if (mood == PicoMood.worried) {
-      canvas.drawArc(
-          Rect.fromCenter(center: Offset(c.dx, c.dy + r * 0.12), width: r * 0.3, height: r * 0.2),
-          math.pi + 0.2, math.pi - 0.4, false, line);
-    } else {
-      // Gentle w-smile.
-      canvas.drawArc(
-          Rect.fromCenter(center: Offset(c.dx - r * 0.09, c.dy), width: r * 0.2, height: r * 0.16),
-          0.1, math.pi - 0.2, false, line);
-      canvas.drawArc(
-          Rect.fromCenter(center: Offset(c.dx + r * 0.09, c.dy), width: r * 0.2, height: r * 0.16),
-          0.1, math.pi - 0.2, false, line);
-    }
-  }
-
-  void _extras(Canvas canvas, Offset headC, double headR, double s) {
+  static _PicoMotion _motion(PicoMood mood) {
     switch (mood) {
+      case PicoMood.calm:
+      case PicoMood.comforting:
+        return const _PicoMotion(
+          period: Duration(milliseconds: 3200),
+          bobPx: 1.4,
+          xDriftPx: 0.8,
+          tiltRad: 0.010,
+          breatheScale: 0.012,
+          tiltLead: 0.4,
+        );
       case PicoMood.sleepy:
-        final z = TextPainter(
-          text: TextSpan(
-            text: 'z',
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.85),
-              fontSize: s * 0.12,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          textDirection: TextDirection.ltr,
-        )..layout();
-        z.paint(canvas,
-            Offset(headC.dx + headR * 0.7, headC.dy - headR - (t * s * 0.18)));
-        break;
+        return const _PicoMotion(
+          period: Duration(milliseconds: 4200),
+          bobPx: 0.9,
+          xDriftPx: 0.5,
+          tiltRad: 0.006,
+          breatheScale: 0.010,
+          tiltLead: 0.0,
+        );
       case PicoMood.excited:
       case PicoMood.celebrating:
-        _sparkle(canvas, Offset(headC.dx + headR * 0.9, headC.dy - headR * 0.6), s * 0.05);
-        _sparkle(canvas, Offset(headC.dx - headR * 0.95, headC.dy - headR * 0.2), s * 0.035);
-        break;
-      case PicoMood.comforting:
-        _heart(canvas, Offset(headC.dx + headR * 0.95, headC.dy - headR * 0.55),
-            s * 0.05, const Color(0xFFFF6B9D));
-        break;
-      default:
-        break;
+        return const _PicoMotion(
+          period: Duration(milliseconds: 1100),
+          bobPx: 4.8,
+          xDriftPx: 1.2,
+          tiltRad: 0.045,
+          breatheScale: 0.020,
+          tiltLead: 1.2,
+        );
+      case PicoMood.curious:
+        return const _PicoMotion(
+          period: Duration(milliseconds: 1700),
+          bobPx: 2.8,
+          xDriftPx: 1.5,
+          tiltRad: 0.030,
+          breatheScale: 0.016,
+          tiltLead: 0.7,
+        );
+      case PicoMood.worried:
+        return const _PicoMotion(
+          period: Duration(milliseconds: 2400),
+          bobPx: 1.8,
+          xDriftPx: 0.7,
+          tiltRad: 0.020,
+          breatheScale: 0.013,
+          tiltLead: 0.2,
+        );
+      case PicoMood.happy:
+        return const _PicoMotion(
+          period: Duration(milliseconds: 1500),
+          bobPx: 3.3,
+          xDriftPx: 1.0,
+          tiltRad: 0.026,
+          breatheScale: 0.017,
+          tiltLead: 0.9,
+        );
     }
   }
+}
 
-  void _sparkle(Canvas canvas, Offset c, double size) {
-    final pulse = 0.6 + 0.4 * math.sin(t * math.pi * 6);
-    final p = Paint()..color = Colors.white.withOpacity(0.9 * pulse);
-    canvas.drawPath(
-      Path()
-        ..moveTo(c.dx, c.dy - size)
-        ..quadraticBezierTo(c.dx, c.dy, c.dx + size, c.dy)
-        ..quadraticBezierTo(c.dx, c.dy, c.dx, c.dy + size)
-        ..quadraticBezierTo(c.dx, c.dy, c.dx - size, c.dy)
-        ..quadraticBezierTo(c.dx, c.dy, c.dx, c.dy - size)
-        ..close(),
-      p,
-    );
-  }
+class _PicoMotion {
+  const _PicoMotion({
+    required this.period,
+    required this.bobPx,
+    required this.xDriftPx,
+    required this.tiltRad,
+    required this.breatheScale,
+    required this.tiltLead,
+  });
 
-  void _heart(Canvas canvas, Offset c, double size, Color color) {
-    final path = Path()
-      ..moveTo(c.dx, c.dy + size * 0.38)
-      ..cubicTo(c.dx - size * 1.05, c.dy - size * 0.30, c.dx - size * 0.5,
-          c.dy - size * 1.05, c.dx, c.dy - size * 0.34)
-      ..cubicTo(c.dx + size * 0.5, c.dy - size * 1.05, c.dx + size * 1.05,
-          c.dy - size * 0.30, c.dx, c.dy + size * 0.38)
-      ..close();
-    canvas.drawPath(path, Paint()..color = color);
-  }
-
-  @override
-  bool shouldRepaint(covariant _PicoPainter old) =>
-      old.t != t || old.mood != mood || old.fur != fur || old.bandana != bandana;
+  final Duration period;
+  final double bobPx;
+  final double xDriftPx;
+  final double tiltRad;
+  final double breatheScale;
+  final double tiltLead;
 }

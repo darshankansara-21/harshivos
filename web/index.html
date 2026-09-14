@@ -18,18 +18,18 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="WonderPlay - Play. Learn. Calm. Connect. A playful world where every child can explore, learn, and feel good.">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="harshivos">
+  <meta name="apple-mobile-web-app-title" content="WonderPlay">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>HARSHIVOS</title>
+  <title>WonderPlay</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#0B0420">
   <link rel="manifest" href="manifest.json">
@@ -60,15 +60,17 @@
       align-items: center;
       justify-content: center;
       flex-direction: column;
-      gap: 18px;
+      gap: 12px;
       background: radial-gradient(circle at 50% 35%, #1E1052 0%, #0B0420 70%);
       color: #fff;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: "Nunito", "Segoe UI", sans-serif;
       transition: opacity 0.6s ease;
       z-index: 10;
     }
-    #splash .mark { font-size: 56px; }
-    #splash .name { font-size: 22px; font-weight: 700; letter-spacing: 2px; }
+    #splash .mark { font-size: 18px; font-weight: 700; color: #bfe9ff; letter-spacing: 0.5px; }
+    #splash .name { font-size: 30px; font-weight: 900; letter-spacing: 1.3px; }
+    #splash .tag { font-size: 14px; color: rgba(255,255,255,.86); font-weight: 700; }
+    #splash .line { max-width: 540px; text-align: center; font-size: 12.5px; color: rgba(255,255,255,.68); padding: 0 22px; }
     #splash .ring {
       width: 38px; height: 38px;
       border: 3px solid rgba(255,255,255,0.25);
@@ -81,8 +83,10 @@
 </head>
 <body>
   <div id="splash">
-    <div class="mark">🧸</div>
-    <div class="name">HARSHIVOS</div>
+    <div class="mark">Hari + Pico</div>
+    <div class="name">WONDERPLAY</div>
+    <div class="tag">Play. Learn. Calm. Connect.</div>
+    <div class="line">A playful world where every child can explore, learn, and feel good.</div>
     <div class="ring"></div>
   </div>
   <!--
@@ -94,6 +98,17 @@
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
   <script>
+    function hideSplash() {
+      var splash = document.getElementById('splash');
+      if (!splash) return;
+      splash.style.opacity = '0';
+      setTimeout(function () {
+        if (splash && splash.parentNode) {
+          splash.parentNode.removeChild(splash);
+        }
+      }, 700);
+    }
+
     // Avoid stale cached web bundles during local smoke tests.
     (function () {
       var host = window.location.hostname;
@@ -105,16 +120,11 @@
     })();
 
     window.addEventListener('flutter-first-frame', function () {
-      var splash = document.getElementById('splash');
-      if (splash) {
-        splash.style.opacity = '0';
-        setTimeout(function () {
-          if (splash && splash.parentNode) {
-            splash.parentNode.removeChild(splash);
-          }
-        }, 700);
-      }
+      hideSplash();
     });
+
+    // Fallback: hide the splash if first-frame is delayed or not emitted.
+    window.setTimeout(hideSplash, 3000);
   </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>

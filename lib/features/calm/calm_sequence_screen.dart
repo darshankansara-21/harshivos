@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/regulation_entry.dart';
 import '../../state/providers.dart';
 import '../../models/activity_event.dart';
+import '../companion/companion.dart';
 import '../play/toys/toys_particles.dart';
 import '../play/toys/toys_water.dart';
 import 'breathing_exercise.dart';
@@ -30,6 +31,7 @@ class CalmSequenceScreen extends ConsumerStatefulWidget {
 }
 
 class _CalmSequenceScreenState extends ConsumerState<CalmSequenceScreen> {
+  final CompanionController _companion = CompanionController();
   late final List<_Step> _steps;
   int _index = 0;
   int _remaining = 0;
@@ -47,6 +49,7 @@ class _CalmSequenceScreenState extends ConsumerState<CalmSequenceScreen> {
   @override
   void initState() {
     super.initState();
+    _companion.setReaction(CompanionReaction.calm);
     _steps = <_Step>[
       _Step('Breathe with the bubble', 30, (_) => const BreathingExercise()),
       _Step('Soft water ripples', 60, (_) => const WaterRipplesToy()),
@@ -56,6 +59,7 @@ class _CalmSequenceScreenState extends ConsumerState<CalmSequenceScreen> {
   }
 
   void _startStep() {
+    _companion.reactToEvent(ExperienceEvent.calmStarted);
     _remaining = _steps[_index].seconds;
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
@@ -80,6 +84,7 @@ class _CalmSequenceScreenState extends ConsumerState<CalmSequenceScreen> {
   }
 
   void _complete(double calmAfter) {
+    _companion.reactToEvent(ExperienceEvent.gameCompleted);
     ref.read(activityLogProvider.notifier).log(
         ActivityType.calmCompleted, widget.mood.name,
         label: widget.mood.label);
@@ -95,6 +100,7 @@ class _CalmSequenceScreenState extends ConsumerState<CalmSequenceScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _companion.dispose();
     super.dispose();
   }
 
@@ -144,6 +150,15 @@ class _CalmSequenceScreenState extends ConsumerState<CalmSequenceScreen> {
                   ),
                 ],
               ),
+            ),
+          ),
+          Positioned(
+            right: 10,
+            bottom: 10,
+            width: 150,
+            height: 130,
+            child: IgnorePointer(
+              child: CompanionView(controller: _companion),
             ),
           ),
         ],

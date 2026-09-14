@@ -105,11 +105,8 @@ class _LearningGameScreenState extends ConsumerState<LearningGameScreen> {
   void _pick(LearnItem choice) {
     if (_done) return;
     if (choice.label == _target.label) {
-      if ((_score + 1) % 4 == 0) {
-        _companion.dance();
-      } else {
-        _companion.react(CompanionReaction.happy);
-      }
+      _companion.reactToEvent(ExperienceEvent.correctAnswer);
+      if ((_score + 1) % 4 == 0) _companion.reactToEvent(ExperienceEvent.musicStarted);
       HapticFeedback.mediumImpact();
       TonePlayer.instance.playNote(3 + _streak); // gentle rising reward
       setState(() {
@@ -125,7 +122,7 @@ class _LearningGameScreenState extends ConsumerState<LearningGameScreen> {
       });
       if (!_done) _speakPrompt();
     } else {
-      _companion.encourage();
+      _companion.reactToEvent(ExperienceEvent.incorrectAnswer);
       HapticFeedback.selectionClick();
       setState(() {
         _streak = 0;
@@ -137,7 +134,7 @@ class _LearningGameScreenState extends ConsumerState<LearningGameScreen> {
 
   void _finish() {
     _done = true;
-    _companion.celebrate();
+    _companion.reactToEvent(ExperienceEvent.gameCompleted);
     final seconds = DateTime.now().difference(_startedAt).inSeconds;
     ref.read(activityLogProvider.notifier).log(
           ActivityType.gamePlayed,

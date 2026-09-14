@@ -22,16 +22,16 @@ class HariPicoScene extends StatelessWidget {
     final values = switch (moment) {
       HariPicoMoment.greeting => (HariPose.wave, HariEmotion.happy,
           PicoMood.excited, -0.32, 0.48, 0.00, 0.10),
-      HariPicoMoment.reacting => (HariPose.idle, HariEmotion.curious,
+      HariPicoMoment.reacting => (HariPose.listen, HariEmotion.curious,
           PicoMood.curious, -0.32, 0.48, 0.03, 0.05),
       HariPicoMoment.encouraging => (HariPose.point, HariEmotion.encouraging,
           PicoMood.happy, -0.32, 0.48, 0.02, 0.12),
       HariPicoMoment.celebrating => (HariPose.cheer, HariEmotion.excited,
           PicoMood.celebrating, -0.32, 0.48, -0.02, 0.04),
-      HariPicoMoment.calm => (HariPose.sit, HariEmotion.calm,
+      HariPicoMoment.calm => (HariPose.breathe, HariEmotion.calm,
           PicoMood.comforting, -0.32, 0.48, 0.04, 0.15),
-      HariPicoMoment.play => (HariPose.jump, HariEmotion.excited,
-          PicoMood.excited, -0.32, 0.48, -0.05, 0.04),
+        HariPicoMoment.play => (HariPose.walk, HariEmotion.happy,
+          PicoMood.excited, -0.32, 0.48, -0.01, 0.06),
     };
     return LayoutBuilder(
       builder: (context, constraints) {

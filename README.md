@@ -1,8 +1,8 @@
-# HARSHIVOS 🌈
+# WONDERPLAY 🌈
 
-> The world's first AI-powered Autism Companion focused on **Regulation, Communication, Learning, and Emotional Wellness.**
+> Play. Learn. Calm. Connect.
 
-HARSHIVOS doesn't feel like therapy, school, or ABA. It feels like a **beautiful toybox** — a magical space children *want* to open, that quietly helps them regulate, communicate, and grow.
+WonderPlay is a **beautiful toy world** children want to open, with Hari and Pico guiding play, calm moments, communication, routines, and learning.
 
 ---
 
@@ -11,13 +11,13 @@ HARSHIVOS doesn't feel like therapy, school, or ABA. It feels like a **beautiful
 | Area | Status |
 | --- | --- |
 | 🏠 Magical animated home (floating glass cards, drifting particles) | ✅ |
-| 🎮 **Play & Explore** — sensory toybox | ✅ **14 fully-playable physics toys** |
+| 🎮 **Play & Explore** — interactive toy world | ✅ **14 fully-playable physics toys** |
 | 🌈 **Calm Me** — one-tap regulation with guided breathing → ripples → galaxy sequence + outcome tracking | ✅ |
 | 🗣️ **Help Me Talk** — AAC board with TTS, sentence strip, AI language expansion | ✅ |
 | 📖 **Social Stories** — AI story generator + narrated practice mode | ✅ (AI-ready) |
 | 🧠 **Learn** — adaptive Emotion-Match game (+ scaffolded games) | ✅ |
 | 👨‍👩‍👦 **Parent Copilot** — AI caregiver assistant | ✅ (AI-ready) |
-| 📊 **Regulation Genome** — sensory radar, top calming toys, triggers, best times | ✅ |
+| 📊 **Parent Insights** — patterns, top calming toys, triggers, best times | ✅ |
 | 🤖 AI abstraction (Gemini / OpenAI / offline mock) | ✅ |
 | 💾 Offline-first local storage + optional Firebase | ✅ |
 

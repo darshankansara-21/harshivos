@@ -25,6 +25,20 @@ enum CompanionReaction {
   dance,
 }
 
+/// Cross-feature action events so screens can emit what the child did and let
+/// one engine decide how Hari + Pico respond.
+enum ExperienceEvent {
+  bubblePopped,
+  sandDrawn,
+  musicStarted,
+  correctAnswer,
+  incorrectAnswer,
+  gameCompleted,
+  calmStarted,
+  aacSelected,
+  routineCompleted,
+}
+
 class _CompanionBeat {
   const _CompanionBeat(this.reaction, this.durationMs, {this.bounce = true});
 
@@ -61,6 +75,18 @@ CompanionReaction reactionForToyTap(String toyId) {
     return CompanionReaction.proud;
   }
   return CompanionReaction.happy;
+}
+
+ExperienceEvent eventForToyTap(String toyId) {
+  final id = toyId.toLowerCase();
+  if (id.contains('music')) return ExperienceEvent.musicStarted;
+  if (id.contains('bubble') || id.contains('particle') || id.contains('fireworks')) {
+    return ExperienceEvent.bubblePopped;
+  }
+  if (id.contains('sand') || id.contains('draw') || id.contains('paint') || id.contains('color')) {
+    return ExperienceEvent.sandDrawn;
+  }
+  return ExperienceEvent.bubblePopped;
 }
 
 /// Drives a [CompanionView]. Activities call [tap]/[react]/[celebrate]/[calm]
@@ -184,37 +210,52 @@ class CompanionController extends ChangeNotifier {
   }
 
   void reactToToyTap(String toyId) {
-    final id = toyId.toLowerCase();
-    if (id.contains('music')) {
-      dance();
-      return;
+    reactToEvent(eventForToyTap(toyId), toyId: toyId);
+  }
+
+  void reactToEvent(ExperienceEvent event, {String? toyId}) {
+    switch (event) {
+      case ExperienceEvent.bubblePopped:
+        _startSequence(<_CompanionBeat>[
+          const _CompanionBeat(CompanionReaction.curious, 150, bounce: false),
+          const _CompanionBeat(CompanionReaction.excited, 380),
+          const _CompanionBeat(CompanionReaction.celebrating, 640),
+          const _CompanionBeat(CompanionReaction.happy, 420, bounce: false),
+        ], settle: CompanionReaction.happy);
+        return;
+      case ExperienceEvent.sandDrawn:
+        _startSequence(<_CompanionBeat>[
+          const _CompanionBeat(CompanionReaction.thinking, 180, bounce: false),
+          const _CompanionBeat(CompanionReaction.proud, 560),
+          const _CompanionBeat(CompanionReaction.encouraging, 500),
+        ], settle: CompanionReaction.happy);
+        return;
+      case ExperienceEvent.musicStarted:
+        dance();
+        return;
+      case ExperienceEvent.correctAnswer:
+        react(CompanionReaction.happy, hold: const Duration(milliseconds: 900));
+        return;
+      case ExperienceEvent.incorrectAnswer:
+        encourage();
+        return;
+      case ExperienceEvent.gameCompleted:
+        celebrate();
+        return;
+      case ExperienceEvent.calmStarted:
+        calm();
+        return;
+      case ExperienceEvent.aacSelected:
+        tap();
+        return;
+      case ExperienceEvent.routineCompleted:
+        _startSequence(<_CompanionBeat>[
+          const _CompanionBeat(CompanionReaction.proud, 460),
+          const _CompanionBeat(CompanionReaction.celebrating, 700),
+          const _CompanionBeat(CompanionReaction.happy, 420, bounce: false),
+        ], settle: CompanionReaction.happy);
+        return;
     }
-    if (id.contains('bubble') || id.contains('particle') || id.contains('fireworks')) {
-      _startSequence(<_CompanionBeat>[
-        const _CompanionBeat(CompanionReaction.curious, 150, bounce: false),
-        const _CompanionBeat(CompanionReaction.excited, 380),
-        const _CompanionBeat(CompanionReaction.celebrating, 640),
-        const _CompanionBeat(CompanionReaction.happy, 420, bounce: false),
-      ], settle: CompanionReaction.happy);
-      return;
-    }
-    if (id.contains('sand') || id.contains('water') || id.contains('calm')) {
-      _startSequence(<_CompanionBeat>[
-        const _CompanionBeat(CompanionReaction.curious, 160, bounce: false),
-        const _CompanionBeat(CompanionReaction.soothing, 520),
-        const _CompanionBeat(CompanionReaction.calm, 760, bounce: false),
-      ], settle: CompanionReaction.calm);
-      return;
-    }
-    if (id.contains('draw') || id.contains('paint') || id.contains('color')) {
-      _startSequence(<_CompanionBeat>[
-        const _CompanionBeat(CompanionReaction.thinking, 180, bounce: false),
-        const _CompanionBeat(CompanionReaction.proud, 560),
-        const _CompanionBeat(CompanionReaction.encouraging, 500),
-      ], settle: CompanionReaction.happy);
-      return;
-    }
-    tap();
   }
 
   void calm() {

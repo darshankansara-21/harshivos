@@ -79,7 +79,6 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
       device: device ?? source.device,
       hearingSide: hearingSide ?? source.hearingSide,
       glasses: glasses ?? source.glasses,
-      favoriteColor: source.favoriteColor,
     );
   }
 
@@ -92,6 +91,7 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
     ref.read(childNameProvider.notifier).state = name;
     await storage.writeString('child_name', name);
     await storage.writeBool('profile_complete', true);
+    await storage.writeBool('show_meet_hari_pico', true);
     ref.read(profileCompleteProvider.notifier).state = true;
     if (widget.fullEditor && mounted) Navigator.of(context).pop();
   }
@@ -165,13 +165,6 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
             Expanded(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 260),
-                layoutBuilder: (currentChild, previousChildren) => Stack(
-                  alignment: Alignment.topCenter,
-                  children: <Widget>[
-                    ...previousChildren,
-                    if (currentChild != null) currentChild,
-                  ],
-                ),
                 child: SingleChildScrollView(
                   key: ValueKey<int>(_step),
                   padding: const EdgeInsets.fromLTRB(22, 6, 22, 16),
@@ -233,87 +226,123 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
 
   Widget _nameHero() {
     final shownName = _nameCtrl.text.trim().isEmpty ? 'friend' : _nameCtrl.text.trim();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: SizedBox(
-        height: 250,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: <Widget>[
-            const Expanded(
-              flex: 4,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text("What's your\nchild's name?",
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 26,
-                          height: 1.15,
-                          fontWeight: FontWeight.w900)),
-                  SizedBox(height: 10),
-                  Text(
-                    'This helps Hari be part of their journey\nand celebrate with them!',
-                    maxLines: 3,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 1200;
+        final avatar = IgnorePointer(
+          child: Transform.translate(
+            offset: const Offset(0, 8),
+            child: ChildAvatar(config: _canonicalHari(_draft)),
+          ),
+        );
+        if (compact) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Column(
+              children: <Widget>[
+                const Text("What's your child's name?",
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
-                      height: 1.25,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900)),
+                const SizedBox(height: 6),
+                const Text(
+                  'This helps Hari be part of their journey and celebrate with them!',
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: Colors.white70, fontSize: 13.5, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(height: 150, child: avatar),
+                const SizedBox(height: 6),
+                Text('Hi $shownName! 💚',
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                    )),
+              ],
             ),
-            Expanded(
-              flex: 5,
-              child: IgnorePointer(
-                child: Transform.translate(
-                  offset: const Offset(0, 8),
-                  child: Hari(
-                    config: _canonicalHari(_draft),
-                    pose: HariPose.wave,
-                    emotion: HariEmotion.happy,
+          );
+        }
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: SizedBox(
+            height: 250,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: <Widget>[
+                const Expanded(
+                  flex: 4,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text("What's your\nchild's name?",
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 26,
+                              height: 1.15,
+                              fontWeight: FontWeight.w900)),
+                      SizedBox(height: 10),
+                      Text(
+                        'This helps Hari be part of their journey\nand celebrate with them!',
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                          height: 1.25,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ),
-            Expanded(
-              flex: 3,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text('Hi $shownName! 💚',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                      )),
-                  const SizedBox(height: 8),
-                  const Text(
-                    "Let's play, learn\nand explore together!",
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      height: 1.28,
-                      fontWeight: FontWeight.w600,
-                    ),
+                Expanded(flex: 5, child: avatar),
+                Expanded(
+                  flex: 3,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text('Hi $shownName! 💚',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                          )),
+                      const SizedBox(height: 8),
+                      const Text(
+                        "Let's play, learn\nand explore together!",
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          height: 1.28,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -406,23 +435,26 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
               ),
               child: Padding(
                 padding: const EdgeInsets.only(top: 4),
-                child: Hari(
+                child: ChildAvatar(
                   config: lookConfig,
-                  pose: HariPose.wave,
-                  emotion: HariEmotion.happy,
                   animate: false,
                 ),
               ),
             ),
             const SizedBox(height: 8),
-            Text(label,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800)),
+            SizedBox(
+              height: 18,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(label,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800)),
+              ),
+            ),
           ],
         ),
       ),
@@ -516,7 +548,7 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text(usingPreset ? 'Custom Mode' : 'Harshiv Mode',
+                    Text(usingPreset ? 'Custom Mode' : 'Preset Mode',
                       style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
@@ -524,7 +556,7 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
                   Text(
                     usingPreset
                         ? 'Tap to switch back and customize fully'
-                        : 'Unilateral BAHA · sensory-calm look',
+                        : 'Preset look · unilateral BAHA · sensory-calm',
                     style: const TextStyle(color: Colors.white70, fontSize: 12.5),
                   ),
                 ],

@@ -71,7 +71,7 @@ class RegulationEngine {
   String headlineInsight(List<RegulationEntry> log, {String childName = 'Your child'}) {
     final ranked = rankToys(log).where((t) => t.averageCalmDelta > 0).toList();
     if (ranked.isEmpty) {
-      return 'Keep playing — HARSHIVOS is still learning what calms $childName.';
+      return 'Keep playing — WonderPlay is still learning what calms $childName.';
     }
     final names = ranked.take(2).map((t) => toyMetaById(t.toyId).title).toList();
     final joined = names.length == 1 ? names.first : '${names[0]} and ${names[1]}';

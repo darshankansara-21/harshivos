@@ -19,7 +19,7 @@ class HarshivApp extends ConsumerWidget {
     final sensory = ref.watch(sensoryPreferencesProvider);
     TonePlayer.instance.volumeScale = sensory.volumeScale;
     return MaterialApp(
-      title: 'HarshivOS',
+      title: 'WonderPlay',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),

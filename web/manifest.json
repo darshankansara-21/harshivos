@@ -1,11 +1,11 @@
 {
-    "name": "harshivos",
-    "short_name": "harshivos",
+    "name": "WonderPlay",
+    "short_name": "WonderPlay",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Play. Learn. Calm. Connect. A playful world where every child can explore, learn, and feel good.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

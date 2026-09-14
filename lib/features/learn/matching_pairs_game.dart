@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../companion/companion.dart';
+
 /// Matching Pairs — a calm, no-fail memory game.
 ///
 /// Designed for Harshiv: large high-contrast picture cards (good for the left
@@ -37,6 +39,7 @@ class _MatchingPairsGameState extends State<MatchingPairsGame> {
   ];
 
   final math.Random _rnd = math.Random();
+  final CompanionController _companion = CompanionController();
   int _pairs = 4; // 4 pairs = 8 cards (grows a little each win)
   late List<_Card> _cards;
   _Card? _first;
@@ -46,7 +49,14 @@ class _MatchingPairsGameState extends State<MatchingPairsGame> {
   @override
   void initState() {
     super.initState();
+    _companion.setReaction(CompanionReaction.curious);
     _deal();
+  }
+
+  @override
+  void dispose() {
+    _companion.dispose();
+    super.dispose();
   }
 
   void _deal() {
@@ -72,6 +82,7 @@ class _MatchingPairsGameState extends State<MatchingPairsGame> {
 
     if (_first!.emoji == card.emoji) {
       // Match!
+      _companion.reactToEvent(ExperienceEvent.correctAnswer);
       HapticFeedback.mediumImpact();
       setState(() {
         _first!.matched = true;
@@ -81,11 +92,13 @@ class _MatchingPairsGameState extends State<MatchingPairsGame> {
       if (_solved) {
         _wins++;
         if (_pairs < 8) _pairs++; // gently grow next round
+        _companion.reactToEvent(ExperienceEvent.gameCompleted);
         await Future<void>.delayed(const Duration(milliseconds: 700));
         if (mounted) _celebrate();
       }
     } else {
       // No match — turn both back after a beat. Never a fail state.
+      _companion.reactToEvent(ExperienceEvent.incorrectAnswer);
       _busy = true;
       final firstCard = _first!;
       _first = null;
@@ -163,21 +176,34 @@ class _MatchingPairsGameState extends State<MatchingPairsGame> {
         ],
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Center(
-            child: GridView.builder(
-              shrinkWrap: true,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: cols,
-                mainAxisSpacing: 14,
-                crossAxisSpacing: 14,
-                childAspectRatio: 0.82,
+        child: Stack(
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Center(
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: cols,
+                    mainAxisSpacing: 14,
+                    crossAxisSpacing: 14,
+                    childAspectRatio: 0.82,
+                  ),
+                  itemCount: _cards.length,
+                  itemBuilder: (context, i) => _CardView(card: _cards[i], onTap: () => _tap(_cards[i])),
+                ),
               ),
-              itemCount: _cards.length,
-              itemBuilder: (context, i) => _CardView(card: _cards[i], onTap: () => _tap(_cards[i])),
             ),
-          ),
+            Positioned(
+              right: 12,
+              bottom: 8,
+              width: 150,
+              height: 128,
+              child: IgnorePointer(
+                child: CompanionView(controller: _companion),
+              ),
+            ),
+          ],
         ),
       ),
     );
