@@ -506,3 +506,204 @@ class _StarTapGameState extends State<StarTapGame>
     );
   }
 }
+
+// ===========================================================================
+// Snake — the timeless classic, made gentle. Swipe to steer, eat fruit to
+// grow. Walls wrap around (no dead ends) and bumping yourself softly resets
+// the snake instead of ending the game, so it never punishes. Reach the
+// target length to win.
+// ===========================================================================
+class SnakeGame extends StatefulWidget {
+  const SnakeGame({super.key});
+  @override
+  State<SnakeGame> createState() => _SnakeGameState();
+}
+
+class _SnakeGameState extends State<SnakeGame>
+    with TickerProviderStateMixin, ToyTicker {
+  static const int _cols = 14;
+  static const int _rows = 22;
+  static const int _target = 10;
+  final math.Random _rnd = math.Random();
+  List<math.Point<int>> _snake = <math.Point<int>>[];
+  math.Point<int> _dir = const math.Point<int>(1, 0);
+  math.Point<int> _nextDir = const math.Point<int>(1, 0);
+  late math.Point<int> _food;
+  double _acc = 0;
+  double _step = 0.2;
+  int _score = 0;
+  bool _won = false;
+  bool _winSent = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _seed();
+  }
+
+  void _seed() {
+    const cy = _rows ~/ 2;
+    _snake = <math.Point<int>>[
+      math.Point<int>(5, cy),
+      math.Point<int>(4, cy),
+      math.Point<int>(3, cy),
+    ];
+    _dir = const math.Point<int>(1, 0);
+    _nextDir = _dir;
+    _placeFood();
+  }
+
+  void _placeFood() {
+    while (true) {
+      final p = math.Point<int>(_rnd.nextInt(_cols), _rnd.nextInt(_rows));
+      if (!_snake.contains(p)) {
+        _food = p;
+        return;
+      }
+    }
+  }
+
+  @override
+  void onTick(double dt) {
+    if (_won) return;
+    _acc += dt;
+    while (_acc >= _step) {
+      _acc -= _step;
+      _advance();
+    }
+  }
+
+  void _advance() {
+    _dir = _nextDir;
+    final head = _snake.first;
+    final next = math.Point<int>(
+        (head.x + _dir.x + _cols) % _cols, (head.y + _dir.y + _rows) % _rows);
+    if (_snake.contains(next)) {
+      // Gentle reset — soft tone, never a harsh "game over".
+      TonePlayer.instance.playCue(SoundCue.gentleRetry);
+      setState(_seed);
+      return;
+    }
+    _snake.insert(0, next);
+    if (next == _food) {
+      _score++;
+      TonePlayer.instance.playPop(0.5 + _rnd.nextDouble() * 0.4);
+      _step = math.max(0.11, _step - 0.008);
+      if (_score >= _target) {
+        _won = true;
+      } else {
+        _placeFood();
+      }
+    } else {
+      _snake.removeLast();
+    }
+  }
+
+  void _steer(Offset delta) {
+    if (delta.dx.abs() > delta.dy.abs()) {
+      final d = math.Point<int>(delta.dx > 0 ? 1 : -1, 0);
+      if (d.x != -_dir.x) _nextDir = d;
+    } else {
+      final d = math.Point<int>(0, delta.dy > 0 ? 1 : -1);
+      if (d.y != -_dir.y) _nextDir = d;
+    }
+  }
+
+  void _reset() {
+    setState(() {
+      _score = 0;
+      _step = 0.2;
+      _won = false;
+      _winSent = false;
+      _seed();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_won && !_winSent) {
+      _winSent = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          const CompanionEventNotification(ExperienceEvent.gameCompleted)
+              .dispatch(context);
+        }
+      });
+    }
+    return _GameShell(
+      title: '🐍 Snake',
+      score: _score,
+      target: _target,
+      accent: const Color(0xFF06D6A0),
+      won: _won,
+      onPlayAgain: _reset,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onPanUpdate: (d) => _steer(d.delta),
+        child: DecoratedBox(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: <Color>[Color(0xFF0B2436), Color(0xFF0E3020)],
+            ),
+          ),
+          child: CustomPaint(
+            painter: _SnakePainter(_snake, _food, _cols, _rows),
+            size: Size.infinite,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SnakePainter extends CustomPainter {
+  _SnakePainter(this.snake, this.food, this.cols, this.rows);
+  final List<math.Point<int>> snake;
+  final math.Point<int> food;
+  final int cols;
+  final int rows;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cell = math.min(size.width / cols, size.height / rows);
+    final boardW = cell * cols;
+    final boardH = cell * rows;
+    final ox = (size.width - boardW) / 2;
+    final oy = (size.height - boardH) / 2 + 24;
+
+    Rect cellRect(math.Point<int> p) => Rect.fromLTWH(
+        ox + p.x * cell + 1, oy + p.y * cell + 1, cell - 2, cell - 2);
+
+    // Food.
+    final foodPaint = Paint()..color = const Color(0xFFEF476F);
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(cellRect(food), Radius.circular(cell / 2)),
+        foodPaint..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3));
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(cellRect(food), Radius.circular(cell / 2)),
+        Paint()..color = const Color(0xFFEF476F));
+
+    // Snake — brightest at the head, fading toward the tail.
+    for (var i = 0; i < snake.length; i++) {
+      final t = 1 - i / (snake.length + 2);
+      final color = Color.lerp(
+          const Color(0xFF06D6A0), const Color(0xFF118AB2), 1 - t)!;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(cellRect(snake[i]), Radius.circular(cell / 3)),
+        Paint()..color = color,
+      );
+    }
+    // Eyes on the head.
+    if (snake.isNotEmpty) {
+      final h = cellRect(snake.first);
+      final eye = Paint()..color = Colors.white;
+      canvas.drawCircle(h.center.translate(-cell / 6, -cell / 8), cell / 10, eye);
+      canvas.drawCircle(h.center.translate(cell / 6, -cell / 8), cell / 10, eye);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_SnakePainter oldDelegate) => true;
+}

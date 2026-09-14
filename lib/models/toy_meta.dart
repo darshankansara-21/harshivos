@@ -99,6 +99,9 @@ const List<ToyMeta> kToyCatalog = <ToyMeta>[
   ToyMeta(id: 'star_tap', title: 'Star Tap', emoji: '⭐', implemented: true,
       gradient: [Color(0xFFFFD166), Color(0xFFFFB88C)],
       channels: [SensoryChannel.visual]),
+  ToyMeta(id: 'snake', title: 'Snake', emoji: '🐍', implemented: true,
+      gradient: [Color(0xFF06D6A0), Color(0xFF118AB2)],
+      channels: [SensoryChannel.visual, SensoryChannel.proprioceptive]),
 ];
 
 ToyMeta toyMetaById(String id) =>

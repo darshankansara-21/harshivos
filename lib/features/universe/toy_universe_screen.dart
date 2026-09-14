@@ -125,9 +125,12 @@ class _ToyUniverseScreenState extends ConsumerState<ToyUniverseScreen> {
     final name = ref.watch(childNameProvider);
     final favorites = ref.watch(favoriteToysProvider);
     final recents = ref.watch(recentToysProvider);
-    final loved = ref.watch(mostLovedToysProvider);
-    final fresh = ref.watch(newToysProvider);
-    final recommended = ref.watch(recommendedUniverseToysProvider);
+    final featured = featuredToys();
+    final games = gamesToys();
+    final stress = stressBusterToys();
+    final sensory = sensoryPlayToys();
+    final smart = smartPlayToys();
+    final allToys = curatedAllToys();
     final counts = toyCountsByCategory();
     final total = kToyUniverse.where((t) => t.working).length;
 
@@ -242,23 +245,26 @@ class _ToyUniverseScreenState extends ConsumerState<ToyUniverseScreen> {
           SliverToBoxAdapter(
             child: _HariGreeting(name: name),
           ),
-          if (recommended.isNotEmpty)
-            _RailSliver(
-                title: 'Start Playing', emoji: '\u25B6\uFE0F', toys: recommended),
           SliverToBoxAdapter(
             child: _CoreDestinations(onPlay: _scrollToToys),
           ),
-          const SliverToBoxAdapter(
-            child: _AdventureRoadmapCard(),
-          ),
+          if (featured.isNotEmpty)
+            _RailSliver(title: 'Most Loved', emoji: '⭐', toys: featured),
+          if (games.isNotEmpty)
+            _RailSliver(title: 'Games', emoji: '🎮', toys: games),
+          if (stress.isNotEmpty)
+            _RailSliver(title: 'Stress Buster', emoji: '🧘', toys: stress),
           if (favorites.isNotEmpty)
             _RailSliver(title: 'Favorites', emoji: '\u2764\uFE0F', toys: favorites),
           if (recents.isNotEmpty)
             _RailSliver(title: 'Recently Played', emoji: '\u23F1\uFE0F', toys: recents),
-          if (loved.isNotEmpty)
-            _RailSliver(title: 'Most Loved', emoji: '\u2B50', toys: loved),
-          if (fresh.isNotEmpty)
-            _RailSliver(title: 'New', emoji: '\u2728', toys: fresh),
+          if (sensory.isNotEmpty)
+            _RailSliver(title: 'Sensory Play', emoji: '🫧', toys: sensory),
+          if (smart.isNotEmpty)
+            _RailSliver(title: 'Smart Play', emoji: '🧠', toys: smart),
+          const SliverToBoxAdapter(
+            child: _AdventureRoadmapCard(),
+          ),
           SliverToBoxAdapter(
             child: _CategoryChips(counts: sortedCounts),
           ),
@@ -290,8 +296,8 @@ class _ToyUniverseScreenState extends ConsumerState<ToyUniverseScreen> {
                 childAspectRatio: 0.86,
               ),
               delegate: SliverChildBuilderDelegate(
-                (context, i) => _ToyCard(toy: kToyUniverse[i]),
-                childCount: kToyUniverse.length,
+                (context, i) => _ToyCard(toy: allToys[i]),
+                childCount: allToys.length,
               ),
             ),
           ),

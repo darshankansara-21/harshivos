@@ -385,6 +385,11 @@ final List<UniverseToy> kToyUniverse = <UniverseToy>[
     category: ToyCategory.learning, inputs: const [ToyInput.tap],
     engagement: ToyEngagement.deep, build: _play('star_tap'), isNew: true,
   ),
+  UniverseToy(
+    id: 'snake', name: 'Snake', emoji: '🐍', color: const Color(0xFF06D6A0),
+    category: ToyCategory.creative, inputs: const [ToyInput.drag],
+    engagement: ToyEngagement.deep, build: _play('snake'), isNew: true,
+  ),
 
   // ---- Sensory Lab: premium physics experiences (6) ----
   const UniverseToy(
@@ -454,4 +459,89 @@ Map<ToyCategory, int> toyCountsByCategory() {
 List<ToyCategory> emptyToyCategories() {
   final present = kToyUniverse.map((t) => t.category).toSet();
   return ToyCategory.values.where((c) => !present.contains(c)).toList();
+}
+
+// ---------------------------------------------------------------------------
+// Curated discovery — the BEST experiences first, not registration order.
+// These hand-ranked lists power the Play home rails and the "All Toys" grid,
+// so a child (or parent) immediately meets the strongest games and the most
+// effective calming experiences. Unknown/absent ids are skipped safely.
+// ---------------------------------------------------------------------------
+
+List<UniverseToy> _byIds(List<String> ids) => ids
+    .map((id) => kToyUniverseById[id])
+    .whereType<UniverseToy>()
+    .where((t) => t.working)
+    .toList();
+
+/// The marquee — universally understood, highly replayable experiences.
+const List<String> kFeaturedOrder = <String>[
+  'snake',
+  'car_track',
+  'snack_studio',
+  'balloon_pop',
+  'bubble_pop',
+  'star_tap',
+  'fruit_catch',
+  'marble_run',
+];
+
+List<UniverseToy> featuredToys() => _byIds(kFeaturedOrder);
+
+/// Goal-based games with a clear objective, win state and celebration.
+List<UniverseToy> gamesToys() => _byIds(<String>[
+      'snake',
+      'car_track',
+      'snack_studio',
+      'balloon_pop',
+      'star_tap',
+      'fruit_catch',
+      'marble_run',
+      'bubble_pop',
+    ]);
+
+/// The strongest, most immediately soothing stress-buster experiences —
+/// surfaced prominently so calm is never buried.
+List<UniverseToy> stressBusterToys() => _byIds(<String>[
+      'as_pop_it',
+      'as_bubble_wrap',
+      'as_stress_ball',
+      'lab_sand_zen',
+      'as_newtons_cradle',
+      'as_slinky',
+      'as_spinner',
+      'as_gears',
+    ]);
+
+/// Immediate-delight sensory play.
+List<UniverseToy> sensoryPlayToys() => _byIds(<String>[
+      'bubble_pop',
+      'water_ripples',
+      'lab_fluid_flow',
+      'kaleidoscope',
+      'particle_galaxy',
+      'fireworks',
+    ]);
+
+/// Thinking games that grow with the child.
+List<UniverseToy> smartPlayToys() => _byIds(<String>[
+      'learn_matching_pairs',
+      'learn_emotion_match',
+      'star_tap',
+      'color_mix',
+      'car_track',
+    ]);
+
+/// Every toy, ordered best-first: featured leaders, then everything else in
+/// its existing order. Drives the "All Toys" grid so nothing good is buried.
+List<UniverseToy> curatedAllToys() {
+  final seen = <String>{};
+  final out = <UniverseToy>[];
+  for (final t in featuredToys()) {
+    if (seen.add(t.id)) out.add(t);
+  }
+  for (final t in kToyUniverse) {
+    if (t.working && seen.add(t.id)) out.add(t);
+  }
+  return out;
 }

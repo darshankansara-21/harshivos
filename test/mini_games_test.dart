@@ -45,4 +45,15 @@ void main() {
     expect(find.text('You did it!'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('Snake builds, steers, and runs without overflow', (tester) async {
+    await _pumpGame(tester, const SnakeGame());
+    expect(find.textContaining('Snake'), findsOneWidget);
+    await tester.drag(find.byType(SnakeGame), const Offset(0, 120));
+    await tester.pump(const Duration(milliseconds: 250));
+    await tester.drag(find.byType(SnakeGame), const Offset(120, 0));
+    await tester.pump(const Duration(milliseconds: 260));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(tester.takeException(), isNull);
+  });
 }

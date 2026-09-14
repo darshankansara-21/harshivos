@@ -65,7 +65,7 @@ void main() {
 
     expect(find.text('WONDERPLAY'), findsOneWidget);
     expect(find.textContaining('Play. Learn. Calm. Connect.'), findsOneWidget);
-    expect(find.textContaining('Start Playing'), findsOneWidget);
+    expect(find.textContaining('Most Loved'), findsOneWidget);
     expect(find.byTooltip('My avatar'), findsOneWidget);
   });
 
@@ -154,9 +154,11 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 700));
 
-    await tester.tap(find.text('⭐').first);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 700));
+    await tester.scrollUntilVisible(
+      find.text('All Toys'),
+      400,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('All Toys'), findsOneWidget);
   });
 }
