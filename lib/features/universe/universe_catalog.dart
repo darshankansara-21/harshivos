@@ -390,6 +390,16 @@ final List<UniverseToy> kToyUniverse = <UniverseToy>[
     category: ToyCategory.creative, inputs: const [ToyInput.drag],
     engagement: ToyEngagement.deep, build: _play('snake'), isNew: true,
   ),
+  UniverseToy(
+    id: 'racing', name: 'Racing', emoji: '🏎️', color: const Color(0xFFFF512F),
+    category: ToyCategory.creative, inputs: const [ToyInput.tap, ToyInput.drag],
+    engagement: ToyEngagement.deep, build: _play('racing'), isNew: true,
+  ),
+  UniverseToy(
+    id: 'bowling', name: 'Bowling', emoji: '🎳', color: const Color(0xFF4CC9F0),
+    category: ToyCategory.creative, inputs: const [ToyInput.tap],
+    engagement: ToyEngagement.deep, build: _play('bowling'), isNew: true,
+  ),
 
   // ---- Sensory Lab: premium physics experiences (6) ----
   const UniverseToy(
@@ -477,6 +487,8 @@ List<UniverseToy> _byIds(List<String> ids) => ids
 /// The marquee — universally understood, highly replayable experiences.
 const List<String> kFeaturedOrder = <String>[
   'snake',
+  'racing',
+  'bowling',
   'car_track',
   'snack_studio',
   'balloon_pop',
@@ -491,6 +503,8 @@ List<UniverseToy> featuredToys() => _byIds(kFeaturedOrder);
 /// Goal-based games with a clear objective, win state and celebration.
 List<UniverseToy> gamesToys() => _byIds(<String>[
       'snake',
+      'racing',
+      'bowling',
       'car_track',
       'snack_studio',
       'balloon_pop',

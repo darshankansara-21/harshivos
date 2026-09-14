@@ -65,7 +65,7 @@ void main() {
 
     expect(find.text('WONDERPLAY'), findsOneWidget);
     expect(find.textContaining('Play. Learn. Calm. Connect.'), findsOneWidget);
-    expect(find.textContaining('Most Loved'), findsOneWidget);
+    expect(find.textContaining('Featured'), findsOneWidget);
     expect(find.byTooltip('My avatar'), findsOneWidget);
   });
 

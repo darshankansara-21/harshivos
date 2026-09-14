@@ -249,7 +249,7 @@ class _ToyUniverseScreenState extends ConsumerState<ToyUniverseScreen> {
             child: _CoreDestinations(onPlay: _scrollToToys),
           ),
           if (featured.isNotEmpty)
-            _RailSliver(title: 'Most Loved', emoji: '⭐', toys: featured),
+            _RailSliver(title: 'Featured', emoji: '⭐', toys: featured),
           if (games.isNotEmpty)
             _RailSliver(title: 'Games', emoji: '🎮', toys: games),
           if (stress.isNotEmpty)
