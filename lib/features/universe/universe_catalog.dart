@@ -370,6 +370,21 @@ final List<UniverseToy> kToyUniverse = <UniverseToy>[
     category: ToyCategory.creative, inputs: const [ToyInput.tap, ToyInput.sound],
     engagement: ToyEngagement.deep, build: _play('snack_studio'), isNew: true,
   ),
+  UniverseToy(
+    id: 'fruit_catch', name: 'Fruit Catch', emoji: '🧺', color: const Color(0xFF43E97B),
+    category: ToyCategory.creative, inputs: const [ToyInput.tap, ToyInput.drag],
+    engagement: ToyEngagement.deep, build: _play('fruit_catch'), isNew: true,
+  ),
+  UniverseToy(
+    id: 'balloon_pop', name: 'Balloon Pop', emoji: '🎈', color: const Color(0xFFEF476F),
+    category: ToyCategory.creative, inputs: const [ToyInput.tap],
+    engagement: ToyEngagement.deep, build: _play('balloon_pop'), isNew: true,
+  ),
+  UniverseToy(
+    id: 'star_tap', name: 'Star Tap', emoji: '⭐', color: const Color(0xFFFFD166),
+    category: ToyCategory.learning, inputs: const [ToyInput.tap],
+    engagement: ToyEngagement.deep, build: _play('star_tap'), isNew: true,
+  ),
 
   // ---- Sensory Lab: premium physics experiences (6) ----
   const UniverseToy(

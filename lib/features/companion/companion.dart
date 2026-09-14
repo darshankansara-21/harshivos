@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../services/audio/tone_player.dart';
 import '../lifeskills/avatar/avatar.dart';
 import '../lifeskills/avatar/pico.dart';
 
@@ -118,6 +119,26 @@ class CompanionController extends ChangeNotifier {
   int get energy => _energy;
 
   int eventCount(ExperienceEvent event) => _eventCounts[event] ?? 0;
+
+  // --- Milestone celebration signal ---------------------------------------
+  // When a meaningful moment happens (a milestone or a win) the companions
+  // flash a short, unmistakable celebration: a floating gesture emoji + label
+  // and a celebration sound. This is what makes milestones *noticeable*.
+  String? _celebration;
+  String? _celebrationEmoji;
+  int _celebrationPulse = 0;
+
+  String? get celebration => _celebration;
+  String? get celebrationEmoji => _celebrationEmoji;
+  int get celebrationPulse => _celebrationPulse;
+
+  void _flashCelebration(String label, String emoji, SoundCue cue) {
+    _celebration = label;
+    _celebrationEmoji = emoji;
+    _celebrationPulse++;
+    TonePlayer.instance.playCue(cue);
+    notifyListeners();
+  }
 
   void _setNow(CompanionReaction r, {bool bounce = true}) {
     _reaction = r;
@@ -248,16 +269,20 @@ class CompanionController extends ChangeNotifier {
       case ExperienceEvent.bubblePopped:
         if (count % 50 == 0) {
           celebrate();
+          _flashCelebration('WOW!', '🎉', SoundCue.completion);
         } else if (count % 25 == 0) {
           dance();
+          _flashCelebration("Let's dance!", '💃', SoundCue.milestone);
         } else if (count % 10 == 0) {
           pair();
+          _flashCelebration('High five!', '🙌', SoundCue.milestone);
         } else if (count % 5 == 0) {
           _startSequence(<_CompanionBeat>[
             const _CompanionBeat(CompanionReaction.proud, 720),
             const _CompanionBeat(
                 CompanionReaction.happy, 420, bounce: false),
           ], settle: CompanionReaction.happy, priority: 3);
+          _flashCelebration('Nice!', '👍', SoundCue.milestone);
         } else {
           tap();
         }
@@ -293,6 +318,7 @@ class CompanionController extends ChangeNotifier {
         return;
       case ExperienceEvent.gameCompleted:
         celebrate();
+        _flashCelebration('You did it!', '🎉', SoundCue.completion);
         return;
       case ExperienceEvent.calmStarted:
         calm();
@@ -306,6 +332,7 @@ class CompanionController extends ChangeNotifier {
           const _CompanionBeat(CompanionReaction.celebrating, 700),
           const _CompanionBeat(CompanionReaction.happy, 420, bounce: false),
         ], settle: CompanionReaction.happy);
+        _flashCelebration('Amazing!', '⭐', SoundCue.completion);
         return;
     }
   }
@@ -393,7 +420,11 @@ class _CompanionViewState extends State<CompanionView>
     with TickerProviderStateMixin {
   late final AnimationController _idle;
   late final AnimationController _bounce;
+  late final AnimationController _banner;
   int _lastPulse = 0;
+  int _lastCelebration = 0;
+  String? _bannerLabel;
+  String? _bannerEmoji;
 
   @override
   void initState() {
@@ -402,6 +433,8 @@ class _CompanionViewState extends State<CompanionView>
         vsync: this, duration: const Duration(milliseconds: 2600));
     _bounce = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 560));
+    _banner = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1500));
     if (widget.animate) _idle.repeat();
     widget.controller.addListener(_onReaction);
   }
@@ -411,6 +444,12 @@ class _CompanionViewState extends State<CompanionView>
       _lastPulse = widget.controller.pulse;
       if (widget.animate) _bounce.forward(from: 0);
     }
+    if (widget.controller.celebrationPulse != _lastCelebration) {
+      _lastCelebration = widget.controller.celebrationPulse;
+      _bannerLabel = widget.controller.celebration;
+      _bannerEmoji = widget.controller.celebrationEmoji;
+      if (widget.animate) _banner.forward(from: 0);
+    }
     if (mounted) setState(() {});
   }
 
@@ -419,6 +458,7 @@ class _CompanionViewState extends State<CompanionView>
     widget.controller.removeListener(_onReaction);
     _idle.dispose();
     _bounce.dispose();
+    _banner.dispose();
     super.dispose();
   }
 
@@ -429,7 +469,7 @@ class _CompanionViewState extends State<CompanionView>
       widget.controller.reaction == CompanionReaction.celebrating ||
         widget.controller.reaction == CompanionReaction.dance;
     return AnimatedBuilder(
-      animation: Listenable.merge(<Listenable>[_idle, _bounce]),
+      animation: Listenable.merge(<Listenable>[_idle, _bounce, _banner]),
       builder: (context, _) {
         final t = _idle.value;
         final bob = math.sin(t * math.pi * 2) * 4.0;
@@ -442,7 +482,12 @@ class _CompanionViewState extends State<CompanionView>
         final reaction = widget.controller.reaction;
         final phase = (t * 4).floor() % 4;
         final hariPose = dance
-          ? (phase.isEven ? AvatarPose.jump : AvatarPose.clap)
+          ? (<AvatarPose>[
+              AvatarPose.clap,
+              AvatarPose.wave,
+              AvatarPose.cheer,
+              AvatarPose.point,
+            ][phase])
           : pair
             ? AvatarPose.point
             : reaction == CompanionReaction.encouraging
@@ -450,7 +495,7 @@ class _CompanionViewState extends State<CompanionView>
               : reaction == CompanionReaction.proud
                 ? AvatarPose.clap
                 : reaction == CompanionReaction.surprised
-                  ? AvatarPose.jump
+                  ? AvatarPose.wave
                   : reaction == CompanionReaction.thinking ||
                       reaction == CompanionReaction.curious
                     ? AvatarPose.think
@@ -527,6 +572,19 @@ class _CompanionViewState extends State<CompanionView>
                           ),
                         ),
                       ),
+                    if (_banner.value > 0 && _bannerEmoji != null)
+                      Positioned(
+                        top: -8,
+                        left: 0,
+                        right: 0,
+                        child: IgnorePointer(
+                          child: _CelebrationBanner(
+                            progress: _banner.value,
+                            emoji: _bannerEmoji!,
+                            label: _bannerLabel ?? '',
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -545,6 +603,64 @@ class _Sparkles extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CustomPaint(painter: _SparklePainter(t));
+  }
+}
+
+/// A short-lived floating gesture badge (e.g. 👏 "High five!") shown when a
+/// milestone or win happens, so the celebration is impossible to miss.
+class _CelebrationBanner extends StatelessWidget {
+  const _CelebrationBanner({
+    required this.progress,
+    required this.emoji,
+    required this.label,
+  });
+
+  final double progress;
+  final String emoji;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    // Fade in over the first 18%, hold, then fade out over the last 30%.
+    final opacity = progress < 0.18
+        ? progress / 0.18
+        : progress > 0.7
+            ? (1 - (progress - 0.7) / 0.3).clamp(0.0, 1.0)
+            : 1.0;
+    final rise = -18.0 * Curves.easeOut.transform(progress.clamp(0.0, 1.0));
+    final pop = 0.7 + 0.3 * Curves.elasticOut.transform(progress.clamp(0.0, 1.0));
+    return Opacity(
+      opacity: opacity.clamp(0.0, 1.0),
+      child: Transform.translate(
+        offset: Offset(0, rise),
+        child: Transform.scale(
+          scale: pop,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Text(emoji, style: const TextStyle(fontSize: 30)),
+              if (label.isNotEmpty)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.55),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

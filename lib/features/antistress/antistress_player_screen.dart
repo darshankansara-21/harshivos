@@ -58,7 +58,8 @@ class _AntistressPlayerScreenState extends State<AntistressPlayerScreen> {
           Positioned.fill(
             child: Listener(
               behavior: HitTestBehavior.deferToChild,
-              onPointerDown: (_) => _companion.tap(),
+              onPointerDown: (_) =>
+                  _companion.reactToEvent(ExperienceEvent.bubblePopped),
               child: widget.toy,
             ),
           ),

@@ -1,8 +1,10 @@
+import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/widgets.dart';
+import 'package:path_provider/path_provider.dart';
 
 enum SoundCue {
   tap,
@@ -35,6 +37,13 @@ class TonePlayer {
   bool _ready = false;
   double volumeScale = 1;
 
+  /// Directory where synthesised WAVs are cached on disk. Android's low-latency
+  /// SoundPool backend cannot play in-memory byte streams — it needs a real
+  /// file — so every sound is rendered once to [_cacheDir] and replayed from
+  /// there. This is the difference between silence and an audible pop.
+  Directory? _cacheDir;
+  final Map<String, String> _fileCache = <String, String>{};
+
   bool get _audioAvailable => !WidgetsBinding.instance.runtimeType
       .toString()
       .contains('TestWidgetsFlutterBinding');
@@ -49,6 +58,7 @@ class TonePlayer {
   Future<bool> _ensureReady() async {
     if (!_audioAvailable) return false;
     if (_ready) return true;
+    _cacheDir = await getTemporaryDirectory();
     _pool.addAll(List<AudioPlayer>.generate(_poolSize, (_) => AudioPlayer()));
     _ready = true;
     for (final p in _pool) {
@@ -56,6 +66,40 @@ class TonePlayer {
       await p.setPlayerMode(PlayerMode.lowLatency);
     }
     return true;
+  }
+
+  /// Resolves a cached WAV file for [key], synthesising and writing it once.
+  Future<String?> _fileFor(String key, Uint8List Function() build) async {
+    final cached = _fileCache[key];
+    if (cached != null) return cached;
+    final dir = _cacheDir;
+    if (dir == null) return null;
+    final file = File('${dir.path}/wp_$key.wav');
+    if (!await file.exists()) {
+      await file.writeAsBytes(build(), flush: true);
+    }
+    _fileCache[key] = file.path;
+    return file.path;
+  }
+
+  /// Plays a keyed, cached sound through the round-robin pool.
+  Future<void> _playKeyed(
+    String key,
+    Uint8List Function() build, {
+    required double volume,
+  }) async {
+    if (volumeScale <= 0) return;
+    try {
+      if (!await _ensureReady()) return;
+      final path = await _fileFor(key, build);
+      if (path == null) return;
+      await _player.play(
+        DeviceFileSource(path),
+        volume: (volume * volumeScale).clamp(0, 1),
+      );
+    } catch (_) {
+      // Best-effort: never let audio crash a toy.
+    }
   }
 
   AudioPlayer get _player {
@@ -114,8 +158,10 @@ class TonePlayer {
   /// supplied [pitch] (0..1), used by Bubble Pop so small/large bubbles sound
   /// different.
   Future<void> playPop(double pitch) async {
-    final freq = 320 + pitch.clamp(0.0, 1.0) * 520;
-    await _play(freq, seconds: 0.16, wave: _Wave.sine, attack: 0.004, decay: 6);
+    final p = pitch.clamp(0.0, 1.0);
+    final freq = 320 + p * 520;
+    final key = 'pop_${(p * 20).round()}';
+    await _playKeyed(key, () => _synthPop(freq), volume: 0.95);
   }
 
   // ---------------------------------------------------------------------------
@@ -129,51 +175,47 @@ class TonePlayer {
   /// A crisp mechanical click — pen clicks, keypad keys, switch flips.
   /// [pitch] scales the body frequency (1.0 = default).
   Future<void> playClick({double pitch = 1.0}) async {
-    await _playNoise(
-        _synthClick(900 * pitch, 0.05, 90, 0.6), volume: 0.55);
+    await _playNoise('click_${(pitch * 20).round()}',
+        () => _synthClick(900 * pitch, 0.05, 90, 0.6), volume: 0.7);
   }
 
   /// A deeper, softer key press "thock".
   Future<void> playThock({double pitch = 1.0}) async {
-    await _playNoise(
-        _synthClick(260 * pitch, 0.08, 55, 0.45), volume: 0.6);
+    await _playNoise('thock_${(pitch * 20).round()}',
+        () => _synthClick(260 * pitch, 0.08, 55, 0.45), volume: 0.75);
   }
 
   /// A light detent "tick" — rotary dial notches, combo-lock wheels.
   Future<void> playTick() async {
-    await _playNoise(_synthClick(1500, 0.03, 140, 0.7), volume: 0.4);
+    await _playNoise(
+        'tick', () => _synthClick(1500, 0.03, 140, 0.7), volume: 0.5);
   }
 
   /// A toggle click; slightly brighter for the "on" position.
   Future<void> playSwitch({required bool on}) async {
-    await _playNoise(
-        _synthClick(on ? 1100 : 700, 0.045, 100, 0.65), volume: 0.5);
+    await _playNoise('switch_$on',
+        () => _synthClick(on ? 1100 : 700, 0.045, 100, 0.65), volume: 0.65);
   }
 
   /// A soft low "squish" for the stress ball.
   Future<void> playSquish() async {
-    await _playNoise(_synthClick(180, 0.16, 22, 0.35), volume: 0.5);
+    await _playNoise(
+        'squish', () => _synthClick(180, 0.16, 22, 0.35), volume: 0.65);
   }
 
   /// A rising ratchet buzz for the zipper.
   Future<void> playZip() async {
-    await _playNoise(_synthZip(0.20), volume: 0.5);
+    await _playNoise('zip', () => _synthZip(0.20), volume: 0.6);
   }
 
   /// A soft airy whir for the fidget spinner (call once per flick).
   Future<void> playWhir() async {
-    await _playNoise(_synthWhir(0.55), volume: 0.6);
+    await _playNoise('whir', () => _synthWhir(0.55), volume: 0.7);
   }
 
-  Future<void> _playNoise(Uint8List bytes, {double volume = 0.6}) async {
-    if (volumeScale <= 0) return;
-    try {
-      if (!await _ensureReady()) return;
-      await _player.play(BytesSource(bytes),
-          volume: (volume * volumeScale).clamp(0, 1));
-    } catch (_) {
-      // Best-effort: never let audio crash a toy.
-    }
+  Future<void> _playNoise(String key, Uint8List Function() build,
+      {double volume = 0.6}) async {
+    await _playKeyed(key, build, volume: volume);
   }
 
   /// A short pitched body blended with white noise and a fast exponential
@@ -233,15 +275,33 @@ class TonePlayer {
     double attack = 0.01,
     double decay = 3.5,
   }) async {
-    if (volumeScale <= 0) return;
-    try {
-      if (!await _ensureReady()) return;
-      final bytes = _synth(freq, seconds, wave, attack, decay);
-        await _player.play(BytesSource(bytes),
-          volume: (0.7 * volumeScale).clamp(0, 1));
-    } catch (_) {
-      // Best-effort: never let audio crash a toy.
+    final key = 't${freq.round()}_${wave.index}_${(seconds * 1000).round()}'
+        '_${(attack * 1000).round()}_${decay.round()}';
+    await _playKeyed(
+      key,
+      () => _synth(freq, seconds, wave, attack, decay),
+      volume: 0.85,
+    );
+  }
+
+  /// A punchy bubble pop: a fast downward pitch sweep with a soft noise
+  /// transient so it reads as a real "pop" rather than a musical blip.
+  Uint8List _synthPop(double startFreq) {
+    const seconds = 0.14;
+    final frames = (seconds * _sampleRate).round();
+    final data = Int16List(frames);
+    for (var i = 0; i < frames; i++) {
+      final t = i / _sampleRate;
+      final prog = t / seconds;
+      // Pitch drops ~40% over the life of the pop.
+      final freq = startFreq * (1.0 - 0.4 * prog);
+      final env = t < 0.006 ? t / 0.006 : math.exp(-(t - 0.006) * 24);
+      final body = math.sin(2 * math.pi * freq * t);
+      final transient = i < 90 ? (_rng.nextDouble() * 2 - 1) * 0.4 : 0.0;
+      final s = body * 0.85 + transient;
+      data[i] = (s * env * 32767 * 0.9).round().clamp(-32768, 32767);
     }
+    return _wrapWav(data);
   }
 
   /// Build a mono 16-bit PCM WAV with a quick attack and exponential decay so
