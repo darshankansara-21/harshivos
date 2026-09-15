@@ -34,6 +34,39 @@ const List<_CoreWord> _coreWords = <_CoreWord>[
   _CoreWord('finished', '🏁'),
 ];
 
+/// A one-tap sentence starter — the fastest path to a real message. Openers
+/// (`speak: false`) prime the strip so a child adds the object then taps say;
+/// complete phrases (`speak: true`) are spoken immediately.
+class _Starter {
+  const _Starter(this.label, this.emoji, this.parts, {this.speak = false});
+  final String label;
+  final String emoji;
+  final List<_CoreWord> parts;
+  final bool speak;
+}
+
+const List<_Starter> _starters = <_Starter>[
+  _Starter('I want', '👉',
+      <_CoreWord>[_CoreWord('I', '🙋'), _CoreWord('want', '👉')]),
+  _Starter('I need', '🙏',
+      <_CoreWord>[_CoreWord('I', '🙋'), _CoreWord('need', '🙏')]),
+  _Starter('I feel', '💗',
+      <_CoreWord>[_CoreWord('I', '🙋'), _CoreWord('feel', '💗')]),
+  _Starter('I like', '⭐',
+      <_CoreWord>[_CoreWord('I', '🙋'), _CoreWord('like', '⭐')]),
+  _Starter('Help me', '🆘',
+      <_CoreWord>[_CoreWord('Help', '🆘'), _CoreWord('me', '🙋')],
+      speak: true),
+  _Starter('More please', '➕',
+      <_CoreWord>[_CoreWord('More', '➕'), _CoreWord('please', '🙏')],
+      speak: true),
+  _Starter('All done', '🏁',
+      <_CoreWord>[_CoreWord('All', '🎉'), _CoreWord('done', '🏁')],
+      speak: true),
+  _Starter('Yes', '👍', <_CoreWord>[_CoreWord('Yes', '👍')], speak: true),
+  _Starter('No', '👎', <_CoreWord>[_CoreWord('No', '👎')], speak: true),
+];
+
 /// A colour per category so the board is easy to scan — and friendly for a
 /// child who reads pictures and colour before words.
 const Map<String, Color> _categoryColor = <String, Color>{
@@ -163,7 +196,9 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
               _topBar(),
               const SizedBox(height: 6),
               _sentenceStrip(),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
+              _starterRow(),
+              const SizedBox(height: 8),
               _coreWordRow(),
               const SizedBox(height: 12),
               _favStrip(),
@@ -317,9 +352,41 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
     );
   }
 
+  // One-tap sentence starters — prime a message or speak a complete phrase.
+  Widget _starterRow() {
+    return SizedBox(
+      height: 44,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _starters.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, i) => _StarterChip(
+            starter: _starters[i], onTap: () => _addPhrase(_starters[i])),
+      ),
+    );
+  }
+
+  void _addPhrase(_Starter s) {
+    const accent = Color(0xFFFF8FB1);
+    _companion.reactToEvent(ExperienceEvent.aacSelected);
+    TonePlayer.instance.playCue(SoundCue.talkAck);
+    HapticFeedback.mediumImpact();
+    setState(() {
+      for (final p in s.parts) {
+        _strip.add(_Word(p.label, p.emoji, accent));
+      }
+    });
+    ref
+        .read(activityLogProvider.notifier)
+        .log(ActivityType.spoke, s.label, label: s.label);
+    if (s.speak) {
+      _speak(s.parts.map((p) => p.label).join(' '),
+          emoji: s.emoji, color: accent);
+    }
+  }
+
   // The child's real vocabulary, surfaced. Empty until they speak something.
-  Widget _favStrip() {
-    final favs = ref.watch(talkFavoritesProvider);
+  Widget _favStrip() {    final favs = ref.watch(talkFavoritesProvider);
     final items =
         favs.map(itemByLabel).whereType<CommunicationItem>().toList();
     if (items.isEmpty) return const SizedBox.shrink();
@@ -584,10 +651,48 @@ class _CoreChip extends StatelessWidget {
   }
 }
 
+/// A pill-shaped one-tap sentence starter. Warm accent so it reads as the
+/// fast path, distinct from the neutral core-word chips.
+class _StarterChip extends StatelessWidget {
+  const _StarterChip({required this.starter, required this.onTap});
+  final _Starter starter;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: starter.speak
+                ? const <Color>[Color(0xFF43E97B), Color(0xFF38B2F9)]
+                : const <Color>[Color(0xFFFF8FB1), Color(0xFFB57BE0)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: <Widget>[
+            Text(starter.emoji, style: const TextStyle(fontSize: 18)),
+            const SizedBox(width: 6),
+            Text(starter.label,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// A communication tile — big picture, always-visible word, coloured ring,
 /// and a clear press response (no sound required to know it worked).
-class _ItemTile extends StatefulWidget {
-  const _ItemTile(
+class _ItemTile extends StatefulWidget {  const _ItemTile(
       {required this.item,
       required this.color,
       required this.onTap,
