@@ -113,7 +113,7 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
 
   void _addWord(_Word word, {String? spokenText}) {
     _companion.reactToEvent(ExperienceEvent.aacSelected);
-    TonePlayer.instance.playCue(SoundCue.selection);
+    TonePlayer.instance.playCue(SoundCue.talkAck);
     if ((_strip.length + 1) % 3 == 0) _companion.pair();
     setState(() => _strip.add(word));
     ref.read(activityLogProvider.notifier).log(

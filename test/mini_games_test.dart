@@ -41,13 +41,14 @@ void main() {
     expect(find.textContaining('Tap'), findsOneWidget);
     // Re-find the single glowing star fresh each round and tap it; enough
     // successful taps drive the game to a win.
-    for (var round = 0; round < 80; round++) {
+    for (var round = 0; round < 200; round++) {
       if (find.text('You did it!').evaluate().isNotEmpty) break;
       final star = find.text('⭐');
       if (star.evaluate().isNotEmpty) {
         await tester.tap(star.first, warnIfMissed: false);
+        await tester.pump();
       }
-      await tester.pump(const Duration(milliseconds: 20));
+      await tester.pump(const Duration(milliseconds: 40));
     }
     expect(find.text('You did it!'), findsOneWidget);
     expect(tester.takeException(), isNull);

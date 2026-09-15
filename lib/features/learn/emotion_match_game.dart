@@ -63,7 +63,7 @@ class _EmotionMatchGameState extends State<EmotionMatchGame>
     if (choice == _target) {
       _companion.reactToEvent(ExperienceEvent.correctAnswer);
       HapticFeedback.mediumImpact();
-      TonePlayer.instance.playCue(SoundCue.correct);
+      TonePlayer.instance.playCue(SoundCue.learnGood);
       setState(() {
         _score++;
         _streak++;

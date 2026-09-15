@@ -9,6 +9,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 
 import '../../state/providers.dart';
 import '../../models/activity_event.dart';
+import '../../services/audio/tone_player.dart';
 import 'avatar/avatar.dart';
 import 'models/life_models.dart';
 import 'state/lifeskills_providers.dart';
@@ -84,6 +85,7 @@ class _RoutinePlayerScreenState extends ConsumerState<RoutinePlayerScreen>
       _finish();
       return;
     }
+    TonePlayer.instance.playCue(SoundCue.wood);
     setState(() => _index++);
     _onEnterStep();
   }
@@ -103,6 +105,7 @@ class _RoutinePlayerScreenState extends ConsumerState<RoutinePlayerScreen>
     setState(() => _index = _steps.length);
     if (!_completed) {
       _completed = true;
+      TonePlayer.instance.playCue(SoundCue.routineDone);
       ref.read(lifeProgressProvider.notifier).markComplete(widget.routine.id);
       ref.read(activityLogProvider.notifier).log(
           ActivityType.routineCompleted, widget.routine.id,

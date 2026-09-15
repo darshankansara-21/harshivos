@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../services/audio/tone_player.dart';
 import '../lifeskills/avatar/pico.dart';
 
 /// A slow, looping breathing guide built for Harshiv:
@@ -31,6 +32,20 @@ class _BreathingExerciseState extends State<BreathingExercise>
       vsync: this,
       duration: const Duration(milliseconds: 11000),
     )..repeat();
+    _controller.addListener(_maybeCue);
+  }
+
+  // Soft, optional breath cues — silent when audio is OFF, gentle otherwise.
+  String _lastPhase = '';
+  void _maybeCue() {
+    final label = _phase(_controller.value).label;
+    if (label == _lastPhase) return;
+    _lastPhase = label;
+    if (label == 'Breathe in') {
+      TonePlayer.instance.playCue(SoundCue.ripple);
+    } else if (label == 'Breathe out') {
+      TonePlayer.instance.playCue(SoundCue.calm);
+    }
   }
 
   @override

@@ -110,7 +110,7 @@ class _LearningGameScreenState extends ConsumerState<LearningGameScreen> {
       HapticFeedback.mediumImpact();
         TonePlayer.instance.playCue((_score + 1) % 4 == 0
           ? SoundCue.milestone
-          : SoundCue.correct);
+          : SoundCue.learnGood);
       setState(() {
         _score++;
         _streak++;
@@ -608,7 +608,7 @@ class _SortingGameScreenState extends ConsumerState<SortingGameScreen> {
       HapticFeedback.mediumImpact();
         TonePlayer.instance.playCue((_score + 1) % 4 == 0
           ? SoundCue.milestone
-          : SoundCue.correct);
+          : SoundCue.learnGood);
       setState(() {
         _score++;
         _round++;

@@ -482,7 +482,6 @@ class _Block {
 class _StackGameState extends State<StackGame>
     with TickerProviderStateMixin, ToyTicker, _Emit {
   static const String _id = 'stack';
-  final math.Random _rnd = math.Random();
   final List<_Block> _tower = <_Block>[];
   double _curLeft = 0.1;
   double _curWidth = 0.44;
@@ -1029,7 +1028,6 @@ class TicTacToeGame extends StatefulWidget {
 class _TicTacToeGameState extends State<TicTacToeGame> with _Emit {
   static const String _id = 'tictactoe';
   final List<int> _b = List<int>.filled(9, 0); // 0 empty, 1 player, 2 ai
-  final math.Random _rnd = math.Random();
   int _best = 0; // wins
   GameStatus _status = GameStatus.playing;
   String _overText = 'Draw';
@@ -1251,7 +1249,7 @@ class _BrickBreakGameState extends State<BrickBreakGame>
       if (!_bricks[i]) continue;
       final r = i ~/ _cols;
       final c = i % _cols;
-      final bw = 1.0 / _cols;
+      const bw = 1.0 / _cols;
       final left = c * bw;
       final top = 0.1 + r * 0.05;
       final rect = Rect.fromLTWH(left + 0.008, top, bw - 0.016, 0.042);
