@@ -212,7 +212,7 @@ class _WhackGameState extends State<WhackGame>
       _mole[i] = 0;
       _combo++;
       _score += 1 + (_combo >= 5 ? 1 : 0);
-      TonePlayer.instance.playPop(0.5 + _rnd.nextDouble() * 0.4);
+      TonePlayer.instance.playCue(SoundCue.wood);
       emit(ExperienceEvent.bubblePopped);
       if (_combo >= 5) {
         _banner = 'Combo x$_combo!';
@@ -344,7 +344,7 @@ class _SkyHopGameState extends State<SkyHopGame>
       if (!p.scored && p.x < 0.28) {
         p.scored = true;
         _score++;
-        TonePlayer.instance.playCue(SoundCue.correct);
+        TonePlayer.instance.playCue(SoundCue.coin);
         emit(ExperienceEvent.bubblePopped);
       }
       if ((p.x - 0.3).abs() < 0.11 &&
@@ -367,7 +367,7 @@ class _SkyHopGameState extends State<SkyHopGame>
   void _over() {
     final prev = GameScores.instance.best(_id);
     _status = GameStatus.over;
-    TonePlayer.instance.playCue(SoundCue.gentleRetry);
+    TonePlayer.instance.playCue(SoundCue.crash);
     emit(_score > prev
         ? ExperienceEvent.gameCompleted
         : ExperienceEvent.incorrectAnswer);
@@ -529,7 +529,7 @@ class _StackGameState extends State<StackGame>
     _score++;
     _speed = math.min(1.1, _speed + 0.03);
     _curLeft = _dir > 0 ? 0 : 1 - _curWidth;
-    TonePlayer.instance.playThock();
+    TonePlayer.instance.playCue(SoundCue.stack);
     emit(ExperienceEvent.bubblePopped);
     GameScores.instance.submit(_id, _score).then((b) {
       if (mounted && b != _best) setState(() => _best = b);
@@ -539,7 +539,7 @@ class _StackGameState extends State<StackGame>
   void _over() {
     final prev = GameScores.instance.best(_id);
     _status = GameStatus.over;
-    TonePlayer.instance.playCue(SoundCue.gentleRetry);
+    TonePlayer.instance.playCue(SoundCue.gameOver);
     emit(_score > prev
         ? ExperienceEvent.gameCompleted
         : ExperienceEvent.incorrectAnswer);
@@ -719,13 +719,15 @@ class _MergeGameState extends State<MergeGame> with _Emit {
     final after = _g.map((r) => r.join(',')).join('|');
     if (before != after) {
       _spawn();
-      TonePlayer.instance.playPop(0.5);
+      TonePlayer.instance.playCue(SoundCue.wood);
       emit(ExperienceEvent.bubblePopped);
     }
     if (_status == GameStatus.won) {
+      TonePlayer.instance.playCue(SoundCue.success);
       emit(ExperienceEvent.gameCompleted);
     } else if (_isStuck()) {
       _status = GameStatus.over;
+      TonePlayer.instance.playCue(SoundCue.gameOver);
       emit(ExperienceEvent.incorrectAnswer);
     }
     GameScores.instance.submit(_id, _score).then((b) {
@@ -916,6 +918,7 @@ class _EchoGameState extends State<EchoGame>
       if (_inputAt >= _seq.length) {
         if (_seq.length >= _target) {
           setState(() => _status = GameStatus.won);
+          TonePlayer.instance.playCue(SoundCue.success);
           emit(ExperienceEvent.gameCompleted);
           GameScores.instance.submit(_id, _seq.length);
           return;
@@ -928,7 +931,7 @@ class _EchoGameState extends State<EchoGame>
       }
     } else {
       setState(() => _status = GameStatus.over);
-      TonePlayer.instance.playCue(SoundCue.gentleRetry);
+      TonePlayer.instance.playCue(SoundCue.gameOver);
       emit(ExperienceEvent.incorrectAnswer);
       GameScores.instance.submit(_id, _seq.length - 1).then((b) {
         if (mounted) setState(() => _best = b);
@@ -1077,13 +1080,14 @@ class _TicTacToeGameState extends State<TicTacToeGame> with _Emit {
     }
     if (move != null) {
       _b[move] = 2;
-      TonePlayer.instance.playThock();
+      TonePlayer.instance.playCue(SoundCue.wood);
     }
   }
 
   void _finish(int w) {
     if (w == 1) {
       _status = GameStatus.won;
+      TonePlayer.instance.playCue(SoundCue.success);
       emit(ExperienceEvent.gameCompleted);
       GameScores.instance.submit(_id, _best + 1).then((b) {
         if (mounted) setState(() => _best = b);
@@ -1103,7 +1107,7 @@ class _TicTacToeGameState extends State<TicTacToeGame> with _Emit {
     if (_status != GameStatus.playing || _b[i] != 0) return;
     setState(() {
       _b[i] = 1;
-      TonePlayer.instance.playCue(SoundCue.selection);
+      TonePlayer.instance.playCue(SoundCue.wood);
       var w = _winner(_b);
       if (w == 0 && _b.contains(0)) {
         _aiMove();
@@ -1177,4 +1181,553 @@ class _TicTacToeGameState extends State<TicTacToeGame> with _Emit {
     );
   }
 }
+
+// ===========================================================================
+// Brick Break — slide the paddle to bounce the ball and clear every brick.
+// A physics classic: wall + paddle bounces, brick hits, lose if the ball
+// drops. Clear the wall to win.
+// ===========================================================================
+class BrickBreakGame extends StatefulWidget {
+  const BrickBreakGame({super.key});
+  @override
+  State<BrickBreakGame> createState() => _BrickBreakGameState();
+}
+
+class _BrickBreakGameState extends State<BrickBreakGame>
+    with TickerProviderStateMixin, ToyTicker, _Emit {
+  static const String _id = 'brick_break';
+  static const int _cols = 6;
+  static const int _rows = 4;
+  final List<bool> _bricks = List<bool>.filled(_cols * _rows, true);
+  double _paddleX = 0.5; // centre, 0..1
+  double _bx = 0.5, _by = 0.6; // ball centre
+  double _vx = 0.34, _vy = -0.55; // ball velocity (per second)
+  bool _started = false;
+  int _score = 0;
+  int _best = 0;
+  GameStatus _status = GameStatus.playing;
+
+  static const double _paddleW = 0.24;
+  static const double _ballR = 0.022;
+
+  @override
+  void initState() {
+    super.initState();
+    GameScores.instance.ensureLoaded().then((_) {
+      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+    });
+  }
+
+  @override
+  void onTick(double dt) {
+    if (_status != GameStatus.playing || !_started) return;
+    _bx += _vx * dt;
+    _by += _vy * dt;
+    if (_bx < _ballR) {
+      _bx = _ballR;
+      _vx = _vx.abs();
+    } else if (_bx > 1 - _ballR) {
+      _bx = 1 - _ballR;
+      _vx = -_vx.abs();
+    }
+    if (_by < 0.08 + _ballR) {
+      _by = 0.08 + _ballR;
+      _vy = _vy.abs();
+    }
+    // Paddle bounce.
+    const paddleY = 0.9;
+    if (_vy > 0 &&
+        _by + _ballR >= paddleY &&
+        _by < paddleY + 0.03 &&
+        (_bx - _paddleX).abs() < _paddleW / 2 + _ballR) {
+      _vy = -_vy.abs();
+      // Steer based on where it hit the paddle.
+      _vx += (_bx - _paddleX) * 1.2;
+      _vx = _vx.clamp(-0.7, 0.7);
+      TonePlayer.instance.playCue(SoundCue.ball);
+    }
+    // Brick collisions.
+    for (var i = 0; i < _bricks.length; i++) {
+      if (!_bricks[i]) continue;
+      final r = i ~/ _cols;
+      final c = i % _cols;
+      final bw = 1.0 / _cols;
+      final left = c * bw;
+      final top = 0.1 + r * 0.05;
+      final rect = Rect.fromLTWH(left + 0.008, top, bw - 0.016, 0.042);
+      if (_bx > rect.left - _ballR &&
+          _bx < rect.right + _ballR &&
+          _by > rect.top - _ballR &&
+          _by < rect.bottom + _ballR) {
+        _bricks[i] = false;
+        _vy = -_vy;
+        _score++;
+        TonePlayer.instance.playCue(SoundCue.brick);
+        emit(ExperienceEvent.bubblePopped);
+        GameScores.instance.submit(_id, _score).then((b) {
+          if (mounted && b != _best) setState(() => _best = b);
+        });
+        if (!_bricks.contains(true)) {
+          _status = GameStatus.won;
+          TonePlayer.instance.playCue(SoundCue.success);
+          emit(ExperienceEvent.gameCompleted);
+        }
+        break;
+      }
+    }
+    if (_by > 1) {
+      _status = GameStatus.over;
+      TonePlayer.instance.playCue(SoundCue.gameOver);
+      emit(ExperienceEvent.incorrectAnswer);
+    }
+  }
+
+  void _aim(double localX, double width) {
+    setState(() {
+      _started = true;
+      _paddleX = (localX / width).clamp(_paddleW / 2, 1 - _paddleW / 2);
+    });
+  }
+
+  void _reset() {
+    setState(() {
+      for (var i = 0; i < _bricks.length; i++) {
+        _bricks[i] = true;
+      }
+      _paddleX = 0.5;
+      _bx = 0.5;
+      _by = 0.6;
+      _vx = 0.34;
+      _vy = -0.55;
+      _started = false;
+      _score = 0;
+      _status = GameStatus.playing;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    drain(context);
+    return _Shell(
+      title: '🧱 Brick Break',
+      score: _score,
+      best: _best,
+      status: _status,
+      overEmoji: '🧱',
+      overText: 'Ball dropped!',
+      accent: const Color(0xFFFF6B6B),
+      onPlayAgain: _reset,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onPanUpdate: (d) => _aim(d.localPosition.dx, constraints.maxWidth),
+            onPanDown: (d) => _aim(d.localPosition.dx, constraints.maxWidth),
+            child: CustomPaint(
+              painter: _BrickPainter(_bricks, _cols, _paddleX, _paddleW, _bx,
+                  _by, _ballR, _started),
+              size: Size.infinite,
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _BrickPainter extends CustomPainter {
+  _BrickPainter(this.bricks, this.cols, this.paddleX, this.paddleW, this.bx,
+      this.by, this.ballR, this.started);
+  final List<bool> bricks;
+  final int cols;
+  final double paddleX;
+  final double paddleW;
+  final double bx;
+  final double by;
+  final double ballR;
+  final bool started;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    canvas.drawRect(
+        Offset.zero & size,
+        Paint()
+          ..shader = const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: <Color>[Color(0xFF20123A), Color(0xFF0E0820)],
+          ).createShader(Offset.zero & size));
+    final bw = 1.0 / cols;
+    for (var i = 0; i < bricks.length; i++) {
+      if (!bricks[i]) continue;
+      final r = i ~/ cols;
+      final c = i % cols;
+      final left = (c * bw + 0.008) * w;
+      final top = (0.1 + r * 0.05) * h;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+            Rect.fromLTWH(left, top, (bw - 0.016) * w, 0.042 * h),
+            const Radius.circular(4)),
+        Paint()
+          ..color =
+              HSVColor.fromAHSV(1, (r * 55).toDouble(), 0.6, 0.95).toColor(),
+      );
+    }
+    // Paddle.
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+          Rect.fromCenter(
+              center: Offset(paddleX * w, 0.92 * h),
+              width: paddleW * w,
+              height: 0.024 * h),
+          const Radius.circular(8)),
+      Paint()..color = const Color(0xFF4CC9F0),
+    );
+    // Ball.
+    canvas.drawCircle(
+        Offset(bx * w, by * h), ballR * w, Paint()..color = Colors.white);
+    if (!started) {
+      final tp = TextPainter(
+        text: const TextSpan(
+            text: 'Drag to move · release the ball',
+            style: TextStyle(
+                color: Colors.white70,
+                fontSize: 16,
+                fontWeight: FontWeight.w700)),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(canvas, Offset((w - tp.width) / 2, h * 0.72));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_BrickPainter oldDelegate) => true;
+}
+
+// ===========================================================================
+// Space Dodge — steer the rocket and survive the meteor field. The longer you
+// last the faster it gets; drifting into a meteor ends the run. Endless, score
+// climbs with distance.
+// ===========================================================================
+class SpaceDodgeGame extends StatefulWidget {
+  const SpaceDodgeGame({super.key});
+  @override
+  State<SpaceDodgeGame> createState() => _SpaceDodgeGameState();
+}
+
+class _Meteor {
+  _Meteor(this.x, this.y, this.r, this.vy);
+  double x, y, r, vy;
+}
+
+class _SpaceDodgeGameState extends State<SpaceDodgeGame>
+    with TickerProviderStateMixin, ToyTicker, _Emit {
+  static const String _id = 'space_dodge';
+  final math.Random _rnd = math.Random();
+  final List<_Meteor> _meteors = <_Meteor>[];
+  final List<Offset> _stars = <Offset>[];
+  double _shipX = 0.5;
+  double _elapsed = 0;
+  double _spawnIn = 0.6;
+  int _score = 0;
+  int _best = 0;
+  int _lastMilestone = 0;
+  GameStatus _status = GameStatus.playing;
+
+  static const double _shipR = 0.045;
+
+  @override
+  void initState() {
+    super.initState();
+    for (var i = 0; i < 40; i++) {
+      _stars.add(Offset(_rnd.nextDouble(), _rnd.nextDouble()));
+    }
+    GameScores.instance.ensureLoaded().then((_) {
+      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+    });
+  }
+
+  @override
+  void onTick(double dt) {
+    if (_status != GameStatus.playing) return;
+    _elapsed += dt;
+    _score = _elapsed.floor() * 5;
+    if (_score ~/ 50 > _lastMilestone) {
+      _lastMilestone = _score ~/ 50;
+      TonePlayer.instance.playCue(SoundCue.coin);
+      emit(ExperienceEvent.bubblePopped);
+    }
+    final speed = 0.35 + _elapsed * 0.02;
+    _spawnIn -= dt;
+    if (_spawnIn <= 0) {
+      _spawnIn = math.max(0.28, 0.7 - _elapsed * 0.015);
+      final r = 0.03 + _rnd.nextDouble() * 0.05;
+      _meteors.add(_Meteor(_rnd.nextDouble(), -0.1, r, speed));
+    }
+    for (final m in _meteors) {
+      m.y += m.vy * dt;
+      final dx = (m.x - _shipX);
+      final dy = (m.y - 0.85);
+      if (dx * dx + dy * dy < (m.r + _shipR) * (m.r + _shipR)) {
+        _status = GameStatus.over;
+        TonePlayer.instance.playCue(SoundCue.crash);
+        final prev = GameScores.instance.best(_id);
+        emit(_score > prev
+            ? ExperienceEvent.gameCompleted
+            : ExperienceEvent.incorrectAnswer);
+        GameScores.instance.submit(_id, _score).then((b) {
+          if (mounted) setState(() => _best = b);
+        });
+        return;
+      }
+    }
+    _meteors.removeWhere((m) => m.y > 1.2);
+  }
+
+  void _steer(double localX, double width) {
+    _shipX = (localX / width).clamp(_shipR, 1 - _shipR);
+  }
+
+  void _reset() {
+    setState(() {
+      _meteors.clear();
+      _shipX = 0.5;
+      _elapsed = 0;
+      _spawnIn = 0.6;
+      _score = 0;
+      _lastMilestone = 0;
+      _status = GameStatus.playing;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    drain(context);
+    return _Shell(
+      title: '🚀 Space Dodge',
+      score: _score,
+      best: _best,
+      status: _status,
+      overEmoji: '💥',
+      overText: 'Boom!',
+      accent: const Color(0xFF9B5DE5),
+      onPlayAgain: _reset,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onPanUpdate: (d) => _steer(d.localPosition.dx, constraints.maxWidth),
+            onPanDown: (d) => _steer(d.localPosition.dx, constraints.maxWidth),
+            child: CustomPaint(
+              painter: _SpacePainter(_meteors, _stars, _shipX, _shipR),
+              size: Size.infinite,
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _SpacePainter extends CustomPainter {
+  _SpacePainter(this.meteors, this.stars, this.shipX, this.shipR);
+  final List<_Meteor> meteors;
+  final List<Offset> stars;
+  final double shipX;
+  final double shipR;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    canvas.drawRect(
+        Offset.zero & size,
+        Paint()
+          ..shader = const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: <Color>[Color(0xFF0B1030), Color(0xFF05030F)],
+          ).createShader(Offset.zero & size));
+    final star = Paint()..color = Colors.white70;
+    for (final s in stars) {
+      canvas.drawCircle(Offset(s.dx * w, s.dy * h), 1.4, star);
+    }
+    final rock = Paint()..color = const Color(0xFF8D6E63);
+    for (final m in meteors) {
+      canvas.drawCircle(Offset(m.x * w, m.y * h), m.r * w, rock);
+      canvas.drawCircle(Offset(m.x * w, m.y * h), m.r * w,
+          Paint()..color = const Color(0xFF5D4037));
+    }
+    // Rocket.
+    final sx = shipX * w;
+    final sy = 0.85 * h;
+    final path = Path()
+      ..moveTo(sx, sy - shipR * w)
+      ..lineTo(sx - shipR * w * 0.7, sy + shipR * w)
+      ..lineTo(sx + shipR * w * 0.7, sy + shipR * w)
+      ..close();
+    canvas.drawPath(path, Paint()..color = const Color(0xFF4CC9F0));
+    canvas.drawCircle(Offset(sx, sy), shipR * w * 0.35,
+        Paint()..color = Colors.white);
+  }
+
+  @override
+  bool shouldRepaint(_SpacePainter oldDelegate) => true;
+}
+
+// ===========================================================================
+// Memory Flip — flip two cards at a time to find matching pairs. Match all six
+// pairs to win. A calm concentration game with no timer pressure.
+// ===========================================================================
+class MemoryFlipGame extends StatefulWidget {
+  const MemoryFlipGame({super.key});
+  @override
+  State<MemoryFlipGame> createState() => _MemoryFlipGameState();
+}
+
+class _MemoryFlipGameState extends State<MemoryFlipGame> with _Emit {
+  static const String _id = 'memory_flip';
+  static const List<String> _faces = <String>[
+    '🍎', '⭐', '🐢', '🎈', '🌸', '🚗'
+  ];
+  late List<String> _cards;
+  late List<bool> _matched;
+  int _first = -1;
+  int _second = -1;
+  bool _locked = false;
+  int _moves = 0;
+  int _pairs = 0;
+  int _best = 0; // fewest moves (lower is better) stored as 999 - moves
+  GameStatus _status = GameStatus.playing;
+
+  @override
+  void initState() {
+    super.initState();
+    _deal();
+    GameScores.instance.ensureLoaded().then((_) {
+      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+    });
+  }
+
+  void _deal() {
+    _cards = <String>[..._faces, ..._faces];
+    _cards.shuffle();
+    _matched = List<bool>.filled(_cards.length, false);
+    _first = -1;
+    _second = -1;
+    _locked = false;
+    _moves = 0;
+    _pairs = 0;
+    _status = GameStatus.playing;
+  }
+
+  void _tap(int i) {
+    if (_locked || _matched[i] || i == _first || _status != GameStatus.playing) {
+      return;
+    }
+    TonePlayer.instance.playCue(SoundCue.wood);
+    setState(() {
+      if (_first == -1) {
+        _first = i;
+      } else {
+        _second = i;
+        _moves++;
+        if (_cards[_first] == _cards[_second]) {
+          _matched[_first] = true;
+          _matched[_second] = true;
+          _pairs++;
+          TonePlayer.instance.playCue(SoundCue.learnGood);
+          _first = -1;
+          _second = -1;
+          if (_pairs >= _faces.length) {
+            _status = GameStatus.won;
+            TonePlayer.instance.playCue(SoundCue.success);
+            emit(ExperienceEvent.gameCompleted);
+            final score = math.max(0, 999 - _moves);
+            GameScores.instance.submit(_id, score).then((b) {
+              if (mounted) setState(() => _best = b);
+            });
+          } else {
+            emit(ExperienceEvent.bubblePopped);
+          }
+        } else {
+          _locked = true;
+          Future<void>.delayed(const Duration(milliseconds: 700), () {
+            if (!mounted) return;
+            setState(() {
+              _first = -1;
+              _second = -1;
+              _locked = false;
+            });
+          });
+        }
+      }
+    });
+  }
+
+  void _reset() => setState(_deal);
+
+  @override
+  Widget build(BuildContext context) {
+    drain(context);
+    return _Shell(
+      title: '🧠 Memory Flip',
+      score: _pairs,
+      target: _faces.length,
+      best: _best > 0 ? _moves : 0,
+      status: _status,
+      overEmoji: '🧠',
+      overText: 'Nice memory!',
+      accent: const Color(0xFF06D6A0),
+      onPlayAgain: _reset,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: <Color>[Color(0xFF10233A), Color(0xFF0A1626)],
+          ),
+        ),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 120, 20, 70),
+            child: GridView.count(
+              crossAxisCount: 3,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              physics: const NeverScrollableScrollPhysics(),
+              children: <Widget>[
+                for (var i = 0; i < _cards.length; i++)
+                  GestureDetector(
+                    onTapDown: (_) => _tap(i),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: _matched[i]
+                            ? const Color(0xFF06D6A0).withOpacity(0.35)
+                            : (i == _first || i == _second)
+                                ? Colors.white
+                                : const Color(0xFF1E3A5F),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Text(
+                        (_matched[i] || i == _first || i == _second)
+                            ? _cards[i]
+                            : '',
+                        style: const TextStyle(fontSize: 40),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 

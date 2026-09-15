@@ -126,6 +126,18 @@ const List<ToyMeta> kToyCatalog = <ToyMeta>[
   ToyMeta(id: 'tictactoe', title: 'Tic-Tac-Toe', emoji: '⭕', implemented: true,
       gradient: [Color(0xFF43E97B), Color(0xFF12314A)],
       channels: [SensoryChannel.visual]),
+  ToyMeta(id: 'brick_break', title: 'Brick Break', emoji: '🧱',
+      implemented: true,
+      gradient: [Color(0xFFFF6B6B), Color(0xFF20123A)],
+      channels: [SensoryChannel.visual, SensoryChannel.proprioceptive]),
+  ToyMeta(id: 'space_dodge', title: 'Space Dodge', emoji: '🚀',
+      implemented: true,
+      gradient: [Color(0xFF9B5DE5), Color(0xFF0B1030)],
+      channels: [SensoryChannel.visual, SensoryChannel.vestibular]),
+  ToyMeta(id: 'memory_flip', title: 'Memory Flip', emoji: '🧠',
+      implemented: true,
+      gradient: [Color(0xFF06D6A0), Color(0xFF10233A)],
+      channels: [SensoryChannel.visual]),
 ];
 
 ToyMeta toyMetaById(String id) =>

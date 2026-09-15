@@ -430,6 +430,24 @@ final List<UniverseToy> kToyUniverse = <UniverseToy>[
     category: ToyCategory.learning, inputs: const [ToyInput.tap],
     engagement: ToyEngagement.deep, build: _play('tictactoe'), isNew: true,
   ),
+  UniverseToy(
+    id: 'brick_break', name: 'Brick Break', emoji: '🧱',
+    color: const Color(0xFFFF6B6B),
+    category: ToyCategory.creative, inputs: const [ToyInput.drag],
+    engagement: ToyEngagement.deep, build: _play('brick_break'), isNew: true,
+  ),
+  UniverseToy(
+    id: 'space_dodge', name: 'Space Dodge', emoji: '🚀',
+    color: const Color(0xFF9B5DE5),
+    category: ToyCategory.creative, inputs: const [ToyInput.drag],
+    engagement: ToyEngagement.deep, build: _play('space_dodge'), isNew: true,
+  ),
+  UniverseToy(
+    id: 'memory_flip', name: 'Memory Flip', emoji: '🧠',
+    color: const Color(0xFF06D6A0),
+    category: ToyCategory.learning, inputs: const [ToyInput.tap],
+    engagement: ToyEngagement.deep, build: _play('memory_flip'), isNew: true,
+  ),
 
   // ---- Sensory Lab: premium physics experiences (6) ----
   const UniverseToy(
@@ -518,10 +536,13 @@ List<UniverseToy> _byIds(List<String> ids) => ids
 const List<String> kFeaturedOrder = <String>[
   'snake',
   'sky_hop',
+  'brick_break',
   'racing',
+  'space_dodge',
   'merge',
   'bowling',
   'stack',
+  'memory_flip',
   'whack',
   'car_track',
   'snack_studio',
@@ -538,12 +559,15 @@ List<UniverseToy> featuredToys() => _byIds(kFeaturedOrder);
 List<UniverseToy> gamesToys() => _byIds(<String>[
       'snake',
       'sky_hop',
+      'brick_break',
+      'space_dodge',
       'racing',
       'bowling',
       'merge',
       'stack',
       'whack',
       'echo',
+      'memory_flip',
       'tictactoe',
       'car_track',
       'snack_studio',
@@ -590,6 +614,8 @@ List<UniverseToy> smartPlayToys() => _byIds(<String>[
 List<UniverseToy> arcadeToys() => _byIds(<String>[
       'snake',
       'sky_hop',
+      'brick_break',
+      'space_dodge',
       'whack',
       'stack',
       'balloon_pop',
@@ -609,6 +635,7 @@ List<UniverseToy> racingSkillToys() => _byIds(<String>[
 /// Puzzles, memory and brain teasers.
 List<UniverseToy> puzzleBrainToys() => _byIds(<String>[
       'merge',
+      'memory_flip',
       'echo',
       'tictactoe',
       'learn_matching_pairs',

@@ -15,6 +15,34 @@ enum SoundCue {
   milestone,
   completion,
   calm,
+  // --- Contextual material / interaction vocabulary -------------------------
+  // Each of these renders a physically distinct sound so a wooden tap, a metal
+  // click, a water drop and a coin never share one generic beep.
+  sand,
+  water,
+  bubble,
+  balloon,
+  ball,
+  bowling,
+  wood,
+  metal,
+  coin,
+  marble,
+  stack,
+  engine,
+  crash,
+  laser,
+  brick,
+  snakeEat,
+  paint,
+  paper,
+  fruit,
+  ripple,
+  learnGood,
+  talkAck,
+  routineDone,
+  success,
+  gameOver,
 }
 
 /// Lightweight procedural sound engine for the sensory toys.
@@ -126,6 +154,27 @@ class TonePlayer {
       SoundCue.correct || SoundCue.gentleRetry => 220,
       SoundCue.milestone || SoundCue.completion => 700,
       SoundCue.calm => 500,
+      // Contextual cues: fast tactile ones get short cooldowns, ambient and
+      // resolution cues get long ones so they never spam.
+      SoundCue.brick ||
+      SoundCue.marble ||
+      SoundCue.snakeEat =>
+        60,
+      SoundCue.ball ||
+      SoundCue.wood ||
+      SoundCue.metal ||
+      SoundCue.stack ||
+      SoundCue.bubble ||
+      SoundCue.paper =>
+        70,
+      SoundCue.sand || SoundCue.paint => 100,
+      SoundCue.water || SoundCue.fruit || SoundCue.coin => 110,
+      SoundCue.balloon || SoundCue.laser => 130,
+      SoundCue.engine => 150,
+      SoundCue.talkAck || SoundCue.learnGood => 180,
+      SoundCue.ripple || SoundCue.routineDone => 400,
+      SoundCue.bowling => 500,
+      SoundCue.success || SoundCue.crash || SoundCue.gameOver => 700,
     };
     if (last != null && now.difference(last).inMilliseconds < cooldown) return;
     _lastCueAt[cue] = now;
@@ -151,6 +200,82 @@ class TonePlayer {
       case SoundCue.calm:
         await _play(196,
             seconds: 0.55, wave: _Wave.sine, attack: 0.08, decay: 3.2);
+      // --- Contextual material vocabulary ------------------------------------
+      case SoundCue.sand:
+        await _playKeyed('sand', () => _synthGrain(0.20, 0.9), volume: 0.5);
+      case SoundCue.water:
+        await _playKeyed('water', () => _synthDroplet(760), volume: 0.7);
+      case SoundCue.bubble:
+        await _playKeyed('bubble', () => _synthPop(520), volume: 0.7);
+      case SoundCue.balloon:
+        await _playKeyed('balloon', () => _synthPop(280), volume: 0.95);
+      case SoundCue.ball:
+        await _playNoise(
+            'ball', () => _synthClick(420, 0.06, 60, 0.4), volume: 0.7);
+      case SoundCue.bowling:
+        await _playKeyed('bowl', () => _synthRumble(0.5), volume: 0.75);
+        await Future<void>.delayed(const Duration(milliseconds: 300));
+        await _playNoise(
+            'bowlpins', () => _synthClick(1400, 0.09, 90, 0.7), volume: 0.6);
+      case SoundCue.wood:
+        await _playNoise(
+            'wood', () => _synthClick(300, 0.07, 45, 0.35), volume: 0.7);
+      case SoundCue.metal:
+        await _playKeyed('metal', () => _synthRing(1250, 0.22), volume: 0.55);
+      case SoundCue.coin:
+        await playNote(5, seconds: 0.10);
+        await Future<void>.delayed(const Duration(milliseconds: 55));
+        await playNote(9, seconds: 0.16);
+      case SoundCue.marble:
+        await _playNoise(
+            'marble', () => _synthClick(1600, 0.03, 120, 0.5), volume: 0.5);
+      case SoundCue.stack:
+        await _playNoise(
+            'stack', () => _synthClick(220, 0.08, 40, 0.3), volume: 0.75);
+      case SoundCue.engine:
+        await _playKeyed('engine', () => _synthEngine(0.18), volume: 0.5);
+      case SoundCue.crash:
+        await _playNoise(
+            'crash', () => _synthClick(140, 0.20, 16, 0.85), volume: 0.8);
+      case SoundCue.laser:
+        await _playKeyed('laser', () => _synthLaser(0.22), volume: 0.55);
+      case SoundCue.brick:
+        await _playNoise(
+            'brick', () => _synthClick(1000, 0.04, 120, 0.4), volume: 0.6);
+      case SoundCue.snakeEat:
+        await _playKeyed('eat', () => _synthPop(620), volume: 0.7);
+      case SoundCue.paint:
+        await _playKeyed('paint', () => _synthGrain(0.26, 0.75), volume: 0.5);
+      case SoundCue.paper:
+        await _playKeyed('paper', () => _synthGrain(0.12, 1.0), volume: 0.55);
+      case SoundCue.fruit:
+        await _playKeyed('fruit', () => _synthPop(440), volume: 0.7);
+      case SoundCue.ripple:
+        await _play(196,
+            seconds: 0.62, wave: _Wave.sine, attack: 0.12, decay: 2.4);
+      case SoundCue.learnGood:
+        await playNote(4, seconds: 0.16);
+        await Future<void>.delayed(const Duration(milliseconds: 70));
+        await playNote(7, seconds: 0.22);
+      case SoundCue.talkAck:
+        await _play(392,
+            seconds: 0.28, wave: _Wave.sine, attack: 0.03, decay: 4);
+      case SoundCue.routineDone:
+        await playNote(2, seconds: 0.16);
+        await Future<void>.delayed(const Duration(milliseconds: 80));
+        await playNote(5, seconds: 0.28);
+      case SoundCue.success:
+        await playNote(4, seconds: 0.14);
+        await Future<void>.delayed(const Duration(milliseconds: 70));
+        await playNote(7, seconds: 0.14);
+        await Future<void>.delayed(const Duration(milliseconds: 70));
+        await playNote(9, seconds: 0.34);
+      case SoundCue.gameOver:
+        await _play(300,
+            seconds: 0.20, wave: _Wave.sine, attack: 0.02, decay: 5);
+        await Future<void>.delayed(const Duration(milliseconds: 110));
+        await _play(200,
+            seconds: 0.30, wave: _Wave.sine, attack: 0.02, decay: 4);
     }
   }
 
@@ -264,6 +389,110 @@ class TonePlayer {
       final noise = _rng.nextDouble() * 2 - 1;
       prev = prev * 0.92 + noise * 0.08;
       data[i] = (prev * env * 32767 * 3.0).round().clamp(-32768, 32767);
+    }
+    return _wrapWav(data);
+  }
+
+  /// Heavily low-passed noise under a soft bell envelope — granular movement
+  /// for sand, paint strokes and paper. [smooth] (0..1) sets how muffled it is.
+  Uint8List _synthGrain(double seconds, double smooth) {
+    final frames = (seconds * _sampleRate).round();
+    final data = Int16List(frames);
+    final a = 0.02 + smooth * 0.14; // low-pass coefficient
+    double prev = 0;
+    for (var i = 0; i < frames; i++) {
+      final prog = i / frames;
+      final env = math.sin(math.pi * prog); // soft swell in/out
+      final noise = _rng.nextDouble() * 2 - 1;
+      prev = prev * (1 - a) + noise * a;
+      data[i] = (prev * env * 32767 * 2.6).round().clamp(-32768, 32767);
+    }
+    return _wrapWav(data);
+  }
+
+  /// A single water droplet: a short sine whose pitch rises then falls with a
+  /// tiny transient plip at the very start.
+  Uint8List _synthDroplet(double baseFreq) {
+    const seconds = 0.13;
+    final frames = (seconds * _sampleRate).round();
+    final data = Int16List(frames);
+    for (var i = 0; i < frames; i++) {
+      final t = i / _sampleRate;
+      final prog = t / seconds;
+      // Pitch arcs up ~50% then settles.
+      final freq = baseFreq * (1.0 + 0.5 * math.sin(prog * math.pi));
+      final env = t < 0.004 ? t / 0.004 : math.exp(-(t - 0.004) * 26);
+      final body = math.sin(2 * math.pi * freq * t);
+      final plip = i < 60 ? (_rng.nextDouble() * 2 - 1) * 0.3 : 0.0;
+      final s = body * 0.85 + plip;
+      data[i] = (s * env * 32767 * 0.85).round().clamp(-32768, 32767);
+    }
+    return _wrapWav(data);
+  }
+
+  /// A metallic ring — fundamental plus a slightly detuned upper partial with a
+  /// long-ish decay so it shimmers like struck metal.
+  Uint8List _synthRing(double freq, double seconds) {
+    final frames = (seconds * _sampleRate).round();
+    final data = Int16List(frames);
+    for (var i = 0; i < frames; i++) {
+      final t = i / _sampleRate;
+      final env = t < 0.003 ? t / 0.003 : math.exp(-(t - 0.003) * 14);
+      final s = math.sin(2 * math.pi * freq * t) * 0.6 +
+          math.sin(2 * math.pi * freq * 2.76 * t) * 0.4;
+      data[i] = (s * env * 32767 * 0.6).round().clamp(-32768, 32767);
+    }
+    return _wrapWav(data);
+  }
+
+  /// A low rolling rumble — heavily low-passed noise that swells then fades,
+  /// used for a bowling ball travelling the lane.
+  Uint8List _synthRumble(double seconds) {
+    final frames = (seconds * _sampleRate).round();
+    final data = Int16List(frames);
+    double prev = 0;
+    for (var i = 0; i < frames; i++) {
+      final prog = i / frames;
+      final env = math.sin(math.pi * prog);
+      final noise = _rng.nextDouble() * 2 - 1;
+      prev = prev * 0.975 + noise * 0.025; // very low cutoff = deep rumble
+      data[i] = (prev * env * 32767 * 5.0).round().clamp(-32768, 32767);
+    }
+    return _wrapWav(data);
+  }
+
+  /// A steady buzzy engine tone — stacked low sines with a touch of grit.
+  Uint8List _synthEngine(double seconds) {
+    final frames = (seconds * _sampleRate).round();
+    final data = Int16List(frames);
+    for (var i = 0; i < frames; i++) {
+      final t = i / _sampleRate;
+      final env = t < 0.02
+          ? t / 0.02
+          : (t > seconds - 0.03 ? (seconds - t) / 0.03 : 1.0);
+      final s = math.sin(2 * math.pi * 90 * t) * 0.5 +
+          math.sin(2 * math.pi * 135 * t) * 0.3 +
+          (_rng.nextDouble() * 2 - 1) * 0.15;
+      data[i] = (s * env.clamp(0, 1) * 32767 * 0.5)
+          .round()
+          .clamp(-32768, 32767);
+    }
+    return _wrapWav(data);
+  }
+
+  /// A futuristic zap — a sine sweeping downward in pitch with a bright ring,
+  /// for space dodging and laser bricks.
+  Uint8List _synthLaser(double seconds) {
+    final frames = (seconds * _sampleRate).round();
+    final data = Int16List(frames);
+    for (var i = 0; i < frames; i++) {
+      final t = i / _sampleRate;
+      final prog = t / seconds;
+      final freq = 1400 * (1.0 - 0.7 * prog) + 200;
+      final env = math.exp(-t * 10);
+      final s = math.sin(2 * math.pi * freq * t) * 0.7 +
+          math.sin(2 * math.pi * freq * 1.5 * t) * 0.3;
+      data[i] = (s * env * 32767 * 0.6).round().clamp(-32768, 32767);
     }
     return _wrapWav(data);
   }

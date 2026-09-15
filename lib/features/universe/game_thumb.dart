@@ -29,6 +29,9 @@ class GameThumb extends StatelessWidget {
     'merge',
     'echo',
     'tictactoe',
+    'brick_break',
+    'space_dodge',
+    'memory_flip',
   };
 
   @override
@@ -91,6 +94,12 @@ class _ThumbPainter extends CustomPainter {
         _echo(canvas, w, h);
       case 'tictactoe':
         _tictactoe(canvas, w, h);
+      case 'brick_break':
+        _brickBreak(canvas, w, h);
+      case 'space_dodge':
+        _spaceDodge(canvas, w, h);
+      case 'memory_flip':
+        _memoryFlip(canvas, w, h);
     }
   }
 
@@ -420,6 +429,78 @@ class _ThumbPainter extends CustomPainter {
       textDirection: TextDirection.ltr,
     )..layout();
     tp2.paint(canvas, Offset(w * 0.55, h * 0.5));
+  }
+
+  void _brickBreak(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, <Color>[const Color(0xFF20123A), const Color(0xFF0E0820)]);
+    for (var r = 0; r < 3; r++) {
+      for (var c = 0; c < 5; c++) {
+        canvas.drawRRect(
+            RRect.fromRectAndRadius(
+                Rect.fromLTWH(w * (0.14 + c * 0.15), h * (0.2 + r * 0.12),
+                    w * 0.12, h * 0.08),
+                const Radius.circular(3)),
+            Paint()
+              ..color = HSVColor.fromAHSV(1, (r * 55).toDouble(), 0.6, 0.95)
+                  .toColor());
+      }
+    }
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(
+            Rect.fromCenter(
+                center: Offset(w * 0.5, h * 0.86),
+                width: w * 0.26,
+                height: h * 0.05),
+            const Radius.circular(6)),
+        Paint()..color = const Color(0xFF4CC9F0));
+    canvas.drawCircle(Offset(w * 0.5, h * 0.72), w * 0.035,
+        Paint()..color = Colors.white);
+  }
+
+  void _spaceDodge(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, <Color>[const Color(0xFF0B1030), const Color(0xFF05030F)]);
+    final star = Paint()..color = Colors.white70;
+    for (var i = 0; i < 12; i++) {
+      canvas.drawCircle(
+          Offset(w * ((i * 0.19) % 1), h * ((i * 0.13) % 1)), 1.3, star);
+    }
+    final rock = Paint()..color = const Color(0xFF8D6E63);
+    canvas.drawCircle(Offset(w * 0.35, h * 0.35), w * 0.06, rock);
+    canvas.drawCircle(Offset(w * 0.62, h * 0.55), w * 0.05, rock);
+    final ship = Path()
+      ..moveTo(w * 0.5, h * 0.72)
+      ..lineTo(w * 0.44, h * 0.86)
+      ..lineTo(w * 0.56, h * 0.86)
+      ..close();
+    canvas.drawPath(ship, Paint()..color = const Color(0xFF4CC9F0));
+  }
+
+  void _memoryFlip(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, <Color>[const Color(0xFF10233A), const Color(0xFF0A1626)]);
+    final faces = <String>['🍎', '?', '?', '🍎', '?', '⭐'];
+    var k = 0;
+    for (var r = 0; r < 2; r++) {
+      for (var c = 0; c < 3; c++) {
+        final rect = Rect.fromLTWH(
+            w * (0.16 + c * 0.24), h * (0.3 + r * 0.26), w * 0.17, w * 0.17);
+        final up = faces[k] != '?';
+        canvas.drawRRect(
+            RRect.fromRectAndRadius(rect, const Radius.circular(6)),
+            Paint()
+              ..color = up
+                  ? const Color(0xFF06D6A0).withOpacity(0.35)
+                  : const Color(0xFF1E3A5F));
+        if (up) {
+          final tp = TextPainter(
+            text: TextSpan(
+                text: faces[k], style: const TextStyle(fontSize: 13)),
+            textDirection: TextDirection.ltr,
+          )..layout();
+          tp.paint(canvas, rect.center - Offset(tp.width / 2, tp.height / 2));
+        }
+        k++;
+      }
+    }
   }
 
   @override

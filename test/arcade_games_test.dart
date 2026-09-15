@@ -79,4 +79,32 @@ void main() {
     }
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('Brick Break builds and runs the ball', (tester) async {
+    await _pump(tester, const BrickBreakGame());
+    expect(find.textContaining('Brick Break'), findsOneWidget);
+    await tester.dragFrom(const Offset(300, 1900), const Offset(120, 0));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Space Dodge builds and steers', (tester) async {
+    await _pump(tester, const SpaceDodgeGame());
+    expect(find.textContaining('Space Dodge'), findsOneWidget);
+    await tester.dragFrom(const Offset(400, 1900), const Offset(180, 0));
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Memory Flip builds and flips cards', (tester) async {
+    await _pump(tester, const MemoryFlipGame());
+    expect(find.textContaining('Memory Flip'), findsOneWidget);
+    await tester.tapAt(const Offset(300, 1000));
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.tapAt(const Offset(540, 1000));
+    await tester.pump(const Duration(milliseconds: 900));
+    expect(tester.takeException(), isNull);
+  });
 }
