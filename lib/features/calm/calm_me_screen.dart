@@ -7,6 +7,9 @@ import '../../core/theme/app_colors.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/harshiv_scaffold.dart';
 import '../../models/regulation_entry.dart';
+import '../antistress/toys/lava_blobs.dart';
+import '../antistress/toys/sand_fall.dart';
+import '../antistress/toys/water_drop.dart';
 import '../companion/companion.dart';
 import '../lifeskills/avatar/hari_cards.dart';
 import '../lifeskills/avatar/pico.dart';
@@ -59,6 +62,39 @@ class _CalmMeScreenState extends State<CalmMeScreen> {
     );
   }
 
+  void _openCalmActivity(_CalmActivity activity) {
+    _companion.calm();
+    HapticFeedback.selectionClick();
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => Scaffold(
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            title: Text(activity.title),
+          ),
+          body: activity.build(),
+        ),
+      ),
+    );
+  }
+
+  // Genuinely calming, no-fail interactive experiences — Calm is a place, not
+  // a single screen. Breathing keeps its own dedicated entry above.
+  static final List<_CalmActivity> _calmActivities = <_CalmActivity>[
+    _CalmActivity('Water Ripples', '💧', const <Color>[
+      Color(0x6638B2F9),
+      Color(0x6600BBF9),
+    ], () => const WaterDropToy()),
+    _CalmActivity('Kinetic Sand', '🏜️', const <Color>[
+      Color(0x66FFB703),
+      Color(0x66FB8500),
+    ], () => const SandFallToy()),
+    _CalmActivity('Floating Lights', '🫧', const <Color>[
+      Color(0x66F15BB5),
+      Color(0x669B5DE5),
+    ], () => const LavaBlobsToy()),
+  ];
+
   @override
   Widget build(BuildContext context) {
     return HarshivScaffold(
@@ -67,28 +103,29 @@ class _CalmMeScreenState extends State<CalmMeScreen> {
           const Positioned.fill(
             child: IgnorePointer(child: _CalmAtmosphere()),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Row(
-                children: <Widget>[
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                  const SizedBox(width: 4),
-                  const Expanded(
-                    child: Text('How do you feel?',
-                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white)),
-                  ),
-                  const SizedBox(
-                    width: 52,
-                    height: 52,
-                    child: PicoWidget(mood: PicoMood.comforting),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-              ),
+          SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(
+                  children: <Widget>[
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                    const SizedBox(width: 4),
+                    const Expanded(
+                      child: Text('How do you feel?',
+                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white)),
+                    ),
+                    const SizedBox(
+                      width: 52,
+                      height: 52,
+                      child: PicoWidget(mood: PicoMood.comforting),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                ),
               const Padding(
                 padding: EdgeInsets.fromLTRB(20, 4, 20, 6),
                 child: Text('Try a calming idea with Hari, or tell me how you feel.',
@@ -129,6 +166,19 @@ class _CalmMeScreenState extends State<CalmMeScreen> {
                 ),
               ),
               SizedBox(
+                height: 116,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                  itemCount: _calmActivities.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 12),
+                  itemBuilder: (context, i) => _CalmActivityCard(
+                    activity: _calmActivities[i],
+                    onTap: () => _openCalmActivity(_calmActivities[i]),
+                  ),
+                ),
+              ),
+              SizedBox(
                 height: 300,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
@@ -152,30 +202,32 @@ class _CalmMeScreenState extends State<CalmMeScreen> {
                         fontSize: 16,
                         fontWeight: FontWeight.w800)),
               ),
-              Expanded(
-                child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  itemCount: CalmMood.values.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 14),
-                  itemBuilder: (context, i) {
-                    final mood = CalmMood.values[i];
-                    return _MoodButton(
-                      mood: mood,
-                      color: _colors[mood]!,
-                      onTap: () {
-                        _companion.calm();
-                        HapticFeedback.mediumImpact();
-                        Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => CalmSequenceScreen(mood: mood),
-                          ),
-                        );
-                      },
-                    );
-                  },
+              Padding(
+                padding: const EdgeInsets.fromLTRB(0, 8, 0, 130),
+                child: Column(
+                  children: <Widget>[
+                    for (final mood in CalmMood.values) ...<Widget>[
+                      _MoodButton(
+                        mood: mood,
+                        color: _colors[mood]!,
+                        onTap: () {
+                          _companion.calm();
+                          HapticFeedback.mediumImpact();
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => CalmSequenceScreen(mood: mood),
+                            ),
+                          );
+                        },
+                      ),
+                      if (mood != CalmMood.values.last)
+                        const SizedBox(height: 14),
+                    ],
+                  ],
                 ),
               ),
             ],
+            ),
           ),
           Positioned(
             right: 8,
@@ -222,11 +274,59 @@ class _MoodButton extends StatelessWidget {
   }
 }
 
+/// A single one-tap calming activity that opens full-screen.
+class _CalmActivity {
+  const _CalmActivity(this.title, this.emoji, this.gradient, this.build);
+  final String title;
+  final String emoji;
+  final List<Color> gradient;
+  final Widget Function() build;
+}
+
+class _CalmActivityCard extends StatelessWidget {
+  const _CalmActivityCard({required this.activity, required this.onTap});
+  final _CalmActivity activity;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 132,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: activity.gradient,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white24),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: <Widget>[
+            Text(activity.emoji, style: const TextStyle(fontSize: 30)),
+            Text(activity.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// A slow, living backdrop for Calm — soft coloured orbs drifting and breathing
 /// so the screen feels like an atmosphere to settle into, not a menu.
 class _CalmAtmosphere extends StatefulWidget {
   const _CalmAtmosphere();
-
   @override
   State<_CalmAtmosphere> createState() => _CalmAtmosphereState();
 }

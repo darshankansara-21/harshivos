@@ -38,20 +38,25 @@ const List<_CoreWord> _coreWords = <_CoreWord>[
 /// (`speak: false`) prime the strip so a child adds the object then taps say;
 /// complete phrases (`speak: true`) are spoken immediately.
 class _Starter {
-  const _Starter(this.label, this.emoji, this.parts, {this.speak = false});
+  const _Starter(this.label, this.emoji, this.parts,
+      {this.speak = false, this.category});
   final String label;
   final String emoji;
   final List<_CoreWord> parts;
   final bool speak;
+  final String? category;
 }
 
 const List<_Starter> _starters = <_Starter>[
   _Starter('I want', '👉',
-      <_CoreWord>[_CoreWord('I', '🙋'), _CoreWord('want', '👉')]),
+      <_CoreWord>[_CoreWord('I', '🙋'), _CoreWord('want', '👉')],
+      category: 'Food'),
   _Starter('I need', '🙏',
-      <_CoreWord>[_CoreWord('I', '🙋'), _CoreWord('need', '🙏')]),
+      <_CoreWord>[_CoreWord('I', '🙋'), _CoreWord('need', '🙏')],
+      category: 'Needs'),
   _Starter('I feel', '💗',
-      <_CoreWord>[_CoreWord('I', '🙋'), _CoreWord('feel', '💗')]),
+      <_CoreWord>[_CoreWord('I', '🙋'), _CoreWord('feel', '💗')],
+      category: 'Emotions'),
   _Starter('I like', '⭐',
       <_CoreWord>[_CoreWord('I', '🙋'), _CoreWord('like', '⭐')]),
   _Starter('Help me', '🆘',
@@ -374,6 +379,10 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
     setState(() {
       for (final p in s.parts) {
         _strip.add(_Word(p.label, p.emoji, accent));
+      }
+      // Jump straight to the relevant board so the next choice is one tap away.
+      if (s.category != null && kTalkCategories.contains(s.category)) {
+        _category = s.category!;
       }
     });
     ref
