@@ -282,7 +282,7 @@ class _FruitCatchGameState extends State<FruitCatchGame>
     _combo++;
     final gain = (f.kind == 1 ? 3 : 1) + (_combo >= 3 ? 1 : 0);
     _score += gain;
-    TonePlayer.instance.playPop(0.5 + _rnd.nextDouble() * 0.4);
+    TonePlayer.instance.playCue(SoundCue.fruit);
     emit(ExperienceEvent.bubblePopped);
     if (f.kind == 1) {
       _flash('Bonus +3!');
@@ -479,7 +479,7 @@ class _BalloonPopGameState extends State<BalloonPopGame>
         }
         _combo++;
         _score += (b.kind == 1 ? 3 : 1) + (_combo >= 4 ? 1 : 0);
-        TonePlayer.instance.playPop(0.4 + _rnd.nextDouble() * 0.5);
+        TonePlayer.instance.playCue(SoundCue.balloon);
         emit(ExperienceEvent.bubblePopped);
         if (b.kind == 1) {
           _flash('Bonus +3!');
@@ -874,7 +874,7 @@ class _SnakeGameState extends State<SnakeGame>
       _combo = _sinceEat < 2.5 ? _combo + 1 : 1;
       _sinceEat = 0;
       _score += (_foodKind == 1 ? 3 : 1) + (_combo >= 3 ? 1 : 0);
-      TonePlayer.instance.playPop(0.5 + _rnd.nextDouble() * 0.4);
+      TonePlayer.instance.playCue(SoundCue.snakeEat);
       emit(ExperienceEvent.bubblePopped);
       if (_foodKind == 1) {
         _flash('Golden +3!');
@@ -894,7 +894,7 @@ class _SnakeGameState extends State<SnakeGame>
   void _gameOver() {
     final prev = GameScores.instance.best(_id);
     _status = GameStatus.over;
-    TonePlayer.instance.playCue(SoundCue.gentleRetry);
+    TonePlayer.instance.playCue(SoundCue.gameOver);
     emit(_score > prev
         ? ExperienceEvent.gameCompleted
         : ExperienceEvent.incorrectAnswer);
@@ -1133,7 +1133,7 @@ class _RacingGameState extends State<RacingGame>
       if (c.y >= 0.78 && c.y <= 0.92 && c.lane == _lane) {
         if (c.coin) {
           _score += 5;
-          TonePlayer.instance.playPop(0.65);
+          TonePlayer.instance.playCue(SoundCue.coin);
           emit(ExperienceEvent.bubblePopped);
           _flash('+5 coin!');
           return true;
@@ -1148,7 +1148,7 @@ class _RacingGameState extends State<RacingGame>
   void _crash() {
     final prev = GameScores.instance.best(_id);
     _status = GameStatus.over;
-    TonePlayer.instance.playCue(SoundCue.gentleRetry);
+    TonePlayer.instance.playCue(SoundCue.crash);
     emit(_score > prev
         ? ExperienceEvent.gameCompleted
         : ExperienceEvent.incorrectAnswer);
@@ -1375,7 +1375,7 @@ class _BowlingGameState extends State<BowlingGame>
       final speed = 0.7 + _power * 1.1;
       _vy = -speed;
       _vx = _aim * 0.5 * speed;
-      TonePlayer.instance.playWhir();
+      TonePlayer.instance.playCue(SoundCue.bowling);
       setState(() => _phase = _BowlPhase.rolling);
     }
   }
