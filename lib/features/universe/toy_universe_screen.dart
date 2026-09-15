@@ -518,8 +518,9 @@ class _HariGreetingState extends State<_HariGreeting> {
   }
 }
 
-/// The six core destinations, always one tap from the front door. Emoji-led
-/// and one word each so a non-reading child can navigate the whole app.
+/// The core worlds of WonderPlay, always one tap from the front door. Large,
+/// distinct cards so the home feels like a place to explore — and so a
+/// non-reading child can navigate the whole app by colour and picture.
 class _CoreDestinations extends StatelessWidget {
   const _CoreDestinations({required this.onPlay});
   final VoidCallback onPlay;
@@ -530,61 +531,84 @@ class _CoreDestinations extends StatelessWidget {
           MaterialPageRoute<void>(builder: (_) => screen),
         );
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 2),
-      child: Row(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Expanded(
-            child: _DestinationCard(
-              emoji: '\u2B50',
-              label: 'Play',
-              colors: const <Color>[Color(0xFF9B5DE5), Color(0xFFF15BB5)],
-              onTap: onPlay,
-            ),
+          Padding(
+            padding: const EdgeInsets.only(left: 2, bottom: 10),
+            child: Text('Where to today?',
+                style: TextStyle(
+                    color: Colors.white.withOpacity(0.85),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800)),
           ),
-          const SizedBox(width: 9),
-          Expanded(
-            child: _DestinationCard(
-              emoji: '\uD83D\uDDFA\uFE0F',
-              label: 'Adventure',
-              colors: const <Color>[Color(0xFF5E60CE), Color(0xFF4EA8DE)],
-              onTap: () => go(const AdventureHubScreen()),
-            ),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: _DestinationCard(
+                  emoji: '\u2B50',
+                  label: 'Play',
+                  subtitle: 'Games & toys',
+                  colors: const <Color>[Color(0xFF9B5DE5), Color(0xFFF15BB5)],
+                  onTap: onPlay,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _DestinationCard(
+                  emoji: '\uD83C\uDF93',
+                  label: 'Learn',
+                  subtitle: 'Playful smarts',
+                  colors: const <Color>[Color(0xFF06D6A0), Color(0xFF43E97B)],
+                  onTap: () => go(const LearnScreen()),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _DestinationCard(
+                  emoji: '\uD83C\uDF0A',
+                  label: 'Calm',
+                  subtitle: 'Relax & breathe',
+                  colors: const <Color>[Color(0xFF0891B2), Color(0xFF06D6A0)],
+                  onTap: () => go(const CalmMeScreen()),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 9),
-          Expanded(
-            child: _DestinationCard(
-              emoji: '\uD83C\uDF0A',
-              label: 'Calm',
-              colors: const <Color>[Color(0xFF0891B2), Color(0xFF06D6A0)],
-              onTap: () => go(const CalmMeScreen()),
-            ),
-          ),
-          const SizedBox(width: 9),
-          Expanded(
-            child: _DestinationCard(
-              emoji: '\uD83D\uDCAC',
-              label: 'Talk',
-              colors: const <Color>[Color(0xFF4361EE), Color(0xFF38B2F9)],
-              onTap: () => go(const TalkScreen()),
-            ),
-          ),
-          const SizedBox(width: 9),
-          Expanded(
-            child: _DestinationCard(
-              emoji: '\uD83C\uDF08',
-              label: 'Routines',
-              colors: const <Color>[Color(0xFFFF9E6D), Color(0xFFF7B801)],
-              onTap: () => go(const DailyLifeScreen()),
-            ),
-          ),
-          const SizedBox(width: 9),
-          Expanded(
-            child: _DestinationCard(
-              emoji: '\uD83C\uDF93',
-              label: 'Learn',
-              colors: const <Color>[Color(0xFF06D6A0), Color(0xFF43E97B)],
-              onTap: () => go(const LearnScreen()),
-            ),
+          const SizedBox(height: 10),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: _DestinationCard(
+                  emoji: '\uD83D\uDCAC',
+                  label: 'Talk',
+                  subtitle: 'Say it your way',
+                  colors: const <Color>[Color(0xFF4361EE), Color(0xFF38B2F9)],
+                  onTap: () => go(const TalkScreen()),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _DestinationCard(
+                  emoji: '\uD83C\uDF08',
+                  label: 'Routines',
+                  subtitle: 'Daily flow',
+                  colors: const <Color>[Color(0xFFFF9E6D), Color(0xFFF7B801)],
+                  onTap: () => go(const DailyLifeScreen()),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _DestinationCard(
+                  emoji: '\uD83D\uDDFA\uFE0F',
+                  label: 'Adventure',
+                  subtitle: 'Explore',
+                  colors: const <Color>[Color(0xFF5E60CE), Color(0xFF4EA8DE)],
+                  onTap: () => go(const AdventureHubScreen()),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -596,11 +620,13 @@ class _DestinationCard extends StatelessWidget {
   const _DestinationCard({
     required this.emoji,
     required this.label,
+    required this.subtitle,
     required this.colors,
     required this.onTap,
   });
   final String emoji;
   final String label;
+  final String subtitle;
   final List<Color> colors;
   final VoidCallback onTap;
 
@@ -615,9 +641,9 @@ class _DestinationCard extends StatelessWidget {
           onTap();
         },
         child: Ink(
-          height: 60,
+          height: 96,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(20),
             gradient: LinearGradient(
               colors: colors,
               begin: Alignment.topLeft,
@@ -625,26 +651,52 @@ class _DestinationCard extends StatelessWidget {
             ),
             boxShadow: <BoxShadow>[
               BoxShadow(
-                color: colors.last.withOpacity(0.28),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+                color: colors.last.withOpacity(0.32),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
               ),
             ],
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+          child: Stack(
             children: <Widget>[
-              Text(emoji, style: const TextStyle(fontSize: 22)),
-              const SizedBox(height: 2),
+              Positioned(
+                right: -6,
+                bottom: -10,
+                child: Text(emoji,
+                    style: TextStyle(
+                        fontSize: 56,
+                        color: Colors.white.withOpacity(0.16))),
+              ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 3),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(label,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800)),
+                padding: const EdgeInsets.all(11),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: <Widget>[
+                    Text(emoji, style: const TextStyle(fontSize: 26)),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(label,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w900)),
+                        ),
+                        Text(subtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color: Colors.white.withOpacity(0.82),
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ],
