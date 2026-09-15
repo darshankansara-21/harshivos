@@ -168,6 +168,22 @@ class _GameShell extends StatelessWidget {
                           fontSize: 16,
                           fontWeight: FontWeight.w700),
                     ),
+                    if (score > 0 && score >= best) ...<Widget>[
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFD166),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Text('🏆 New best!',
+                            style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w900)),
+                      ),
+                    ],
                     const SizedBox(height: 18),
                     FilledButton.icon(
                       onPressed: onPlayAgain,

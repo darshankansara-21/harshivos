@@ -23,6 +23,7 @@ class _Shell extends StatelessWidget {
     this.overEmoji = '💪',
     this.overText = 'Good try!',
     this.accent = const Color(0xFFFFD166),
+    this.rankByScore = true,
   });
 
   final String title;
@@ -36,6 +37,7 @@ class _Shell extends StatelessWidget {
   final VoidCallback onPlayAgain;
   final Widget child;
   final Color accent;
+  final bool rankByScore;
 
   @override
   Widget build(BuildContext context) {
@@ -113,6 +115,22 @@ class _Shell extends StatelessWidget {
                             color: Colors.white70,
                             fontSize: 16,
                             fontWeight: FontWeight.w700)),
+                    if (rankByScore && score > 0 && score >= best) ...<Widget>[
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFD166),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Text('🏆 New best!',
+                            style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w900)),
+                      ),
+                    ],
                     const SizedBox(height: 18),
                     FilledButton.icon(
                       onPressed: onPlayAgain,
@@ -1135,6 +1153,7 @@ class _TicTacToeGameState extends State<TicTacToeGame> with _Emit {
       overEmoji: '🐾',
       overText: _overText,
       accent: const Color(0xFF43E97B),
+      rankByScore: false,
       onPlayAgain: _reset,
       child: DecoratedBox(
         decoration: const BoxDecoration(
@@ -1679,6 +1698,7 @@ class _MemoryFlipGameState extends State<MemoryFlipGame> with _Emit {
       overEmoji: '🧠',
       overText: 'Nice memory!',
       accent: const Color(0xFF06D6A0),
+      rankByScore: false,
       onPlayAgain: _reset,
       child: DecoratedBox(
         decoration: const BoxDecoration(
