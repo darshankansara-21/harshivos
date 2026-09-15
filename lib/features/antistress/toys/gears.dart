@@ -2,6 +2,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../services/audio/tone_player.dart';
+
 /// Several interlocking mechanical gears that mesh and rotate together.
 ///
 /// Drag any gear to rotate it; the meshed gears rotate accordingly (opposite
@@ -119,6 +121,7 @@ class _GearsToyState extends State<GearsToy>
     if (idx != _lastToothTick && _angularVelocity.abs() > 0.8) {
       _lastToothTick = idx;
       HapticFeedback.selectionClick();
+      TonePlayer.instance.playTick();
     }
   }
 

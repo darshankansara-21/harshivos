@@ -2,6 +2,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../services/audio/tone_player.dart';
+
 /// A calm water-surface fidget toy.
 ///
 /// Tap or drag anywhere to drop water: each touch spawns an expanding
@@ -60,6 +62,7 @@ class _WaterDropToyState extends State<WaterDropToy>
       maxRadius: 160 + math.Random().nextDouble() * 60,
     ));
     HapticFeedback.lightImpact();
+    TonePlayer.instance.playCue(SoundCue.water);
     setState(() {});
   }
 

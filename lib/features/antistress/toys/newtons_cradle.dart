@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../services/audio/tone_player.dart';
+
 /// A calming Newton's cradle fidget toy.
 ///
 /// Five polished metal balls hang from strings. Drag an end ball up and let go;
@@ -120,6 +122,7 @@ class _NewtonsCradleToyState extends State<NewtonsCradleToy>
         final double impact = tmp.abs();
         if (impact > 0.25) {
           HapticFeedback.selectionClick();
+          TonePlayer.instance.playCue(SoundCue.metal);
         }
       }
     }

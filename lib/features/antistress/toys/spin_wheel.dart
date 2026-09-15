@@ -2,6 +2,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../services/audio/tone_player.dart';
+
 /// A large colorful segmented wheel with a fixed pointer at the top.
 ///
 /// Flick or drag to spin; it decelerates smoothly and lands anywhere. There is
@@ -79,6 +81,7 @@ class _SpinWheelToyState extends State<SpinWheelToy>
       _lastSegment = seg;
       if (_angularVelocity.abs() > 0.6) {
         HapticFeedback.selectionClick();
+        TonePlayer.instance.playTick();
       }
     }
   }

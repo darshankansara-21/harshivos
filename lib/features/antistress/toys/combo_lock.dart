@@ -38,20 +38,23 @@ class _ComboLockToyState extends State<ComboLockToy> {
                   math.min(constraints.maxHeight * 0.6, dialW * 2.6);
               return _LockBody(
                 width: maxW,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List<Widget>.generate(_dialCount, (int i) {
-                    return Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: dialW * 0.08,
-                      ),
-                      child: _NumberDial(
-                        width: dialW,
-                        height: dialH,
-                        seed: i * 3,
-                      ),
-                    );
-                  }),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List<Widget>.generate(_dialCount, (int i) {
+                      return Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: dialW * 0.08,
+                        ),
+                        child: _NumberDial(
+                          width: dialW,
+                          height: dialH,
+                          seed: i * 3,
+                        ),
+                      );
+                    }),
+                  ),
                 ),
               );
             },

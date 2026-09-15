@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../services/audio/tone_player.dart';
+
 /// A falling-sand fidget toy.
 ///
 /// A coarse pixel grid where tapping or dragging pours colored sand grains
@@ -74,6 +76,7 @@ class _SandFallToyState extends State<SandFallToy>
     // Inject sand at the active pour point.
     if (_pourPoint != null) {
       _pourAt(_pourPoint!);
+      TonePlayer.instance.playCue(SoundCue.sand);
     }
 
     _stepSand();
