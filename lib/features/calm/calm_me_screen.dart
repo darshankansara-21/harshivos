@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -62,6 +64,9 @@ class _CalmMeScreenState extends State<CalmMeScreen> {
     return HarshivScaffold(
       child: Stack(
         children: <Widget>[
+          const Positioned.fill(
+            child: IgnorePointer(child: _CalmAtmosphere()),
+          ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
@@ -215,4 +220,75 @@ class _MoodButton extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A slow, living backdrop for Calm — soft coloured orbs drifting and breathing
+/// so the screen feels like an atmosphere to settle into, not a menu.
+class _CalmAtmosphere extends StatefulWidget {
+  const _CalmAtmosphere();
+
+  @override
+  State<_CalmAtmosphere> createState() => _CalmAtmosphereState();
+}
+
+class _CalmAtmosphereState extends State<_CalmAtmosphere>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c;
+
+  @override
+  void initState() {
+    super.initState();
+    _c = AnimationController(vsync: this, duration: const Duration(seconds: 28))
+      ..repeat();
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (context, _) =>
+          CustomPaint(painter: _CalmPainter(_c.value), size: Size.infinite),
+    );
+  }
+}
+
+class _CalmPainter extends CustomPainter {
+  _CalmPainter(this.t);
+  final double t;
+
+  static const List<Color> _orbs = <Color>[
+    Color(0xFF2BD4B4),
+    Color(0xFF38B2F9),
+    Color(0xFF6C5CE7),
+    Color(0xFF00BBF9),
+    Color(0xFF43CEA2),
+  ];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    for (var i = 0; i < _orbs.length; i++) {
+      final phase = t * 2 * math.pi + i * 1.3;
+      final cx = w * (0.2 + 0.6 * (0.5 + 0.5 * math.sin(phase + i)));
+      final cy = h * (0.15 + 0.7 * (0.5 + 0.5 * math.cos(phase * 0.8 + i)));
+      final r = (w * 0.32) * (0.8 + 0.2 * math.sin(phase * 1.3));
+      canvas.drawCircle(
+        Offset(cx, cy),
+        r,
+        Paint()
+          ..color = _orbs[i].withOpacity(0.10)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 60),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_CalmPainter oldDelegate) => oldDelegate.t != t;
 }

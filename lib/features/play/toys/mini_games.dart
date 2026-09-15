@@ -781,6 +781,7 @@ class _SnakeGameState extends State<SnakeGame>
   int _foodKind = 0; // 0 = normal apple, 1 = golden bonus (time-limited)
   double _goldenT = 0;
   double _acc = 0;
+  double _t = 0;
   double _step = 0.2;
   double _sinceEat = 0;
   int _score = 0;
@@ -955,8 +956,8 @@ class _SnakeGameState extends State<SnakeGame>
             ),
           ),
           child: CustomPaint(
-            painter: _SnakePainter(
-                _snake, _food, _foodKind, _obstacles.toList(), _cols, _rows),
+            painter: _SnakePainter(_snake, _food, _foodKind,
+                _obstacles.toList(), _dir, _cols, _rows, _t),
             size: Size.infinite,
           ),
         ),
@@ -967,14 +968,16 @@ class _SnakeGameState extends State<SnakeGame>
 
 
 class _SnakePainter extends CustomPainter {
-  _SnakePainter(this.snake, this.food, this.foodKind, this.obstacles,
-      this.cols, this.rows);
+  _SnakePainter(this.snake, this.food, this.foodKind, this.obstacles, this.dir,
+      this.cols, this.rows, this.t);
   final List<math.Point<int>> snake;
   final math.Point<int> food;
   final int foodKind;
   final List<math.Point<int>> obstacles;
+  final math.Point<int> dir;
   final int cols;
   final int rows;
+  final double t;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -987,6 +990,19 @@ class _SnakePainter extends CustomPainter {
     Rect cellRect(math.Point<int> p) => Rect.fromLTWH(
         ox + p.x * cell + 1, oy + p.y * cell + 1, cell - 2, cell - 2);
 
+    // Subtle board grid so the play space reads clearly.
+    final grid = Paint()
+      ..color = Colors.white.withOpacity(0.04)
+      ..strokeWidth = 1;
+    for (var c = 0; c <= cols; c++) {
+      canvas.drawLine(Offset(ox + c * cell, oy),
+          Offset(ox + c * cell, oy + boardH), grid);
+    }
+    for (var r = 0; r <= rows; r++) {
+      canvas.drawLine(Offset(ox, oy + r * cell),
+          Offset(ox + boardW, oy + r * cell), grid);
+    }
+
     // Obstacles — solid rocks that end the run on contact.
     for (final o in obstacles) {
       canvas.drawRRect(
@@ -995,35 +1011,47 @@ class _SnakePainter extends CustomPainter {
       );
     }
 
-    // Food — golden bonus glows brighter than the normal red apple.
+    // Food — golden bonus glows brighter than the normal red apple, and
+    // gently pulses so it feels alive and draws the eye.
     final foodColor =
         foodKind == 1 ? const Color(0xFFFFD700) : const Color(0xFFEF476F);
-    canvas.drawRRect(
-        RRect.fromRectAndRadius(cellRect(food), Radius.circular(cell / 2)),
+    final pulse = 0.5 + 0.5 * math.sin(t * 5);
+    final fc = cellRect(food).center;
+    canvas.drawCircle(
+        fc,
+        cell * (0.5 + pulse * 0.22),
         Paint()
-          ..color = foodColor
+          ..color = foodColor.withOpacity(0.35)
           ..maskFilter =
-              MaskFilter.blur(BlurStyle.normal, foodKind == 1 ? 6 : 3));
+              MaskFilter.blur(BlurStyle.normal, foodKind == 1 ? 8 : 5));
     canvas.drawRRect(
         RRect.fromRectAndRadius(cellRect(food), Radius.circular(cell / 2)),
         Paint()..color = foodColor);
 
     // Snake — brightest at the head, fading toward the tail.
     for (var i = 0; i < snake.length; i++) {
-      final t = 1 - i / (snake.length + 2);
+      final f = 1 - i / (snake.length + 2);
       final color = Color.lerp(
-          const Color(0xFF06D6A0), const Color(0xFF118AB2), 1 - t)!;
+          const Color(0xFF06D6A0), const Color(0xFF118AB2), 1 - f)!;
       canvas.drawRRect(
         RRect.fromRectAndRadius(cellRect(snake[i]), Radius.circular(cell / 3)),
         Paint()..color = color,
       );
     }
-    // Eyes on the head.
+    // Eyes on the head, pupils looking the way the snake travels.
     if (snake.isNotEmpty) {
       final h = cellRect(snake.first);
       final eye = Paint()..color = Colors.white;
-      canvas.drawCircle(h.center.translate(-cell / 6, -cell / 8), cell / 10, eye);
-      canvas.drawCircle(h.center.translate(cell / 6, -cell / 8), cell / 10, eye);
+      final pupil = Paint()..color = const Color(0xFF0B2436);
+      final lx = h.center.dx - cell / 6;
+      final rx = h.center.dx + cell / 6;
+      final ey = h.center.dy - cell / 8;
+      canvas.drawCircle(Offset(lx, ey), cell / 9, eye);
+      canvas.drawCircle(Offset(rx, ey), cell / 9, eye);
+      final px = dir.x * cell / 18;
+      final py = dir.y * cell / 18;
+      canvas.drawCircle(Offset(lx + px, ey + py), cell / 18, pupil);
+      canvas.drawCircle(Offset(rx + px, ey + py), cell / 18, pupil);
     }
   }
 
