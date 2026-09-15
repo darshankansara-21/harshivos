@@ -46,9 +46,9 @@ class ExperienceCatalog {
       ),
       ExperienceTally(
         category: ExperienceCategory.learn,
-        current: 2 + kLearnPacks.length + kSortPacks.length,
+        current: 4 + kLearnPacks.length + kSortPacks.length,
         capacity: kLearnPacks.length * 3 + kSortPacks.length * 4 + 8,
-        notes: 'Identification and sorting engines with pack expansion.',
+        notes: 'Counting, patterns, matching, emotions and sorting engines.',
       ),
       ExperienceTally(
         category: ExperienceCategory.calm,

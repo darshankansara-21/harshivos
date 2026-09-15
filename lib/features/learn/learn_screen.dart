@@ -5,9 +5,11 @@ import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/harshiv_scaffold.dart';
 import '../../models/activity_event.dart';
 import '../../state/providers.dart';
+import 'counting_game.dart';
 import 'emotion_match_game.dart';
 import 'learning_engine.dart';
 import 'matching_pairs_game.dart';
+import 'pattern_game.dart';
 
 class _LearnActivity {
   const _LearnActivity(this.title, this.emoji, this.gradient, this.builder);
@@ -27,8 +29,16 @@ class LearnScreen extends ConsumerWidget {
   // mechanic + curated content packs) — real depth, no "coming soon" tiles.
   static Widget _emotionBuilder(BuildContext context) => const EmotionMatchGame();
   static Widget _pairsBuilder(BuildContext context) => const MatchingPairsGame();
+  static Widget _countingBuilder(BuildContext context) =>
+      const CountingGameScreen();
+  static Widget _patternBuilder(BuildContext context) =>
+      const PatternGameScreen();
 
   static List<_LearnActivity> _buildActivities() => <_LearnActivity>[
+        const _LearnActivity('Counting', '🔢',
+            <Color>[Color(0xFF43E97B), Color(0xFF38B2F9)], _countingBuilder),
+        const _LearnActivity('Patterns', '🎨',
+            <Color>[Color(0xFFFF9A9E), Color(0xFFFAD0C4)], _patternBuilder),
         const _LearnActivity('Emotion Match', '🎭',
             <Color>[Color(0xFFA18CD1), Color(0xFFFBC2EB)], _emotionBuilder),
         const _LearnActivity('Matching Pairs', '🃏',
