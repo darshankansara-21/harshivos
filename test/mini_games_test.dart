@@ -39,15 +39,15 @@ void main() {
   testWidgets('Star Tap builds, is playable, and can be won', (tester) async {
     await _pumpGame(tester, const StarTapGame());
     expect(find.textContaining('Tap'), findsOneWidget);
-    // Tap every visible star cell repeatedly; the active one scores, others
-    // are gentle no-ops. Enough passes will drive the game to a win.
-    for (var round = 0; round < 60; round++) {
-      final stars = find.text('⭐');
-      for (final star in stars.evaluate()) {
-        await tester.tap(find.byWidget(star.widget), warnIfMissed: false);
-        await tester.pump(const Duration(milliseconds: 16));
-      }
+    // Re-find the single glowing star fresh each round and tap it; enough
+    // successful taps drive the game to a win.
+    for (var round = 0; round < 80; round++) {
       if (find.text('You did it!').evaluate().isNotEmpty) break;
+      final star = find.text('⭐');
+      if (star.evaluate().isNotEmpty) {
+        await tester.tap(star.first, warnIfMissed: false);
+      }
+      await tester.pump(const Duration(milliseconds: 20));
     }
     expect(find.text('You did it!'), findsOneWidget);
     expect(tester.takeException(), isNull);

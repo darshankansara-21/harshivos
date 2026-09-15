@@ -546,6 +546,32 @@ List<UniverseToy> smartPlayToys() => _byIds(<String>[
       'car_track',
     ]);
 
+/// Fast, recognizable arcade games.
+List<UniverseToy> arcadeToys() => _byIds(<String>[
+      'snake',
+      'balloon_pop',
+      'star_tap',
+      'fruit_catch',
+      'bubble_pop',
+      'marble_run',
+    ]);
+
+/// Driving, aiming and skill games.
+List<UniverseToy> racingSkillToys() => _byIds(<String>[
+      'racing',
+      'car_track',
+      'bowling',
+    ]);
+
+/// Puzzles, memory and brain teasers.
+List<UniverseToy> puzzleBrainToys() => _byIds(<String>[
+      'learn_matching_pairs',
+      'learn_emotion_match',
+      'color_mix',
+      'snack_studio',
+    ]);
+
+
 /// Every toy, ordered best-first: featured leaders, then everything else in
 /// its existing order. Drives the "All Toys" grid so nothing good is buried.
 List<UniverseToy> curatedAllToys() {

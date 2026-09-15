@@ -17,6 +17,8 @@ import '../world/world_screen.dart';
 import '../lifeskills/profile_wizard_screen.dart';
 import '../settings/sensory_settings_screen.dart';
 import '../talk/talk_screen.dart';
+import '../play/toys/mini_games.dart' show GameScores;
+import 'game_thumb.dart';
 import 'toy_debug_screen.dart';
 import 'universe_catalog.dart';
 import 'universe_state.dart';
@@ -72,6 +74,9 @@ class _ToyUniverseScreenState extends ConsumerState<ToyUniverseScreen> {
   @override
   void initState() {
     super.initState();
+    GameScores.instance.ensureLoaded().then((_) {
+      if (mounted) setState(() {});
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowMeetSheet());
   }
 
@@ -126,7 +131,9 @@ class _ToyUniverseScreenState extends ConsumerState<ToyUniverseScreen> {
     final favorites = ref.watch(favoriteToysProvider);
     final recents = ref.watch(recentToysProvider);
     final featured = featuredToys();
-    final games = gamesToys();
+    final arcade = arcadeToys();
+    final racing = racingSkillToys();
+    final puzzles = puzzleBrainToys();
     final stress = stressBusterToys();
     final sensory = sensoryPlayToys();
     final smart = smartPlayToys();
@@ -250,10 +257,14 @@ class _ToyUniverseScreenState extends ConsumerState<ToyUniverseScreen> {
           ),
           if (featured.isNotEmpty)
             _RailSliver(title: 'Featured', emoji: '⭐', toys: featured),
-          if (games.isNotEmpty)
-            _RailSliver(title: 'Games', emoji: '🎮', toys: games),
+          if (arcade.isNotEmpty)
+            _RailSliver(title: 'Arcade', emoji: '🎮', toys: arcade),
+          if (racing.isNotEmpty)
+            _RailSliver(title: 'Racing & Skill', emoji: '🏎️', toys: racing),
           if (stress.isNotEmpty)
             _RailSliver(title: 'Stress Buster', emoji: '🧘', toys: stress),
+          if (puzzles.isNotEmpty)
+            _RailSliver(title: 'Puzzles & Brain', emoji: '🧩', toys: puzzles),
           if (favorites.isNotEmpty)
             _RailSliver(title: 'Favorites', emoji: '\u2764\uFE0F', toys: favorites),
           if (recents.isNotEmpty)
@@ -818,76 +829,101 @@ class _ToyCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isFav = ref.watch(favoritesProvider).contains(toy.id);
+    final best = GameScores.instance.best(toy.id);
     return GestureDetector(
       onTap: () => ToyUniverseScreen.open(context, ref, toy),
       onLongPress: () => _showPreview(context, ref),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: <Color>[
-              toy.color.withOpacity(0.36),
-              toy.color.withOpacity(0.12),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF161335),
+            border: Border.all(color: Colors.white.withOpacity(0.12)),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Expanded(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: <Widget>[
+                    GameThumb(id: toy.id, color: toy.color, emoji: toy.emoji),
+                    Positioned(
+                      top: 6,
+                      right: 6,
+                      child: _HeartButton(
+                        active: isFav,
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          ref.read(favoritesProvider.notifier).toggle(toy.id);
+                        },
+                      ),
+                    ),
+                    if (best > 0)
+                      Positioned(
+                        left: 6,
+                        bottom: 6,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.55),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text('\u2605 $best',
+                              style: const TextStyle(
+                                  color: Color(0xFFFFD166),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800)),
+                        ),
+                      )
+                    else if (toy.isNew)
+                      Positioned(
+                        left: 6,
+                        bottom: 6,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: toy.color.withOpacity(0.85),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Text('New \u2728',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800)),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(toy.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 1),
+                    Text(toy.category.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            color: Colors.white.withOpacity(0.55),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600)),
+                  ],
+                ),
+              ),
             ],
           ),
-          border: Border.all(color: Colors.white.withOpacity(0.12)),
-        ),
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Row(
-              children: <Widget>[
-                Container(
-                  width: 48,
-                  height: 48,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: <Color>[
-                        toy.color,
-                        Color.lerp(toy.color, Colors.black, 0.35)!,
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    boxShadow: <BoxShadow>[
-                      BoxShadow(
-                          color: toy.color.withOpacity(0.5),
-                          blurRadius: 14,
-                          spreadRadius: 1),
-                    ],
-                  ),
-                  child: Text(toy.emoji, style: const TextStyle(fontSize: 24)),
-                ),
-                const Spacer(),
-                _HeartButton(
-                  active: isFav,
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    ref.read(favoritesProvider.notifier).toggle(toy.id);
-                  },
-                ),
-              ],
-            ),
-            const Spacer(),
-            Text(toy.name,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800)),
-            const SizedBox(height: 2),
-            Text(toy.isNew ? 'New \u2728' : toy.category.label,
-                style: TextStyle(
-                    color: Colors.white.withOpacity(0.6),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600)),
-          ],
         ),
       ),
     );
