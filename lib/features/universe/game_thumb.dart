@@ -23,6 +23,12 @@ class GameThumb extends StatelessWidget {
     'marble_run',
     'snack_studio',
     'car_track',
+    'whack',
+    'sky_hop',
+    'stack',
+    'merge',
+    'echo',
+    'tictactoe',
   };
 
   @override
@@ -73,6 +79,18 @@ class _ThumbPainter extends CustomPainter {
         _snack(canvas, w, h);
       case 'car_track':
         _carTrack(canvas, w, h);
+      case 'whack':
+        _whack(canvas, w, h);
+      case 'sky_hop':
+        _skyHop(canvas, w, h);
+      case 'stack':
+        _stack(canvas, w, h);
+      case 'merge':
+        _merge(canvas, w, h);
+      case 'echo':
+        _echo(canvas, w, h);
+      case 'tictactoe':
+        _tictactoe(canvas, w, h);
     }
   }
 
@@ -283,6 +301,125 @@ class _ThumbPainter extends CustomPainter {
                 height: h * 0.1),
             const Radius.circular(4)),
         Paint()..color = const Color(0xFFFF512F));
+  }
+
+  void _whack(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, <Color>[const Color(0xFF3B2A1A), const Color(0xFF241810)]);
+    final hole = Paint()..color = const Color(0xFF1A120A);
+    final xs = <double>[0.3, 0.5, 0.7];
+    final ys = <double>[0.35, 0.6];
+    for (final y in ys) {
+      for (final x in xs) {
+        canvas.drawOval(
+            Rect.fromCenter(
+                center: Offset(w * x, h * y), width: w * 0.18, height: h * 0.1),
+            hole);
+      }
+    }
+    canvas.drawCircle(Offset(w * 0.5, h * 0.35), w * 0.08,
+        Paint()..color = const Color(0xFFB07A3A));
+  }
+
+  void _skyHop(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, <Color>[const Color(0xFF4EC5F1), const Color(0xFFA8E6CF)]);
+    final pipe = Paint()..color = const Color(0xFF2E9E5B);
+    canvas.drawRect(Rect.fromLTWH(w * 0.62, 0, w * 0.16, h * 0.35), pipe);
+    canvas.drawRect(Rect.fromLTWH(w * 0.62, h * 0.62, w * 0.16, h * 0.4), pipe);
+    canvas.drawCircle(Offset(w * 0.34, h * 0.5), w * 0.09,
+        Paint()..color = const Color(0xFFFFD166));
+    canvas.drawCircle(Offset(w * 0.37, h * 0.47), 3, Paint()..color = Colors.black);
+  }
+
+  void _stack(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, <Color>[const Color(0xFF11294B), const Color(0xFF0B1B33)]);
+    final widths = <double>[0.6, 0.5, 0.42, 0.3];
+    for (var i = 0; i < widths.length; i++) {
+      final bw = widths[i] * w;
+      canvas.drawRRect(
+          RRect.fromRectAndRadius(
+              Rect.fromLTWH((w - bw) / 2, h * (0.7 - i * 0.15), bw, h * 0.12),
+              const Radius.circular(4)),
+          Paint()
+            ..color = HSVColor.fromAHSV(1, (i * 40).toDouble(), 0.55, 0.95)
+                .toColor());
+    }
+  }
+
+  void _merge(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, <Color>[const Color(0xFF2A2036), const Color(0xFF1A1226)]);
+    final vals = <String>['2', '4', '8', '16'];
+    final colors = <Color>[
+      const Color(0xFFEF476F),
+      const Color(0xFFF7B801),
+      const Color(0xFF06D6A0),
+      const Color(0xFF4CC9F0),
+    ];
+    var k = 0;
+    for (var r = 0; r < 2; r++) {
+      for (var c = 0; c < 2; c++) {
+        final rect = Rect.fromLTWH(
+            w * (0.28 + c * 0.24), h * (0.3 + r * 0.24), w * 0.2, w * 0.2);
+        canvas.drawRRect(
+            RRect.fromRectAndRadius(rect, const Radius.circular(6)),
+            Paint()..color = colors[k]);
+        final tp = TextPainter(
+          text: TextSpan(
+              text: vals[k],
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900)),
+          textDirection: TextDirection.ltr,
+        )..layout();
+        tp.paint(canvas, rect.center - Offset(tp.width / 2, tp.height / 2));
+        k++;
+      }
+    }
+  }
+
+  void _echo(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, <Color>[const Color(0xFF1B1140), const Color(0xFF120C2E)]);
+    final colors = <Color>[
+      const Color(0xFFEF476F),
+      const Color(0xFF06D6A0),
+      const Color(0xFF118AB2),
+      const Color(0xFFFFD166),
+    ];
+    var k = 0;
+    for (var r = 0; r < 2; r++) {
+      for (var c = 0; c < 2; c++) {
+        canvas.drawRRect(
+            RRect.fromRectAndRadius(
+                Rect.fromLTWH(w * (0.3 + c * 0.22), h * (0.3 + r * 0.22),
+                    w * 0.18, w * 0.18),
+                const Radius.circular(8)),
+            Paint()..color = colors[k].withOpacity(k == 0 ? 1 : 0.4));
+        k++;
+      }
+    }
+  }
+
+  void _tictactoe(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, <Color>[const Color(0xFF12314A), const Color(0xFF0C2233)]);
+    final line = Paint()
+      ..color = Colors.white24
+      ..strokeWidth = 2;
+    for (var i = 1; i < 3; i++) {
+      canvas.drawLine(Offset(w * (0.3 + i * 0.13), h * 0.28),
+          Offset(w * (0.3 + i * 0.13), h * 0.72), line);
+      canvas.drawLine(Offset(w * 0.3, h * (0.28 + i * 0.147)),
+          Offset(w * 0.69, h * (0.28 + i * 0.147)), line);
+    }
+    final tp = TextPainter(
+      text: const TextSpan(text: '⭐', style: TextStyle(fontSize: 16)),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, Offset(w * 0.33, h * 0.3));
+    final tp2 = TextPainter(
+      text: const TextSpan(text: '🐾', style: TextStyle(fontSize: 16)),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp2.paint(canvas, Offset(w * 0.55, h * 0.5));
   }
 
   @override

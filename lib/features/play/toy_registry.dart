@@ -10,6 +10,7 @@ import 'toys/toys_water.dart';
 import 'toys/toys_weather.dart';
 import 'toys/snack_studio.dart';
 import 'toys/mini_games.dart';
+import 'toys/arcade_games.dart';
 
 /// Maps a toy id to its playable widget. Toys absent from this map are
 /// scaffolded "coming soon" entries in the catalogue.
@@ -42,6 +43,12 @@ const Map<String, ToyBuilder> toyBuilders = <String, ToyBuilder>{
   'snake': SnakeGame.new,
   'racing': RacingGame.new,
   'bowling': BowlingGame.new,
+  'whack': WhackGame.new,
+  'sky_hop': SkyHopGame.new,
+  'stack': StackGame.new,
+  'merge': MergeGame.new,
+  'echo': EchoGame.new,
+  'tictactoe': TicTacToeGame.new,
 };
 
 bool toyIsPlayable(String id) => toyBuilders.containsKey(id);

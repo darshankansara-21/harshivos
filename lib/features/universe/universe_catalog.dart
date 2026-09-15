@@ -400,6 +400,36 @@ final List<UniverseToy> kToyUniverse = <UniverseToy>[
     category: ToyCategory.creative, inputs: const [ToyInput.tap],
     engagement: ToyEngagement.deep, build: _play('bowling'), isNew: true,
   ),
+  UniverseToy(
+    id: 'whack', name: 'Whack', emoji: '🔨', color: const Color(0xFF8D5A3B),
+    category: ToyCategory.creative, inputs: const [ToyInput.tap],
+    engagement: ToyEngagement.deep, build: _play('whack'), isNew: true,
+  ),
+  UniverseToy(
+    id: 'sky_hop', name: 'Sky Hop', emoji: '🐤', color: const Color(0xFF4EC5F1),
+    category: ToyCategory.creative, inputs: const [ToyInput.tap],
+    engagement: ToyEngagement.deep, build: _play('sky_hop'), isNew: true,
+  ),
+  UniverseToy(
+    id: 'stack', name: 'Stack', emoji: '🧱', color: const Color(0xFF4CC9F0),
+    category: ToyCategory.creative, inputs: const [ToyInput.tap],
+    engagement: ToyEngagement.deep, build: _play('stack'), isNew: true,
+  ),
+  UniverseToy(
+    id: 'merge', name: 'Merge', emoji: '🔢', color: const Color(0xFFF7B801),
+    category: ToyCategory.learning, inputs: const [ToyInput.drag],
+    engagement: ToyEngagement.deep, build: _play('merge'), isNew: true,
+  ),
+  UniverseToy(
+    id: 'echo', name: 'Echo', emoji: '🎵', color: const Color(0xFF9B5DE5),
+    category: ToyCategory.learning, inputs: const [ToyInput.tap, ToyInput.sound],
+    engagement: ToyEngagement.deep, build: _play('echo'), isNew: true,
+  ),
+  UniverseToy(
+    id: 'tictactoe', name: 'Tic-Tac-Toe', emoji: '⭕', color: const Color(0xFF43E97B),
+    category: ToyCategory.learning, inputs: const [ToyInput.tap],
+    engagement: ToyEngagement.deep, build: _play('tictactoe'), isNew: true,
+  ),
 
   // ---- Sensory Lab: premium physics experiences (6) ----
   const UniverseToy(
@@ -487,8 +517,12 @@ List<UniverseToy> _byIds(List<String> ids) => ids
 /// The marquee — universally understood, highly replayable experiences.
 const List<String> kFeaturedOrder = <String>[
   'snake',
+  'sky_hop',
   'racing',
+  'merge',
   'bowling',
+  'stack',
+  'whack',
   'car_track',
   'snack_studio',
   'balloon_pop',
@@ -503,8 +537,14 @@ List<UniverseToy> featuredToys() => _byIds(kFeaturedOrder);
 /// Goal-based games with a clear objective, win state and celebration.
 List<UniverseToy> gamesToys() => _byIds(<String>[
       'snake',
+      'sky_hop',
       'racing',
       'bowling',
+      'merge',
+      'stack',
+      'whack',
+      'echo',
+      'tictactoe',
       'car_track',
       'snack_studio',
       'balloon_pop',
@@ -549,6 +589,9 @@ List<UniverseToy> smartPlayToys() => _byIds(<String>[
 /// Fast, recognizable arcade games.
 List<UniverseToy> arcadeToys() => _byIds(<String>[
       'snake',
+      'sky_hop',
+      'whack',
+      'stack',
       'balloon_pop',
       'star_tap',
       'fruit_catch',
@@ -565,6 +608,9 @@ List<UniverseToy> racingSkillToys() => _byIds(<String>[
 
 /// Puzzles, memory and brain teasers.
 List<UniverseToy> puzzleBrainToys() => _byIds(<String>[
+      'merge',
+      'echo',
+      'tictactoe',
       'learn_matching_pairs',
       'learn_emotion_match',
       'color_mix',
