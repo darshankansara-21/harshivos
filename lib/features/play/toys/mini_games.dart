@@ -773,10 +773,10 @@ class _StarTapGameState extends State<StarTapGame>
 }
 
 // ===========================================================================
-// Snake — the timeless classic, made gentle. Swipe to steer, eat fruit to
-// grow. Walls wrap around (no dead ends) and bumping yourself softly resets
-// the snake instead of ending the game, so it never punishes. Reach the
-// target length to win.
+// Snake — a real, classic Snake. Steer with swipes or arrow keys; eat fruit to
+// grow and speed up. Solid walls, your own body, rocks and roaming monster
+// hunters all end the run — so it's a genuine challenge, with a gentle instant
+// "Play again". Chase golden fruit for bonus points.
 // ===========================================================================
 class SnakeGame extends StatefulWidget {
   const SnakeGame({super.key});
@@ -784,15 +784,23 @@ class SnakeGame extends StatefulWidget {
   State<SnakeGame> createState() => _SnakeGameState();
 }
 
+class _SnakeMonster {
+  _SnakeMonster(this.pos);
+  math.Point<int> pos;
+}
+
 class _SnakeGameState extends State<SnakeGame>
     with TickerProviderStateMixin, ToyTicker, _CompanionEmitter {
   static const String _id = 'snake';
-  static const int _cols = 14;
-  static const int _rows = 22;
+  static const int _cols = 13;
+  static const int _rows = 17;
+  static const double _monsterStep = 0.34; // seconds between monster hops
   final math.Random _rnd = math.Random();
   List<math.Point<int>> _snake = <math.Point<int>>[];
   List<math.Point<int>> _prevSnake = <math.Point<int>>[];
   final Set<math.Point<int>> _obstacles = <math.Point<int>>{};
+  final List<_SnakeMonster> _monsters = <_SnakeMonster>[];
+  double _monsterAcc = 0;
   math.Point<int> _dir = const math.Point<int>(1, 0);
   math.Point<int> _nextDir = const math.Point<int>(1, 0);
   Offset _swipeAcc = Offset.zero;
@@ -830,14 +838,18 @@ class _SnakeGameState extends State<SnakeGame>
   void _seed() {
     const cy = _rows ~/ 2;
     _snake = <math.Point<int>>[
+      math.Point<int>(6, cy),
       math.Point<int>(5, cy),
       math.Point<int>(4, cy),
       math.Point<int>(3, cy),
+      math.Point<int>(2, cy),
     ];
     _prevSnake = List<math.Point<int>>.of(_snake);
     _dir = const math.Point<int>(1, 0);
     _nextDir = _dir;
     _obstacles.clear();
+    _monsters.clear();
+    _monsterAcc = 0;
     _foodKind = 0;
     _goldenT = 0;
     _placeFood();
@@ -847,10 +859,64 @@ class _SnakeGameState extends State<SnakeGame>
     math.Point<int> p;
     do {
       p = math.Point<int>(_rnd.nextInt(_cols), _rnd.nextInt(_rows));
-    } while (_snake.contains(p) || _obstacles.contains(p));
+    } while (_snake.contains(p) ||
+        _obstacles.contains(p) ||
+        _monsters.any((m) => m.pos == p));
     _food = p;
     _foodKind = golden ? 1 : 0;
     _goldenT = golden ? 5.0 : 0;
+  }
+
+  void _spawnMonster() {
+    final head = _snake.first;
+    math.Point<int> p;
+    var tries = 0;
+    do {
+      p = math.Point<int>(_rnd.nextInt(_cols), _rnd.nextInt(_rows));
+      tries++;
+    } while ((_snake.contains(p) ||
+            _obstacles.contains(p) ||
+            p == _food ||
+            _monsters.any((m) => m.pos == p) ||
+            (p.x - head.x).abs() + (p.y - head.y).abs() < 5) &&
+        tries < 60);
+    if (tries < 60) _monsters.add(_SnakeMonster(p));
+  }
+
+  // Monsters hunt the snake: mostly step toward the head, sometimes wander.
+  void _moveMonsters() {
+    final head = _snake.first;
+    const dirs = <math.Point<int>>[
+      math.Point<int>(1, 0),
+      math.Point<int>(-1, 0),
+      math.Point<int>(0, 1),
+      math.Point<int>(0, -1),
+    ];
+    for (final m in _monsters) {
+      final options = <math.Point<int>>[];
+      for (final d in dirs) {
+        final np = math.Point<int>(m.pos.x + d.x, m.pos.y + d.y);
+        if (np.x < 0 || np.x >= _cols || np.y < 0 || np.y >= _rows) continue;
+        if (_obstacles.contains(np)) continue;
+        if (_monsters.any((o) => o != m && o.pos == np)) continue;
+        options.add(np);
+      }
+      if (options.isEmpty) continue;
+      math.Point<int> choice;
+      if (_rnd.nextDouble() < 0.62) {
+        options.sort((a, b) =>
+            ((a.x - head.x).abs() + (a.y - head.y).abs()) -
+            ((b.x - head.x).abs() + (b.y - head.y).abs()));
+        choice = options.first;
+      } else {
+        choice = options[_rnd.nextInt(options.length)];
+      }
+      m.pos = choice;
+      if (_snake.contains(choice)) {
+        _gameOver();
+        return;
+      }
+    }
   }
 
   void _addObstacle() {
@@ -879,6 +945,14 @@ class _SnakeGameState extends State<SnakeGame>
       _goldenT -= dt;
       if (_goldenT <= 0) _placeFood();
     }
+    if (_monsters.isNotEmpty) {
+      _monsterAcc += dt;
+      while (_monsterAcc >= _monsterStep) {
+        _monsterAcc -= _monsterStep;
+        _moveMonsters();
+        if (_status != GameStatus.playing) return;
+      }
+    }
     _acc += dt;
     while (_acc >= _step) {
       _acc -= _step;
@@ -890,9 +964,17 @@ class _SnakeGameState extends State<SnakeGame>
     _prevSnake = List<math.Point<int>>.of(_snake);
     _dir = _nextDir;
     final head = _snake.first;
-    final next = math.Point<int>(
-        (head.x + _dir.x + _cols) % _cols, (head.y + _dir.y + _rows) % _rows);
-    if (_snake.contains(next) || _obstacles.contains(next)) {
+    final nx = head.x + _dir.x;
+    final ny = head.y + _dir.y;
+    // Solid walls — running into the edge ends the run.
+    if (nx < 0 || nx >= _cols || ny < 0 || ny >= _rows) {
+      _gameOver();
+      return;
+    }
+    final next = math.Point<int>(nx, ny);
+    if (_snake.contains(next) ||
+        _obstacles.contains(next) ||
+        _monsters.any((m) => m.pos == next)) {
       _gameOver();
       return;
     }
@@ -909,9 +991,15 @@ class _SnakeGameState extends State<SnakeGame>
       } else if (_combo >= 3) {
         _flash('Combo x$_combo!');
       }
-      _step = math.max(0.09, _step - 0.006);
-      if (_score >= 6 && _apples % 5 == 0 && _obstacles.length < 8) {
+      _step = math.max(0.085, _step - 0.006);
+      if (_score >= 6 && _apples % 5 == 0 && _obstacles.length < 6) {
         _addObstacle();
+      }
+      // Roaming hunters ramp the danger as the score climbs.
+      if (_score >= 8 && _monsters.isEmpty) {
+        _spawnMonster();
+      } else if (_score >= 24 && _monsters.length < 2) {
+        _spawnMonster();
       }
       _placeFood(golden: _apples % 5 == 4);
     } else {
@@ -1020,7 +1108,8 @@ class _SnakeGameState extends State<SnakeGame>
             child: CustomPaint(
               painter: _SnakePainter(_snake, _prevSnake,
                   (_acc / _step).clamp(0.0, 1.0), _food, _foodKind,
-                  _obstacles.toList(), _dir, _cols, _rows, _t),
+                  _obstacles.toList(),
+                  _monsters.map((m) => m.pos).toList(), _dir, _cols, _rows, _t),
               size: Size.infinite,
             ),
           ),
@@ -1033,13 +1122,15 @@ class _SnakeGameState extends State<SnakeGame>
 
 class _SnakePainter extends CustomPainter {
   _SnakePainter(this.snake, this.prevSnake, this.progress, this.food,
-      this.foodKind, this.obstacles, this.dir, this.cols, this.rows, this.t);
+      this.foodKind, this.obstacles, this.monsters, this.dir, this.cols,
+      this.rows, this.t);
   final List<math.Point<int>> snake;
   final List<math.Point<int>> prevSnake;
   final double progress;
   final math.Point<int> food;
   final int foodKind;
   final List<math.Point<int>> obstacles;
+  final List<math.Point<int>> monsters;
   final math.Point<int> dir;
   final int cols;
   final int rows;
@@ -1069,12 +1160,42 @@ class _SnakePainter extends CustomPainter {
           Offset(ox + boardW, oy + r * cell), grid);
     }
 
+    // Solid wall border — a clear signal the edges are deadly.
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+          Rect.fromLTWH(ox, oy, boardW, boardH), const Radius.circular(6)),
+      Paint()
+        ..color = const Color(0xFF63C7A6)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3,
+    );
+
     // Obstacles — solid rocks that end the run on contact.
     for (final o in obstacles) {
       canvas.drawRRect(
         RRect.fromRectAndRadius(cellRect(o), Radius.circular(cell / 5)),
         Paint()..color = const Color(0xFF6B7280),
       );
+    }
+
+    // Monster hunters — they chase the snake and end the run on contact.
+    for (final m in monsters) {
+      final mc = cellRect(m).center;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+            Rect.fromCenter(center: mc, width: cell - 2, height: cell - 2),
+            Radius.circular(cell / 4)),
+        Paint()..color = const Color(0xFFB5179E),
+      );
+      final eye = Paint()..color = Colors.white;
+      final pupil = Paint()..color = const Color(0xFF2A0A2A);
+      final ex = cell / 6;
+      canvas.drawCircle(Offset(mc.dx - ex, mc.dy - cell / 10), cell / 9, eye);
+      canvas.drawCircle(Offset(mc.dx + ex, mc.dy - cell / 10), cell / 9, eye);
+      canvas.drawCircle(
+          Offset(mc.dx - ex, mc.dy - cell / 10), cell / 20, pupil);
+      canvas.drawCircle(
+          Offset(mc.dx + ex, mc.dy - cell / 10), cell / 20, pupil);
     }
 
     // Food — golden bonus glows brighter than the normal red apple, and
