@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/toy/toy_ticker.dart';
@@ -893,10 +892,11 @@ class _NightSkyPainter extends CustomPainter {
 }
 
 // ===========================================================================
-// Snake — a real, classic Snake. Steer with swipes or arrow keys; eat fruit to
-// grow and speed up. Solid walls, your own body, rocks and roaming monster
-// hunters all end the run — so it's a genuine challenge, with a gentle instant
-// "Play again". Chase golden fruit for bonus points.
+// Snake — a modern slither-style worm. Your rainbow snake roams a big glowing
+// arena, eating orbs to grow longer. Drag anywhere to steer toward your finger;
+// hold Boost for a speed burst (it trims a little length). The camera follows
+// you, friendly worms share the arena, and touching the glowing edge ends the
+// run. Built for smooth, satisfying, sensory-friendly play.
 // ===========================================================================
 class SnakeGame extends StatefulWidget {
   const SnakeGame({super.key});
@@ -904,227 +904,201 @@ class SnakeGame extends StatefulWidget {
   State<SnakeGame> createState() => _SnakeGameState();
 }
 
-class _SnakeMonster {
-  _SnakeMonster(this.pos);
-  math.Point<int> pos;
+class _Orb {
+  _Orb(this.pos, this.color, this.r);
+  Offset pos;
+  final Color color;
+  final double r;
+}
+
+class _AiWorm {
+  _AiWorm(this.head, this.angle, this.hue, this.length);
+  Offset head;
+  double angle;
+  double target = 0;
+  double hue;
+  int length;
+  double turnTimer = 0;
+  final List<Offset> path = <Offset>[];
 }
 
 class _SnakeGameState extends State<SnakeGame>
     with TickerProviderStateMixin, ToyTicker, _CompanionEmitter {
   static const String _id = 'snake';
-  static const int _cols = 13;
-  static const int _rows = 17;
-  static const double _monsterStep = 0.34; // seconds between monster hops
+  static const double _arenaR = 900;
+  static const double _spacing = 2.6; // path sample distance
+  static const double _seg = 8; // body segment spacing
+  static const double _baseSpeed = 165;
   final math.Random _rnd = math.Random();
-  List<math.Point<int>> _snake = <math.Point<int>>[];
-  List<math.Point<int>> _prevSnake = <math.Point<int>>[];
-  final Set<math.Point<int>> _obstacles = <math.Point<int>>{};
-  final List<_SnakeMonster> _monsters = <_SnakeMonster>[];
-  double _monsterAcc = 0;
-  math.Point<int> _dir = const math.Point<int>(1, 0);
-  math.Point<int> _nextDir = const math.Point<int>(1, 0);
-  Offset _swipeAcc = Offset.zero;
-  final FocusNode _focus = FocusNode();
-  late math.Point<int> _food;
-  int _foodKind = 0; // 0 = normal apple, 1 = golden bonus (time-limited)
-  double _goldenT = 0;
-  double _acc = 0;
+
+  Offset _head = Offset.zero;
+  double _angle = 0;
+  double _target = 0;
+  final List<Offset> _path = <Offset>[];
+  int _length = 24;
+  bool _boost = false;
+  double _boostAcc = 0;
   double _t = 0;
-  double _step = 0.2;
-  double _sinceEat = 0;
+  final List<_Orb> _orbs = <_Orb>[];
+  final List<_AiWorm> _ai = <_AiWorm>[];
   int _score = 0;
-  int _combo = 0;
-  int _apples = 0;
   int _best = 0;
   double _bannerT = 0;
   String? _banner;
+  Size _view = const Size(360, 640);
   GameStatus _status = GameStatus.playing;
+
+  static const List<Color> _orbColors = <Color>[
+    Color(0xFFFF4D6D), Color(0xFFFFD166), Color(0xFF06D6A0),
+    Color(0xFF4CC9F0), Color(0xFF9B5DE5), Color(0xFFFF9E00),
+  ];
 
   @override
   void initState() {
     super.initState();
-    _seed();
+    _seedWorld();
     GameScores.instance.ensureLoaded().then((_) {
       if (mounted) setState(() => _best = GameScores.instance.best(_id));
     });
   }
 
-  @override
-  void dispose() {
-    _focus.dispose();
-    super.dispose();
-  }
-
-  void _seed() {
-    const cy = _rows ~/ 2;
-    _snake = <math.Point<int>>[
-      math.Point<int>(6, cy),
-      math.Point<int>(5, cy),
-      math.Point<int>(4, cy),
-      math.Point<int>(3, cy),
-      math.Point<int>(2, cy),
-    ];
-    _prevSnake = List<math.Point<int>>.of(_snake);
-    _dir = const math.Point<int>(1, 0);
-    _nextDir = _dir;
-    _obstacles.clear();
-    _monsters.clear();
-    _monsterAcc = 0;
-    _foodKind = 0;
-    _goldenT = 0;
-    _placeFood();
-  }
-
-  void _placeFood({bool golden = false}) {
-    math.Point<int> p;
-    do {
-      p = math.Point<int>(_rnd.nextInt(_cols), _rnd.nextInt(_rows));
-    } while (_snake.contains(p) ||
-        _obstacles.contains(p) ||
-        _monsters.any((m) => m.pos == p));
-    _food = p;
-    _foodKind = golden ? 1 : 0;
-    _goldenT = golden ? 5.0 : 0;
-  }
-
-  void _spawnMonster() {
-    final head = _snake.first;
-    math.Point<int> p;
-    var tries = 0;
-    do {
-      p = math.Point<int>(_rnd.nextInt(_cols), _rnd.nextInt(_rows));
-      tries++;
-    } while ((_snake.contains(p) ||
-            _obstacles.contains(p) ||
-            p == _food ||
-            _monsters.any((m) => m.pos == p) ||
-            (p.x - head.x).abs() + (p.y - head.y).abs() < 5) &&
-        tries < 60);
-    if (tries < 60) _monsters.add(_SnakeMonster(p));
-  }
-
-  // Monsters hunt the snake: mostly step toward the head, sometimes wander.
-  void _moveMonsters() {
-    final head = _snake.first;
-    const dirs = <math.Point<int>>[
-      math.Point<int>(1, 0),
-      math.Point<int>(-1, 0),
-      math.Point<int>(0, 1),
-      math.Point<int>(0, -1),
-    ];
-    for (final m in _monsters) {
-      final options = <math.Point<int>>[];
-      for (final d in dirs) {
-        final np = math.Point<int>(m.pos.x + d.x, m.pos.y + d.y);
-        if (np.x < 0 || np.x >= _cols || np.y < 0 || np.y >= _rows) continue;
-        if (_obstacles.contains(np)) continue;
-        if (_monsters.any((o) => o != m && o.pos == np)) continue;
-        options.add(np);
-      }
-      if (options.isEmpty) continue;
-      math.Point<int> choice;
-      if (_rnd.nextDouble() < 0.62) {
-        options.sort((a, b) =>
-            ((a.x - head.x).abs() + (a.y - head.y).abs()) -
-            ((b.x - head.x).abs() + (b.y - head.y).abs()));
-        choice = options.first;
-      } else {
-        choice = options[_rnd.nextInt(options.length)];
-      }
-      m.pos = choice;
-      if (_snake.contains(choice)) {
-        _gameOver();
-        return;
-      }
+  void _seedWorld() {
+    _head = Offset.zero;
+    _angle = 0;
+    _target = 0;
+    _path
+      ..clear()
+      ..add(_head);
+    _length = 24;
+    _boost = false;
+    _boostAcc = 0;
+    _score = 0;
+    _orbs.clear();
+    for (var i = 0; i < 240; i++) {
+      _orbs.add(_randomOrb());
+    }
+    _ai.clear();
+    for (var i = 0; i < 5; i++) {
+      final a = _rnd.nextDouble() * math.pi * 2;
+      final d = _arenaR * (0.25 + _rnd.nextDouble() * 0.5);
+      final w = _AiWorm(Offset(math.cos(a) * d, math.sin(a) * d),
+          _rnd.nextDouble() * math.pi * 2, _rnd.nextDouble() * 360,
+          16 + _rnd.nextInt(40));
+      w.target = w.angle;
+      w.path.add(w.head);
+      _ai.add(w);
     }
   }
 
-  void _addObstacle() {
-    math.Point<int> p;
-    var tries = 0;
-    do {
-      p = math.Point<int>(_rnd.nextInt(_cols), _rnd.nextInt(_rows));
-      tries++;
-    } while ((_snake.contains(p) ||
-            _obstacles.contains(p) ||
-            p == _food ||
-            (p.x - _snake.first.x).abs() + (p.y - _snake.first.y).abs() < 3) &&
-        tries < 40);
-    if (tries < 40) _obstacles.add(p);
+  _Orb _randomOrb() {
+    final a = _rnd.nextDouble() * math.pi * 2;
+    final d = math.sqrt(_rnd.nextDouble()) * (_arenaR - 24);
+    return _Orb(Offset(math.cos(a) * d, math.sin(a) * d),
+        _orbColors[_rnd.nextInt(_orbColors.length)],
+        3.5 + _rnd.nextDouble() * 3.5);
   }
 
   @override
   void onTick(double dt) {
     if (_status != GameStatus.playing) return;
+    _t += dt;
     if (_bannerT > 0) {
       _bannerT -= dt;
       if (_bannerT <= 0) _banner = null;
     }
-    _sinceEat += dt;
-    if (_foodKind == 1) {
-      _goldenT -= dt;
-      if (_goldenT <= 0) _placeFood();
+
+    // Steer toward the target heading with a capped turn rate.
+    double diff = _target - _angle;
+    while (diff > math.pi) diff -= math.pi * 2;
+    while (diff < -math.pi) diff += math.pi * 2;
+    _angle += diff.clamp(-3.6 * dt, 3.6 * dt);
+
+    final speed = _baseSpeed * (_boost && _length > 26 ? 1.85 : 1.0);
+    _head += Offset(math.cos(_angle), math.sin(_angle)) * speed * dt;
+
+    if (_path.isEmpty || (_head - _path.first).distance >= _spacing) {
+      _path.insert(0, _head);
     }
-    if (_monsters.isNotEmpty) {
-      _monsterAcc += dt;
-      while (_monsterAcc >= _monsterStep) {
-        _monsterAcc -= _monsterStep;
-        _moveMonsters();
-        if (_status != GameStatus.playing) return;
+    _trimPath(_length * _seg + _seg);
+
+    // Boost slowly trims length and drops a glowing orb behind.
+    if (_boost && _length > 26) {
+      _boostAcc += dt;
+      if (_boostAcc >= 0.14) {
+        _boostAcc = 0;
+        _length -= 1;
+        _orbs.add(_Orb(_path.isNotEmpty ? _path.last : _head,
+            const Color(0xFFFFE066), 4.5));
       }
     }
-    _acc += dt;
-    while (_acc >= _step) {
-      _acc -= _step;
-      _advance();
+
+    // Eat nearby orbs.
+    for (var i = _orbs.length - 1; i >= 0; i--) {
+      if ((_orbs[i].pos - _head).distance < 15) {
+        _orbs.removeAt(i);
+        _length += 2;
+        _score += 1;
+        if (_score % 10 == 0) _flash('Length $_length!');
+        TonePlayer.instance.playCue(SoundCue.snakeEat);
+        emit(ExperienceEvent.bubblePopped);
+        GameScores.instance.submit(_id, _score).then((b) {
+          if (mounted && b != _best) setState(() => _best = b);
+        });
+        _orbs.add(_randomOrb());
+      }
+    }
+
+    _updateAi(dt);
+
+    // Glowing edge ends the run.
+    if (_head.distance > _arenaR) {
+      _gameOver();
     }
   }
 
-  void _advance() {
-    _prevSnake = List<math.Point<int>>.of(_snake);
-    _dir = _nextDir;
-    final head = _snake.first;
-    final nx = head.x + _dir.x;
-    final ny = head.y + _dir.y;
-    // Solid walls — running into the edge ends the run.
-    if (nx < 0 || nx >= _cols || ny < 0 || ny >= _rows) {
-      _gameOver();
-      return;
-    }
-    final next = math.Point<int>(nx, ny);
-    if (_snake.contains(next) ||
-        _obstacles.contains(next) ||
-        _monsters.any((m) => m.pos == next)) {
-      _gameOver();
-      return;
-    }
-    _snake.insert(0, next);
-    if (next == _food) {
-      _apples++;
-      _combo = _sinceEat < 2.5 ? _combo + 1 : 1;
-      _sinceEat = 0;
-      _score += (_foodKind == 1 ? 3 : 1) + (_combo >= 3 ? 1 : 0);
-      TonePlayer.instance.playCue(SoundCue.snakeEat);
-      emit(ExperienceEvent.bubblePopped);
-      if (_foodKind == 1) {
-        _flash('Golden +3!');
-      } else if (_combo >= 3) {
-        _flash('Combo x$_combo!');
+  void _trimPath(double maxLen) {
+    double acc = 0;
+    for (var i = 1; i < _path.length; i++) {
+      acc += (_path[i] - _path[i - 1]).distance;
+      if (acc >= maxLen) {
+        _path.removeRange(i + 1, _path.length);
+        return;
       }
-      _step = math.max(0.085, _step - 0.006);
-      if (_score >= 6 && _apples % 5 == 0 && _obstacles.length < 6) {
-        _addObstacle();
-      }
-      // Roaming hunters ramp the danger as the score climbs.
-      if (_score >= 8 && _monsters.isEmpty) {
-        _spawnMonster();
-      } else if (_score >= 24 && _monsters.length < 2) {
-        _spawnMonster();
-      }
-      _placeFood(golden: _apples % 5 == 4);
-    } else {
-      _snake.removeLast();
     }
+  }
+
+  void _updateAi(double dt) {
+    for (final w in _ai) {
+      w.turnTimer -= dt;
+      if (w.turnTimer <= 0) {
+        w.turnTimer = 0.6 + _rnd.nextDouble() * 1.4;
+        w.target = w.angle + (_rnd.nextDouble() - 0.5) * 1.6;
+      }
+      if (w.head.distance > _arenaR * 0.86) {
+        w.target = math.atan2(-w.head.dy, -w.head.dx);
+      }
+      double d = w.target - w.angle;
+      while (d > math.pi) d -= math.pi * 2;
+      while (d < -math.pi) d += math.pi * 2;
+      w.angle += d.clamp(-2.4 * dt, 2.4 * dt);
+      w.head += Offset(math.cos(w.angle), math.sin(w.angle)) * 120 * dt;
+      if (w.path.isEmpty || (w.head - w.path.first).distance >= _spacing) {
+        w.path.insert(0, w.head);
+      }
+      double acc = 0;
+      for (var i = 1; i < w.path.length; i++) {
+        acc += (w.path[i] - w.path[i - 1]).distance;
+        if (acc >= w.length * _seg) {
+          w.path.removeRange(i + 1, w.path.length);
+          break;
+        }
+      }
+    }
+  }
+
+  void _flash(String s) {
+    _banner = s;
+    _bannerT = 1.1;
   }
 
   void _gameOver() {
@@ -1139,61 +1113,17 @@ class _SnakeGameState extends State<SnakeGame>
     });
   }
 
-  void _flash(String s) {
-    _banner = s;
-    _bannerT = 1.0;
-  }
-
-  void _steer(Offset delta) {
-    if (delta.dx.abs() > delta.dy.abs()) {
-      final d = math.Point<int>(delta.dx > 0 ? 1 : -1, 0);
-      if (d.x != -_dir.x) _nextDir = d;
-    } else {
-      final d = math.Point<int>(0, delta.dy > 0 ? 1 : -1);
-      if (d.y != -_dir.y) _nextDir = d;
-    }
-  }
-
-  // Accumulate drag so each deliberate ~16px swipe registers one clean turn,
-  // instead of every jittery micro-delta flipping direction.
-  void _onDrag(Offset delta) {
-    _swipeAcc += delta;
-    const t = 16.0;
-    if (_swipeAcc.dx.abs() >= t || _swipeAcc.dy.abs() >= t) {
-      _steer(_swipeAcc);
-      _swipeAcc = Offset.zero;
-    }
-  }
-
-  void _setDir(int dx, int dy) {
-    if (dx != -_dir.x && dy != -_dir.y) _nextDir = math.Point<int>(dx, dy);
-  }
-
-  void _onKey(KeyEvent e) {
-    if (e is! KeyDownEvent) return;
-    final k = e.logicalKey;
-    if (k == LogicalKeyboardKey.arrowLeft) {
-      _setDir(-1, 0);
-    } else if (k == LogicalKeyboardKey.arrowRight) {
-      _setDir(1, 0);
-    } else if (k == LogicalKeyboardKey.arrowUp) {
-      _setDir(0, -1);
-    } else if (k == LogicalKeyboardKey.arrowDown) {
-      _setDir(0, 1);
-    }
+  void _steerTo(Offset local) {
+    final v = local - Offset(_view.width / 2, _view.height / 2);
+    if (v.distance > 6) _target = math.atan2(v.dy, v.dx);
   }
 
   void _reset() {
     setState(() {
-      _score = 0;
-      _combo = 0;
-      _apples = 0;
-      _step = 0.2;
-      _sinceEat = 0;
       _banner = null;
       _bannerT = 0;
       _status = GameStatus.playing;
-      _seed();
+      _seedWorld();
     });
   }
 
@@ -1209,31 +1139,94 @@ class _SnakeGameState extends State<SnakeGame>
       overEmoji: '🐍',
       accent: const Color(0xFF06D6A0),
       onPlayAgain: _reset,
-      child: KeyboardListener(
-        focusNode: _focus,
-        autofocus: true,
-        onKeyEvent: _onKey,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onPanUpdate: (d) => _onDrag(d.delta),
-          onPanEnd: (_) => _swipeAcc = Offset.zero,
-          child: DecoratedBox(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: <Color>[Color(0xFF0B2436), Color(0xFF0E3020)],
+      child: LayoutBuilder(
+        builder: (context, c) {
+          _view = Size(c.maxWidth, c.maxHeight);
+          return Stack(
+            fit: StackFit.expand,
+            children: <Widget>[
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onPanDown: (d) => _steerTo(d.localPosition),
+                onPanUpdate: (d) => _steerTo(d.localPosition),
+                child: CustomPaint(
+                  painter: _SnakePainter(_head, _angle, _path, _length, _seg,
+                      _orbs, _ai, _arenaR, _t),
+                  size: Size.infinite,
+                ),
               ),
+              Positioned(
+                left: 20,
+                bottom: 20,
+                child: Listener(
+                  onPointerDown: (_) => _boost = true,
+                  onPointerUp: (_) => _boost = false,
+                  onPointerCancel: (_) => _boost = false,
+                  child: Container(
+                    width: 76,
+                    height: 76,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.14),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white30, width: 2),
+                    ),
+                    child: const Icon(
+                        Icons.keyboard_double_arrow_up_rounded,
+                        color: Colors.white,
+                        size: 40),
+                  ),
+                ),
+              ),
+              Positioned(
+                right: 14,
+                top: 96,
+                child: _SnakeLeaderboard(playerLen: _length, ai: _ai),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _SnakeLeaderboard extends StatelessWidget {
+  const _SnakeLeaderboard({required this.playerLen, required this.ai});
+  final int playerLen;
+  final List<_AiWorm> ai;
+
+  @override
+  Widget build(BuildContext context) {
+    final entries = <MapEntry<String, int>>[
+      MapEntry('You', playerLen),
+      for (var i = 0; i < ai.length; i++)
+        MapEntry('Worm ${i + 1}', ai[i].length),
+    ]..sort((a, b) => b.value.compareTo(a.value));
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.35),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          for (var i = 0; i < entries.length && i < 5; i++)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 1),
+              child: Text(
+                  '${i + 1}  ${entries[i].key}  ${entries[i].value}',
+                  style: TextStyle(
+                      color: entries[i].key == 'You'
+                          ? const Color(0xFFFFD166)
+                          : Colors.white70,
+                      fontSize: 12,
+                      fontWeight: entries[i].key == 'You'
+                          ? FontWeight.w900
+                          : FontWeight.w600)),
             ),
-            child: CustomPaint(
-              painter: _SnakePainter(_snake, _prevSnake,
-                  (_acc / _step).clamp(0.0, 1.0), _food, _foodKind,
-                  _obstacles.toList(),
-                  _monsters.map((m) => m.pos).toList(), _dir, _cols, _rows, _t),
-              size: Size.infinite,
-            ),
-          ),
-        ),
+        ],
       ),
     );
   }
@@ -1241,135 +1234,121 @@ class _SnakeGameState extends State<SnakeGame>
 
 
 class _SnakePainter extends CustomPainter {
-  _SnakePainter(this.snake, this.prevSnake, this.progress, this.food,
-      this.foodKind, this.obstacles, this.monsters, this.dir, this.cols,
-      this.rows, this.t);
-  final List<math.Point<int>> snake;
-  final List<math.Point<int>> prevSnake;
-  final double progress;
-  final math.Point<int> food;
-  final int foodKind;
-  final List<math.Point<int>> obstacles;
-  final List<math.Point<int>> monsters;
-  final math.Point<int> dir;
-  final int cols;
-  final int rows;
+  _SnakePainter(this.head, this.angle, this.path, this.length, this.seg,
+      this.orbs, this.ai, this.arenaR, this.t);
+  final Offset head;
+  final double angle;
+  final List<Offset> path;
+  final int length;
+  final double seg;
+  final List<_Orb> orbs;
+  final List<_AiWorm> ai;
+  final double arenaR;
   final double t;
+
+  List<Offset> _resample(List<Offset> pts, double spacing, int count) {
+    final out = <Offset>[];
+    if (pts.isEmpty) return out;
+    out.add(pts[0]);
+    double carry = 0;
+    for (var i = 1; i < pts.length && out.length < count; i++) {
+      var a = pts[i - 1];
+      final b = pts[i];
+      var d = (b - a).distance;
+      while (carry + d >= spacing && out.length < count) {
+        final f = (spacing - carry) / d;
+        final p = Offset.lerp(a, b, f)!;
+        out.add(p);
+        a = p;
+        d = (b - a).distance;
+        carry = 0;
+      }
+      carry += d;
+    }
+    return out;
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
-    final cell = math.min(size.width / cols, size.height / rows);
-    final boardW = cell * cols;
-    final boardH = cell * rows;
-    final ox = (size.width - boardW) / 2;
-    final oy = (size.height - boardH) / 2 + 24;
+    final center = Offset(size.width / 2, size.height / 2);
+    final cam = head;
+    Offset toScreen(Offset w) => w - cam + center;
 
-    Rect cellRect(math.Point<int> p) => Rect.fromLTWH(
-        ox + p.x * cell + 1, oy + p.y * cell + 1, cell - 2, cell - 2);
-
-    // Subtle board grid so the play space reads clearly.
-    final grid = Paint()
-      ..color = Colors.white.withOpacity(0.04)
-      ..strokeWidth = 1;
-    for (var c = 0; c <= cols; c++) {
-      canvas.drawLine(Offset(ox + c * cell, oy),
-          Offset(ox + c * cell, oy + boardH), grid);
+    canvas.drawRect(
+        Offset.zero & size, Paint()..color = const Color(0xFF0B1020));
+    // Scrolling dot texture.
+    final dot = Paint()..color = Colors.white.withOpacity(0.05);
+    const gap = 46.0;
+    final sx = (-cam.dx) % gap;
+    final sy = (-cam.dy) % gap;
+    for (double x = sx - gap; x < size.width + gap; x += gap) {
+      for (double y = sy - gap; y < size.height + gap; y += gap) {
+        canvas.drawCircle(Offset(x, y), 1.5, dot);
+      }
     }
-    for (var r = 0; r <= rows; r++) {
-      canvas.drawLine(Offset(ox, oy + r * cell),
-          Offset(ox + boardW, oy + r * cell), grid);
-    }
-
-    // Solid wall border — a clear signal the edges are deadly.
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-          Rect.fromLTWH(ox, oy, boardW, boardH), const Radius.circular(6)),
-      Paint()
-        ..color = const Color(0xFF63C7A6)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3,
-    );
-
-    // Obstacles — solid rocks that end the run on contact.
-    for (final o in obstacles) {
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(cellRect(o), Radius.circular(cell / 5)),
-        Paint()..color = const Color(0xFF6B7280),
-      );
-    }
-
-    // Monster hunters — they chase the snake and end the run on contact.
-    for (final m in monsters) {
-      final mc = cellRect(m).center;
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-            Rect.fromCenter(center: mc, width: cell - 2, height: cell - 2),
-            Radius.circular(cell / 4)),
-        Paint()..color = const Color(0xFFB5179E),
-      );
-      final eye = Paint()..color = Colors.white;
-      final pupil = Paint()..color = const Color(0xFF2A0A2A);
-      final ex = cell / 6;
-      canvas.drawCircle(Offset(mc.dx - ex, mc.dy - cell / 10), cell / 9, eye);
-      canvas.drawCircle(Offset(mc.dx + ex, mc.dy - cell / 10), cell / 9, eye);
-      canvas.drawCircle(
-          Offset(mc.dx - ex, mc.dy - cell / 10), cell / 20, pupil);
-      canvas.drawCircle(
-          Offset(mc.dx + ex, mc.dy - cell / 10), cell / 20, pupil);
-    }
-
-    // Food — golden bonus glows brighter than the normal red apple, and
-    // gently pulses so it feels alive and draws the eye.
-    final foodColor =
-        foodKind == 1 ? const Color(0xFFFFD700) : const Color(0xFFEF476F);
-    final pulse = 0.5 + 0.5 * math.sin(t * 5);
-    final fc = cellRect(food).center;
+    // Arena boundary glow.
     canvas.drawCircle(
-        fc,
-        cell * (0.5 + pulse * 0.22),
+        toScreen(Offset.zero),
+        arenaR,
         Paint()
-          ..color = foodColor.withOpacity(0.35)
-          ..maskFilter =
-              MaskFilter.blur(BlurStyle.normal, foodKind == 1 ? 8 : 5));
-    canvas.drawRRect(
-        RRect.fromRectAndRadius(cellRect(food), Radius.circular(cell / 2)),
-        Paint()..color = foodColor);
+          ..color = const Color(0xFFFF4D6D)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 6
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6));
 
-    // Snake — smooth glide between grid cells so movement never teleports.
-    Offset segCenter(int i) {
-      final to = snake[i];
-      math.Point<int> from = i < prevSnake.length ? prevSnake[i] : to;
-      if ((from.x - to.x).abs() > 1 || (from.y - to.y).abs() > 1) from = to;
-      final gx = from.x + (to.x - from.x) * progress;
-      final gy = from.y + (to.y - from.y) * progress;
-      return Offset(ox + gx * cell + cell / 2, oy + gy * cell + cell / 2);
+    // Orbs.
+    for (final o in orbs) {
+      final s = toScreen(o.pos);
+      if (s.dx < -20 ||
+          s.dx > size.width + 20 ||
+          s.dy < -20 ||
+          s.dy > size.height + 20) {
+        continue;
+      }
+      canvas.drawCircle(
+          s,
+          o.r * 2.4,
+          Paint()
+            ..color = o.color.withOpacity(0.35)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4));
+      canvas.drawCircle(s, o.r, Paint()..color = o.color);
     }
 
-    for (var i = snake.length - 1; i >= 0; i--) {
-      final f = 1 - i / (snake.length + 2);
-      final color = Color.lerp(
-          const Color(0xFF06D6A0), const Color(0xFF118AB2), 1 - f)!;
-      final r = Rect.fromCenter(
-          center: segCenter(i), width: cell - 2, height: cell - 2);
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(r, Radius.circular(cell / 3)),
-        Paint()..color = color,
-      );
+    // Friendly AI worms.
+    for (final w in ai) {
+      final body = _resample(w.path, seg, w.length);
+      for (var i = body.length - 1; i >= 0; i--) {
+        final r = 7.0 * (1 - i / (body.length + 6) * 0.35);
+        canvas.drawCircle(toScreen(body[i]), r,
+            Paint()..color = HSVColor.fromAHSV(1, w.hue, 0.55, 0.9).toColor());
+      }
     }
-    // Eyes on the head, pupils looking the way the snake travels.
-    if (snake.isNotEmpty) {
-      final hc = segCenter(0);
-      final eye = Paint()..color = Colors.white;
-      final pupil = Paint()..color = const Color(0xFF0B2436);
-      final lx = hc.dx - cell / 6;
-      final rx = hc.dx + cell / 6;
-      final ey = hc.dy - cell / 8;
-      canvas.drawCircle(Offset(lx, ey), cell / 9, eye);
-      canvas.drawCircle(Offset(rx, ey), cell / 9, eye);
-      final px = dir.x * cell / 18;
-      final py = dir.y * cell / 18;
-      canvas.drawCircle(Offset(lx + px, ey + py), cell / 18, pupil);
-      canvas.drawCircle(Offset(rx + px, ey + py), cell / 18, pupil);
+
+    // Player worm — a smooth rainbow body.
+    final body = _resample(path, seg, length);
+    for (var i = body.length - 1; i >= 0; i--) {
+      final s = toScreen(body[i]);
+      final r = 9.5 * (1 - i / (body.length + 6) * 0.3);
+      var hue = (i * 6 - t * 60) % 360;
+      if (hue < 0) hue += 360;
+      canvas.drawCircle(
+          s,
+          r + 2,
+          Paint()
+            ..color =
+                HSVColor.fromAHSV(1, hue, 0.7, 1).toColor().withOpacity(0.22));
+      canvas.drawCircle(
+          s, r, Paint()..color = HSVColor.fromAHSV(1, hue, 0.78, 1).toColor());
+    }
+    // Head + eyes looking forward.
+    final hs = toScreen(head);
+    canvas.drawCircle(hs, 12, Paint()..color = const Color(0xFFFFF3C4));
+    final perp = Offset(-math.sin(angle), math.cos(angle));
+    final fwd = Offset(math.cos(angle), math.sin(angle));
+    for (final sgn in <double>[-1, 1]) {
+      final ec = hs + perp * 5 * sgn + fwd * 3;
+      canvas.drawCircle(ec, 4, Paint()..color = Colors.white);
+      canvas.drawCircle(ec + fwd * 1.5, 2, Paint()..color = Colors.black);
     }
   }
 
