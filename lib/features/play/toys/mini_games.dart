@@ -925,6 +925,7 @@ class _AiWorm {
 class _SnakeGameState extends State<SnakeGame>
     with TickerProviderStateMixin, ToyTicker, _CompanionEmitter {
   static const String _id = 'snake';
+  static const int _targetScore = 30;
   static const double _arenaR = 900;
   static const double _spacing = 2.6; // path sample distance
   static const double _seg = 8; // body segment spacing
@@ -983,7 +984,7 @@ class _SnakeGameState extends State<SnakeGame>
       final d = _arenaR * (0.25 + _rnd.nextDouble() * 0.5);
       final w = _AiWorm(Offset(math.cos(a) * d, math.sin(a) * d),
           _rnd.nextDouble() * math.pi * 2, _rnd.nextDouble() * 360,
-          16 + _rnd.nextInt(40));
+          16);
       w.target = w.angle;
       w.path.add(w.head);
       _ai.add(w);
@@ -1045,6 +1046,10 @@ class _SnakeGameState extends State<SnakeGame>
           if (mounted && b != _best) setState(() => _best = b);
         });
         _orbs.add(_randomOrb());
+        if (_score >= _targetScore) {
+          _finish(GameStatus.won);
+          return;
+        }
       }
     }
 
@@ -1085,6 +1090,14 @@ class _SnakeGameState extends State<SnakeGame>
       if (w.path.isEmpty || (w.head - w.path.first).distance >= _spacing) {
         w.path.insert(0, w.head);
       }
+      for (var i = _orbs.length - 1; i >= 0; i--) {
+        if ((_orbs[i].pos - w.head).distance < 13) {
+          _orbs.removeAt(i);
+          w.length += 2;
+          _orbs.add(_randomOrb());
+          break;
+        }
+      }
       double acc = 0;
       for (var i = 1; i < w.path.length; i++) {
         acc += (w.path[i] - w.path[i - 1]).distance;
@@ -1101,17 +1114,20 @@ class _SnakeGameState extends State<SnakeGame>
     _bannerT = 1.1;
   }
 
-  void _gameOver() {
+  void _finish(GameStatus status) {
     final prev = GameScores.instance.best(_id);
-    _status = GameStatus.over;
-    TonePlayer.instance.playCue(SoundCue.gameOver);
-    emit(_score > prev
+    _status = status;
+    TonePlayer.instance.playCue(
+        status == GameStatus.won ? SoundCue.success : SoundCue.gameOver);
+    emit(status == GameStatus.won || _score > prev
         ? ExperienceEvent.gameCompleted
         : ExperienceEvent.incorrectAnswer);
     GameScores.instance.submit(_id, _score).then((b) {
       if (mounted) setState(() => _best = b);
     });
   }
+
+  void _gameOver() => _finish(GameStatus.over);
 
   void _steerTo(Offset local) {
     final v = local - Offset(_view.width / 2, _view.height / 2);
@@ -1131,12 +1147,14 @@ class _SnakeGameState extends State<SnakeGame>
   Widget build(BuildContext context) {
     drainCompanion(context);
     return _GameShell(
-      title: '🐍 Snake',
+      title: '🐍 Snake · Orbs',
       score: _score,
       best: _best,
+      target: _targetScore,
       status: _status,
       banner: _banner,
       overEmoji: '🐍',
+      overText: 'So close! Stay inside the glowing edge.',
       accent: const Color(0xFF06D6A0),
       onPlayAgain: _reset,
       child: LayoutBuilder(
@@ -1179,8 +1197,34 @@ class _SnakeGameState extends State<SnakeGame>
               ),
               Positioned(
                 right: 14,
-                top: 96,
-                child: _SnakeLeaderboard(playerLen: _length, ai: _ai),
+                top: 176,
+                child: _SnakeLeaderboard(playerScore: _score, ai: _ai),
+              ),
+              Positioned(
+                left: 14,
+                right: 14,
+                top: 126,
+                child: IgnorePointer(
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Text(
+                        'Collect 30 glowing orbs · Drag to steer · Avoid the edge',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ],
           );
@@ -1191,16 +1235,15 @@ class _SnakeGameState extends State<SnakeGame>
 }
 
 class _SnakeLeaderboard extends StatelessWidget {
-  const _SnakeLeaderboard({required this.playerLen, required this.ai});
-  final int playerLen;
+  const _SnakeLeaderboard({required this.playerScore, required this.ai});
+  final int playerScore;
   final List<_AiWorm> ai;
 
   @override
   Widget build(BuildContext context) {
-    final entries = <MapEntry<String, int>>[
-      MapEntry('You', playerLen),
+    final rivals = <MapEntry<String, int>>[
       for (var i = 0; i < ai.length; i++)
-        MapEntry('Worm ${i + 1}', ai[i].length),
+        MapEntry('Worm ${i + 1}', math.max(0, (ai[i].length - 16) ~/ 2)),
     ]..sort((a, b) => b.value.compareTo(a.value));
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -1212,19 +1255,28 @@ class _SnakeLeaderboard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          for (var i = 0; i < entries.length && i < 5; i++)
+          const Text('ORB RACE',
+              style: TextStyle(
+                  color: Colors.white54,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900)),
+                Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Text('You  $playerScore / 30',
+                  style: const TextStyle(
+                    color: Color(0xFFFFD166),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900)),
+                ),
+                for (var i = 0; i < rivals.length && i < 3; i++)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 1),
               child: Text(
-                  '${i + 1}  ${entries[i].key}  ${entries[i].value}',
-                  style: TextStyle(
-                      color: entries[i].key == 'You'
-                          ? const Color(0xFFFFD166)
-                          : Colors.white70,
+                    '${i + 1}  ${rivals[i].key}  ${rivals[i].value}',
+                    style: const TextStyle(
+                      color: Colors.white70,
                       fontSize: 12,
-                      fontWeight: entries[i].key == 'You'
-                          ? FontWeight.w900
-                          : FontWeight.w600)),
+                      fontWeight: FontWeight.w600)),
             ),
         ],
       ),

@@ -482,6 +482,36 @@ final List<UniverseToy> kToyUniverse = <UniverseToy>[
     category: ToyCategory.arcade, inputs: const [ToyInput.tap],
     engagement: ToyEngagement.deep, build: _play('bubble_shooter'), isNew: true,
   ),
+  UniverseToy(
+    id: 'color_quest', name: 'Color Quest', emoji: '🎨',
+    color: const Color(0xFFFFD166),
+    category: ToyCategory.learning, inputs: const [ToyInput.tap],
+    engagement: ToyEngagement.quick, build: _play('color_quest'), isNew: true,
+  ),
+  UniverseToy(
+    id: 'shape_scout', name: 'Shape Scout', emoji: '🔷',
+    color: const Color(0xFF4CC9F0),
+    category: ToyCategory.learning, inputs: const [ToyInput.tap],
+    engagement: ToyEngagement.quick, build: _play('shape_scout'), isNew: true,
+  ),
+  UniverseToy(
+    id: 'number_splash', name: 'Number Splash', emoji: '➕',
+    color: const Color(0xFF43E97B),
+    category: ToyCategory.learning, inputs: const [ToyInput.tap],
+    engagement: ToyEngagement.quick, build: _play('number_splash'), isNew: true,
+  ),
+  UniverseToy(
+    id: 'path_finder', name: 'Path Finder', emoji: '🗺️',
+    color: const Color(0xFFFFD166),
+    category: ToyCategory.learning, inputs: const [ToyInput.tap],
+    engagement: ToyEngagement.deep, build: _play('path_finder'), isNew: true,
+  ),
+  UniverseToy(
+    id: 'goal_keeper', name: 'Goal Keeper', emoji: '🥅',
+    color: const Color(0xFF06D6A0),
+    category: ToyCategory.arcade, inputs: const [ToyInput.tap],
+    engagement: ToyEngagement.deep, build: _play('goal_keeper'), isNew: true,
+  ),
 
   // ---- Sensory Lab: premium physics experiences (6) ----
   const UniverseToy(
@@ -569,6 +599,9 @@ List<UniverseToy> _byIds(List<String> ids) => ids
 /// The marquee — universally understood, highly replayable experiences.
 const List<String> kFeaturedOrder = <String>[
   'snake',
+  'goal_keeper',
+  'path_finder',
+  'color_quest',
   'bubble_shooter',
   'sky_hop',
   'block_blast',
@@ -594,9 +627,14 @@ const List<String> kFeaturedOrder = <String>[
 
 List<UniverseToy> featuredToys() => _byIds(kFeaturedOrder);
 
-/// Goal-based games with a clear objective, win state and celebration.
+/// Playable games, ordered with finite-goal games before endless score runs.
 List<UniverseToy> gamesToys() => _byIds(<String>[
       'snake',
+  'goal_keeper',
+  'path_finder',
+  'color_quest',
+  'shape_scout',
+  'number_splash',
       'bubble_shooter',
       'sky_hop',
       'block_blast',
@@ -647,6 +685,10 @@ List<UniverseToy> sensoryPlayToys() => _byIds(<String>[
 
 /// Thinking games that grow with the child.
 List<UniverseToy> smartPlayToys() => _byIds(<String>[
+  'color_quest',
+  'shape_scout',
+  'number_splash',
+  'path_finder',
       'learn_matching_pairs',
       'learn_emotion_match',
       'star_tap',
@@ -657,6 +699,7 @@ List<UniverseToy> smartPlayToys() => _byIds(<String>[
 /// Fast, recognizable arcade games.
 List<UniverseToy> arcadeToys() => _byIds(<String>[
       'snake',
+  'goal_keeper',
       'bubble_shooter',
       'sky_hop',
       'block_blast',
@@ -674,6 +717,7 @@ List<UniverseToy> arcadeToys() => _byIds(<String>[
 
 /// Driving, aiming and skill games.
 List<UniverseToy> racingSkillToys() => _byIds(<String>[
+  'goal_keeper',
       'racing',
       'car_track',
       'bowling',
@@ -681,6 +725,10 @@ List<UniverseToy> racingSkillToys() => _byIds(<String>[
 
 /// Puzzles, memory and brain teasers.
 List<UniverseToy> puzzleBrainToys() => _byIds(<String>[
+  'path_finder',
+  'color_quest',
+  'shape_scout',
+  'number_splash',
       'ball_sort',
       'block_blast',
       'tap_order',

@@ -7,14 +7,15 @@ import 'package:harshivos/models/toy_meta.dart';
 /// end (playable builder + reachable universe entry + implemented metadata),
 /// and every discovery rail must contain only real, working toys.
 void main() {
-  const arcadeIds = <String>[
+  const gameIds = <String>[
     'whack', 'sky_hop', 'stack', 'merge', 'echo', 'tictactoe',
     'brick_break', 'space_dodge', 'memory_flip',
     'ball_sort', 'tap_order', 'piano_tiles', 'block_blast', 'bubble_shooter',
+    'color_quest', 'shape_scout', 'number_splash', 'path_finder', 'goal_keeper',
   ];
 
-  test('every arcade game is playable, reachable and implemented', () {
-    for (final id in arcadeIds) {
+  test('every registered game is playable, reachable and implemented', () {
+    for (final id in gameIds) {
       expect(toyBuilders.containsKey(id), isTrue, reason: 'no builder: $id');
       final toy = kToyUniverseById[id];
       expect(toy, isNotNull, reason: 'not in universe: $id');
@@ -63,5 +64,17 @@ void main() {
     ]));
     expect(puzzleBrainToys().map((t) => t.id),
         containsAll(<String>['ball_sort', 'block_blast', 'tap_order']));
+  });
+
+  test('the five goal games appear in appropriate discovery rails', () {
+    const goalIds = <String>[
+      'color_quest', 'shape_scout', 'number_splash', 'path_finder', 'goal_keeper',
+    ];
+    expect(gamesToys().map((t) => t.id), containsAll(goalIds));
+    expect(smartPlayToys().map((t) => t.id), containsAll(<String>[
+      'color_quest', 'shape_scout', 'number_splash', 'path_finder',
+    ]));
+    expect(arcadeToys().map((t) => t.id), contains('goal_keeper'));
+    expect(racingSkillToys().map((t) => t.id), contains('goal_keeper'));
   });
 }

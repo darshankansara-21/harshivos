@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:harshivos/features/play/toys/arcade_games.dart';
+import 'package:harshivos/features/play/toys/goal_games.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Future<void> _pump(WidgetTester tester, Widget game) async {
@@ -151,6 +152,48 @@ void main() {
     await tester.tapAt(const Offset(400, 900));
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Color Quest states its target and accepts a choice', (tester) async {
+    await _pump(tester, const ColorQuestGame());
+    expect(find.textContaining('8 correct answers wins'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('color_quest-option-0')));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Shape Scout states its target and accepts a choice', (tester) async {
+    await _pump(tester, const ShapeScoutGame());
+    expect(find.textContaining('8 matches wins'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('shape_scout-option-0')));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Number Splash states its target and accepts a choice', (tester) async {
+    await _pump(tester, const NumberSplashGame());
+    expect(find.textContaining('8 correct answers wins'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('number_splash-option-0')));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Path Finder exposes and advances its glowing first step', (tester) async {
+    await _pump(tester, const PathFinderGame());
+    expect(find.textContaining('Follow the glowing path'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('path-cell-20')));
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(find.textContaining('1 / 9'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Goal Keeper exposes its win target and blocks a shot', (tester) async {
+    await _pump(tester, const GoalKeeperGame());
+    expect(find.textContaining('Make 10 saves'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('goal-lane-1')));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('1 / 10'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

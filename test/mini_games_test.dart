@@ -56,7 +56,11 @@ void main() {
 
   testWidgets('Snake builds, steers, and runs without overflow', (tester) async {
     await _pumpGame(tester, const SnakeGame());
-    expect(find.textContaining('Snake'), findsOneWidget);
+    expect(find.textContaining('Snake · Orbs'), findsOneWidget);
+    expect(find.text('🐍 Snake · Orbs   0 / 30'), findsOneWidget);
+    expect(find.text('You  0 / 30'), findsOneWidget);
+    expect(find.textContaining('Collect 30 glowing orbs'), findsOneWidget);
+    expect(find.text('ORB RACE'), findsOneWidget);
     await tester.drag(find.byType(SnakeGame), const Offset(0, 120));
     await tester.pump(const Duration(milliseconds: 250));
     await tester.drag(find.byType(SnakeGame), const Offset(120, 0));

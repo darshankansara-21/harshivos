@@ -37,6 +37,11 @@ class GameThumb extends StatelessWidget {
     'piano_tiles',
     'block_blast',
     'bubble_shooter',
+    'color_quest',
+    'shape_scout',
+    'number_splash',
+    'path_finder',
+    'goal_keeper',
   };
 
   @override
@@ -115,6 +120,16 @@ class _ThumbPainter extends CustomPainter {
         _blockBlast(canvas, w, h);
       case 'bubble_shooter':
         _bubbleShooter(canvas, w, h);
+      case 'color_quest':
+        _colorQuest(canvas, w, h);
+      case 'shape_scout':
+        _shapeScout(canvas, w, h);
+      case 'number_splash':
+        _numberSplash(canvas, w, h);
+      case 'path_finder':
+        _pathFinder(canvas, w, h);
+      case 'goal_keeper':
+        _goalKeeper(canvas, w, h);
     }
   }
 
@@ -635,6 +650,91 @@ class _ThumbPainter extends CustomPainter {
     }
     canvas.drawCircle(
         Offset(w * 0.5, h * 0.85), r * 1.1, Paint()..color = cols[2]);
+  }
+
+  void _colorQuest(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, <Color>[const Color(0xFF28205A), const Color(0xFF111836)]);
+    const colors = <Color>[
+      Color(0xFFEF476F), Color(0xFF4CC9F0),
+      Color(0xFF43E97B), Color(0xFFFFD166),
+    ];
+    for (var i = 0; i < 4; i++) {
+      final rect = Rect.fromLTWH(
+          w * (0.16 + (i % 2) * 0.38),
+          h * (0.22 + (i ~/ 2) * 0.38),
+          w * 0.3,
+          h * 0.28);
+      canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(8)),
+          Paint()..color = colors[i]);
+    }
+  }
+
+  void _shapeScout(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, <Color>[const Color(0xFF123A52), const Color(0xFF081D2E)]);
+    final paint = Paint()..color = const Color(0xFF4CC9F0);
+    canvas.drawCircle(Offset(w * 0.3, h * 0.35), w * 0.12, paint);
+    canvas.drawRect(Rect.fromCenter(
+        center: Offset(w * 0.68, h * 0.35), width: w * 0.22, height: w * 0.22),
+        Paint()..color = const Color(0xFFFFD166));
+    final triangle = Path()
+      ..moveTo(w * 0.5, h * 0.56)
+      ..lineTo(w * 0.34, h * 0.82)
+      ..lineTo(w * 0.66, h * 0.82)
+      ..close();
+    canvas.drawPath(triangle, Paint()..color = const Color(0xFF43E97B));
+  }
+
+  void _numberSplash(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, <Color>[const Color(0xFF174D3A), const Color(0xFF092A28)]);
+    final text = TextPainter(
+      text: const TextSpan(
+        text: '3 + 4\n  = 7',
+        style: TextStyle(
+            color: Colors.white, fontSize: 23, fontWeight: FontWeight.w900),
+      ),
+      textAlign: TextAlign.center,
+      textDirection: TextDirection.ltr,
+    )..layout();
+    text.paint(canvas, Offset((w - text.width) / 2, (h - text.height) / 2));
+  }
+
+  void _pathFinder(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, <Color>[const Color(0xFF10283A), const Color(0xFF081A28)]);
+    final points = <Offset>[
+      Offset(w * 0.18, h * 0.78), Offset(w * 0.18, h * 0.55),
+      Offset(w * 0.42, h * 0.55), Offset(w * 0.42, h * 0.3),
+      Offset(w * 0.78, h * 0.3),
+    ];
+    final path = Path()..moveTo(points.first.dx, points.first.dy);
+    for (final point in points.skip(1)) {
+      path.lineTo(point.dx, point.dy);
+    }
+    canvas.drawPath(path, Paint()
+      ..color = const Color(0xFFFFD166)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 8
+      ..strokeCap = StrokeCap.round);
+    canvas.drawCircle(points.first, 9, Paint()..color = const Color(0xFF43E97B));
+    canvas.drawCircle(points.last, 11, Paint()..color = const Color(0xFFEF476F));
+  }
+
+  void _goalKeeper(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, <Color>[const Color(0xFF12614A), const Color(0xFF073527)]);
+    final goal = Rect.fromLTWH(w * 0.14, h * 0.2, w * 0.72, h * 0.56);
+    canvas.drawRect(goal, Paint()
+      ..color = Colors.white70
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 5);
+    canvas.drawLine(Offset(goal.left + goal.width / 3, goal.top),
+        Offset(goal.left + goal.width / 3, goal.bottom),
+        Paint()..color = Colors.white38..strokeWidth = 2);
+    canvas.drawLine(Offset(goal.left + goal.width * 2 / 3, goal.top),
+        Offset(goal.left + goal.width * 2 / 3, goal.bottom),
+        Paint()..color = Colors.white38..strokeWidth = 2);
+    canvas.drawCircle(Offset(goal.center.dx, goal.center.dy), w * 0.1,
+        Paint()..color = const Color(0xFFFFD166));
+    canvas.drawCircle(Offset(goal.center.dx, goal.center.dy), w * 0.045,
+        Paint()..color = Colors.black87);
   }
 
   @override
