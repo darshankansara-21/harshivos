@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/toy/toy_ticker.dart';
@@ -790,9 +791,12 @@ class _SnakeGameState extends State<SnakeGame>
   static const int _rows = 22;
   final math.Random _rnd = math.Random();
   List<math.Point<int>> _snake = <math.Point<int>>[];
+  List<math.Point<int>> _prevSnake = <math.Point<int>>[];
   final Set<math.Point<int>> _obstacles = <math.Point<int>>{};
   math.Point<int> _dir = const math.Point<int>(1, 0);
   math.Point<int> _nextDir = const math.Point<int>(1, 0);
+  Offset _swipeAcc = Offset.zero;
+  final FocusNode _focus = FocusNode();
   late math.Point<int> _food;
   int _foodKind = 0; // 0 = normal apple, 1 = golden bonus (time-limited)
   double _goldenT = 0;
@@ -817,6 +821,12 @@ class _SnakeGameState extends State<SnakeGame>
     });
   }
 
+  @override
+  void dispose() {
+    _focus.dispose();
+    super.dispose();
+  }
+
   void _seed() {
     const cy = _rows ~/ 2;
     _snake = <math.Point<int>>[
@@ -824,6 +834,7 @@ class _SnakeGameState extends State<SnakeGame>
       math.Point<int>(4, cy),
       math.Point<int>(3, cy),
     ];
+    _prevSnake = List<math.Point<int>>.of(_snake);
     _dir = const math.Point<int>(1, 0);
     _nextDir = _dir;
     _obstacles.clear();
@@ -876,6 +887,7 @@ class _SnakeGameState extends State<SnakeGame>
   }
 
   void _advance() {
+    _prevSnake = List<math.Point<int>>.of(_snake);
     _dir = _nextDir;
     final head = _snake.first;
     final next = math.Point<int>(
@@ -934,6 +946,35 @@ class _SnakeGameState extends State<SnakeGame>
     }
   }
 
+  // Accumulate drag so each deliberate ~16px swipe registers one clean turn,
+  // instead of every jittery micro-delta flipping direction.
+  void _onDrag(Offset delta) {
+    _swipeAcc += delta;
+    const t = 16.0;
+    if (_swipeAcc.dx.abs() >= t || _swipeAcc.dy.abs() >= t) {
+      _steer(_swipeAcc);
+      _swipeAcc = Offset.zero;
+    }
+  }
+
+  void _setDir(int dx, int dy) {
+    if (dx != -_dir.x && dy != -_dir.y) _nextDir = math.Point<int>(dx, dy);
+  }
+
+  void _onKey(KeyEvent e) {
+    if (e is! KeyDownEvent) return;
+    final k = e.logicalKey;
+    if (k == LogicalKeyboardKey.arrowLeft) {
+      _setDir(-1, 0);
+    } else if (k == LogicalKeyboardKey.arrowRight) {
+      _setDir(1, 0);
+    } else if (k == LogicalKeyboardKey.arrowUp) {
+      _setDir(0, -1);
+    } else if (k == LogicalKeyboardKey.arrowDown) {
+      _setDir(0, 1);
+    }
+  }
+
   void _reset() {
     setState(() {
       _score = 0;
@@ -960,21 +1001,28 @@ class _SnakeGameState extends State<SnakeGame>
       overEmoji: '🐍',
       accent: const Color(0xFF06D6A0),
       onPlayAgain: _reset,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onPanUpdate: (d) => _steer(d.delta),
-        child: DecoratedBox(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: <Color>[Color(0xFF0B2436), Color(0xFF0E3020)],
+      child: KeyboardListener(
+        focusNode: _focus,
+        autofocus: true,
+        onKeyEvent: _onKey,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onPanUpdate: (d) => _onDrag(d.delta),
+          onPanEnd: (_) => _swipeAcc = Offset.zero,
+          child: DecoratedBox(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: <Color>[Color(0xFF0B2436), Color(0xFF0E3020)],
+              ),
             ),
-          ),
-          child: CustomPaint(
-            painter: _SnakePainter(_snake, _food, _foodKind,
-                _obstacles.toList(), _dir, _cols, _rows, _t),
-            size: Size.infinite,
+            child: CustomPaint(
+              painter: _SnakePainter(_snake, _prevSnake,
+                  (_acc / _step).clamp(0.0, 1.0), _food, _foodKind,
+                  _obstacles.toList(), _dir, _cols, _rows, _t),
+              size: Size.infinite,
+            ),
           ),
         ),
       ),
@@ -984,9 +1032,11 @@ class _SnakeGameState extends State<SnakeGame>
 
 
 class _SnakePainter extends CustomPainter {
-  _SnakePainter(this.snake, this.food, this.foodKind, this.obstacles, this.dir,
-      this.cols, this.rows, this.t);
+  _SnakePainter(this.snake, this.prevSnake, this.progress, this.food,
+      this.foodKind, this.obstacles, this.dir, this.cols, this.rows, this.t);
   final List<math.Point<int>> snake;
+  final List<math.Point<int>> prevSnake;
+  final double progress;
   final math.Point<int> food;
   final int foodKind;
   final List<math.Point<int>> obstacles;
@@ -1044,24 +1094,35 @@ class _SnakePainter extends CustomPainter {
         RRect.fromRectAndRadius(cellRect(food), Radius.circular(cell / 2)),
         Paint()..color = foodColor);
 
-    // Snake — brightest at the head, fading toward the tail.
-    for (var i = 0; i < snake.length; i++) {
+    // Snake — smooth glide between grid cells so movement never teleports.
+    Offset segCenter(int i) {
+      final to = snake[i];
+      math.Point<int> from = i < prevSnake.length ? prevSnake[i] : to;
+      if ((from.x - to.x).abs() > 1 || (from.y - to.y).abs() > 1) from = to;
+      final gx = from.x + (to.x - from.x) * progress;
+      final gy = from.y + (to.y - from.y) * progress;
+      return Offset(ox + gx * cell + cell / 2, oy + gy * cell + cell / 2);
+    }
+
+    for (var i = snake.length - 1; i >= 0; i--) {
       final f = 1 - i / (snake.length + 2);
       final color = Color.lerp(
           const Color(0xFF06D6A0), const Color(0xFF118AB2), 1 - f)!;
+      final r = Rect.fromCenter(
+          center: segCenter(i), width: cell - 2, height: cell - 2);
       canvas.drawRRect(
-        RRect.fromRectAndRadius(cellRect(snake[i]), Radius.circular(cell / 3)),
+        RRect.fromRectAndRadius(r, Radius.circular(cell / 3)),
         Paint()..color = color,
       );
     }
     // Eyes on the head, pupils looking the way the snake travels.
     if (snake.isNotEmpty) {
-      final h = cellRect(snake.first);
+      final hc = segCenter(0);
       final eye = Paint()..color = Colors.white;
       final pupil = Paint()..color = const Color(0xFF0B2436);
-      final lx = h.center.dx - cell / 6;
-      final rx = h.center.dx + cell / 6;
-      final ey = h.center.dy - cell / 8;
+      final lx = hc.dx - cell / 6;
+      final rx = hc.dx + cell / 6;
+      final ey = hc.dy - cell / 8;
       canvas.drawCircle(Offset(lx, ey), cell / 9, eye);
       canvas.drawCircle(Offset(rx, ey), cell / 9, eye);
       final px = dir.x * cell / 18;
