@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../services/audio/tone_player.dart';
 import '../companion/companion.dart';
+import '../settings/audio_toggle_button.dart';
 
 /// Matching Pairs — a calm, no-fail memory game.
 ///
@@ -170,6 +171,10 @@ class _MatchingPairsGameState extends State<MatchingPairsGame> {
         backgroundColor: Colors.transparent,
         title: const Text('Matching Pairs'),
         actions: <Widget>[
+          const Padding(
+            padding: EdgeInsets.only(right: 4),
+            child: Center(child: MuteButton(size: 40)),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: Center(

@@ -121,24 +121,34 @@ class SensoryPreferences {
   const SensoryPreferences({
     this.audioLevel = AudioLevel.normal,
     this.reduceMotion = false,
+    this.muted = false,
   });
 
   final AudioLevel audioLevel;
   final bool reduceMotion;
 
-  double get volumeScale => switch (audioLevel) {
-        AudioLevel.off => 0,
-        AudioLevel.soft => 0.35,
-        AudioLevel.normal => 1,
-      };
+  /// Global quick-mute. When true every sound in the app is silenced,
+  /// regardless of [audioLevel] — one switch a child or parent can reach from
+  /// the home screen and from inside any game.
+  final bool muted;
+
+  double get volumeScale => muted
+      ? 0
+      : switch (audioLevel) {
+          AudioLevel.off => 0,
+          AudioLevel.soft => 0.35,
+          AudioLevel.normal => 1,
+        };
 
   SensoryPreferences copyWith({
     AudioLevel? audioLevel,
     bool? reduceMotion,
+    bool? muted,
   }) =>
       SensoryPreferences(
         audioLevel: audioLevel ?? this.audioLevel,
         reduceMotion: reduceMotion ?? this.reduceMotion,
+        muted: muted ?? this.muted,
       );
 }
 
@@ -155,6 +165,7 @@ class SensoryPreferencesNotifier extends StateNotifier<SensoryPreferences> {
             orElse: () => AudioLevel.normal,
           ),
           reduceMotion: _storage.readBool('reduce_motion'),
+          muted: _storage.readBool('audio_muted'),
         ));
 
   final LocalStorage _storage;
@@ -168,6 +179,13 @@ class SensoryPreferencesNotifier extends StateNotifier<SensoryPreferences> {
     state = state.copyWith(reduceMotion: value);
     await _storage.writeBool('reduce_motion', value);
   }
+
+  Future<void> setMuted(bool value) async {
+    state = state.copyWith(muted: value);
+    await _storage.writeBool('audio_muted', value);
+  }
+
+  Future<void> toggleMuted() => setMuted(!state.muted);
 }
 
 final sensoryPreferencesProvider = StateNotifierProvider<

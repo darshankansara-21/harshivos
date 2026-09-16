@@ -6,6 +6,7 @@ import '../companion/companion.dart';
 import '../../models/toy_meta.dart';
 import '../../services/audio/tone_player.dart';
 import '../../state/providers.dart';
+import '../settings/audio_toggle_button.dart';
 import 'toy_registry.dart';
 
 /// Immersive, full-screen sensory toy player.
@@ -113,6 +114,8 @@ class _ToyPlayerScreenState extends ConsumerState<ToyPlayerScreen> {
                         ),
                       ),
                       const Spacer(),
+                      const MuteButton(),
+                      const SizedBox(width: 12),
                       _RoundButton(
                         icon: Icons.visibility_off_rounded,
                         onTap: () {

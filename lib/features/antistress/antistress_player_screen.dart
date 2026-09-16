@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../companion/companion.dart';
 import '../../services/audio/tone_player.dart';
+import '../settings/audio_toggle_button.dart';
 
 /// Full-screen host for an Antistress fidget toy, now with a living Hari + Pico
 /// companion that watches and reacts as the child plays.
@@ -75,11 +76,10 @@ class _AntistressPlayerScreenState extends State<AntistressPlayerScreen> {
           ),
           SafeArea(
             child: Align(
-              alignment: Alignment.topLeft,
+              alignment: Alignment.topCenter,
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Row(
-                  mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
                     _RoundButton(
                       icon: Icons.arrow_back_rounded,
@@ -90,19 +90,25 @@ class _AntistressPlayerScreenState extends State<AntistressPlayerScreen> {
                       },
                     ),
                     const SizedBox(width: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.35),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        '${widget.emoji}  ${widget.title}',
-                        style: const TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.w700),
+                    Flexible(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.35),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '${widget.emoji}  ${widget.title}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: Colors.white, fontWeight: FontWeight.w700),
+                        ),
                       ),
                     ),
+                    const Spacer(),
+                    const MuteButton(),
                   ],
                 ),
               ),

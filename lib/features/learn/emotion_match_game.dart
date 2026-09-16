@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../services/audio/tone_player.dart';
 import '../companion/companion.dart';
+import '../settings/audio_toggle_button.dart';
 
 /// An adaptive emotion-recognition game. Difficulty (number of choices) rises
 /// after a streak of correct answers and eases after mistakes — so it stays in
@@ -93,6 +94,10 @@ class _EmotionMatchGameState extends State<EmotionMatchGame>
       appBar: AppBar(
         title: const Text('Find the feeling'),
         actions: <Widget>[
+          const Padding(
+            padding: EdgeInsets.only(right: 4),
+            child: Center(child: MuteButton(size: 40)),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: Center(

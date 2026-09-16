@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/widgets/harshiv_scaffold.dart';
 import '../../models/activity_event.dart';
+import '../../services/audio/tone_player.dart';
 import '../../state/providers.dart';
 import '../adventures/adventure_hub_screen.dart';
 import '../antistress/antistress_player_screen.dart';
@@ -179,6 +180,33 @@ class _ToyUniverseScreenState extends ConsumerState<ToyUniverseScreen> {
                           ),
                         ),
                         // Hidden debug entry: long-press the counter chip.
+                        IconButton(
+                          tooltip: ref.watch(sensoryPreferencesProvider
+                                  .select((p) => p.muted))
+                              ? 'Turn sound on'
+                              : 'Turn sound off',
+                          icon: Icon(
+                            ref.watch(sensoryPreferencesProvider
+                                    .select((p) => p.muted))
+                                ? Icons.volume_off_rounded
+                                : Icons.volume_up_rounded,
+                            color: Colors.white,
+                            size: 26,
+                          ),
+                          onPressed: () {
+                            final wasMuted = ref.read(sensoryPreferencesProvider
+                                .select((p) => p.muted));
+                            ref
+                                .read(sensoryPreferencesProvider.notifier)
+                                .toggleMuted();
+                            if (wasMuted) {
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                TonePlayer.instance
+                                    .playCue(SoundCue.navigation);
+                              });
+                            }
+                          },
+                        ),
                         IconButton(
                           tooltip: 'Activity insights',
                           icon: const Icon(Icons.insights_rounded,
