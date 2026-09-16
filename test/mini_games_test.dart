@@ -38,7 +38,7 @@ void main() {
 
   testWidgets('Star Tap builds, is playable, and can be won', (tester) async {
     await _pumpGame(tester, const StarTapGame());
-    expect(find.textContaining('Tap'), findsOneWidget);
+    expect(find.textContaining('Star Catch'), findsOneWidget);
     // Re-find the single glowing star fresh each round and tap it; enough
     // successful taps drive the game to a win.
     for (var round = 0; round < 200; round++) {

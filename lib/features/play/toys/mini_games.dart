@@ -614,14 +614,22 @@ class _BalloonShape extends StatelessWidget {
 
 
 // ===========================================================================
-// Star Tap — a reaction game. One star glows at a time; tap it before it
-// fades and a new one appears. Reach the target to win. Trains attention and
-// quick response without any fail state.
+// Star Catch — a reaction game under a living night sky. One star glows with a
+// shrinking countdown ring; tap it before it fades. Gold shooting stars are
+// worth triple. Combos, floating score pops and drifting background stars give
+// it its own identity. No fail state — a miss just resets your streak.
 // ===========================================================================
 class StarTapGame extends StatefulWidget {
   const StarTapGame({super.key});
   @override
   State<StarTapGame> createState() => _StarTapGameState();
+}
+
+class _StarPop {
+  _StarPop(this.cell, this.text);
+  final int cell;
+  final String text;
+  double t = 0.7;
 }
 
 class _StarTapGameState extends State<StarTapGame>
@@ -631,36 +639,55 @@ class _StarTapGameState extends State<StarTapGame>
   static const int _cells = 9;
   final math.Random _rnd = math.Random();
   int _active = 0;
+  int _kind = 0; // 0 = normal star, 1 = gold shooting star (worth 3)
   double _life = 0;
+  double _lifeMax = 1.6;
+  double _t = 0;
   int _score = 0;
   int _combo = 0;
   int _best = 0;
   double _bannerT = 0;
   String? _banner;
+  final List<_StarPop> _pops = <_StarPop>[];
+  final List<Offset> _bgStars = <Offset>[];
   GameStatus _status = GameStatus.playing;
 
   @override
   void initState() {
     super.initState();
-    _active = _rnd.nextInt(_cells);
-    _life = 1.6;
+    for (var i = 0; i < 36; i++) {
+      _bgStars.add(Offset(_rnd.nextDouble(), _rnd.nextDouble()));
+    }
+    _spawnStar();
     GameScores.instance.ensureLoaded().then((_) {
       if (mounted) setState(() => _best = GameScores.instance.best(_id));
     });
   }
 
+  void _spawnStar() {
+    _active = _rnd.nextInt(_cells);
+    _kind = _rnd.nextDouble() < 0.22 ? 1 : 0;
+    // Gold stars are faster; everything speeds up as the score climbs.
+    _lifeMax = math.max(0.6, (1.5 - _score * 0.05)) * (_kind == 1 ? 0.7 : 1);
+    _life = _lifeMax;
+  }
+
   @override
   void onTick(double dt) {
     if (_status != GameStatus.playing) return;
+    _t += dt;
     if (_bannerT > 0) {
       _bannerT -= dt;
       if (_bannerT <= 0) _banner = null;
     }
+    for (final p in _pops) {
+      p.t -= dt;
+    }
+    _pops.removeWhere((p) => p.t <= 0);
     _life -= dt;
     if (_life <= 0) {
       _combo = 0; // missed — the star faded away
-      _active = _rnd.nextInt(_cells);
-      _life = math.max(0.7, 1.5 - _score * 0.05);
+      _spawnStar();
     }
   }
 
@@ -668,18 +695,22 @@ class _StarTapGameState extends State<StarTapGame>
     if (_status != GameStatus.playing) return;
     if (i == _active) {
       _combo++;
-      _score += 1 + (_combo >= 5 ? 1 : 0);
-      TonePlayer.instance.playCue(SoundCue.correct);
+      final gain = (_kind == 1 ? 3 : 1) + (_combo >= 5 ? 1 : 0);
+      _score += gain;
+      _pops.add(_StarPop(i, '+$gain'));
+      TonePlayer.instance
+          .playCue(_kind == 1 ? SoundCue.coin : SoundCue.correct);
       emit(ExperienceEvent.bubblePopped);
-      if (_combo >= 5) _flash('Combo x$_combo!');
+      if (_kind == 1) {
+        _flash('Shooting star +3!');
+      } else if (_combo >= 5) {
+        _flash('Combo x$_combo!');
+      }
       if (_score >= _target) {
         _end(GameStatus.won);
         return;
       }
-      setState(() {
-        _active = _rnd.nextInt(_cells);
-        _life = math.max(0.7, 1.5 - _score * 0.05);
-      });
+      setState(_spawnStar);
     } else {
       _combo = 0;
       TonePlayer.instance.playCue(SoundCue.gentleRetry);
@@ -705,9 +736,9 @@ class _StarTapGameState extends State<StarTapGame>
       _combo = 0;
       _banner = null;
       _bannerT = 0;
+      _pops.clear();
       _status = GameStatus.playing;
-      _active = _rnd.nextInt(_cells);
-      _life = 1.6;
+      _spawnStar();
     });
   }
 
@@ -715,7 +746,7 @@ class _StarTapGameState extends State<StarTapGame>
   Widget build(BuildContext context) {
     drainCompanion(context);
     return _GameShell(
-      title: '⭐ Tap',
+      title: '⭐ Star Catch',
       score: _score,
       target: _target,
       best: _best,
@@ -723,53 +754,142 @@ class _StarTapGameState extends State<StarTapGame>
       banner: _banner,
       accent: const Color(0xFFFFD166),
       onPlayAgain: _reset,
-      child: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: <Color>[Color(0xFF0E1F3A), Color(0xFF13294B)],
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 80, 24, 40),
-          child: GridView.count(
-            crossAxisCount: 3,
-            mainAxisSpacing: 16,
-            crossAxisSpacing: 16,
-            physics: const NeverScrollableScrollPhysics(),
-            children: <Widget>[
-              for (var i = 0; i < _cells; i++)
-                GestureDetector(
-                  onTapDown: (_) => _tapCell(i),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    decoration: BoxDecoration(
-                      color: i == _active
-                          ? const Color(0xFFFFD166)
-                          : Colors.white.withOpacity(0.06),
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: i == _active
-                          ? <BoxShadow>[
-                              const BoxShadow(
-                                  color: Color(0xAAFFD166), blurRadius: 24)
-                            ]
-                          : const <BoxShadow>[],
-                    ),
-                    child: Center(
-                      child: Text(
-                        i == _active ? '⭐' : '',
-                        style: const TextStyle(fontSize: 44),
-                      ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: <Widget>[
+          CustomPaint(painter: _NightSkyPainter(_bgStars, _t)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 92, 24, 40),
+            child: GridView.count(
+              crossAxisCount: 3,
+              mainAxisSpacing: 16,
+              crossAxisSpacing: 16,
+              physics: const NeverScrollableScrollPhysics(),
+              children: <Widget>[
+                for (var i = 0; i < _cells; i++)
+                  GestureDetector(
+                    onTapDown: (_) => _tapCell(i),
+                    child: _StarCell(
+                      active: i == _active,
+                      kind: _kind,
+                      lifeFraction: _lifeMax > 0 ? (_life / _lifeMax) : 0,
+                      pop: _popFor(i),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
+
+  _StarPop? _popFor(int cell) {
+    for (final p in _pops) {
+      if (p.cell == cell) return p;
+    }
+    return null;
+  }
+}
+
+/// One tappable star cell — an empty socket, or the glowing active star with a
+/// shrinking countdown ring and an optional floating score pop.
+class _StarCell extends StatelessWidget {
+  const _StarCell({
+    required this.active,
+    required this.kind,
+    required this.lifeFraction,
+    required this.pop,
+  });
+  final bool active;
+  final int kind;
+  final double lifeFraction;
+  final _StarPop? pop;
+
+  @override
+  Widget build(BuildContext context) {
+    final gold = kind == 1;
+    final glow = gold ? const Color(0xFFFFE066) : const Color(0xFFFFD166);
+    return Stack(
+      alignment: Alignment.center,
+      children: <Widget>[
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(active ? 0.10 : 0.05),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+                color: Colors.white.withOpacity(active ? 0.0 : 0.06)),
+            boxShadow: active
+                ? <BoxShadow>[BoxShadow(color: glow.withOpacity(0.55), blurRadius: 26)]
+                : const <BoxShadow>[],
+          ),
+        ),
+        if (active) ...<Widget>[
+          Positioned.fill(
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: CircularProgressIndicator(
+                value: lifeFraction.clamp(0.0, 1.0),
+                strokeWidth: 4,
+                backgroundColor: Colors.white.withOpacity(0.10),
+                valueColor: AlwaysStoppedAnimation<Color>(glow),
+              ),
+            ),
+          ),
+          Text(gold ? '🌟' : '⭐', style: const TextStyle(fontSize: 42)),
+        ],
+        if (pop != null)
+          Transform.translate(
+            offset: Offset(0, -22 * (1 - pop!.t / 0.7) - 6),
+            child: Opacity(
+              opacity: pop!.t.clamp(0.0, 0.7) / 0.7,
+              child: Text(pop!.text,
+                  style: TextStyle(
+                      color: glow,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900)),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// A slow, twinkling night sky with a soft moon — Star Catch's own backdrop.
+class _NightSkyPainter extends CustomPainter {
+  _NightSkyPainter(this.stars, this.t);
+  final List<Offset> stars;
+  final double t;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(
+        Offset.zero & size,
+        Paint()
+          ..shader = const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: <Color>[Color(0xFF0A1733), Color(0xFF13294B)],
+          ).createShader(Offset.zero & size));
+    // Soft moon glow, upper right.
+    final moon = Offset(size.width * 0.82, size.height * 0.12);
+    canvas.drawCircle(moon, 42,
+        Paint()..color = const Color(0xFFFFF3C4).withOpacity(0.16));
+    canvas.drawCircle(moon, 22, Paint()..color = const Color(0xFFFDF6D8));
+    // Twinkling background stars.
+    for (var i = 0; i < stars.length; i++) {
+      final s = stars[i];
+      final tw = 0.4 + 0.6 * (0.5 + 0.5 * math.sin(t * 2 + i));
+      canvas.drawCircle(
+          Offset(s.dx * size.width, s.dy * size.height),
+          1.4 + tw,
+          Paint()..color = Colors.white.withOpacity(0.25 + 0.4 * tw));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_NightSkyPainter oldDelegate) => true;
 }
 
 // ===========================================================================
