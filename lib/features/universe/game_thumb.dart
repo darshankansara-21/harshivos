@@ -32,6 +32,11 @@ class GameThumb extends StatelessWidget {
     'brick_break',
     'space_dodge',
     'memory_flip',
+    'ball_sort',
+    'tap_order',
+    'piano_tiles',
+    'block_blast',
+    'bubble_shooter',
   };
 
   @override
@@ -100,6 +105,16 @@ class _ThumbPainter extends CustomPainter {
         _spaceDodge(canvas, w, h);
       case 'memory_flip':
         _memoryFlip(canvas, w, h);
+      case 'ball_sort':
+        _ballSort(canvas, w, h);
+      case 'tap_order':
+        _tapOrder(canvas, w, h);
+      case 'piano_tiles':
+        _pianoTiles(canvas, w, h);
+      case 'block_blast':
+        _blockBlast(canvas, w, h);
+      case 'bubble_shooter':
+        _bubbleShooter(canvas, w, h);
     }
   }
 
@@ -501,6 +516,125 @@ class _ThumbPainter extends CustomPainter {
         k++;
       }
     }
+  }
+
+  void _ballSort(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, <Color>[const Color(0xFF0E2233), const Color(0xFF071420)]);
+    const cols = <Color>[
+      Color(0xFFEF476F),
+      Color(0xFFFFD166),
+      Color(0xFF06D6A0),
+      Color(0xFF4CC9F0),
+    ];
+    for (var t = 0; t < 4; t++) {
+      final x = w * (0.14 + t * 0.21);
+      final rect = Rect.fromLTWH(x, h * 0.24, w * 0.13, h * 0.56);
+      canvas.drawRRect(
+          RRect.fromRectAndRadius(rect, const Radius.circular(7)),
+          Paint()
+            ..color = Colors.white.withOpacity(0.08)
+            ..style = PaintingStyle.fill);
+      for (var b = 0; b < 3 - (t % 2); b++) {
+        canvas.drawCircle(
+            Offset(rect.center.dx, rect.bottom - h * 0.07 - b * h * 0.14),
+            w * 0.05,
+            Paint()..color = cols[(t + b) % 4]);
+      }
+    }
+  }
+
+  void _tapOrder(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, <Color>[const Color(0xFF0A1626), const Color(0xFF060D18)]);
+    final nums = <int>[3, 7, 1, 9, 5, 2, 8, 4, 6];
+    var k = 0;
+    for (var r = 0; r < 3; r++) {
+      for (var c = 0; c < 3; c++) {
+        final rect = Rect.fromLTWH(
+            w * (0.16 + c * 0.24), h * (0.2 + r * 0.24), w * 0.18, w * 0.18);
+        canvas.drawRRect(
+            RRect.fromRectAndRadius(rect, const Radius.circular(6)),
+            Paint()..color = Colors.white.withOpacity(0.1));
+        final tp = TextPainter(
+          text: TextSpan(
+              text: '${nums[k]}',
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800)),
+          textDirection: TextDirection.ltr,
+        )..layout();
+        tp.paint(canvas, rect.center - Offset(tp.width / 2, tp.height / 2));
+        k++;
+      }
+    }
+  }
+
+  void _pianoTiles(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, <Color>[const Color(0xFFF4F1FB), const Color(0xFFE7E1F5)]);
+    final tile = Paint()..color = const Color(0xFF3A2E5C);
+    final positions = <List<double>>[
+      <double>[0, 0.1],
+      <double>[1, 0.42],
+      <double>[3, 0.28],
+      <double>[2, 0.66],
+    ];
+    for (final p in positions) {
+      canvas.drawRRect(
+          RRect.fromRectAndRadius(
+              Rect.fromLTWH(w * (0.04 + p[0] * 0.24), h * p[1], w * 0.2, h * 0.2),
+              const Radius.circular(4)),
+          tile);
+    }
+  }
+
+  void _blockBlast(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, <Color>[const Color(0xFF141A2E), const Color(0xFF0B1020)]);
+    const n = 6;
+    final filled = <int>{0, 1, 6, 7, 8, 14, 20, 21, 27, 28, 29, 34, 35};
+    const cols = <Color>[
+      Color(0xFFEF476F),
+      Color(0xFFFFD166),
+      Color(0xFF06D6A0),
+      Color(0xFF4CC9F0),
+    ];
+    final s = w * 0.13;
+    final ox = (w - s * n) / 2;
+    final oy = h * 0.14;
+    for (var r = 0; r < n; r++) {
+      for (var c = 0; c < n; c++) {
+        final idx = r * n + c;
+        canvas.drawRRect(
+            RRect.fromRectAndRadius(
+                Rect.fromLTWH(ox + c * s + 1, oy + r * s + 1, s - 2, s - 2),
+                const Radius.circular(3)),
+            Paint()
+              ..color = filled.contains(idx)
+                  ? cols[idx % 4]
+                  : Colors.white.withOpacity(0.05));
+      }
+    }
+  }
+
+  void _bubbleShooter(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, <Color>[const Color(0xFF0E1830), const Color(0xFF060B18)]);
+    const cols = <Color>[
+      Color(0xFFEF476F),
+      Color(0xFFFFD166),
+      Color(0xFF06D6A0),
+      Color(0xFF4CC9F0),
+      Color(0xFF9B5DE5),
+    ];
+    final r = w * 0.07;
+    for (var row = 0; row < 3; row++) {
+      for (var c = 0; c < 5; c++) {
+        canvas.drawCircle(
+            Offset(w * (0.12 + c * 0.19), h * (0.18 + row * 0.16)),
+            r,
+            Paint()..color = cols[(row + c) % 5]);
+      }
+    }
+    canvas.drawCircle(
+        Offset(w * 0.5, h * 0.85), r * 1.1, Paint()..color = cols[2]);
   }
 
   @override

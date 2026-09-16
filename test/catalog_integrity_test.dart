@@ -10,6 +10,7 @@ void main() {
   const arcadeIds = <String>[
     'whack', 'sky_hop', 'stack', 'merge', 'echo', 'tictactoe',
     'brick_break', 'space_dodge', 'memory_flip',
+    'ball_sort', 'tap_order', 'piano_tiles', 'block_blast', 'bubble_shooter',
   ];
 
   test('every arcade game is playable, reachable and implemented', () {
@@ -51,5 +52,16 @@ void main() {
     expect(arcadeToys().map((t) => t.id),
         containsAll(<String>['brick_break', 'space_dodge']));
     expect(puzzleBrainToys().map((t) => t.id), contains('memory_flip'));
+  });
+
+  test('the five newest arcade games appear in their rails', () {
+    expect(gamesToys().map((t) => t.id), containsAll(<String>[
+      'ball_sort', 'tap_order', 'piano_tiles', 'block_blast', 'bubble_shooter',
+    ]));
+    expect(arcadeToys().map((t) => t.id), containsAll(<String>[
+      'piano_tiles', 'block_blast', 'bubble_shooter',
+    ]));
+    expect(puzzleBrainToys().map((t) => t.id),
+        containsAll(<String>['ball_sort', 'block_blast', 'tap_order']));
   });
 }

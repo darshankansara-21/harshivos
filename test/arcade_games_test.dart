@@ -107,4 +107,50 @@ void main() {
     await tester.pump(const Duration(milliseconds: 900));
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('Ball Sort builds and accepts taps', (tester) async {
+    await _pump(tester, const BallSortGame());
+    expect(find.textContaining('Ball Sort'), findsOneWidget);
+    await tester.tapAt(const Offset(200, 1000));
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.tapAt(const Offset(500, 1000));
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Tap Order builds and accepts taps', (tester) async {
+    await _pump(tester, const TapOrderGame());
+    expect(find.textContaining('Tap Order'), findsOneWidget);
+    await tester.tapAt(const Offset(300, 1000));
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Piano Tiles builds and accepts taps', (tester) async {
+    await _pump(tester, const PianoTilesGame());
+    expect(find.textContaining('Piano Tiles'), findsOneWidget);
+    await tester.tapAt(const Offset(300, 1200));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Block Blast builds and places pieces', (tester) async {
+    await _pump(tester, const BlockBlastGame());
+    expect(find.textContaining('Block Blast'), findsOneWidget);
+    await tester.tapAt(const Offset(200, 1900));
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.tapAt(const Offset(300, 700));
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Bubble Shooter builds and fires', (tester) async {
+    await _pump(tester, const BubbleShooterGame());
+    expect(find.textContaining('Bubble Shooter'), findsOneWidget);
+    await tester.tapAt(const Offset(400, 900));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.takeException(), isNull);
+  });
 }

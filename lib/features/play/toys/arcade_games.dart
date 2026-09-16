@@ -1748,4 +1748,1086 @@ class _MemoryFlipGameState extends State<MemoryFlipGame> with _Emit {
   }
 }
 
+// ===========================================================================
+// Ball Sort — pour coloured balls between tubes until each tube holds a single
+// colour. A calm, deeply satisfying sorting puzzle that quietly trains planning
+// and colour sorting. Levels add more colours as you go.
+// ===========================================================================
+class BallSortGame extends StatefulWidget {
+  const BallSortGame({super.key});
+  @override
+  State<BallSortGame> createState() => _BallSortGameState();
+}
+
+class _BallSortGameState extends State<BallSortGame> with _Emit {
+  static const String _id = 'ball_sort';
+  static const int _cap = 4;
+  static const List<Color> _colorsPal = <Color>[
+    Color(0xFFEF476F), Color(0xFFFFD166), Color(0xFF06D6A0),
+    Color(0xFF4CC9F0), Color(0xFF9B5DE5), Color(0xFFFF9E00),
+  ];
+  final math.Random _rnd = math.Random();
+  late List<List<int>> _tubes;
+  int _selected = -1;
+  int _level = 0;
+  int _colorsN = 3;
+  int _score = 0;
+  int _best = 0;
+  String? _banner;
+  GameStatus _status = GameStatus.playing;
+
+  @override
+  void initState() {
+    super.initState();
+    _deal();
+    GameScores.instance.ensureLoaded().then((_) {
+      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+    });
+  }
+
+  void _deal() {
+    _colorsN = math.min(6, 3 + _level ~/ 2);
+    _tubes = List<List<int>>.generate(_colorsN + 2, (_) => <int>[]);
+    final balls = <int>[];
+    for (var c = 0; c < _colorsN; c++) {
+      for (var k = 0; k < _cap; k++) {
+        balls.add(c);
+      }
+    }
+    balls.shuffle(_rnd);
+    var idx = 0;
+    for (var t = 0; t < _colorsN; t++) {
+      for (var k = 0; k < _cap; k++) {
+        _tubes[t].add(balls[idx++]);
+      }
+    }
+    _selected = -1;
+  }
+
+  bool _solved() {
+    for (final t in _tubes) {
+      if (t.isEmpty) continue;
+      if (t.length != _cap || t.any((c) => c != t.first)) return false;
+    }
+    return true;
+  }
+
+  void _tapTube(int i) {
+    if (_status != GameStatus.playing) return;
+    if (_selected == -1) {
+      if (_tubes[i].isNotEmpty) setState(() => _selected = i);
+      return;
+    }
+    if (_selected == i) {
+      setState(() => _selected = -1);
+      return;
+    }
+    final from = _tubes[_selected];
+    final to = _tubes[i];
+    final ball = from.isNotEmpty ? from.last : -1;
+    if (ball != -1 && to.length < _cap && (to.isEmpty || to.last == ball)) {
+      setState(() {
+        from.removeLast();
+        to.add(ball);
+        _selected = -1;
+      });
+      TonePlayer.instance.playCue(SoundCue.water);
+      if (_solved()) {
+        _score++;
+        _level++;
+        TonePlayer.instance.playCue(SoundCue.success);
+        emit(ExperienceEvent.gameCompleted);
+        GameScores.instance.submit(_id, _score).then((b) {
+          if (mounted) setState(() => _best = b);
+        });
+        _banner = 'Level $_level!';
+        setState(_deal);
+      }
+    } else {
+      setState(() => _selected = _tubes[i].isNotEmpty ? i : -1);
+    }
+  }
+
+  void _reset() {
+    setState(() {
+      _level = 0;
+      _score = 0;
+      _banner = null;
+      _status = GameStatus.playing;
+      _deal();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    drain(context);
+    return _Shell(
+      title: '🧪 Ball Sort',
+      score: _score,
+      best: _best,
+      status: _status,
+      banner: _banner,
+      accent: const Color(0xFF06D6A0),
+      onPlayAgain: _reset,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: <Color>[Color(0xFF1A2036), Color(0xFF0E1424)],
+          ),
+        ),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 120, 16, 40),
+            child: FittedBox(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: <Widget>[
+                  for (var i = 0; i < _tubes.length; i++) _tube(i),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _tube(int i) {
+    const ball = 34.0;
+    final t = _tubes[i];
+    final selected = _selected == i;
+    return GestureDetector(
+      onTap: () => _tapTube(i),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        transform: Matrix4.translationValues(0, selected ? -16 : 0, 0),
+        margin: const EdgeInsets.symmetric(horizontal: 6),
+        padding: const EdgeInsets.all(5),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.06),
+          borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(10), bottom: Radius.circular(28)),
+          border: Border.all(
+              color: selected ? Colors.white : Colors.white24,
+              width: selected ? 2.5 : 1.5),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            for (var s = _cap - 1; s >= 0; s--)
+              Container(
+                width: ball,
+                height: ball,
+                margin: const EdgeInsets.symmetric(vertical: 2),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: s < t.length
+                      ? _colorsPal[t[s]]
+                      : Colors.white.withOpacity(0.04),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ===========================================================================
+// Tap Order — a Schulte grid. Numbers 1–25 are scattered; tap them in order as
+// fast as you can. A classic attention / visual-search trainer that's calm and
+// forgiving: a wrong tap just gives a gentle nudge, never ends the game.
+// ===========================================================================
+class TapOrderGame extends StatefulWidget {
+  const TapOrderGame({super.key});
+  @override
+  State<TapOrderGame> createState() => _TapOrderGameState();
+}
+
+class _TapOrderGameState extends State<TapOrderGame> with _Emit {
+  static const String _id = 'tap_order';
+  final math.Random _rnd = math.Random();
+  late List<int> _cells; // number shown at each of the 25 cells
+  int _next = 1;
+  int _score = 0;
+  int _round = 1;
+  int _best = 0;
+  String? _banner;
+  int _wrongCell = -1;
+  GameStatus _status = GameStatus.playing;
+
+  @override
+  void initState() {
+    super.initState();
+    _shuffle();
+    GameScores.instance.ensureLoaded().then((_) {
+      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+    });
+  }
+
+  void _shuffle() {
+    _cells = List<int>.generate(25, (i) => i + 1)..shuffle(_rnd);
+    _next = 1;
+  }
+
+  void _tap(int cell) {
+    if (_status != GameStatus.playing) return;
+    if (_cells[cell] == _next) {
+      _score++;
+      _next++;
+      TonePlayer.instance.playNote(_next % 10, seconds: 0.16);
+      emit(ExperienceEvent.bubblePopped);
+      GameScores.instance.submit(_id, _score).then((b) {
+        if (mounted && b != _best) setState(() => _best = b);
+      });
+      if (_next > 25) {
+        _round++;
+        _banner = 'Round $_round!';
+        TonePlayer.instance.playCue(SoundCue.success);
+        emit(ExperienceEvent.gameCompleted);
+        setState(_shuffle);
+      } else {
+        setState(() {});
+      }
+    } else {
+      TonePlayer.instance.playCue(SoundCue.gentleRetry);
+      setState(() => _wrongCell = cell);
+      Future<void>.delayed(const Duration(milliseconds: 250), () {
+        if (mounted) setState(() => _wrongCell = -1);
+      });
+    }
+  }
+
+  void _reset() {
+    setState(() {
+      _score = 0;
+      _round = 1;
+      _banner = null;
+      _status = GameStatus.playing;
+      _shuffle();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    drain(context);
+    return _Shell(
+      title: '🔢 Tap Order',
+      score: _score,
+      best: _best,
+      status: _status,
+      banner: _banner,
+      accent: const Color(0xFF4CC9F0),
+      onPlayAgain: _reset,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: <Color>[Color(0xFF10233A), Color(0xFF0A1626)],
+          ),
+        ),
+        child: Column(
+          children: <Widget>[
+            const SizedBox(height: 116),
+            Text('Tap $_next',
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900)),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: GridView.count(
+                  crossAxisCount: 5,
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: <Widget>[
+                    for (var i = 0; i < 25; i++)
+                      GestureDetector(
+                        onTapDown: (_) => _tap(i),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 120),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: _wrongCell == i
+                                ? const Color(0xFFEF476F)
+                                : _cells[i] < _next
+                                    ? const Color(0xFF06D6A0).withOpacity(0.3)
+                                    : Colors.white.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            _cells[i] < _next ? '' : '${_cells[i]}',
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ===========================================================================
+// Piano Tiles — tap the falling tiles in their column before they slip past the
+// bottom. Each tap plays a note so a melody builds; it speeds up as you go.
+// ===========================================================================
+class PianoTilesGame extends StatefulWidget {
+  const PianoTilesGame({super.key});
+  @override
+  State<PianoTilesGame> createState() => _PianoTilesGameState();
+}
+
+class _PRow {
+  _PRow(this.col, this.y);
+  final int col;
+  double y;
+}
+
+class _PianoTilesGameState extends State<PianoTilesGame>
+    with TickerProviderStateMixin, ToyTicker, _Emit {
+  static const String _id = 'piano_tiles';
+  static const int _cols = 4;
+  static const double _gap = 0.26;
+  final math.Random _rnd = math.Random();
+  final List<_PRow> _rows = <_PRow>[];
+  double _speed = 0.42;
+  double _spawnIn = 0;
+  int _score = 0;
+  int _best = 0;
+  int _lastCol = -1;
+  GameStatus _status = GameStatus.playing;
+
+  @override
+  void initState() {
+    super.initState();
+    for (var i = 0; i < 4; i++) {
+      _rows.add(_PRow(_pickCol(), -0.05 - i * _gap));
+    }
+    GameScores.instance.ensureLoaded().then((_) {
+      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+    });
+  }
+
+  int _pickCol() {
+    var c = _rnd.nextInt(_cols);
+    if (c == _lastCol) c = (c + 1) % _cols;
+    _lastCol = c;
+    return c;
+  }
+
+  @override
+  void onTick(double dt) {
+    if (_status != GameStatus.playing) return;
+    for (final r in _rows) {
+      r.y += _speed * dt;
+    }
+    _spawnIn -= dt;
+    if (_spawnIn <= 0) {
+      _spawnIn = _gap / _speed;
+      _rows.add(_PRow(_pickCol(), -0.08));
+    }
+    for (final r in _rows) {
+      if (r.y > 1.02) {
+        _gameOver();
+        return;
+      }
+    }
+  }
+
+  void _tapCol(int c) {
+    if (_status != GameStatus.playing) return;
+    _PRow? target;
+    for (final r in _rows) {
+      if (r.y > 0.04 && (target == null || r.y > target.y)) target = r;
+    }
+    if (target == null) return;
+    if (target.col == c) {
+      _rows.remove(target);
+      _score++;
+      TonePlayer.instance.playNote(_score % 10, seconds: 0.18);
+      emit(ExperienceEvent.bubblePopped);
+      _speed = math.min(0.95, _speed + 0.006);
+      GameScores.instance.submit(_id, _score).then((b) {
+        if (mounted && b != _best) setState(() => _best = b);
+      });
+    } else {
+      _gameOver();
+    }
+  }
+
+  void _gameOver() {
+    final prev = GameScores.instance.best(_id);
+    _status = GameStatus.over;
+    TonePlayer.instance.playCue(SoundCue.gameOver);
+    emit(_score > prev
+        ? ExperienceEvent.gameCompleted
+        : ExperienceEvent.incorrectAnswer);
+    GameScores.instance.submit(_id, _score).then((b) {
+      if (mounted) setState(() => _best = b);
+    });
+  }
+
+  void _reset() {
+    setState(() {
+      _rows.clear();
+      _speed = 0.42;
+      _spawnIn = 0;
+      _score = 0;
+      _lastCol = -1;
+      _status = GameStatus.playing;
+      for (var i = 0; i < 4; i++) {
+        _rows.add(_PRow(_pickCol(), -0.05 - i * _gap));
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    drain(context);
+    return _Shell(
+      title: '🎹 Piano Tiles',
+      score: _score,
+      best: _best,
+      status: _status,
+      overEmoji: '🎹',
+      overText: 'Missed a tile!',
+      accent: const Color(0xFF9B5DE5),
+      onPlayAgain: _reset,
+      child: LayoutBuilder(
+        builder: (context, c) {
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTapDown: (d) => _tapCol(
+                (d.localPosition.dx / c.maxWidth * _cols)
+                    .floor()
+                    .clamp(0, _cols - 1)),
+            child: CustomPaint(
+              painter: _PianoPainter(_rows, _cols),
+              size: Size.infinite,
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _PianoPainter extends CustomPainter {
+  _PianoPainter(this.rows, this.cols);
+  final List<_PRow> rows;
+  final int cols;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(
+        Offset.zero & size, Paint()..color = const Color(0xFFF4F1FB));
+    final cw = size.width / cols;
+    final div = Paint()
+      ..color = Colors.black12
+      ..strokeWidth = 1;
+    for (var i = 1; i < cols; i++) {
+      canvas.drawLine(Offset(cw * i, 0), Offset(cw * i, size.height), div);
+    }
+    final th = size.height * 0.22;
+    for (final r in rows) {
+      final x = r.col * cw;
+      final y = r.y * size.height - th;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+            Rect.fromLTWH(x + 4, y, cw - 8, th - 6), const Radius.circular(8)),
+        Paint()..color = const Color(0xFF3A2E5C),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_PianoPainter oldDelegate) => true;
+}
+
+// ===========================================================================
+// Block Blast — pick a block piece and tap where it goes on the 8×8 grid. Fill
+// a whole row or column to clear it and score big. When no piece fits, the
+// board is done. A calm spatial puzzle.
+// ===========================================================================
+class BlockBlastGame extends StatefulWidget {
+  const BlockBlastGame({super.key});
+  @override
+  State<BlockBlastGame> createState() => _BlockBlastGameState();
+}
+
+class _BlockPiece {
+  _BlockPiece(this.cells, this.color);
+  final List<math.Point<int>> cells;
+  final Color color;
+}
+
+class _BlockBlastGameState extends State<BlockBlastGame> with _Emit {
+  static const String _id = 'block_blast';
+  static const int _n = 8;
+  final math.Random _rnd = math.Random();
+  late List<List<Color?>> _grid;
+  final List<_BlockPiece?> _hand = <_BlockPiece?>[null, null, null];
+  int _sel = -1;
+  int _score = 0;
+  int _best = 0;
+  String? _banner;
+  GameStatus _status = GameStatus.playing;
+
+  static const List<Color> _pieceColors = <Color>[
+    Color(0xFFEF476F), Color(0xFFFFD166), Color(0xFF06D6A0),
+    Color(0xFF4CC9F0), Color(0xFF9B5DE5), Color(0xFFFF9E00),
+  ];
+
+  static final List<List<math.Point<int>>> _shapes = <List<math.Point<int>>>[
+    <math.Point<int>>[math.Point<int>(0, 0)],
+    <math.Point<int>>[math.Point<int>(0, 0), math.Point<int>(0, 1)],
+    <math.Point<int>>[math.Point<int>(0, 0), math.Point<int>(1, 0)],
+    <math.Point<int>>[
+      math.Point<int>(0, 0), math.Point<int>(0, 1), math.Point<int>(0, 2)
+    ],
+    <math.Point<int>>[
+      math.Point<int>(0, 0), math.Point<int>(1, 0), math.Point<int>(2, 0)
+    ],
+    <math.Point<int>>[
+      math.Point<int>(0, 0), math.Point<int>(0, 1),
+      math.Point<int>(1, 0), math.Point<int>(1, 1)
+    ],
+    <math.Point<int>>[
+      math.Point<int>(0, 0), math.Point<int>(1, 0), math.Point<int>(1, 1)
+    ],
+    <math.Point<int>>[
+      math.Point<int>(0, 1), math.Point<int>(1, 0), math.Point<int>(1, 1)
+    ],
+    <math.Point<int>>[
+      math.Point<int>(0, 0), math.Point<int>(0, 1),
+      math.Point<int>(0, 2), math.Point<int>(0, 3)
+    ],
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _grid = List<List<Color?>>.generate(_n, (_) => List<Color?>.filled(_n, null));
+    _refill();
+    GameScores.instance.ensureLoaded().then((_) {
+      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+    });
+  }
+
+  _BlockPiece _randomPiece() => _BlockPiece(
+      _shapes[_rnd.nextInt(_shapes.length)],
+      _pieceColors[_rnd.nextInt(_pieceColors.length)]);
+
+  void _refill() {
+    for (var i = 0; i < 3; i++) {
+      _hand[i] = _randomPiece();
+    }
+    _sel = -1;
+  }
+
+  bool _fits(_BlockPiece p, int r, int c) {
+    for (final o in p.cells) {
+      final rr = r + o.x, cc = c + o.y;
+      if (rr < 0 || rr >= _n || cc < 0 || cc >= _n) return false;
+      if (_grid[rr][cc] != null) return false;
+    }
+    return true;
+  }
+
+  bool _fitsAnywhere(_BlockPiece p) {
+    for (var r = 0; r < _n; r++) {
+      for (var c = 0; c < _n; c++) {
+        if (_fits(p, r, c)) return true;
+      }
+    }
+    return false;
+  }
+
+  void _place(int r, int c) {
+    if (_status != GameStatus.playing || _sel < 0) return;
+    final p = _hand[_sel];
+    if (p == null || !_fits(p, r, c)) return;
+    for (final o in p.cells) {
+      _grid[r + o.x][c + o.y] = p.color;
+    }
+    _score += p.cells.length;
+    _hand[_sel] = null;
+    _sel = -1;
+    TonePlayer.instance.playCue(SoundCue.stack);
+    _clearLines();
+    emit(ExperienceEvent.bubblePopped);
+    if (_hand.every((h) => h == null)) _refill();
+    GameScores.instance.submit(_id, _score).then((b) {
+      if (mounted && b != _best) _best = b;
+    });
+    final playable =
+        _hand.whereType<_BlockPiece>().any((pc) => _fitsAnywhere(pc));
+    if (!playable) {
+      _gameOver();
+    }
+    setState(() {});
+  }
+
+  void _clearLines() {
+    final fullRows = <int>[];
+    final fullCols = <int>[];
+    for (var r = 0; r < _n; r++) {
+      if (List<Color?>.generate(_n, (c) => _grid[r][c]).every((v) => v != null)) {
+        fullRows.add(r);
+      }
+    }
+    for (var c = 0; c < _n; c++) {
+      if (List<Color?>.generate(_n, (r) => _grid[r][c]).every((v) => v != null)) {
+        fullCols.add(c);
+      }
+    }
+    if (fullRows.isEmpty && fullCols.isEmpty) return;
+    for (final r in fullRows) {
+      for (var c = 0; c < _n; c++) {
+        _grid[r][c] = null;
+      }
+    }
+    for (final c in fullCols) {
+      for (var r = 0; r < _n; r++) {
+        _grid[r][c] = null;
+      }
+    }
+    final cleared = fullRows.length + fullCols.length;
+    _score += cleared * 10;
+    _banner = 'Clear +${cleared * 10}!';
+    TonePlayer.instance.playCue(SoundCue.success);
+  }
+
+  void _gameOver() {
+    final prev = GameScores.instance.best(_id);
+    _status = GameStatus.over;
+    TonePlayer.instance.playCue(SoundCue.gameOver);
+    emit(_score > prev
+        ? ExperienceEvent.gameCompleted
+        : ExperienceEvent.incorrectAnswer);
+    GameScores.instance.submit(_id, _score).then((b) {
+      if (mounted) setState(() => _best = b);
+    });
+  }
+
+  void _reset() {
+    setState(() {
+      _grid =
+          List<List<Color?>>.generate(_n, (_) => List<Color?>.filled(_n, null));
+      _score = 0;
+      _banner = null;
+      _status = GameStatus.playing;
+      _refill();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    drain(context);
+    return _Shell(
+      title: '🟦 Block Blast',
+      score: _score,
+      best: _best,
+      status: _status,
+      banner: _banner,
+      overEmoji: '🟦',
+      overText: 'No moves left!',
+      accent: const Color(0xFF4CC9F0),
+      onPlayAgain: _reset,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: <Color>[Color(0xFF141A2E), Color(0xFF0B1020)],
+          ),
+        ),
+        child: Column(
+          children: <Widget>[
+            const SizedBox(height: 112),
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: GridView.count(
+                  crossAxisCount: _n,
+                  mainAxisSpacing: 3,
+                  crossAxisSpacing: 3,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: <Widget>[
+                    for (var r = 0; r < _n; r++)
+                      for (var c = 0; c < _n; c++)
+                        GestureDetector(
+                          onTapDown: (_) => _place(r, c),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color:
+                                  _grid[r][c] ?? Colors.white.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                        ),
+                  ],
+                ),
+              ),
+            ),
+            const Spacer(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: <Widget>[for (var i = 0; i < 3; i++) _handSlot(i)],
+            ),
+            const SizedBox(height: 28),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _handSlot(int i) {
+    final p = _hand[i];
+    return GestureDetector(
+      onTap: () => setState(() => _sel = p == null ? -1 : i),
+      child: Container(
+        width: 90,
+        height: 70,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(_sel == i ? 0.18 : 0.06),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+              color: _sel == i ? Colors.white : Colors.white24,
+              width: _sel == i ? 2 : 1),
+        ),
+        child:
+            p == null ? const SizedBox.shrink() : CustomPaint(painter: _PiecePainter(p)),
+      ),
+    );
+  }
+}
+
+class _PiecePainter extends CustomPainter {
+  _PiecePainter(this.piece);
+  final _BlockPiece piece;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    var maxR = 0, maxC = 0;
+    for (final o in piece.cells) {
+      maxR = math.max(maxR, o.x);
+      maxC = math.max(maxC, o.y);
+    }
+    final cell =
+        math.min(size.width / (maxC + 1), size.height / (maxR + 1)) * 0.7;
+    final ox = (size.width - cell * (maxC + 1)) / 2;
+    final oy = (size.height - cell * (maxR + 1)) / 2;
+    for (final o in piece.cells) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+            Rect.fromLTWH(
+                ox + o.y * cell + 1, oy + o.x * cell + 1, cell - 2, cell - 2),
+            const Radius.circular(3)),
+        Paint()..color = piece.color,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_PiecePainter oldDelegate) => true;
+}
+
+// ===========================================================================
+// Bubble Shooter — aim and tap to launch a bubble up the board. Land three or
+// more of the same colour touching and they pop. Clear the board; if a bubble
+// settles on the bottom row the round ends.
+// ===========================================================================
+class BubbleShooterGame extends StatefulWidget {
+  const BubbleShooterGame({super.key});
+  @override
+  State<BubbleShooterGame> createState() => _BubbleShooterGameState();
+}
+
+class _BubbleShooterGameState extends State<BubbleShooterGame>
+    with TickerProviderStateMixin, ToyTicker, _Emit {
+  static const String _id = 'bubble_shooter';
+  static const int _cols = 7;
+  static const List<Color> _pal = <Color>[
+    Color(0xFFEF476F),
+    Color(0xFFFFD166),
+    Color(0xFF06D6A0),
+    Color(0xFF4CC9F0),
+    Color(0xFF9B5DE5),
+  ];
+  final math.Random _rnd = math.Random();
+  late List<List<Color?>> _grid;
+  int _rows = 0;
+  double _w = 0;
+  double _h = 0;
+  double _cell = 0;
+  double _r = 0;
+  bool _init = false;
+  Offset? _pos; // flying bubble centre, null when idle
+  Offset _vel = Offset.zero;
+  Color _shot = _pal[0];
+  Color _next = _pal[1];
+  int _score = 0;
+  int _best = 0;
+  String? _banner;
+  GameStatus _status = GameStatus.playing;
+
+  @override
+  void initState() {
+    super.initState();
+    _shot = _pal[_rnd.nextInt(_pal.length)];
+    _next = _pal[_rnd.nextInt(_pal.length)];
+    GameScores.instance.ensureLoaded().then((_) {
+      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+    });
+  }
+
+  void _layout(double w, double h) {
+    if (_init && (w - _w).abs() < 0.5) return;
+    _w = w;
+    _h = h;
+    _cell = w / _cols;
+    _r = _cell / 2;
+    _rows = math.max(6, (h / _cell).floor());
+    _grid =
+        List<List<Color?>>.generate(_rows, (_) => List<Color?>.filled(_cols, null));
+    for (var r = 0; r < 5; r++) {
+      for (var c = 0; c < _cols; c++) {
+        _grid[r][c] = _pal[_rnd.nextInt(_pal.length)];
+      }
+    }
+    _init = true;
+  }
+
+  Offset _center(int r, int c) =>
+      Offset((c + 0.5) * _cell, (r + 0.5) * _cell);
+
+  bool _hitsBubble(Offset p) {
+    for (var r = 0; r < _rows; r++) {
+      for (var c = 0; c < _cols; c++) {
+        if (_grid[r][c] != null &&
+            (_center(r, c) - p).distance < _cell * 0.9) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  @override
+  void onTick(double dt) {
+    if (_status != GameStatus.playing || _pos == null) return;
+    var p = _pos! + _vel * dt;
+    if (p.dx < _r) {
+      p = Offset(_r, p.dy);
+      _vel = Offset(_vel.dx.abs(), _vel.dy);
+    } else if (p.dx > _w - _r) {
+      p = Offset(_w - _r, p.dy);
+      _vel = Offset(-_vel.dx.abs(), _vel.dy);
+    }
+    _pos = p;
+    if (p.dy <= _r || _hitsBubble(p)) {
+      _snap(p);
+    }
+  }
+
+  void _snap(Offset p) {
+    double bestD = double.infinity;
+    int br = -1, bc = -1;
+    for (var r = 0; r < _rows; r++) {
+      for (var c = 0; c < _cols; c++) {
+        if (_grid[r][c] != null) continue;
+        final d = (_center(r, c) - p).distance;
+        if (d < bestD) {
+          bestD = d;
+          br = r;
+          bc = c;
+        }
+      }
+    }
+    _pos = null;
+    if (br < 0) {
+      _gameOver();
+      return;
+    }
+    _grid[br][bc] = _shot;
+    final group = _flood(br, bc, _shot);
+    if (group.length >= 3) {
+      for (final cell in group) {
+        _grid[cell.x][cell.y] = null;
+      }
+      _score += group.length;
+      _banner = 'Pop ${group.length}!';
+      TonePlayer.instance.playCue(SoundCue.bubble);
+      emit(ExperienceEvent.bubblePopped);
+      GameScores.instance.submit(_id, _score).then((b) {
+        if (mounted && b != _best) _best = b;
+      });
+    } else {
+      TonePlayer.instance.playCue(SoundCue.ball);
+    }
+    _shot = _next;
+    _next = _pal[_rnd.nextInt(_pal.length)];
+    if (br >= _rows - 1) {
+      _gameOver();
+    }
+  }
+
+  List<math.Point<int>> _flood(int r, int c, Color color) {
+    final seen = <String>{};
+    final out = <math.Point<int>>[];
+    final stack = <math.Point<int>>[math.Point<int>(r, c)];
+    while (stack.isNotEmpty) {
+      final p = stack.removeLast();
+      final key = '${p.x},${p.y}';
+      if (seen.contains(key)) continue;
+      if (p.x < 0 || p.x >= _rows || p.y < 0 || p.y >= _cols) continue;
+      if (_grid[p.x][p.y] != color) continue;
+      seen.add(key);
+      out.add(p);
+      stack.add(math.Point<int>(p.x + 1, p.y));
+      stack.add(math.Point<int>(p.x - 1, p.y));
+      stack.add(math.Point<int>(p.x, p.y + 1));
+      stack.add(math.Point<int>(p.x, p.y - 1));
+    }
+    return out;
+  }
+
+  void _fire(Offset target) {
+    if (_status != GameStatus.playing || _pos != null || !_init) return;
+    final origin = Offset(_w / 2, _h - _cell);
+    var dir = target - origin;
+    if (dir.dy > -8) dir = Offset(dir.dx, -8);
+    final n = dir / dir.distance;
+    _vel = n * 640;
+    _pos = origin;
+  }
+
+  void _gameOver() {
+    final prev = GameScores.instance.best(_id);
+    _status = GameStatus.over;
+    TonePlayer.instance.playCue(SoundCue.gameOver);
+    emit(_score > prev
+        ? ExperienceEvent.gameCompleted
+        : ExperienceEvent.incorrectAnswer);
+    GameScores.instance.submit(_id, _score).then((b) {
+      if (mounted) setState(() => _best = b);
+    });
+  }
+
+  void _reset() {
+    setState(() {
+      _init = false;
+      _pos = null;
+      _score = 0;
+      _banner = null;
+      _status = GameStatus.playing;
+      _shot = _pal[_rnd.nextInt(_pal.length)];
+      _next = _pal[_rnd.nextInt(_pal.length)];
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    drain(context);
+    return _Shell(
+      title: '🫧 Bubble Shooter',
+      score: _score,
+      best: _best,
+      status: _status,
+      banner: _banner,
+      overEmoji: '🫧',
+      overText: 'Bubbles reached the floor!',
+      accent: const Color(0xFF4CC9F0),
+      onPlayAgain: _reset,
+      child: LayoutBuilder(
+        builder: (context, c) {
+          _layout(c.maxWidth, c.maxHeight);
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTapDown: (d) => _fire(d.localPosition),
+            child: CustomPaint(
+              painter: _BubblePainter(_grid, _rows, _cols, _cell, _r, _pos,
+                  _shot, _next, _w, _h),
+              size: Size.infinite,
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _BubblePainter extends CustomPainter {
+  _BubblePainter(this.grid, this.rows, this.cols, this.cell, this.r, this.pos,
+      this.shot, this.next, this.w, this.h);
+  final List<List<Color?>> grid;
+  final int rows;
+  final int cols;
+  final double cell;
+  final double r;
+  final Offset? pos;
+  final Color shot;
+  final Color next;
+  final double w;
+  final double h;
+
+  void _ball(Canvas canvas, Offset center, Color color) {
+    canvas.drawCircle(center, r - 1.5, Paint()..color = color);
+    canvas.drawCircle(
+        center.translate(-r * 0.28, -r * 0.28),
+        r * 0.3,
+        Paint()..color = Colors.white.withOpacity(0.4));
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(
+        Offset.zero & size,
+        Paint()
+          ..shader = const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: <Color>[Color(0xFF0E1830), Color(0xFF060B18)],
+          ).createShader(Offset.zero & size));
+    for (var rr = 0; rr < rows; rr++) {
+      for (var cc = 0; cc < cols; cc++) {
+        final col = grid[rr][cc];
+        if (col != null) {
+          _ball(canvas, Offset((cc + 0.5) * cell, (rr + 0.5) * cell), col);
+        }
+      }
+    }
+    // Launcher + next colour.
+    final origin = Offset(w / 2, h - cell);
+    if (pos != null) {
+      _ball(canvas, pos!, shot);
+    } else {
+      _ball(canvas, origin, shot);
+    }
+    _ball(canvas, Offset(w / 2 + cell * 1.2, h - cell * 0.6), next);
+  }
+
+  @override
+  bool shouldRepaint(_BubblePainter oldDelegate) => true;
+}
+
+
+
+
 
