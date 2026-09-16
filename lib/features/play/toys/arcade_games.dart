@@ -190,6 +190,7 @@ class _WhackGameState extends State<WhackGame>
   static const int _holes = 9;
   final math.Random _rnd = math.Random();
   final List<double> _mole = List<double>.filled(_holes, 0); // seconds left
+  final List<bool> _isBomb = List<bool>.filled(_holes, false);
   double _spawnIn = 0.7;
   int _score = 0;
   int _combo = 0;
@@ -216,7 +217,12 @@ class _WhackGameState extends State<WhackGame>
     for (var i = 0; i < _holes; i++) {
       if (_mole[i] > 0) {
         _mole[i] -= dt;
-        if (_mole[i] <= 0) _combo = 0; // ducked away unhit
+        if (_mole[i] <= 0) {
+          // A hamster that ducks away unhit breaks the combo; an avoided bomb
+          // is fine.
+          if (!_isBomb[i]) _combo = 0;
+          _isBomb[i] = false;
+        }
       }
     }
     _spawnIn -= dt;
@@ -228,8 +234,10 @@ class _WhackGameState extends State<WhackGame>
           if (_mole[i] <= 0) i
       ];
       if (free.isNotEmpty) {
-        _mole[free[_rnd.nextInt(free.length)]] =
-            math.max(0.6, 1.4 - _score * 0.02);
+        final h = free[_rnd.nextInt(free.length)];
+        // Roughly one in five pop-ups is a bomb to avoid.
+        _isBomb[h] = _rnd.nextInt(5) == 0;
+        _mole[h] = math.max(0.6, 1.4 - _score * 0.02);
       }
     }
   }
@@ -237,7 +245,18 @@ class _WhackGameState extends State<WhackGame>
   void _hit(int i) {
     if (_status != GameStatus.playing) return;
     if (_mole[i] > 0) {
+      final wasBomb = _isBomb[i];
       _mole[i] = 0;
+      _isBomb[i] = false;
+      if (wasBomb) {
+        _combo = 0;
+        _score = math.max(0, _score - 1);
+        _banner = 'Ouch! Avoid 💣';
+        _bannerT = 1.0;
+        TonePlayer.instance.playCue(SoundCue.crash);
+        emit(ExperienceEvent.incorrectAnswer);
+        return;
+      }
       _combo++;
       _score += 1 + (_combo >= 5 ? 1 : 0);
       TonePlayer.instance.playCue(SoundCue.wood);
@@ -256,6 +275,7 @@ class _WhackGameState extends State<WhackGame>
     setState(() {
       for (var i = 0; i < _holes; i++) {
         _mole[i] = 0;
+        _isBomb[i] = false;
       }
       _score = 0;
       _combo = 0;
@@ -306,7 +326,8 @@ class _WhackGameState extends State<WhackGame>
                     child: AnimatedScale(
                       scale: _mole[i] > 0 ? 1 : 0,
                       duration: const Duration(milliseconds: 120),
-                      child: const Text('🐹', style: TextStyle(fontSize: 46)),
+                      child: Text(_isBomb[i] ? '💣' : '🐹',
+                          style: const TextStyle(fontSize: 46)),
                     ),
                   ),
                 ),
