@@ -905,10 +905,11 @@ class SnakeGame extends StatefulWidget {
 }
 
 class _Orb {
-  _Orb(this.pos, this.color, this.r);
+  _Orb(this.pos, this.color, this.r, {this.golden = false});
   Offset pos;
   final Color color;
   final double r;
+  final bool golden;
 }
 
 class _AiWorm {
@@ -944,6 +945,8 @@ class _SnakeGameState extends State<SnakeGame>
   final List<_AiWorm> _ai = <_AiWorm>[];
   int _score = 0;
   int _best = 0;
+  int _combo = 0;
+  double _comboT = 0;
   double _bannerT = 0;
   String? _banner;
   Size _view = const Size(360, 640);
@@ -974,6 +977,8 @@ class _SnakeGameState extends State<SnakeGame>
     _boost = false;
     _boostAcc = 0;
     _score = 0;
+    _combo = 0;
+    _comboT = 0;
     _orbs.clear();
     for (var i = 0; i < 240; i++) {
       _orbs.add(_randomOrb());
@@ -994,6 +999,11 @@ class _SnakeGameState extends State<SnakeGame>
   _Orb _randomOrb() {
     final a = _rnd.nextDouble() * math.pi * 2;
     final d = math.sqrt(_rnd.nextDouble()) * (_arenaR - 24);
+    // Roughly one orb in eleven is a golden orb: rarer, larger, worth more.
+    if (_rnd.nextInt(11) == 0) {
+      return _Orb(Offset(math.cos(a) * d, math.sin(a) * d),
+          const Color(0xFFFFE066), 7.0 + _rnd.nextDouble() * 2, golden: true);
+    }
     return _Orb(Offset(math.cos(a) * d, math.sin(a) * d),
         _orbColors[_rnd.nextInt(_orbColors.length)],
         3.5 + _rnd.nextDouble() * 3.5);
@@ -1006,6 +1016,10 @@ class _SnakeGameState extends State<SnakeGame>
     if (_bannerT > 0) {
       _bannerT -= dt;
       if (_bannerT <= 0) _banner = null;
+    }
+    if (_comboT > 0) {
+      _comboT -= dt;
+      if (_comboT <= 0) _combo = 0;
     }
 
     // Steer toward the target heading with a capped turn rate.
@@ -1036,11 +1050,27 @@ class _SnakeGameState extends State<SnakeGame>
     // Eat nearby orbs.
     for (var i = _orbs.length - 1; i >= 0; i--) {
       if ((_orbs[i].pos - _head).distance < 15) {
+        final golden = _orbs[i].golden;
         _orbs.removeAt(i);
-        _length += 2;
-        _score += 1;
-        if (_score % 10 == 0) _flash('Length $_length!');
-        TonePlayer.instance.playCue(SoundCue.snakeEat);
+        // Rapid, back-to-back eating builds a combo that fades if you pause.
+        _combo = _comboT > 0 ? _combo + 1 : 1;
+        _comboT = 1.4;
+        final comboBonus = _combo >= 3 ? 1 : 0;
+        if (golden) {
+          _length += 5;
+          _score += 3 + comboBonus;
+          _flash(_combo >= 3 ? 'Golden! Combo x$_combo' : 'Golden! +3');
+          TonePlayer.instance.playCue(SoundCue.coin);
+        } else {
+          _length += 2;
+          _score += 1 + comboBonus;
+          if (_combo >= 5) {
+            _flash('Combo x$_combo!');
+          } else if (_score % 10 == 0) {
+            _flash('Length $_length!');
+          }
+          TonePlayer.instance.playCue(SoundCue.snakeEat);
+        }
         emit(ExperienceEvent.bubblePopped);
         GameScores.instance.submit(_id, _score).then((b) {
           if (mounted && b != _best) setState(() => _best = b);
@@ -1214,7 +1244,7 @@ class _SnakeGameState extends State<SnakeGame>
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: const Text(
-                        'Collect 30 glowing orbs · Drag to steer · Avoid the edge',
+                        'Eat orbs to grow · Gold orbs = big bonus · Drag to steer, avoid the edge',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.white,
@@ -1361,9 +1391,21 @@ class _SnakePainter extends CustomPainter {
           s,
           o.r * 2.4,
           Paint()
-            ..color = o.color.withOpacity(0.35)
-            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4));
+            ..color = o.color.withOpacity(o.golden ? 0.6 : 0.35)
+            ..maskFilter = MaskFilter.blur(
+                BlurStyle.normal, o.golden ? 8 : 4));
       canvas.drawCircle(s, o.r, Paint()..color = o.color);
+      if (o.golden) {
+        // A bright core + sparkle ring so golden orbs read as special.
+        canvas.drawCircle(s, o.r * 0.45, Paint()..color = Colors.white);
+        canvas.drawCircle(
+            s,
+            o.r + 3 + (math.sin(t * 6 + s.dx) + 1) * 1.5,
+            Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 1.5
+              ..color = const Color(0xFFFFF3B0).withOpacity(0.8));
+      }
     }
 
     // Friendly AI worms.

@@ -132,11 +132,14 @@ class CompanionController extends ChangeNotifier {
   String? get celebrationEmoji => _celebrationEmoji;
   int get celebrationPulse => _celebrationPulse;
 
-  void _flashCelebration(String label, String emoji, SoundCue cue) {
+  void _flashCelebration(String label, String emoji, SoundCue? cue) {
     _celebration = label;
     _celebrationEmoji = emoji;
     _celebrationPulse++;
-    TonePlayer.instance.playCue(cue);
+    // A null cue means "show the visual reaction only" — used for the frequent
+    // small milestones so the companion feels alive without chirping over the
+    // toy's own sound on every few taps.
+    if (cue != null) TonePlayer.instance.playCue(cue);
     notifyListeners();
   }
 
@@ -275,14 +278,17 @@ class CompanionController extends ChangeNotifier {
           _flashCelebration("Let's dance!", '💃', SoundCue.milestone);
         } else if (count % 10 == 0) {
           pair();
-          _flashCelebration('High five!', '🙌', SoundCue.milestone);
+          // Visual-only: a high five every 10 taps shouldn't add a chirp on
+          // top of the toy's own sound.
+          _flashCelebration('High five!', '🙌', null);
         } else if (count % 5 == 0) {
           _startSequence(<_CompanionBeat>[
             const _CompanionBeat(CompanionReaction.proud, 720),
             const _CompanionBeat(
                 CompanionReaction.happy, 420, bounce: false),
           ], settle: CompanionReaction.happy, priority: 3);
-          _flashCelebration('Nice!', '👍', SoundCue.milestone);
+          // Visual-only reaction — no sound on the frequent small milestone.
+          _flashCelebration('Nice!', '👍', null);
         } else {
           tap();
         }

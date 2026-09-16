@@ -45,6 +45,50 @@ enum SoundCue {
   gameOver,
 }
 
+/// The role a sound plays in the experience. This is the single place that
+/// decides *how loud a category of sound is allowed to be* — ordinary taps and
+/// navigation are deliberately quiet, gameplay is present, and celebrations are
+/// the loudest. No screen sets raw volume numbers of its own.
+enum WonderAudioKind {
+  ambient,
+  navigation,
+  interaction,
+  gameplay,
+  success,
+  celebration,
+}
+
+/// The one audio-loudness policy for the whole app. Values are multipliers on
+/// each sound's intrinsic level, so a companion tap can never be as loud as a
+/// win. Tuned so UI interaction is calm and unobtrusive.
+class WonderAudioPolicy {
+  const WonderAudioPolicy._();
+
+  static double scale(WonderAudioKind kind) => switch (kind) {
+        WonderAudioKind.ambient => 0.7,
+        WonderAudioKind.navigation => 0.45,
+        WonderAudioKind.interaction => 0.4,
+        WonderAudioKind.gameplay => 1.0,
+        WonderAudioKind.success => 1.0,
+        WonderAudioKind.celebration => 1.0,
+      };
+}
+
+WonderAudioKind _kindForCue(SoundCue cue) => switch (cue) {
+      SoundCue.tap ||
+      SoundCue.selection ||
+      SoundCue.gentleRetry =>
+        WonderAudioKind.interaction,
+      SoundCue.navigation => WonderAudioKind.navigation,
+      SoundCue.calm || SoundCue.ripple => WonderAudioKind.ambient,
+      SoundCue.milestone ||
+      SoundCue.completion =>
+        WonderAudioKind.celebration,
+      SoundCue.success => WonderAudioKind.success,
+      _ => WonderAudioKind.gameplay,
+    };
+
+
 /// Lightweight procedural sound engine for the sensory toys.
 ///
 /// No audio assets are bundled — every sound is synthesised to an in-memory
@@ -64,6 +108,11 @@ class TonePlayer {
   int _next = 0;
   bool _ready = false;
   double volumeScale = 1;
+
+  /// Loudness multiplier for the sound currently being dispatched, set from the
+  /// [WonderAudioPolicy] for the duration of a [playCue]. Defaults to 1 so a
+  /// toy's own direct [playPop]/[playClick] keep their tuned level.
+  double _kindScale = 1;
 
   /// Directory where synthesised WAVs are cached on disk. Android's low-latency
   /// SoundPool backend cannot play in-memory byte streams — it needs a real
@@ -123,7 +172,7 @@ class TonePlayer {
       if (path == null) return;
       await _player.play(
         DeviceFileSource(path),
-        volume: (volume * volumeScale).clamp(0, 1),
+        volume: (volume * volumeScale * _kindScale).clamp(0, 1),
       );
     } catch (_) {
       // Best-effort: never let audio crash a toy.
@@ -179,16 +228,18 @@ class TonePlayer {
     if (last != null && now.difference(last).inMilliseconds < cooldown) return;
     _lastCueAt[cue] = now;
 
-    switch (cue) {
-      case SoundCue.tap:
-        await playClick(pitch: 1.15);
-      case SoundCue.navigation:
-        await playNote(2, seconds: 0.12);
-      case SoundCue.selection:
-        await playPop(0.35);
-      case SoundCue.correct:
-        await playNote(5, seconds: 0.24);
-      case SoundCue.gentleRetry:
+    _kindScale = WonderAudioPolicy.scale(_kindForCue(cue));
+    try {
+      switch (cue) {
+        case SoundCue.tap:
+          await playClick(pitch: 1.15);
+        case SoundCue.navigation:
+          await playNote(2, seconds: 0.12);
+        case SoundCue.selection:
+          await playPop(0.35);
+        case SoundCue.correct:
+          await playNote(5, seconds: 0.24);
+        case SoundCue.gentleRetry:
         await _play(220,
             seconds: 0.18, wave: _Wave.sine, attack: 0.02, decay: 7);
       case SoundCue.milestone:
@@ -276,6 +327,9 @@ class TonePlayer {
         await Future<void>.delayed(const Duration(milliseconds: 110));
         await _play(200,
             seconds: 0.30, wave: _Wave.sine, attack: 0.02, decay: 4);
+      }
+    } finally {
+      _kindScale = 1;
     }
   }
 

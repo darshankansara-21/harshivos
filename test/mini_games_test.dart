@@ -59,7 +59,7 @@ void main() {
     expect(find.textContaining('Snake · Orbs'), findsOneWidget);
     expect(find.text('🐍 Snake · Orbs   0 / 30'), findsOneWidget);
     expect(find.text('You  0 / 30'), findsOneWidget);
-    expect(find.textContaining('Collect 30 glowing orbs'), findsOneWidget);
+    expect(find.textContaining('Gold orbs'), findsOneWidget);
     expect(find.text('ORB RACE'), findsOneWidget);
     await tester.drag(find.byType(SnakeGame), const Offset(0, 120));
     await tester.pump(const Duration(milliseconds: 250));
