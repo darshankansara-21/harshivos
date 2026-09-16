@@ -190,6 +190,16 @@ class _GameShell extends StatelessWidget {
                       icon: const Icon(Icons.refresh_rounded),
                       label: const Text('Play again'),
                     ),
+                    const SizedBox(height: 8),
+                    Builder(
+                      builder: (context) => TextButton.icon(
+                        onPressed: () => Navigator.of(context).maybePop(),
+                        icon: const Icon(Icons.grid_view_rounded,
+                            color: Colors.white70, size: 20),
+                        label: const Text('Back to games',
+                            style: TextStyle(color: Colors.white70)),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -1028,7 +1038,9 @@ class _SnakeGameState extends State<SnakeGame>
     while (diff < -math.pi) diff += math.pi * 2;
     _angle += diff.clamp(-3.6 * dt, 3.6 * dt);
 
-    final speed = _baseSpeed * (_boost && _length > 26 ? 1.85 : 1.0);
+    final speed = _baseSpeed *
+        (1.0 + math.min(_score, 40) * 0.012) *
+        (_boost && _length > 26 ? 1.85 : 1.0);
     _head += Offset(math.cos(_angle), math.sin(_angle)) * speed * dt;
 
     if (_path.isEmpty || (_head - _path.first).distance >= _spacing) {

@@ -137,6 +137,16 @@ class _Shell extends StatelessWidget {
                       icon: const Icon(Icons.refresh_rounded),
                       label: const Text('Play again'),
                     ),
+                    const SizedBox(height: 8),
+                    Builder(
+                      builder: (context) => TextButton.icon(
+                        onPressed: () => Navigator.of(context).maybePop(),
+                        icon: const Icon(Icons.grid_view_rounded,
+                            color: Colors.white70, size: 20),
+                        label: const Text('Back to games',
+                            style: TextStyle(color: Colors.white70)),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -507,6 +517,9 @@ class _StackGameState extends State<StackGame>
   double _speed = 0.55;
   int _score = 0;
   int _best = 0;
+  int _perfectStreak = 0;
+  String? _banner;
+  double _bannerT = 0;
   GameStatus _status = GameStatus.playing;
 
   @override
@@ -521,6 +534,10 @@ class _StackGameState extends State<StackGame>
   @override
   void onTick(double dt) {
     if (_status != GameStatus.playing) return;
+    if (_bannerT > 0) {
+      _bannerT -= dt;
+      if (_bannerT <= 0) _banner = null;
+    }
     _curLeft += _dir * _speed * dt;
     if (_curLeft + _curWidth > 1) {
       _curLeft = 1 - _curWidth;
@@ -541,12 +558,25 @@ class _StackGameState extends State<StackGame>
       _over();
       return;
     }
-    _tower.add(_Block(l, overlap));
-    _curWidth = overlap;
-    _score++;
+    // A near-perfect drop keeps the full width and builds a streak bonus.
+    final misalign = (_curLeft - top.left).abs();
+    if (misalign < 0.012) {
+      _perfectStreak++;
+      _tower.add(_Block(top.left, top.width));
+      _curWidth = top.width;
+      _score += 1 + _perfectStreak.clamp(1, 5);
+      _banner = 'Perfect x$_perfectStreak!';
+      _bannerT = 1.0;
+      TonePlayer.instance.playCue(SoundCue.success);
+    } else {
+      _perfectStreak = 0;
+      _tower.add(_Block(l, overlap));
+      _curWidth = overlap;
+      _score++;
+      TonePlayer.instance.playCue(SoundCue.stack);
+    }
     _speed = math.min(1.1, _speed + 0.03);
     _curLeft = _dir > 0 ? 0 : 1 - _curWidth;
-    TonePlayer.instance.playCue(SoundCue.stack);
     emit(ExperienceEvent.bubblePopped);
     GameScores.instance.submit(_id, _score).then((b) {
       if (mounted && b != _best) setState(() => _best = b);
@@ -575,6 +605,9 @@ class _StackGameState extends State<StackGame>
       _dir = 1;
       _speed = 0.55;
       _score = 0;
+      _perfectStreak = 0;
+      _banner = null;
+      _bannerT = 0;
       _status = GameStatus.playing;
     });
   }
@@ -587,6 +620,7 @@ class _StackGameState extends State<StackGame>
       score: _score,
       best: _best,
       status: _status,
+      banner: _banner,
       overEmoji: '🧱',
       overText: 'Toppled!',
       accent: const Color(0xFF4CC9F0),

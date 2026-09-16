@@ -135,6 +135,16 @@ class _GoalShell extends StatelessWidget {
                       icon: const Icon(Icons.refresh_rounded),
                       label: const Text('Play again'),
                     ),
+                    const SizedBox(height: 8),
+                    Builder(
+                      builder: (context) => TextButton.icon(
+                        onPressed: () => Navigator.of(context).maybePop(),
+                        icon: const Icon(Icons.grid_view_rounded,
+                            color: Colors.white70, size: 20),
+                        label: const Text('Back to games',
+                            style: TextStyle(color: Colors.white70)),
+                      ),
+                    ),
                   ],
                 ),
               ),
