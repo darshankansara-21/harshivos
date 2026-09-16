@@ -33,7 +33,7 @@ import '../sensorylab/experiences/slime.dart';
 
 /// A child-facing bucket. These are honest: `communication` and `lifeSkills`
 /// have zero *toys* today — that is the real gap, surfaced deliberately.
-enum ToyCategory { sensory, fidget, creative, calm, learning, communication, lifeSkills }
+enum ToyCategory { sensory, fidget, arcade, creative, calm, learning, communication, lifeSkills }
 
 /// The ways a child can touch a toy — powers the audit report.
 enum ToyInput { tap, drag, hold, twist, tilt, multiTouch, sound }
@@ -89,6 +89,8 @@ extension ToyCategoryLabel on ToyCategory {
         return 'Sensory';
       case ToyCategory.fidget:
         return 'Fidget';
+      case ToyCategory.arcade:
+        return 'Arcade';
       case ToyCategory.creative:
         return 'Creative';
       case ToyCategory.calm:
@@ -108,6 +110,8 @@ extension ToyCategoryLabel on ToyCategory {
         return '🌈';
       case ToyCategory.fidget:
         return '🌀';
+      case ToyCategory.arcade:
+        return '🕹️';
       case ToyCategory.creative:
         return '🎨';
       case ToyCategory.calm:
@@ -372,47 +376,47 @@ final List<UniverseToy> kToyUniverse = <UniverseToy>[
   ),
   UniverseToy(
     id: 'fruit_catch', name: 'Fruit Catch', emoji: '🧺', color: const Color(0xFF43E97B),
-    category: ToyCategory.creative, inputs: const [ToyInput.tap, ToyInput.drag],
+    category: ToyCategory.arcade, inputs: const [ToyInput.tap, ToyInput.drag],
     engagement: ToyEngagement.deep, build: _play('fruit_catch'), isNew: true,
   ),
   UniverseToy(
     id: 'balloon_pop', name: 'Balloon Pop', emoji: '🎈', color: const Color(0xFFEF476F),
-    category: ToyCategory.creative, inputs: const [ToyInput.tap],
+    category: ToyCategory.arcade, inputs: const [ToyInput.tap],
     engagement: ToyEngagement.deep, build: _play('balloon_pop'), isNew: true,
   ),
   UniverseToy(
-    id: 'star_tap', name: 'Star Tap', emoji: '⭐', color: const Color(0xFFFFD166),
-    category: ToyCategory.learning, inputs: const [ToyInput.tap],
+    id: 'star_tap', name: 'Star Catch', emoji: '⭐', color: const Color(0xFFFFD166),
+    category: ToyCategory.arcade, inputs: const [ToyInput.tap],
     engagement: ToyEngagement.deep, build: _play('star_tap'), isNew: true,
   ),
   UniverseToy(
     id: 'snake', name: 'Snake', emoji: '🐍', color: const Color(0xFF06D6A0),
-    category: ToyCategory.creative, inputs: const [ToyInput.drag],
+    category: ToyCategory.arcade, inputs: const [ToyInput.drag],
     engagement: ToyEngagement.deep, build: _play('snake'), isNew: true,
   ),
   UniverseToy(
     id: 'racing', name: 'Racing', emoji: '🏎️', color: const Color(0xFFFF512F),
-    category: ToyCategory.creative, inputs: const [ToyInput.tap, ToyInput.drag],
+    category: ToyCategory.arcade, inputs: const [ToyInput.tap, ToyInput.drag],
     engagement: ToyEngagement.deep, build: _play('racing'), isNew: true,
   ),
   UniverseToy(
     id: 'bowling', name: 'Bowling', emoji: '🎳', color: const Color(0xFF4CC9F0),
-    category: ToyCategory.creative, inputs: const [ToyInput.tap],
+    category: ToyCategory.arcade, inputs: const [ToyInput.tap],
     engagement: ToyEngagement.deep, build: _play('bowling'), isNew: true,
   ),
   UniverseToy(
     id: 'whack', name: 'Whack', emoji: '🔨', color: const Color(0xFF8D5A3B),
-    category: ToyCategory.creative, inputs: const [ToyInput.tap],
+    category: ToyCategory.arcade, inputs: const [ToyInput.tap],
     engagement: ToyEngagement.deep, build: _play('whack'), isNew: true,
   ),
   UniverseToy(
     id: 'sky_hop', name: 'Sky Hop', emoji: '🐤', color: const Color(0xFF4EC5F1),
-    category: ToyCategory.creative, inputs: const [ToyInput.tap],
+    category: ToyCategory.arcade, inputs: const [ToyInput.tap],
     engagement: ToyEngagement.deep, build: _play('sky_hop'), isNew: true,
   ),
   UniverseToy(
     id: 'stack', name: 'Stack', emoji: '🧱', color: const Color(0xFF4CC9F0),
-    category: ToyCategory.creative, inputs: const [ToyInput.tap],
+    category: ToyCategory.arcade, inputs: const [ToyInput.tap],
     engagement: ToyEngagement.deep, build: _play('stack'), isNew: true,
   ),
   UniverseToy(
@@ -433,13 +437,13 @@ final List<UniverseToy> kToyUniverse = <UniverseToy>[
   UniverseToy(
     id: 'brick_break', name: 'Brick Break', emoji: '🧱',
     color: const Color(0xFFFF6B6B),
-    category: ToyCategory.creative, inputs: const [ToyInput.drag],
+    category: ToyCategory.arcade, inputs: const [ToyInput.drag],
     engagement: ToyEngagement.deep, build: _play('brick_break'), isNew: true,
   ),
   UniverseToy(
     id: 'space_dodge', name: 'Space Dodge', emoji: '🚀',
     color: const Color(0xFF9B5DE5),
-    category: ToyCategory.creative, inputs: const [ToyInput.drag],
+    category: ToyCategory.arcade, inputs: const [ToyInput.drag],
     engagement: ToyEngagement.deep, build: _play('space_dodge'), isNew: true,
   ),
   UniverseToy(
