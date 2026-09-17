@@ -1833,7 +1833,6 @@ class _MemoryFlipGameState extends State<MemoryFlipGame> with _Emit {
   int _first = -1;
   int _second = -1;
   bool _locked = false;
-  int _moves = 0;
   int _pairs = 0;
   int _level = 1;
   int _streak = 0;
@@ -1861,7 +1860,6 @@ class _MemoryFlipGameState extends State<MemoryFlipGame> with _Emit {
     _first = -1;
     _second = -1;
     _locked = false;
-    _moves = 0;
     _pairs = 0;
     _status = GameStatus.playing;
   }
@@ -1883,7 +1881,6 @@ class _MemoryFlipGameState extends State<MemoryFlipGame> with _Emit {
         _first = i;
       } else {
         _second = i;
-        _moves++;
         if (_cards[_first] == _cards[_second]) {
           _matched[_first] = true;
           _matched[_second] = true;

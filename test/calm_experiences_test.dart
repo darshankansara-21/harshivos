@@ -1,0 +1,50 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:harshivos/features/calm/firefly_glow.dart';
+import 'package:harshivos/features/calm/star_weaver.dart';
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  testWidgets('Star Weaver builds, threads stars, and does not throw',
+      (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.75;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+        const MaterialApp(home: Scaffold(body: StarWeaverToy())));
+    await tester.pump(const Duration(milliseconds: 50));
+
+    // Sweep across the sky to try to connect drifting stars.
+    for (double y = 100; y < 900; y += 40) {
+      await tester.tapAt(Offset(300, y));
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    await tester.dragFrom(const Offset(120, 200), const Offset(600, 600));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Firefly Glow builds, gathers on hold, and does not throw',
+      (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.75;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+        const MaterialApp(home: Scaffold(body: FireflyGlowToy())));
+    await tester.pump(const Duration(milliseconds: 50));
+
+    final TestGesture g = await tester.startGesture(const Offset(400, 800));
+    for (int i = 0; i < 10; i++) {
+      await g.moveBy(const Offset(6, -6));
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    await g.up();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(tester.takeException(), isNull);
+  });
+}

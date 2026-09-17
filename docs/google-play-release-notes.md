@@ -1,12 +1,12 @@
 # WonderPlay — Google Play Release Notes
 
 ## What's new
+- New Calm experiences: Star Weaver (trace slow constellations) and Firefly Glow (hold to gather gentle fireflies).
+- More sensory variety in Calm — now spanning touch, drag, trace, hold, watch and breathing.
 - Play, Learn, Calm, Talk and Routines — all in one child-friendly companion.
 - A growing collection of playful games and hands-on sensory experiences.
-- Deeper gameplay and more reasons to replay across the game collection.
 - Progress, levels and achievements that reward real play.
 - Easier discovery with Favorites, Recently Played and curated game sections.
-- Calm, sensory-friendly experiences with adjustable sound and reduced motion.
 - Talk — a simple picture board that speaks for your child.
 - Learning activities across matching, emotions, counting and patterns.
 - Hari and Pico companions that react as your child plays.

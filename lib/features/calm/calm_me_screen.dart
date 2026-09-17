@@ -15,6 +15,8 @@ import '../lifeskills/avatar/hari_cards.dart';
 import '../lifeskills/avatar/pico.dart';
 import 'breathing_exercise.dart';
 import 'calm_sequence_screen.dart';
+import 'firefly_glow.dart';
+import 'star_weaver.dart';
 
 /// Calm Me — one-tap emergency regulation. Big, low-pressure mood buttons.
 class CalmMeScreen extends StatefulWidget {
@@ -93,6 +95,14 @@ class _CalmMeScreenState extends State<CalmMeScreen> {
       Color(0x66F15BB5),
       Color(0x669B5DE5),
     ], () => const LavaBlobsToy()),
+    _CalmActivity('Star Weaver', '✨', const <Color>[
+      Color(0x665C7CFA),
+      Color(0x669B5DE5),
+    ], () => const StarWeaverToy()),
+    _CalmActivity('Firefly Glow', '🪰', const <Color>[
+      Color(0x66B6FF9E),
+      Color(0x662BD4B4),
+    ], () => const FireflyGlowToy()),
   ];
 
   @override

@@ -20,7 +20,6 @@ import '../world/world_screen.dart';
 import '../lifeskills/profile_wizard_screen.dart';
 import '../settings/sensory_settings_screen.dart';
 import '../talk/talk_screen.dart';
-import '../play/toys/mini_games.dart' show GameScores;
 import 'game_thumb.dart';
 import 'toy_debug_screen.dart';
 import 'universe_catalog.dart';
