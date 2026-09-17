@@ -512,6 +512,12 @@ final List<UniverseToy> kToyUniverse = <UniverseToy>[
     category: ToyCategory.arcade, inputs: const [ToyInput.tap],
     engagement: ToyEngagement.deep, build: _play('goal_keeper'), isNew: true,
   ),
+  UniverseToy(
+    id: 'trace_it', name: 'Trace It', emoji: '✏️',
+    color: const Color(0xFF4CC9F0),
+    category: ToyCategory.learning, inputs: const [ToyInput.drag],
+    engagement: ToyEngagement.deep, build: _play('trace_it'), isNew: true,
+  ),
 
   // ---- Sensory Lab: premium physics experiences (6) ----
   const UniverseToy(
@@ -689,6 +695,7 @@ List<UniverseToy> smartPlayToys() => _byIds(<String>[
   'shape_scout',
   'number_splash',
   'path_finder',
+  'trace_it',
       'learn_matching_pairs',
       'learn_emotion_match',
       'star_tap',

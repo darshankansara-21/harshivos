@@ -41,18 +41,28 @@ class ToyUniverseScreen extends ConsumerStatefulWidget {
     await GameScores.instance.ensureLoaded();
     final beforeBest = GameScores.instance.best(toy.id);
     final started = DateTime.now();
+    // Catch a win from anywhere in the game so a completed goal earns XP.
+    var completed = false;
+    Widget watch(Widget child) =>
+        NotificationListener<CompanionEventNotification>(
+          onNotification: (n) {
+            if (n.event == ExperienceEvent.gameCompleted) completed = true;
+            return false;
+          },
+          child: child,
+        );
     if (toy.launch == ToyLaunch.screen) {
       await Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => toy.build()),
+        MaterialPageRoute<void>(builder: (_) => watch(toy.build())),
       );
     } else {
       await Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (_) => AntistressPlayerScreen(
+          builder: (_) => watch(AntistressPlayerScreen(
             toy: toy.build(),
             title: toy.name,
             emoji: toy.emoji,
-          ),
+          )),
         ),
       );
     }
@@ -70,7 +80,7 @@ class ToyUniverseScreen extends ConsumerStatefulWidget {
       final newBest = GameScores.instance.best(toy.id) > beforeBest;
       final unlocked = ref
           .read(playerProgressProvider.notifier)
-          .recordSession(newBest: newBest);
+          .recordSession(newBest: newBest, completed: completed);
       if (context.mounted && unlocked.isNotEmpty) {
         final a = achievementById(unlocked.first);
         if (a != null) {

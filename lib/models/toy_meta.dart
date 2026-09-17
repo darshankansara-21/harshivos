@@ -178,6 +178,10 @@ const List<ToyMeta> kToyCatalog = <ToyMeta>[
       implemented: true,
       gradient: [Color(0xFF06D6A0), Color(0xFF073527)],
       channels: [SensoryChannel.visual, SensoryChannel.proprioceptive]),
+  ToyMeta(id: 'trace_it', title: 'Trace It', emoji: '✏️',
+      implemented: true,
+      gradient: [Color(0xFF4CC9F0), Color(0xFF0C1526)],
+      channels: [SensoryChannel.visual, SensoryChannel.proprioceptive]),
 ];
 
 ToyMeta toyMetaById(String id) =>

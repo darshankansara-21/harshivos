@@ -42,6 +42,7 @@ class GameThumb extends StatelessWidget {
     'number_splash',
     'path_finder',
     'goal_keeper',
+    'trace_it',
   };
 
   @override
@@ -130,6 +131,8 @@ class _ThumbPainter extends CustomPainter {
         _pathFinder(canvas, w, h);
       case 'goal_keeper':
         _goalKeeper(canvas, w, h);
+      case 'trace_it':
+        _traceIt(canvas, w, h);
     }
   }
 
@@ -735,6 +738,27 @@ class _ThumbPainter extends CustomPainter {
         Paint()..color = const Color(0xFFFFD166));
     canvas.drawCircle(Offset(goal.center.dx, goal.center.dy), w * 0.045,
         Paint()..color = Colors.black87);
+  }
+
+  void _traceIt(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, <Color>[const Color(0xFF1B2A4A), const Color(0xFF0C1526)]);
+    // A dotted star trail, half traced (green) half pending (outline).
+    for (var k = 0; k < 10; k++) {
+      final r = k.isEven ? 0.30 : 0.13;
+      final a = -math.pi / 2 + k / 10 * math.pi * 2;
+      final c = Offset(w * (0.5 + math.cos(a) * r), h * (0.5 + math.sin(a) * r));
+      if (k < 5) {
+        canvas.drawCircle(c, w * 0.03, Paint()..color = const Color(0xFF06D6A0));
+      } else {
+        canvas.drawCircle(
+            c,
+            w * 0.026,
+            Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 2
+              ..color = Colors.white70);
+      }
+    }
   }
 
   @override
