@@ -1293,14 +1293,20 @@ class _BrickBreakGameState extends State<BrickBreakGame>
     with TickerProviderStateMixin, ToyTicker, _Emit {
   static const String _id = 'brick_break';
   static const int _cols = 6;
-  static const int _rows = 4;
-  final List<bool> _bricks = List<bool>.filled(_cols * _rows, true);
+  final math.Random _rnd = math.Random();
+  int _rowCount = 4;
+  List<bool> _bricks = List<bool>.filled(_cols * 4, true);
   double _paddleX = 0.5; // centre, 0..1
   double _bx = 0.5, _by = 0.6; // ball centre
   double _vx = 0.34, _vy = -0.55; // ball velocity (per second)
+  double _speedMul = 1;
   bool _started = false;
   int _score = 0;
   int _best = 0;
+  int _lives = 3;
+  int _level = 1;
+  String? _banner;
+  double _bannerT = 0;
   GameStatus _status = GameStatus.playing;
 
   static const double _paddleW = 0.24;
@@ -1314,9 +1320,60 @@ class _BrickBreakGameState extends State<BrickBreakGame>
     });
   }
 
+  void _buildBricks() {
+    _bricks = List<bool>.filled(_cols * _rowCount, true);
+  }
+
+  void _serveBall() {
+    _bx = 0.5;
+    _by = 0.6;
+    _vx = 0.34 * _speedMul * (_rnd.nextBool() ? 1 : -1);
+    _vy = -0.55 * _speedMul;
+    _started = false;
+  }
+
+  void _flash(String s) {
+    _banner = s;
+    _bannerT = 1.2;
+  }
+
+  void _loseLife() {
+    _lives--;
+    if (_lives <= 0) {
+      _status = GameStatus.over;
+      TonePlayer.instance.playCue(SoundCue.gameOver);
+      final prev = GameScores.instance.best(_id);
+      emit(_score > prev
+          ? ExperienceEvent.gameCompleted
+          : ExperienceEvent.incorrectAnswer);
+      GameScores.instance.submit(_id, _score).then((b) {
+        if (mounted) setState(() => _best = b);
+      });
+    } else {
+      TonePlayer.instance.playCue(SoundCue.crash);
+      _flash('Ball lost · $_lives left');
+      _serveBall();
+    }
+  }
+
+  void _nextLevel() {
+    _level++;
+    _speedMul = math.min(1.8, _speedMul + 0.12);
+    _rowCount = math.min(6, 3 + _level);
+    _buildBricks();
+    _flash('Level $_level!');
+    TonePlayer.instance.playCue(SoundCue.success);
+    emit(ExperienceEvent.gameCompleted);
+    _serveBall();
+  }
+
   @override
   void onTick(double dt) {
     if (_status != GameStatus.playing || !_started) return;
+    if (_bannerT > 0) {
+      _bannerT -= dt;
+      if (_bannerT <= 0) _banner = null;
+    }
     _bx += _vx * dt;
     _by += _vy * dt;
     if (_bx < _ballR) {
@@ -1364,17 +1421,13 @@ class _BrickBreakGameState extends State<BrickBreakGame>
           if (mounted && b != _best) setState(() => _best = b);
         });
         if (!_bricks.contains(true)) {
-          _status = GameStatus.won;
-          TonePlayer.instance.playCue(SoundCue.success);
-          emit(ExperienceEvent.gameCompleted);
+          _nextLevel();
         }
         break;
       }
     }
     if (_by > 1) {
-      _status = GameStatus.over;
-      TonePlayer.instance.playCue(SoundCue.gameOver);
-      emit(ExperienceEvent.incorrectAnswer);
+      _loseLife();
     }
   }
 
@@ -1387,16 +1440,16 @@ class _BrickBreakGameState extends State<BrickBreakGame>
 
   void _reset() {
     setState(() {
-      for (var i = 0; i < _bricks.length; i++) {
-        _bricks[i] = true;
-      }
+      _level = 1;
+      _lives = 3;
+      _speedMul = 1;
+      _rowCount = 4;
+      _buildBricks();
       _paddleX = 0.5;
-      _bx = 0.5;
-      _by = 0.6;
-      _vx = 0.34;
-      _vy = -0.55;
-      _started = false;
+      _serveBall();
       _score = 0;
+      _banner = null;
+      _bannerT = 0;
       _status = GameStatus.playing;
     });
   }
@@ -1409,8 +1462,9 @@ class _BrickBreakGameState extends State<BrickBreakGame>
       score: _score,
       best: _best,
       status: _status,
+      banner: _banner ?? '♥ $_lives   ·   Level $_level',
       overEmoji: '🧱',
-      overText: 'Ball dropped!',
+      overText: 'Out of balls!',
       accent: const Color(0xFFFF6B6B),
       onPlayAgain: _reset,
       child: LayoutBuilder(

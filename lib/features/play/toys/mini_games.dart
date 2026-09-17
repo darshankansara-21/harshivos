@@ -1525,10 +1525,11 @@ class RacingGame extends StatefulWidget {
 }
 
 class _Racer {
-  _Racer(this.lane, this.y, this.coin, this.emoji);
+  _Racer(this.lane, this.y, this.coin, this.boost, this.emoji);
   int lane;
   double y;
   final bool coin;
+  final bool boost;
   final String emoji;
 }
 
@@ -1544,6 +1545,7 @@ class _RacingGameState extends State<RacingGame>
   double _t = 0;
   double _aliveAcc = 0;
   double _speed = 0.55;
+  double _boostT = 0;
   int _score = 0;
   int _best = 0;
   double _bannerT = 0;
@@ -1566,31 +1568,48 @@ class _RacingGameState extends State<RacingGame>
       _bannerT -= dt;
       if (_bannerT <= 0) _banner = null;
     }
+    if (_boostT > 0) _boostT -= dt;
     _speed = 0.55 + _score * 0.003;
     _aliveAcc += dt;
     if (_aliveAcc >= 0.6) {
       _aliveAcc -= 0.6;
-      _score++;
+      _score += _boostT > 0 ? 2 : 1;
     }
     _spawnIn -= dt;
     if (_spawnIn <= 0) {
       _spawnIn = math.max(0.5, 1.0 - _score * 0.004) *
           (0.7 + _rnd.nextDouble() * 0.6);
       final lane = _rnd.nextInt(3);
-      final coin = _rnd.nextDouble() < 0.3;
-      _cars.add(_Racer(lane, -0.1, coin,
-          coin ? '🪙' : _traffic[_rnd.nextInt(_traffic.length)]));
+      final roll = _rnd.nextDouble();
+      final boost = roll < 0.08;
+      final coin = !boost && roll < 0.38;
+      _cars.add(_Racer(lane, -0.1, coin, boost,
+          boost ? '⚡' : (coin ? '🪙' : _traffic[_rnd.nextInt(_traffic.length)])));
     }
     for (final c in _cars) {
       c.y += _speed * dt;
     }
     _cars.removeWhere((c) {
       if (c.y >= 0.78 && c.y <= 0.92 && c.lane == _lane) {
+        if (c.boost) {
+          _boostT = 4.0;
+          TonePlayer.instance.playCue(SoundCue.success);
+          emit(ExperienceEvent.bubblePopped);
+          _flash('⚡ Boost!');
+          return true;
+        }
         if (c.coin) {
           _score += 5;
           TonePlayer.instance.playCue(SoundCue.coin);
           emit(ExperienceEvent.bubblePopped);
           _flash('+5 coin!');
+          return true;
+        }
+        if (_boostT > 0) {
+          // Boosting smashes through traffic instead of crashing.
+          _score += 2;
+          TonePlayer.instance.playCue(SoundCue.crash);
+          _flash('Smash! +2');
           return true;
         }
         _crash();
@@ -1629,6 +1648,7 @@ class _RacingGameState extends State<RacingGame>
       _lane = 1;
       _score = 0;
       _speed = 0.55;
+      _boostT = 0;
       _spawnIn = 0.9;
       _aliveAcc = 0;
       _banner = null;
@@ -1645,7 +1665,7 @@ class _RacingGameState extends State<RacingGame>
       score: _score,
       best: _best,
       status: _status,
-      banner: _banner,
+      banner: _banner ?? (_boostT > 0 ? '⚡ BOOST' : null),
       overEmoji: '🏁',
       overText: 'Crash!',
       accent: const Color(0xFFFF6B6B),
