@@ -5,7 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/widgets/harshiv_scaffold.dart';
 import '../../models/activity_event.dart';
 import '../../services/audio/tone_player.dart';
+import '../../state/player_progress.dart';
 import '../../state/providers.dart';
+import '../play/toys/mini_games.dart' show GameScores;
 import '../adventures/adventure_hub_screen.dart';
 import '../antistress/antistress_player_screen.dart';
 import '../calm/calm_me_screen.dart';
@@ -36,6 +38,8 @@ class ToyUniverseScreen extends ConsumerStatefulWidget {
       BuildContext context, WidgetRef ref, UniverseToy toy) async {
     HapticFeedback.selectionClick();
     ref.read(toyUsageProvider.notifier).record(toy.id);
+    await GameScores.instance.ensureLoaded();
+    final beforeBest = GameScores.instance.best(toy.id);
     final started = DateTime.now();
     if (toy.launch == ToyLaunch.screen) {
       await Navigator.of(context).push(
@@ -61,6 +65,26 @@ class ToyUniverseScreen extends ConsumerStatefulWidget {
           seconds: played.inSeconds,
           label: toy.name,
         );
+    // Award progression for a real session (>3s) and surface any new unlocks.
+    if (played.inSeconds >= 3) {
+      final newBest = GameScores.instance.best(toy.id) > beforeBest;
+      final unlocked = ref
+          .read(playerProgressProvider.notifier)
+          .recordSession(newBest: newBest);
+      if (context.mounted && unlocked.isNotEmpty) {
+        final a = achievementById(unlocked.first);
+        if (a != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: const Color(0xFF2A2036),
+              content: Text('${a.emoji}  Unlocked: ${a.title}',
+                  style: const TextStyle(fontWeight: FontWeight.w800)),
+            ),
+          );
+        }
+      }
+    }
   }
 
   @override
@@ -279,6 +303,9 @@ class _ToyUniverseScreenState extends ConsumerState<ToyUniverseScreen> {
           ),
           SliverToBoxAdapter(
             child: _HariGreeting(name: name),
+          ),
+          const SliverToBoxAdapter(
+            child: _ProgressCard(),
           ),
           SliverToBoxAdapter(
             child: _CoreDestinations(onPlay: _scrollToToys),
@@ -1136,6 +1163,215 @@ class _StaticPreview extends StatelessWidget {
         ),
       ),
       child: Text(toy.emoji, style: const TextStyle(fontSize: 72)),
+    );
+  }
+}
+
+/// The home progression banner — the child's level, an XP bar toward the next
+/// level, and their record count. Tapping opens the achievements sheet.
+class _ProgressCard extends ConsumerWidget {
+  const _ProgressCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final p = ref.watch(playerProgressProvider);
+    final unlocked = p.achievements.length;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 2),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () => _showProgressSheet(context, p),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: const LinearGradient(
+                colors: <Color>[Color(0x334CC9F0), Color(0x339B5DE5)],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+              border: Border.all(color: Colors.white.withOpacity(0.10)),
+            ),
+            child: Row(
+              children: <Widget>[
+                Container(
+                  width: 44,
+                  height: 44,
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: <Color>[Color(0xFF4CC9F0), Color(0xFF9B5DE5)],
+                    ),
+                  ),
+                  child: Text('${p.level}',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Row(
+                        children: <Widget>[
+                          Text('Level ${p.level}',
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w900)),
+                          const Spacer(),
+                          Text('⭐ ${p.records}   🏅 $unlocked',
+                              style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w800)),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: LinearProgressIndicator(
+                          value: p.levelProgress,
+                          minHeight: 8,
+                          backgroundColor: Colors.white24,
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                              Color(0xFFFFD166)),
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text('${p.xpIntoLevel} / ${p.xpForLevel} XP to level ${p.level + 1}',
+                          style: TextStyle(
+                              color: Colors.white.withOpacity(0.6),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right_rounded, color: Colors.white54),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+void _showProgressSheet(BuildContext context, PlayerProgress p) {
+  showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: const Color(0xFF16121F),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (context) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Text('Level ${p.level}',
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900)),
+                const Spacer(),
+                Text('⭐ ${p.records} records   ·   🎮 ${p.plays} plays',
+                    style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700)),
+              ],
+            ),
+            const SizedBox(height: 14),
+            const Text('Achievements',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800)),
+            const SizedBox(height: 10),
+            Flexible(
+              child: GridView.count(
+                shrinkWrap: true,
+                crossAxisCount: 2,
+                childAspectRatio: 2.9,
+                mainAxisSpacing: 10,
+                crossAxisSpacing: 10,
+                children: <Widget>[
+                  for (final a in kAchievements)
+                    _AchievementTile(
+                        achievement: a,
+                        unlocked: p.achievements.contains(a.id)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class _AchievementTile extends StatelessWidget {
+  const _AchievementTile({required this.achievement, required this.unlocked});
+  final Achievement achievement;
+  final bool unlocked;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        color: unlocked
+            ? const Color(0xFF06D6A0).withOpacity(0.18)
+            : Colors.white.withOpacity(0.05),
+        border: Border.all(
+            color: unlocked ? const Color(0xFF06D6A0) : Colors.white12),
+      ),
+      child: Row(
+        children: <Widget>[
+          Opacity(
+            opacity: unlocked ? 1 : 0.35,
+            child: Text(achievement.emoji,
+                style: const TextStyle(fontSize: 26)),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(achievement.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: unlocked ? Colors.white : Colors.white54,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800)),
+                Text(unlocked ? 'Unlocked' : achievement.hint,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: unlocked
+                            ? const Color(0xFF06D6A0)
+                            : Colors.white38,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
