@@ -12,6 +12,7 @@ void main() {
     'brick_break', 'space_dodge', 'memory_flip',
     'ball_sort', 'tap_order', 'piano_tiles', 'block_blast', 'bubble_shooter',
     'color_quest', 'shape_scout', 'number_splash', 'path_finder', 'goal_keeper',
+    'trace_it', 'quick_tap',
   ];
 
   test('every registered game is playable, reachable and implemented', () {

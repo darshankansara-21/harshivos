@@ -109,6 +109,16 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('Quick Tap builds and reacts to taps', (tester) async {
+    await _pump(tester, const QuickTapGame());
+    expect(find.textContaining('Quick Tap'), findsOneWidget);
+    await tester.tapAt(const Offset(400, 900));
+    await tester.pump(const Duration(seconds: 4));
+    await tester.tapAt(const Offset(400, 900));
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Ball Sort builds and accepts taps', (tester) async {
     await _pump(tester, const BallSortGame());
     expect(find.textContaining('Ball Sort'), findsOneWidget);

@@ -3082,6 +3082,161 @@ class _BubblePainter extends CustomPainter {
   bool shouldRepaint(_BubblePainter oldDelegate) => true;
 }
 
+// ===========================================================================
+// Quick Tap — a pure reaction game. Wait on red, and the instant the screen
+// flashes green, tap as fast as you can. Tapping too early costs the round.
+// Faster reactions score more; five rounds make a run.
+// ===========================================================================
+class QuickTapGame extends StatefulWidget {
+  const QuickTapGame({super.key});
+  @override
+  State<QuickTapGame> createState() => _QuickTapGameState();
+}
+
+class _QuickTapGameState extends State<QuickTapGame>
+    with TickerProviderStateMixin, ToyTicker, _Emit {
+  static const String _id = 'quick_tap';
+  static const int _rounds = 5;
+  final math.Random _rnd = math.Random();
+  int _phase = 0; // 0 = waiting (red), 1 = go (green), 2 = too soon
+  double _waitT = 0;
+  double _reactT = 0;
+  int _round = 0;
+  int _score = 0;
+  int _best = 0;
+  int _lastMs = 0;
+  GameStatus _status = GameStatus.playing;
+
+  @override
+  void initState() {
+    super.initState();
+    _startRound();
+    GameScores.instance.ensureLoaded().then((_) {
+      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+    });
+  }
+
+  void _startRound() {
+    _phase = 0;
+    _waitT = 0.9 + _rnd.nextDouble() * 2.2;
+    _reactT = 0;
+  }
+
+  @override
+  void onTick(double dt) {
+    if (_status != GameStatus.playing) return;
+    if (_phase == 0) {
+      _waitT -= dt;
+      if (_waitT <= 0) _phase = 1;
+    } else if (_phase == 1) {
+      _reactT += dt;
+    }
+  }
+
+  void _tap() {
+    if (_status != GameStatus.playing) return;
+    if (_phase == 2) {
+      setState(_startRound);
+      return;
+    }
+    if (_phase == 0) {
+      _phase = 2; // tapped before green
+      TonePlayer.instance.playCue(SoundCue.gentleRetry);
+      setState(() {});
+      return;
+    }
+    // Green — score by reaction speed.
+    _lastMs = (_reactT * 1000).round();
+    final pts = math.max(5, 120 - _lastMs ~/ 10);
+    _score += pts;
+    _round++;
+    TonePlayer.instance.playCue(SoundCue.correct);
+    emit(ExperienceEvent.bubblePopped);
+    if (_round >= _rounds) {
+      _status = GameStatus.won;
+      TonePlayer.instance.playCue(SoundCue.success);
+      emit(ExperienceEvent.gameCompleted);
+      GameScores.instance.submit(_id, _score).then((b) {
+        if (mounted) setState(() => _best = b);
+      });
+    } else {
+      GameScores.instance.submit(_id, _score).then((b) {
+        if (mounted && b != _best) _best = b;
+      });
+      _startRound();
+    }
+    setState(() {});
+  }
+
+  void _reset() {
+    setState(() {
+      _round = 0;
+      _score = 0;
+      _lastMs = 0;
+      _status = GameStatus.playing;
+      _startRound();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    drain(context);
+    final Color bg = _phase == 1
+        ? const Color(0xFF06D6A0)
+        : _phase == 2
+            ? const Color(0xFFF4A259)
+            : const Color(0xFFC0392B);
+    final String big = _phase == 1
+        ? 'TAP!'
+        : _phase == 2
+            ? 'Too soon!'
+            : 'Wait…';
+    final String sub = _phase == 2
+        ? 'Tap to try this round again'
+        : _phase == 1
+            ? 'Go go go!'
+            : 'Tap the moment it turns green';
+    return _Shell(
+      title: '⚡ Quick Tap',
+      score: _score,
+      best: _best,
+      target: _rounds,
+      status: _status,
+      banner: _lastMs > 0 ? 'Round $_round · ${_lastMs}ms' : 'Round ${_round + 1}',
+      overEmoji: '⚡',
+      overText: 'Fast fingers!',
+      accent: Colors.white,
+      onPlayAgain: _reset,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: (_) => _tap(),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 90),
+          color: bg,
+          alignment: Alignment.center,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Text(big,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 54,
+                      fontWeight: FontWeight.w900)),
+              const SizedBox(height: 10),
+              Text(sub,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
 
 
 

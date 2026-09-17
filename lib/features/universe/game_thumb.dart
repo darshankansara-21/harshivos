@@ -43,6 +43,7 @@ class GameThumb extends StatelessWidget {
     'path_finder',
     'goal_keeper',
     'trace_it',
+    'quick_tap',
   };
 
   @override
@@ -133,6 +134,8 @@ class _ThumbPainter extends CustomPainter {
         _goalKeeper(canvas, w, h);
       case 'trace_it':
         _traceIt(canvas, w, h);
+      case 'quick_tap':
+        _quickTap(canvas, w, h);
     }
   }
 
@@ -759,6 +762,23 @@ class _ThumbPainter extends CustomPainter {
               ..color = Colors.white70);
       }
     }
+  }
+
+  void _quickTap(Canvas canvas, double w, double h) {
+    // Split red/green field with a lightning bolt — wait, then tap.
+    canvas.drawRect(Rect.fromLTWH(0, 0, w, h * 0.5),
+        Paint()..color = const Color(0xFFC0392B));
+    canvas.drawRect(Rect.fromLTWH(0, h * 0.5, w, h * 0.5),
+        Paint()..color = const Color(0xFF06D6A0));
+    final bolt = Path()
+      ..moveTo(w * 0.54, h * 0.2)
+      ..lineTo(w * 0.4, h * 0.54)
+      ..lineTo(w * 0.5, h * 0.54)
+      ..lineTo(w * 0.44, h * 0.82)
+      ..lineTo(w * 0.62, h * 0.44)
+      ..lineTo(w * 0.5, h * 0.44)
+      ..close();
+    canvas.drawPath(bolt, Paint()..color = Colors.white);
   }
 
   @override
