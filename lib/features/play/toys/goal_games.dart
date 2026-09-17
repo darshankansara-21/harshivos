@@ -561,7 +561,9 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
   int _score = 0;
   int _best = 0;
   int _lives = 3;
+  int _streak = 0;
   double _timeLeft = 1.8;
+  double _shotDuration = 1.8;
   String? _message;
   GameStatus _status = GameStatus.playing;
 
@@ -579,6 +581,7 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
     _timeLeft -= dt;
     if (_timeLeft <= 0) {
       _lives--;
+      _streak = 0;
       _message = 'Missed! Watch the glowing goal';
       if (_lives <= 0) {
         _finish(GameStatus.over);
@@ -605,7 +608,8 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
     var next = _random.nextInt(3);
     if (next == _activeLane) next = (next + 1) % 3;
     _activeLane = next;
-    _timeLeft = math.max(0.75, 1.8 - _score * 0.07);
+    _shotDuration = math.max(0.75, 1.8 - _score * 0.07);
+    _timeLeft = _shotDuration;
   }
 
   void _block(int lane) {
@@ -617,7 +621,8 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
     }
     setState(() {
       _score++;
-      _message = 'Saved!';
+      _streak++;
+      _message = _streak >= 3 ? 'Streak x$_streak! \ud83e\udde4' : 'Saved!';
       if (_score >= _target) {
         _finish(GameStatus.won);
       } else {
@@ -634,7 +639,9 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
         _activeLane = 1;
         _score = 0;
         _lives = 3;
+        _streak = 0;
         _timeLeft = 1.8;
+        _shotDuration = 1.8;
         _message = null;
         _status = GameStatus.playing;
       });
@@ -662,41 +669,62 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(18, 190, 18, 54),
-            child: Row(
+            child: Column(
               children: <Widget>[
-                for (var lane = 0; lane < 3; lane++)
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 5),
-                      child: Semantics(
-                        button: true,
-                        label: 'Goal ${lane + 1}',
-                        child: InkWell(
-                          key: ValueKey('goal-lane-$lane'),
-                          onTap: () => _block(lane),
-                          borderRadius: BorderRadius.circular(18),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 140),
-                            decoration: BoxDecoration(
-                              color: lane == _activeLane
-                                  ? const Color(0xFFFFD166)
-                                  : Colors.white.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(18),
-                              border: Border.all(
-                                color: lane == _activeLane
-                                    ? Colors.white
-                                    : Colors.white24,
-                                width: lane == _activeLane ? 4 : 2,
-                              ),
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(lane == _activeLane ? '⚽' : '🥅',
-                                style: const TextStyle(fontSize: 40)),
-                          ),
-                        ),
-                      ),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: LinearProgressIndicator(
+                    value: (_timeLeft / _shotDuration).clamp(0.0, 1.0),
+                    minHeight: 10,
+                    backgroundColor: Colors.white24,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      _timeLeft / _shotDuration < 0.35
+                          ? const Color(0xFFEF476F)
+                          : const Color(0xFFFFD166),
                     ),
                   ),
+                ),
+                const SizedBox(height: 18),
+                Expanded(
+                  child: Row(
+                    children: <Widget>[
+                      for (var lane = 0; lane < 3; lane++)
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 5),
+                            child: Semantics(
+                              button: true,
+                              label: 'Goal ${lane + 1}',
+                              child: InkWell(
+                                key: ValueKey('goal-lane-$lane'),
+                                onTap: () => _block(lane),
+                                borderRadius: BorderRadius.circular(18),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 140),
+                                  decoration: BoxDecoration(
+                                    color: lane == _activeLane
+                                        ? const Color(0xFFFFD166)
+                                        : Colors.white.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(18),
+                                    border: Border.all(
+                                      color: lane == _activeLane
+                                          ? Colors.white
+                                          : Colors.white24,
+                                      width: lane == _activeLane ? 4 : 2,
+                                    ),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                      lane == _activeLane ? '⚽' : '🥅',
+                                      style: const TextStyle(fontSize: 40)),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
