@@ -43,3 +43,4 @@ evidence/
 test_companion.log
 *.log
 validation/
+_lltest/
