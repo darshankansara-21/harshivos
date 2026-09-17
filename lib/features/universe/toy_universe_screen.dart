@@ -304,6 +304,10 @@ class _ToyUniverseScreenState extends ConsumerState<ToyUniverseScreen> {
           SliverToBoxAdapter(
             child: _HariGreeting(name: name),
           ),
+          if (recents.isNotEmpty)
+            SliverToBoxAdapter(
+              child: _ContinueCard(toy: recents.first),
+            ),
           const SliverToBoxAdapter(
             child: _ProgressCard(),
           ),
@@ -1163,6 +1167,80 @@ class _StaticPreview extends StatelessWidget {
         ),
       ),
       child: Text(toy.emoji, style: const TextStyle(fontSize: 72)),
+    );
+  }
+}
+
+/// A one-tap "Continue" hero for the most recently played toy, so the child
+/// (or parent) can jump straight back into what they were enjoying.
+class _ContinueCard extends ConsumerWidget {
+  const _ContinueCard({required this.toy});
+  final UniverseToy toy;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 2),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () => ToyUniverseScreen.open(context, ref, toy),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: LinearGradient(
+                colors: <Color>[
+                  toy.color.withOpacity(0.55),
+                  toy.color.withOpacity(0.22),
+                ],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+              border: Border.all(color: Colors.white.withOpacity(0.12)),
+            ),
+            child: Row(
+              children: <Widget>[
+                Container(
+                  width: 52,
+                  height: 52,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    color: Colors.black.withOpacity(0.25),
+                  ),
+                  child: Text(toy.emoji, style: const TextStyle(fontSize: 30)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      const Text('Continue playing',
+                          style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 2),
+                      Text(toy.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.play_circle_fill_rounded,
+                    color: Colors.white, size: 40),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
