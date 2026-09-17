@@ -1297,7 +1297,7 @@ class _SnakeGameState extends State<SnakeGame>
               Positioned(
                 left: 14,
                 right: 14,
-                top: 126,
+                bottom: 150,
                 child: IgnorePointer(
                   child: Center(
                     child: Container(
