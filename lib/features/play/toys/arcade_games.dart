@@ -987,10 +987,12 @@ class _EchoGameState extends State<EchoGame>
   void onTick(double dt) {
     if (_status != GameStatus.playing || !_showing) return;
     _showT += dt;
-    // Each step: 0.35s on, 0.2s off.
-    final step = _showT % 0.55;
+    // Longer sequences flash faster, so recall gets harder as you go.
+    final onT = math.max(0.16, 0.35 - _seq.length * 0.015);
+    final stepLen = onT + 0.2;
+    final step = _showT % stepLen;
     if (_showAt < _seq.length) {
-      if (step < 0.35) {
+      if (step < onT) {
         if (_flash != _seq[_showAt]) {
           _flash = _seq[_showAt];
           TonePlayer.instance.playNote(_seq[_showAt] + 2, seconds: 0.2);

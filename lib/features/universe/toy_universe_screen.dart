@@ -286,7 +286,7 @@ class _ToyUniverseScreenState extends ConsumerState<ToyUniverseScreen> {
           if (featured.isNotEmpty)
             _RailSliver(title: 'Featured', emoji: '⭐', toys: featured),
           if (arcade.isNotEmpty)
-            _RailSliver(title: 'Arcade', emoji: '🎮', toys: arcade),
+            _RailSliver(title: 'Arcade', emoji: '🕹️', toys: arcade),
           if (racing.isNotEmpty)
             _RailSliver(title: 'Racing & Skill', emoji: '🏎️', toys: racing),
           if (stress.isNotEmpty)
