@@ -959,6 +959,7 @@ class _SnakeGameState extends State<SnakeGame>
   double _comboT = 0;
   double _bannerT = 0;
   String? _banner;
+  String _overReason = 'Stay inside the glowing edge.';
   Size _view = const Size(360, 640);
   GameStatus _status = GameStatus.playing;
 
@@ -995,15 +996,25 @@ class _SnakeGameState extends State<SnakeGame>
     }
     _ai.clear();
     for (var i = 0; i < 5; i++) {
-      final a = _rnd.nextDouble() * math.pi * 2;
-      final d = _arenaR * (0.25 + _rnd.nextDouble() * 0.5);
-      final w = _AiWorm(Offset(math.cos(a) * d, math.sin(a) * d),
-          _rnd.nextDouble() * math.pi * 2, _rnd.nextDouble() * 360,
-          16);
-      w.target = w.angle;
-      w.path.add(w.head);
-      _ai.add(w);
+      _ai.add(_spawnAiWorm());
     }
+  }
+
+  _AiWorm _spawnAiWorm() {
+    // Spawn away from the player so a worm never appears on top of the head.
+    Offset pos;
+    var tries = 0;
+    do {
+      final a = _rnd.nextDouble() * math.pi * 2;
+      final d = _arenaR * (0.3 + _rnd.nextDouble() * 0.5);
+      pos = Offset(math.cos(a) * d, math.sin(a) * d);
+      tries++;
+    } while ((pos - _head).distance < 240 && tries < 8);
+    final w = _AiWorm(pos, _rnd.nextDouble() * math.pi * 2,
+        _rnd.nextDouble() * 360, 14 + _rnd.nextInt(10));
+    w.target = w.angle;
+    w.path.add(w.head);
+    return w;
   }
 
   _Orb _randomOrb() {
@@ -1097,8 +1108,49 @@ class _SnakeGameState extends State<SnakeGame>
 
     _updateAi(dt);
 
+    // Slither rules: your head hitting another snake's body ends the run.
+    for (final w in _ai) {
+      for (var i = 4; i < w.path.length; i += 2) {
+        if ((w.path[i] - _head).distance < 10) {
+          _overReason = 'You ran into another snake!';
+          _gameOver();
+          return;
+        }
+      }
+    }
+    // A rival that runs into YOUR body bursts into a shower of orbs to eat.
+    for (var wi = _ai.length - 1; wi >= 0; wi--) {
+      final w = _ai[wi];
+      var hit = false;
+      for (var i = 10; i < _path.length; i += 2) {
+        if ((_path[i] - w.head).distance < 10) {
+          hit = true;
+          break;
+        }
+      }
+      if (hit) {
+        for (var i = 0; i < w.path.length; i += 6) {
+          _orbs.add(_Orb(w.path[i], const Color(0xFF06D6A0), 4.5));
+        }
+        _ai.removeAt(wi);
+        _ai.add(_spawnAiWorm());
+        _score += 3;
+        _flash('Snake down! +3');
+        TonePlayer.instance.playCue(SoundCue.success);
+        emit(ExperienceEvent.gameCompleted);
+        GameScores.instance.submit(_id, _score).then((b) {
+          if (mounted && b != _best) setState(() => _best = b);
+        });
+        if (_score >= _targetScore) {
+          _finish(GameStatus.won);
+          return;
+        }
+      }
+    }
+
     // Glowing edge ends the run.
     if (_head.distance > _arenaR) {
+      _overReason = 'You touched the glowing edge!';
       _gameOver();
     }
   }
@@ -1196,7 +1248,7 @@ class _SnakeGameState extends State<SnakeGame>
       status: _status,
       banner: _banner,
       overEmoji: '🐍',
-      overText: 'So close! Stay inside the glowing edge.',
+      overText: _overReason,
       accent: const Color(0xFF06D6A0),
       onPlayAgain: _reset,
       child: LayoutBuilder(
@@ -1256,7 +1308,7 @@ class _SnakeGameState extends State<SnakeGame>
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: const Text(
-                        'Eat orbs to grow · Gold orbs = big bonus · Drag to steer, avoid the edge',
+                        'Eat orbs to grow · Gold = bonus · Cut off rival snakes · Don\'t hit them or the edge',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.white,

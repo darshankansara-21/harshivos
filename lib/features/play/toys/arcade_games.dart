@@ -1490,8 +1490,9 @@ class SpaceDodgeGame extends StatefulWidget {
 }
 
 class _Meteor {
-  _Meteor(this.x, this.y, this.r, this.vy);
+  _Meteor(this.x, this.y, this.r, this.vy, {this.kind = 0});
   double x, y, r, vy;
+  final int kind; // 0 = rock (deadly), 1 = gem (+bonus), 2 = shield pickup
 }
 
 class _SpaceDodgeGameState extends State<SpaceDodgeGame>
@@ -1505,7 +1506,11 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
   double _spawnIn = 0.6;
   int _score = 0;
   int _best = 0;
+  int _bonus = 0;
   int _lastMilestone = 0;
+  bool _shield = false;
+  String? _banner;
+  double _bannerT = 0;
   GameStatus _status = GameStatus.playing;
 
   static const double _shipR = 0.045;
@@ -1525,7 +1530,11 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
   void onTick(double dt) {
     if (_status != GameStatus.playing) return;
     _elapsed += dt;
-    _score = _elapsed.floor() * 5;
+    if (_bannerT > 0) {
+      _bannerT -= dt;
+      if (_bannerT <= 0) _banner = null;
+    }
+    _score = _elapsed.floor() * 5 + _bonus;
     if (_score ~/ 50 > _lastMilestone) {
       _lastMilestone = _score ~/ 50;
       TonePlayer.instance.playCue(SoundCue.coin);
@@ -1535,14 +1544,38 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
     _spawnIn -= dt;
     if (_spawnIn <= 0) {
       _spawnIn = math.max(0.28, 0.7 - _elapsed * 0.015);
-      final r = 0.03 + _rnd.nextDouble() * 0.05;
-      _meteors.add(_Meteor(_rnd.nextDouble(), -0.1, r, speed));
+      final roll = _rnd.nextDouble();
+      final kind = roll < 0.14 ? 1 : (roll < 0.19 ? 2 : 0);
+      final r = kind == 0 ? 0.03 + _rnd.nextDouble() * 0.05 : 0.032;
+      _meteors.add(_Meteor(_rnd.nextDouble(), -0.1, r, speed, kind: kind));
     }
     for (final m in _meteors) {
       m.y += m.vy * dt;
       final dx = (m.x - _shipX);
       final dy = (m.y - 0.85);
       if (dx * dx + dy * dy < (m.r + _shipR) * (m.r + _shipR)) {
+        if (m.kind == 1) {
+          _bonus += 15;
+          m.y = 2; // consumed
+          TonePlayer.instance.playCue(SoundCue.coin);
+          _flash('Gem +15');
+          emit(ExperienceEvent.bubblePopped);
+          continue;
+        }
+        if (m.kind == 2) {
+          _shield = true;
+          m.y = 2;
+          TonePlayer.instance.playCue(SoundCue.success);
+          _flash('Shield up!');
+          continue;
+        }
+        if (_shield) {
+          _shield = false;
+          m.y = 2;
+          TonePlayer.instance.playCue(SoundCue.metal);
+          _flash('Shield saved you!');
+          continue;
+        }
         _status = GameStatus.over;
         TonePlayer.instance.playCue(SoundCue.crash);
         final prev = GameScores.instance.best(_id);
@@ -1558,6 +1591,11 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
     _meteors.removeWhere((m) => m.y > 1.2);
   }
 
+  void _flash(String s) {
+    _banner = s;
+    _bannerT = 1.0;
+  }
+
   void _steer(double localX, double width) {
     _shipX = (localX / width).clamp(_shipR, 1 - _shipR);
   }
@@ -1569,7 +1607,11 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
       _elapsed = 0;
       _spawnIn = 0.6;
       _score = 0;
+      _bonus = 0;
       _lastMilestone = 0;
+      _shield = false;
+      _banner = null;
+      _bannerT = 0;
       _status = GameStatus.playing;
     });
   }
@@ -1582,6 +1624,7 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
       score: _score,
       best: _best,
       status: _status,
+      banner: _shield ? (_banner ?? '🛡 Shielded') : _banner,
       overEmoji: '💥',
       overText: 'Boom!',
       accent: const Color(0xFF9B5DE5),
@@ -1593,7 +1636,7 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
             onPanUpdate: (d) => _steer(d.localPosition.dx, constraints.maxWidth),
             onPanDown: (d) => _steer(d.localPosition.dx, constraints.maxWidth),
             child: CustomPaint(
-              painter: _SpacePainter(_meteors, _stars, _shipX, _shipR),
+              painter: _SpacePainter(_meteors, _stars, _shipX, _shipR, _shield),
               size: Size.infinite,
             ),
           );
@@ -1604,11 +1647,12 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
 }
 
 class _SpacePainter extends CustomPainter {
-  _SpacePainter(this.meteors, this.stars, this.shipX, this.shipR);
+  _SpacePainter(this.meteors, this.stars, this.shipX, this.shipR, this.shield);
   final List<_Meteor> meteors;
   final List<Offset> stars;
   final double shipX;
   final double shipR;
+  final bool shield;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1628,9 +1672,39 @@ class _SpacePainter extends CustomPainter {
     }
     final rock = Paint()..color = const Color(0xFF8D6E63);
     for (final m in meteors) {
-      canvas.drawCircle(Offset(m.x * w, m.y * h), m.r * w, rock);
-      canvas.drawCircle(Offset(m.x * w, m.y * h), m.r * w,
-          Paint()..color = const Color(0xFF5D4037));
+      final c = Offset(m.x * w, m.y * h);
+      final rr = m.r * w;
+      if (m.kind == 1) {
+        // Gem bonus — a bright diamond.
+        final p = Path()
+          ..moveTo(c.dx, c.dy - rr)
+          ..lineTo(c.dx + rr, c.dy)
+          ..lineTo(c.dx, c.dy + rr)
+          ..lineTo(c.dx - rr, c.dy)
+          ..close();
+        canvas.drawPath(p, Paint()..color = const Color(0xFF06D6A0));
+        canvas.drawPath(
+            p,
+            Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 2
+              ..color = Colors.white);
+      } else if (m.kind == 2) {
+        // Shield pickup — a glowing ring.
+        canvas.drawCircle(c, rr,
+            Paint()..color = const Color(0xFF4CC9F0).withOpacity(0.5));
+        canvas.drawCircle(
+            c,
+            rr,
+            Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 3
+              ..color = const Color(0xFF4CC9F0));
+      } else {
+        canvas.drawCircle(c, rr, rock);
+        canvas.drawCircle(c, rr * 0.6,
+            Paint()..color = const Color(0xFF5D4037));
+      }
     }
     // Rocket.
     final sx = shipX * w;
@@ -1643,6 +1717,15 @@ class _SpacePainter extends CustomPainter {
     canvas.drawPath(path, Paint()..color = const Color(0xFF4CC9F0));
     canvas.drawCircle(Offset(sx, sy), shipR * w * 0.35,
         Paint()..color = Colors.white);
+    if (shield) {
+      canvas.drawCircle(
+          Offset(sx, sy),
+          shipR * w * 1.7,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 3
+            ..color = const Color(0xFF4CC9F0).withOpacity(0.9));
+    }
   }
 
   @override
@@ -1661,9 +1744,10 @@ class MemoryFlipGame extends StatefulWidget {
 
 class _MemoryFlipGameState extends State<MemoryFlipGame> with _Emit {
   static const String _id = 'memory_flip';
-  static const List<String> _faces = <String>[
-    '🍎', '⭐', '🐢', '🎈', '🌸', '🚗'
+  static const List<String> _facePool = <String>[
+    '🍎', '⭐', '🐢', '🎈', '🌸', '🚗', '🐬', '🎵', '🦋', '🍩'
   ];
+  static const int _maxLevel = 5;
   late List<String> _cards;
   late List<bool> _matched;
   int _first = -1;
@@ -1671,8 +1755,14 @@ class _MemoryFlipGameState extends State<MemoryFlipGame> with _Emit {
   bool _locked = false;
   int _moves = 0;
   int _pairs = 0;
-  int _best = 0; // fewest moves (lower is better) stored as 999 - moves
+  int _level = 1;
+  int _streak = 0;
+  int _score = 0;
+  int _best = 0;
+  String? _banner;
   GameStatus _status = GameStatus.playing;
+
+  int get _pairsThisLevel => (5 + _level).clamp(4, _facePool.length);
 
   @override
   void initState() {
@@ -1684,7 +1774,8 @@ class _MemoryFlipGameState extends State<MemoryFlipGame> with _Emit {
   }
 
   void _deal() {
-    _cards = <String>[..._faces, ..._faces];
+    final faces = _facePool.take(_pairsThisLevel).toList();
+    _cards = <String>[...faces, ...faces];
     _cards.shuffle();
     _matched = List<bool>.filled(_cards.length, false);
     _first = -1;
@@ -1693,6 +1784,13 @@ class _MemoryFlipGameState extends State<MemoryFlipGame> with _Emit {
     _moves = 0;
     _pairs = 0;
     _status = GameStatus.playing;
+  }
+
+  void _flash(String s) {
+    _banner = s;
+    Future<void>.delayed(const Duration(milliseconds: 1100), () {
+      if (mounted) setState(() => _banner = null);
+    });
   }
 
   void _tap(int i) {
@@ -1710,21 +1808,37 @@ class _MemoryFlipGameState extends State<MemoryFlipGame> with _Emit {
           _matched[_first] = true;
           _matched[_second] = true;
           _pairs++;
+          _streak++;
+          _score += 10 + (_streak >= 3 ? 5 : 0);
           TonePlayer.instance.playCue(SoundCue.learnGood);
+          if (_streak >= 3) _flash('Streak x$_streak!');
           _first = -1;
           _second = -1;
-          if (_pairs >= _faces.length) {
-            _status = GameStatus.won;
-            TonePlayer.instance.playCue(SoundCue.success);
-            emit(ExperienceEvent.gameCompleted);
-            final score = math.max(0, 999 - _moves);
-            GameScores.instance.submit(_id, score).then((b) {
-              if (mounted) setState(() => _best = b);
-            });
+          if (_pairs >= _pairsThisLevel) {
+            if (_level >= _maxLevel) {
+              _status = GameStatus.won;
+              TonePlayer.instance.playCue(SoundCue.success);
+              emit(ExperienceEvent.gameCompleted);
+              GameScores.instance.submit(_id, _score).then((b) {
+                if (mounted) setState(() => _best = b);
+              });
+            } else {
+              _level++;
+              _score += 20;
+              _flash('Level $_level!');
+              TonePlayer.instance.playCue(SoundCue.milestone);
+              emit(ExperienceEvent.gameCompleted);
+              _locked = true;
+              Future<void>.delayed(const Duration(milliseconds: 650), () {
+                if (!mounted) return;
+                setState(_deal);
+              });
+            }
           } else {
             emit(ExperienceEvent.bubblePopped);
           }
         } else {
+          _streak = 0;
           _locked = true;
           Future<void>.delayed(const Duration(milliseconds: 700), () {
             if (!mounted) return;
@@ -1739,21 +1853,27 @@ class _MemoryFlipGameState extends State<MemoryFlipGame> with _Emit {
     });
   }
 
-  void _reset() => setState(_deal);
+  void _reset() => setState(() {
+        _level = 1;
+        _streak = 0;
+        _score = 0;
+        _banner = null;
+        _deal();
+      });
 
   @override
   Widget build(BuildContext context) {
     drain(context);
+    final cols = _cards.length <= 12 ? 3 : 4;
     return _Shell(
       title: '🧠 Memory Flip',
-      score: _pairs,
-      target: _faces.length,
-      best: _best > 0 ? _moves : 0,
+      score: _score,
+      best: _best,
       status: _status,
+      banner: _banner ?? 'Level $_level',
       overEmoji: '🧠',
-      overText: 'Nice memory!',
+      overText: 'Great memory!',
       accent: const Color(0xFF06D6A0),
-      rankByScore: false,
       onPlayAgain: _reset,
       child: DecoratedBox(
         decoration: const BoxDecoration(
@@ -1767,7 +1887,7 @@ class _MemoryFlipGameState extends State<MemoryFlipGame> with _Emit {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 120, 20, 70),
             child: GridView.count(
-              crossAxisCount: 3,
+              crossAxisCount: cols,
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
               physics: const NeverScrollableScrollPhysics(),
@@ -1790,7 +1910,7 @@ class _MemoryFlipGameState extends State<MemoryFlipGame> with _Emit {
                         (_matched[i] || i == _first || i == _second)
                             ? _cards[i]
                             : '',
-                        style: const TextStyle(fontSize: 40),
+                        style: TextStyle(fontSize: cols == 3 ? 40 : 30),
                       ),
                     ),
                   ),
