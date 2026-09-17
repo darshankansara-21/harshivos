@@ -17,6 +17,7 @@ class _GoalShell extends StatelessWidget {
     required this.onReset,
     required this.child,
     this.best = 0,
+    this.stars = 0,
     this.message,
   });
 
@@ -25,6 +26,7 @@ class _GoalShell extends StatelessWidget {
   final int score;
   final int target;
   final int best;
+  final int stars;
   final GameStatus status;
   final Color accent;
   final VoidCallback onReset;
@@ -129,6 +131,25 @@ class _GoalShell extends StatelessWidget {
                             color: Colors.white70,
                             fontSize: 16,
                             fontWeight: FontWeight.w700)),
+                    if (status == GameStatus.won) ...<Widget>[
+                      const SizedBox(height: 10),
+                      Text(
+                        <String>['⭐', '⭐⭐', '⭐⭐⭐'][
+                            (stars.clamp(1, 3)) - 1],
+                        style: const TextStyle(fontSize: 30),
+                      ),
+                      Text(
+                        stars >= 3
+                            ? 'Perfect — no mistakes!'
+                            : stars == 2
+                                ? 'Great work!'
+                                : 'You did it!',
+                        style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700),
+                      ),
+                    ],
                     const SizedBox(height: 18),
                     FilledButton.icon(
                       onPressed: onReset,
@@ -192,9 +213,13 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> {
   int _score = 0;
   int _best = 0;
   int _roundNumber = 0;
+  int _wrong = 0;
+  int _streak = 0;
   String? _message;
   GameStatus _status = GameStatus.playing;
   late _ChoiceRound _round;
+
+  int get _stars => _wrong == 0 ? 3 : (_wrong <= 2 ? 2 : 1);
 
   @override
   void initState() {
@@ -208,7 +233,11 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> {
   void _choose(int index) {
     if (_status != GameStatus.playing) return;
     if (index != _round.answer) {
-      setState(() => _message = 'Try another one');
+      setState(() {
+        _wrong++;
+        _streak = 0;
+        _message = 'Try another one';
+      });
       TonePlayer.instance.playCue(SoundCue.gentleRetry);
       return;
     }
@@ -216,7 +245,8 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> {
     setState(() {
       _score++;
       _roundNumber++;
-      _message = 'Correct!';
+      _streak++;
+      _message = _streak >= 3 ? 'Streak x$_streak! 🔥' : 'Correct!';
       if (_score >= _target) {
         _status = GameStatus.won;
         TonePlayer.instance.playCue(SoundCue.success);
@@ -233,6 +263,8 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> {
     setState(() {
       _score = 0;
       _roundNumber = 0;
+      _wrong = 0;
+      _streak = 0;
       _message = null;
       _status = GameStatus.playing;
       _round = widget.buildRound(_roundNumber, _random);
@@ -247,6 +279,7 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> {
       score: _score,
       target: _target,
       best: _best,
+      stars: _stars,
       status: _status,
       accent: widget.accent,
       message: _message,
