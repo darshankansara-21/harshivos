@@ -350,10 +350,12 @@ class SkyHopGame extends StatefulWidget {
 }
 
 class _Pipe {
-  _Pipe(this.x, this.gapY);
+  _Pipe(this.x, this.gapY, this.coinY);
   double x;
   double gapY;
+  final double coinY;
   bool scored = false;
+  bool coinTaken = false;
 }
 
 class _SkyHopGameState extends State<SkyHopGame>
@@ -386,7 +388,10 @@ class _SkyHopGameState extends State<SkyHopGame>
     _spawnIn -= dt;
     if (_spawnIn <= 0) {
       _spawnIn = 1.6;
-      _pipes.add(_Pipe(1.1, 0.2 + _rnd.nextDouble() * 0.6));
+      final gapY = 0.2 + _rnd.nextDouble() * 0.6;
+      // Coin sits off-centre inside the gap, so grabbing it is a small risk.
+      final coinY = gapY + (_rnd.nextDouble() - 0.5) * _gap * 0.7;
+      _pipes.add(_Pipe(1.1, gapY, coinY));
     }
     for (final p in _pipes) {
       p.x -= 0.42 * dt;
@@ -395,6 +400,13 @@ class _SkyHopGameState extends State<SkyHopGame>
         _score++;
         TonePlayer.instance.playCue(SoundCue.coin);
         emit(ExperienceEvent.bubblePopped);
+      }
+      if (!p.coinTaken &&
+          (p.x - 0.3).abs() < 0.06 &&
+          (_birdY - p.coinY).abs() < 0.05) {
+        p.coinTaken = true;
+        _score += 2;
+        TonePlayer.instance.playCue(SoundCue.coin);
       }
       if ((p.x - 0.3).abs() < 0.11 &&
           (_birdY < p.gapY - _gap / 2 || _birdY > p.gapY + _gap / 2)) {
@@ -489,6 +501,18 @@ class _SkyHopPainter extends CustomPainter {
           Rect.fromLTRB(cx - w * 0.09, 0, cx + w * 0.09, gy - half), pipePaint);
       canvas.drawRect(
           Rect.fromLTRB(cx - w * 0.09, gy + half, cx + w * 0.09, h), pipePaint);
+      if (!p.coinTaken) {
+        final coinC = Offset(cx, p.coinY * h);
+        canvas.drawCircle(coinC, w * 0.028,
+            Paint()..color = const Color(0xFFFFD166));
+        canvas.drawCircle(
+            coinC,
+            w * 0.028,
+            Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 2
+              ..color = const Color(0xFFB8860B));
+      }
     }
     final bx = w * 0.3;
     final by = birdY * h;
