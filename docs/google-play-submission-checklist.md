@@ -12,8 +12,8 @@ Status legend: ✅ ready in repo · ⚠️ needs a human action before submissio
 - ✅ Signed with the upload keystore (see §5)
 
 ## 3. Version / versionCode
-- ✅ versionName: **1.0.33**
-- ✅ versionCode: **34**
+- ✅ versionName: **1.0.34**
+- ✅ versionCode: **35**
 - ⚠️ Bump versionCode for every subsequent upload (Play requires a higher code each time)
 
 ## 4. Package ID
@@ -65,7 +65,7 @@ Status legend: ✅ ready in repo · ⚠️ needs a human action before submissio
 
 ## 14. Production release
 - ⚠️ Promote from Internal testing after validation
-- ⚠️ Target SDK 36 and versionCode 34 satisfy current Play requirements at time of writing
+- ⚠️ Target SDK 36 and versionCode 35 satisfy current Play requirements at time of writing
 
 ## Technical facts (verified from the release APK)
 - minSdk: 24 · targetSdk: 36 · compileSdk: 36

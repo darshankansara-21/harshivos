@@ -51,7 +51,7 @@ mixin _CompanionEmitter<T extends StatefulWidget> on State<T> {
   }
 }
 
-enum GameStatus { playing, won, over }
+enum GameStatus { ready, playing, won, over }
 
 /// Shared chrome for the goal-based mini games: a score + best pill, an
 /// optional target, a transient combo banner, and win / game-over overlays
@@ -70,6 +70,8 @@ class _GameShell extends StatelessWidget {
     this.overEmoji = '💪',
     this.overText = 'Good try!',
     this.accent = const Color(0xFFFFD166),
+    this.introHow,
+    this.onStart,
   });
 
   final String title;
@@ -83,6 +85,13 @@ class _GameShell extends StatelessWidget {
   final VoidCallback onPlayAgain;
   final Widget child;
   final Color accent;
+
+  /// One short line telling a child exactly what to do — shown on the start
+  /// card so the objective is clear before the first tap.
+  final String? introHow;
+
+  /// Called when the child presses the big Start button on the intro card.
+  final VoidCallback? onStart;
 
   @override
   Widget build(BuildContext context) {
@@ -141,7 +150,7 @@ class _GameShell extends StatelessWidget {
             ),
           ),
         ),
-        if (status != GameStatus.playing)
+        if (status == GameStatus.won || status == GameStatus.over)
           Positioned.fill(
             child: ColoredBox(
               color: Colors.black.withOpacity(0.6),
@@ -205,16 +214,90 @@ class _GameShell extends StatelessWidget {
               ),
             ),
           ),
+        if (status == GameStatus.ready && onStart != null)
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: <Color>[
+                    Colors.black.withOpacity(0.55),
+                    accent.withOpacity(0.28),
+                  ],
+                ),
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text(overEmoji, style: const TextStyle(fontSize: 76)),
+                    const SizedBox(height: 6),
+                    Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 30,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    if (introHow != null) ...<Widget>[
+                      const SizedBox(height: 10),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 32),
+                        child: Text(
+                          introHow!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w600,
+                            height: 1.35,
+                          ),
+                        ),
+                      ),
+                    ],
+                    if (best > 0) ...<Widget>[
+                      const SizedBox(height: 12),
+                      Text('Best  ★ $best',
+                          style: TextStyle(
+                              color: accent,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800)),
+                    ],
+                    const SizedBox(height: 22),
+                    FilledButton.icon(
+                      onPressed: onStart,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: accent,
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 30, vertical: 14),
+                        textStyle: const TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.w900),
+                      ),
+                      icon: const Icon(Icons.play_arrow_rounded, size: 28),
+                      label: const Text('Play'),
+                    ),
+                    const SizedBox(height: 8),
+                    Builder(
+                      builder: (context) => TextButton(
+                        onPressed: () => Navigator.of(context).maybePop(),
+                        child: const Text('Back to games',
+                            style: TextStyle(color: Colors.white60)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }
 }
 
-
-// ===========================================================================
-// Fruit Catch — drag the basket to catch falling fruit. Reach the target to
-// win. Never punishes misses, so it stays gentle and encouraging.
-// ===========================================================================
 class FruitCatchGame extends StatefulWidget {
   const FruitCatchGame({super.key});
   @override
@@ -961,7 +1044,7 @@ class _SnakeGameState extends State<SnakeGame>
   String? _banner;
   String _overReason = 'Stay inside the glowing edge.';
   Size _view = const Size(360, 640);
-  GameStatus _status = GameStatus.playing;
+  GameStatus _status = GameStatus.ready;
 
   static const List<Color> _orbColors = <Color>[
     Color(0xFFFF4D6D), Color(0xFFFFD166), Color(0xFF06D6A0),
@@ -1250,6 +1333,9 @@ class _SnakeGameState extends State<SnakeGame>
       overEmoji: '🐍',
       overText: _overReason,
       accent: const Color(0xFF06D6A0),
+      introHow: 'Glide your snake to eat glowing orbs and grow.\n'
+          'Gold orbs = bonus. Avoid the edges and rival snakes!',
+      onStart: () => setState(() => _status = GameStatus.playing),
       onPlayAgain: _reset,
       child: LayoutBuilder(
         builder: (context, c) {
@@ -1550,7 +1636,7 @@ class _RacingGameState extends State<RacingGame>
   int _best = 0;
   double _bannerT = 0;
   String? _banner;
-  GameStatus _status = GameStatus.playing;
+  GameStatus _status = GameStatus.ready;
 
   @override
   void initState() {
@@ -1661,7 +1747,7 @@ class _RacingGameState extends State<RacingGame>
   Widget build(BuildContext context) {
     drainCompanion(context);
     return _GameShell(
-      title: '🏎️ Race',
+      title: '🏎️ Street Racer',
       score: _score,
       best: _best,
       status: _status,
@@ -1669,6 +1755,9 @@ class _RacingGameState extends State<RacingGame>
       overEmoji: '🏁',
       overText: 'Crash!',
       accent: const Color(0xFFFF6B6B),
+      introHow: 'Tap left or right to switch lanes.\n'
+          'Dodge traffic, grab 🪙 coins and ⚡ boosts!',
+      onStart: () => setState(() => _status = GameStatus.playing),
       onPlayAgain: _reset,
       child: LayoutBuilder(
         builder: (context, c) {
@@ -1730,8 +1819,9 @@ class _RoadPainter extends CustomPainter {
 }
 
 // ===========================================================================
-// Bowling — line up the aim, pick your power, and roll. Five rolls; knock as
-// many pins as you can. A strike (all 10) earns a big celebration.
+// Bowling — a perspective ten-pin lane. Flick the ball up the lane to knock
+// the pins down; toppling pins topple their neighbours for real strikes. Ten
+// frames, with strike and spare bonuses.
 // ===========================================================================
 class BowlingGame extends StatefulWidget {
   const BowlingGame({super.key});
@@ -1739,34 +1829,44 @@ class BowlingGame extends StatefulWidget {
   State<BowlingGame> createState() => _BowlingGameState();
 }
 
-enum _BowlPhase { aim, power, rolling }
+enum _BowlPhase { aim, rolling, settle }
 
-class _Pin {
-  _Pin(this.x, this.y);
-  final double x;
-  final double y;
+class _BowlPin {
+  _BowlPin(this.x, this.y);
+  final double x; // normalized canvas x (0..1)
+  final double y; // normalized canvas y (0..1); smaller = farther away
   bool down = false;
+  double fallT = 0; // 0 = standing, grows to 1 while toppling
+  double fallDir = 1; // topple direction (sign of x offset from ball)
 }
 
 class _BowlingGameState extends State<BowlingGame>
     with TickerProviderStateMixin, ToyTicker, _CompanionEmitter {
   static const String _id = 'bowling';
-  final List<_Pin> _pins = <_Pin>[];
+
+  // Lane geometry (normalized canvas). The lane is a trapezoid: narrow far
+  // (pins) and wide near (foul line) to read as real perspective.
+  static const double _yFar = 0.12; // back of the lane
+  static const double _yFoul = 0.84; // where the ball starts
+  static const double _farHalf = 0.13; // half-width of lane at the far end
+  static const double _nearHalf = 0.30; // half-width of lane at the foul line
+
+  final List<_BowlPin> _pins = <_BowlPin>[];
   _BowlPhase _phase = _BowlPhase.aim;
-  double _aim = 0;
-  double _aimDir = 1;
-  double _power = 0;
-  double _powerDir = 1;
   double _ballX = 0.5;
-  double _ballY = 0.86;
+  double _ballY = _yFoul;
   double _vx = 0;
   double _vy = 0;
-  int _rollsLeft = 5;
-  int _total = 0;
+  double _settleT = 0;
+
+  int _frame = 1;
+  int _ballInFrame = 1; // 1 or 2
+  int _pinsBeforeBall = 0; // standing pins when the current ball was thrown
+  int _score = 0;
   int _best = 0;
   double _bannerT = 0;
   String? _banner;
-  GameStatus _status = GameStatus.playing;
+  GameStatus _status = GameStatus.ready;
 
   @override
   void initState() {
@@ -1777,29 +1877,42 @@ class _BowlingGameState extends State<BowlingGame>
     });
   }
 
+  double _laneHalf(double y) {
+    final t = ((y - _yFar) / (_yFoul - _yFar)).clamp(0.0, 1.0);
+    return _farHalf + (_nearHalf - _farHalf) * t;
+  }
+
+  // Perspective scale: things near the foul line are big, far ones shrink.
+  double _scaleFor(double y) {
+    final t = ((y - _yFar) / (_yFoul - _yFar)).clamp(0.0, 1.0);
+    return 0.5 + 0.5 * t;
+  }
+
   void _rack() {
     _pins.clear();
-    const topY = 0.22;
-    const dy = 0.055;
-    const dx = 0.07;
+    // Ten pins in a triangle. Apex (#1) nearest the bowler, back row farthest.
+    const rowsY = <double>[0.30, 0.25, 0.20, 0.15];
     for (var row = 0; row < 4; row++) {
+      final y = rowsY[row];
       final count = row + 1;
-      final y = topY + row * dy;
-      final startX = 0.5 - (count - 1) * dx / 2;
+      final spread = _laneHalf(y) * 0.9;
+      final startX = 0.5 - (count - 1) * spread / 3;
       for (var i = 0; i < count; i++) {
-        _pins.add(_Pin(startX + i * dx, y));
+        _pins.add(_BowlPin(startX + i * spread / 3 * 2, y));
       }
     }
+    _resetBall();
+  }
+
+  void _resetBall() {
     _ballX = 0.5;
-    _ballY = 0.86;
+    _ballY = _yFoul;
     _vx = 0;
     _vy = 0;
     _phase = _BowlPhase.aim;
-    _aim = 0;
-    _aimDir = 1;
-    _power = 0;
-    _powerDir = 1;
   }
+
+  int get _standing => _pins.where((p) => !p.down).length;
 
   @override
   void onTick(double dt) {
@@ -1808,87 +1921,140 @@ class _BowlingGameState extends State<BowlingGame>
       _bannerT -= dt;
       if (_bannerT <= 0) _banner = null;
     }
-    switch (_phase) {
-      case _BowlPhase.aim:
-        _aim += _aimDir * dt * 1.3;
-        if (_aim > 1) {
-          _aim = 1;
-          _aimDir = -1;
-        } else if (_aim < -1) {
-          _aim = -1;
-          _aimDir = 1;
-        }
-      case _BowlPhase.power:
-        _power += _powerDir * dt * 1.5;
-        if (_power > 1) {
-          _power = 1;
-          _powerDir = -1;
-        } else if (_power < 0) {
-          _power = 0;
-          _powerDir = 1;
-        }
-      case _BowlPhase.rolling:
-        _ballX += _vx * dt;
-        _ballY += _vy * dt;
-        for (final p in _pins) {
-          if (!p.down &&
-              (p.x - _ballX).abs() < 0.05 &&
-              (p.y - _ballY).abs() < 0.05) {
-            p.down = true;
+    // Advance any toppling pins.
+    for (final p in _pins) {
+      if (p.down && p.fallT < 1) p.fallT = (p.fallT + dt * 3.2).clamp(0.0, 1.0);
+    }
+    if (_phase != _BowlPhase.rolling) {
+      if (_phase == _BowlPhase.settle) {
+        _settleT -= dt;
+        if (_settleT <= 0) _endBall();
+      }
+      return;
+    }
+
+    // Roll the ball up the lane with gentle friction and a soft curve.
+    _ballX += _vx * dt;
+    _ballY += _vy * dt;
+    _vx *= (1 - dt * 0.6);
+    _vy *= (1 - dt * 0.35);
+
+    // Gutter: rode off the side of the lane.
+    final half = _laneHalf(_ballY);
+    if ((_ballX - 0.5).abs() > half) {
+      _ballX = 0.5 + half * (_ballX > 0.5 ? 1 : -1);
+      _vx = 0;
+      _vy *= 0.4; // drags in the gutter
+    }
+
+    _checkPinHits();
+    _propagateTopple();
+
+    if (_ballY <= _yFar + 0.01 || _vy > -0.02) {
+      _phase = _BowlPhase.settle;
+      _settleT = 0.7; // let pins finish toppling before scoring
+    }
+  }
+
+  void _checkPinHits() {
+    for (final p in _pins) {
+      if (p.down) continue;
+      if ((p.x - _ballX).abs() < 0.05 && (p.y - _ballY).abs() < 0.055) {
+        p.down = true;
+        p.fallDir = (p.x >= _ballX) ? 1 : -1;
+        _vx += p.fallDir * 0.04; // ball deflects a touch
+        _vy *= 0.9;
+        TonePlayer.instance.playThock();
+      }
+    }
+  }
+
+  // A toppling pin knocks over close standing neighbours — how strikes happen.
+  void _propagateTopple() {
+    for (var pass = 0; pass < 2; pass++) {
+      for (final f in _pins) {
+        if (!f.down) continue;
+        for (final s in _pins) {
+          if (s.down) continue;
+          if ((s.x - f.x).abs() < 0.055 && (s.y - f.y).abs() < 0.05) {
+            s.down = true;
+            s.fallDir = (s.x >= f.x) ? 1 : -1;
             TonePlayer.instance.playThock();
           }
         }
-        if (_ballY < 0.08 || _ballX < 0 || _ballX > 1) _endRoll();
+      }
     }
   }
 
-  void _tap() {
-    if (_status != GameStatus.playing) return;
-    if (_phase == _BowlPhase.aim) {
-      setState(() => _phase = _BowlPhase.power);
-    } else if (_phase == _BowlPhase.power) {
-      final speed = 0.7 + _power * 1.1;
-      _vy = -speed;
-      _vx = _aim * 0.5 * speed;
-      TonePlayer.instance.playCue(SoundCue.bowling);
-      setState(() => _phase = _BowlPhase.rolling);
-    }
+  void _throw(double vx, double vy) {
+    if (_phase != _BowlPhase.aim || _status != GameStatus.playing) return;
+    _pinsBeforeBall = _standing;
+    // Always give a satisfying forward roll, even on a timid swipe.
+    _vy = vy.clamp(-2.2, -0.85);
+    _vx = vx.clamp(-0.6, 0.6);
+    _phase = _BowlPhase.rolling;
+    TonePlayer.instance.playCue(SoundCue.bowling);
   }
 
-  void _endRoll() {
-    final knocked = _pins.where((p) => p.down).length;
-    _total += knocked;
-    _rollsLeft--;
-    if (knocked == 10) {
+  void _endBall() {
+    final knockedThisBall = _pinsBeforeBall - _standing;
+    _score += knockedThisBall;
+
+    final knockedAll = _standing == 0;
+    if (_ballInFrame == 1 && knockedAll) {
+      // Strike.
+      _score += 5;
       _flash('STRIKE! 🎳');
       emit(ExperienceEvent.gameCompleted);
       TonePlayer.instance.playCue(SoundCue.completion);
-    } else if (knocked >= 6) {
-      _flash('Nice! $knocked pins');
-      emit(ExperienceEvent.bubblePopped);
+      _nextFrame();
+    } else if (_ballInFrame == 2 && knockedAll) {
+      // Spare.
+      _score += 3;
+      _flash('SPARE! ✨');
+      emit(ExperienceEvent.gameCompleted);
+      TonePlayer.instance.playCue(SoundCue.completion);
+      _nextFrame();
+    } else if (_ballInFrame == 1) {
+      // Second ball at the standing pins.
+      _flash(knockedThisBall > 0 ? '$knockedThisBall down!' : 'Roll again');
+      if (knockedThisBall > 0) emit(ExperienceEvent.correctAnswer);
+      _ballInFrame = 2;
+      _resetBall();
     } else {
-      _flash('$knocked pins');
-      emit(ExperienceEvent.correctAnswer);
+      _flash(knockedThisBall > 0 ? '$knockedThisBall down!' : 'Good try');
+      _nextFrame();
     }
-    if (_rollsLeft <= 0) {
+    setState(() {});
+  }
+
+  void _nextFrame() {
+    if (_frame >= 10) {
       _status = GameStatus.won;
-      GameScores.instance.submit(_id, _total).then((b) {
+      GameScores.instance.submit(_id, _score).then((b) {
         if (mounted) setState(() => _best = b);
       });
-    } else {
-      _rack();
+      return;
     }
+    _frame++;
+    _ballInFrame = 1;
+    _rack();
   }
 
   void _flash(String s) {
     _banner = s;
-    _bannerT = 1.3;
+    _bannerT = 1.4;
+  }
+
+  void _start() {
+    setState(() => _status = GameStatus.playing);
   }
 
   void _reset() {
     setState(() {
-      _total = 0;
-      _rollsLeft = 5;
+      _score = 0;
+      _frame = 1;
+      _ballInFrame = 1;
       _banner = null;
       _bannerT = 0;
       _status = GameStatus.playing;
@@ -1899,24 +2065,47 @@ class _BowlingGameState extends State<BowlingGame>
   @override
   Widget build(BuildContext context) {
     drainCompanion(context);
-    final hint = _phase == _BowlPhase.aim
-        ? 'Tap to lock the aim'
-        : _phase == _BowlPhase.power
-            ? 'Tap to set the power'
-            : 'Rolling…';
     return _GameShell(
-      title: '🎳 Bowl',
-      score: _total,
+      title: '🎳 Ten-Pin Bowling',
+      score: _score,
       best: _best,
       status: _status,
       banner: _banner,
       overEmoji: '🎳',
-      overText: 'Nice game!',
+      overText: 'Great bowling!',
       accent: const Color(0xFF4CC9F0),
+      introHow: 'Flick the ball up the lane to knock the pins down.\n'
+          'Ten frames — go for a STRIKE!',
+      onStart: _start,
       onPlayAgain: _reset,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTapDown: (_) => _tap(),
+        onPanUpdate: (d) {
+          if (_phase != _BowlPhase.aim || _status != GameStatus.playing) return;
+          // Slide the ball across the foul line to aim while dragging.
+          final box = context.size;
+          if (box == null) return;
+          final nx = (d.localPosition.dx / box.width).clamp(0.0, 1.0);
+          final half = _laneHalf(_yFoul);
+          setState(() =>
+              _ballX = nx.clamp(0.5 - half, 0.5 + half).toDouble());
+        },
+        onPanEnd: (d) {
+          if (_phase != _BowlPhase.aim || _status != GameStatus.playing) return;
+          final box = context.size;
+          final h = box?.height ?? 600;
+          final w = box?.width ?? 400;
+          // Convert the flick velocity (px/s) into normalized lane velocity.
+          final vy = -(d.velocity.pixelsPerSecond.dy.abs() / h)
+                  .clamp(0.85, 2.2) -
+              0.2;
+          final vx = (d.velocity.pixelsPerSecond.dx / w).clamp(-0.6, 0.6);
+          _throw(vx, vy.toDouble());
+        },
+        onTap: () {
+          // A plain tap still bowls straight, so it is never a dead end.
+          if (_phase == _BowlPhase.aim) _throw(0, -1.4);
+        },
         child: Stack(
           children: <Widget>[
             Positioned.fill(
@@ -1925,9 +2114,11 @@ class _BowlingGameState extends State<BowlingGame>
                   pins: _pins,
                   ballX: _ballX,
                   ballY: _ballY,
-                  aim: _aim,
-                  power: _power,
                   phase: _phase,
+                  laneHalf: _laneHalf,
+                  scaleFor: _scaleFor,
+                  yFar: _yFar,
+                  yFoul: _yFoul,
                 ),
                 size: Size.infinite,
               ),
@@ -1945,7 +2136,9 @@ class _BowlingGameState extends State<BowlingGame>
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(
-                    '$hint   ·   Rolls left: $_rollsLeft',
+                    _phase == _BowlPhase.aim
+                        ? 'Frame $_frame/10  ·  Flick the ball up ⬆'
+                        : 'Frame $_frame/10  ·  Rolling…',
                     style: const TextStyle(
                         color: Colors.white,
                         fontSize: 14,
@@ -1966,78 +2159,164 @@ class _BowlPainter extends CustomPainter {
     required this.pins,
     required this.ballX,
     required this.ballY,
-    required this.aim,
-    required this.power,
     required this.phase,
+    required this.laneHalf,
+    required this.scaleFor,
+    required this.yFar,
+    required this.yFoul,
   });
-  final List<_Pin> pins;
+  final List<_BowlPin> pins;
   final double ballX;
   final double ballY;
-  final double aim;
-  final double power;
   final _BowlPhase phase;
+  final double Function(double) laneHalf;
+  final double Function(double) scaleFor;
+  final double yFar;
+  final double yFoul;
 
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
+    // Backdrop.
     canvas.drawRect(
-        Offset.zero & size, Paint()..color = const Color(0xFF1A1030));
-    final laneRect = Rect.fromLTWH(w * 0.15, 0, w * 0.7, h);
-    canvas.drawRRect(
-        RRect.fromRectAndRadius(laneRect, const Radius.circular(20)),
-        Paint()..color = const Color(0xFFC9A26B));
+        Offset.zero & size,
+        Paint()
+          ..shader = const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: <Color>[Color(0xFF141034), Color(0xFF241A46)],
+          ).createShader(Offset.zero & size));
 
-    for (final p in pins) {
-      final c = Offset(p.x * w, p.y * h);
+    double sx(double x) => x * w;
+    double sy(double y) => y * h;
+
+    // Perspective lane (trapezoid) with gutters.
+    final farL = 0.5 - laneHalf(yFar), farR = 0.5 + laneHalf(yFar);
+    final nearL = 0.5 - laneHalf(yFoul), nearR = 0.5 + laneHalf(yFoul);
+    final topY = sy(yFar - 0.04), botY = sy(yFoul + 0.12);
+    // Gutters.
+    final gutter = Paint()..color = const Color(0xFF0C0A1E);
+    canvas.drawPath(
+        Path()
+          ..moveTo(sx(farL) - 8, topY)
+          ..lineTo(sx(nearL) - 22, botY)
+          ..lineTo(sx(nearL), botY)
+          ..lineTo(sx(farL), topY)
+          ..close(),
+        gutter);
+    canvas.drawPath(
+        Path()
+          ..moveTo(sx(farR) + 8, topY)
+          ..lineTo(sx(nearR) + 22, botY)
+          ..lineTo(sx(nearR), botY)
+          ..lineTo(sx(farR), topY)
+          ..close(),
+        gutter);
+    // Lane surface.
+    final lane = Path()
+      ..moveTo(sx(farL), topY)
+      ..lineTo(sx(farR), topY)
+      ..lineTo(sx(nearR), botY)
+      ..lineTo(sx(nearL), botY)
+      ..close();
+    canvas.drawPath(
+        lane,
+        Paint()
+          ..shader = const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: <Color>[Color(0xFFB07B3E), Color(0xFFE7C088)],
+          ).createShader(Rect.fromLTRB(0, topY, w, botY)));
+    // Lane boards (perspective lines).
+    canvas.save();
+    canvas.clipPath(lane);
+    final board = Paint()
+      ..color = Colors.white.withOpacity(0.06)
+      ..strokeWidth = 1.5;
+    for (var i = 1; i < 8; i++) {
+      final t = i / 8;
+      canvas.drawLine(
+          Offset(sx(farL + (farR - farL) * t), topY),
+          Offset(sx(nearL + (nearR - nearL) * t), botY),
+          board);
+    }
+    // Aiming arrows near the foul line.
+    final arrow = Paint()..color = const Color(0xFF8A5A24).withOpacity(0.8);
+    for (var i = -2; i <= 2; i++) {
+      final ax = sx(0.5 + i * 0.05);
+      final ay = sy(0.62);
+      canvas.drawPath(
+          Path()
+            ..moveTo(ax, ay - 10)
+            ..lineTo(ax - 5, ay + 6)
+            ..lineTo(ax + 5, ay + 6)
+            ..close(),
+          arrow);
+    }
+    canvas.restore();
+
+    // Foul line.
+    canvas.drawLine(Offset(sx(nearL), sy(yFoul)), Offset(sx(nearR), sy(yFoul)),
+        Paint()
+          ..color = const Color(0xFFEF476F)
+          ..strokeWidth = 3);
+
+    // Pins (painter order: far first so near pins overlap).
+    final sorted = List<_BowlPin>.from(pins)..sort((a, b) => a.y.compareTo(b.y));
+    for (final p in sorted) {
+      final c = Offset(sx(p.x), sy(p.y));
+      final s = scaleFor(p.y);
       if (p.down) {
-        canvas.drawCircle(c, 6, Paint()..color = Colors.white24);
+        // Toppled pin: lie down + fade.
+        canvas.save();
+        canvas.translate(c.dx, c.dy);
+        canvas.rotate(p.fallDir * p.fallT * 1.4);
+        final o = (1 - p.fallT * 0.7);
+        _drawPin(canvas, Offset.zero, s, o);
+        canvas.restore();
       } else {
-        canvas.drawRRect(
-            RRect.fromRectAndRadius(
-                Rect.fromCenter(center: c, width: 14, height: 26),
-                const Radius.circular(6)),
-            Paint()..color = Colors.white);
-        canvas.drawRRect(
-            RRect.fromRectAndRadius(
-                Rect.fromCenter(
-                    center: c.translate(0, -9), width: 14, height: 7),
-                const Radius.circular(4)),
-            Paint()..color = const Color(0xFFEF476F));
+        _drawPin(canvas, c, s, 1);
       }
     }
 
-    final ballC = Offset(ballX * w, ballY * h);
-    canvas.drawCircle(ballC, 16, Paint()..color = const Color(0xFF22223B));
+    // Ball with perspective scaling and a rolling highlight.
+    final bs = scaleFor(ballY);
+    final bc = Offset(sx(ballX), sy(ballY));
+    final br = 22 * bs;
+    canvas.drawCircle(bc.translate(0, br * 0.5),
+        br * 0.9, Paint()..color = Colors.black.withOpacity(0.28));
     canvas.drawCircle(
-        ballC,
-        16,
+        bc,
+        br,
         Paint()
-          ..color = const Color(0xFF4CC9F0)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 3);
+          ..shader = RadialGradient(
+            center: const Alignment(-0.4, -0.4),
+            colors: const <Color>[Color(0xFF7FE0FF), Color(0xFF1B4A8A)],
+          ).createShader(Rect.fromCircle(center: bc, radius: br)));
+    canvas.drawCircle(bc.translate(-br * 0.3, -br * 0.3), br * 0.18,
+        Paint()..color = Colors.white.withOpacity(0.85));
+  }
 
-    if (phase == _BowlPhase.aim) {
-      canvas.drawLine(
-          ballC,
-          Offset((ballX + aim * 0.4) * w, h * 0.4),
-          Paint()
-            ..color = Colors.white70
-            ..strokeWidth = 3);
-    }
-    if (phase == _BowlPhase.power) {
-      final barRect = Rect.fromLTWH(w * 0.82, h * 0.42, 14, h * 0.36);
-      canvas.drawRRect(
-          RRect.fromRectAndRadius(barRect, const Radius.circular(7)),
-          Paint()..color = Colors.white24);
-      final fillH = barRect.height * power;
-      canvas.drawRRect(
-          RRect.fromRectAndRadius(
-              Rect.fromLTWH(barRect.left, barRect.bottom - fillH,
-                  barRect.width, fillH),
-              const Radius.circular(7)),
-          Paint()..color = const Color(0xFF06D6A0));
-    }
+  void _drawPin(Canvas canvas, Offset c, double s, double opacity) {
+    final body = Paint()..color = Colors.white.withOpacity(opacity);
+    final neck = Paint()..color = const Color(0xFFEF476F).withOpacity(opacity);
+    final ph = 30.0 * s, pw = 15.0 * s;
+    // Shadow.
+    canvas.drawOval(
+        Rect.fromCenter(
+            center: c.translate(0, ph * 0.5), width: pw * 1.1, height: pw * 0.4),
+        Paint()..color = Colors.black.withOpacity(0.2 * opacity));
+    final r = RRect.fromRectAndRadius(
+        Rect.fromCenter(center: c, width: pw, height: ph),
+        Radius.circular(pw * 0.5));
+    canvas.drawRRect(r, body);
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(
+            Rect.fromCenter(
+                center: c.translate(0, -ph * 0.28), width: pw, height: ph * 0.22),
+            Radius.circular(pw * 0.3)),
+        neck);
   }
 
   @override

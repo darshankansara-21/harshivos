@@ -61,6 +61,9 @@ void main() {
 
   testWidgets('Snake builds, steers, and runs without overflow', (tester) async {
     await _pumpGame(tester, const SnakeGame());
+    // Dismiss the start card, then play.
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Snake · Orbs'), findsOneWidget);
     expect(find.textContaining('Cut off rival'), findsOneWidget);
     expect(find.text('ORB RACE'), findsOneWidget);
@@ -74,7 +77,9 @@ void main() {
 
   testWidgets('Racing builds, changes lanes, and runs', (tester) async {
     await _pumpGame(tester, const RacingGame());
-    expect(find.textContaining('Race'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('Racer'), findsOneWidget);
     await tester.tapAt(const Offset(100, 1200));
     await tester.pump(const Duration(milliseconds: 200));
     await tester.tapAt(const Offset(980, 1200));
@@ -82,13 +87,16 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Bowling aims, powers, and rolls a ball', (tester) async {
+  testWidgets('Bowling starts, flicks the ball, and knocks pins', (tester) async {
     await _pumpGame(tester, const BowlingGame());
-    expect(find.textContaining('Bowl'), findsOneWidget);
-    await tester.tap(find.byType(BowlingGame), warnIfMissed: false);
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('Frame 1/10'), findsOneWidget);
+    // Flick the ball up the lane to bowl.
+    await tester.fling(
+        find.byType(BowlingGame), const Offset(0, -400), 1200);
     await tester.pump(const Duration(milliseconds: 200));
-    await tester.tap(find.byType(BowlingGame), warnIfMissed: false);
-    await tester.pump(const Duration(milliseconds: 1200));
+    await tester.pump(const Duration(milliseconds: 1400));
     expect(tester.takeException(), isNull);
   });
 }

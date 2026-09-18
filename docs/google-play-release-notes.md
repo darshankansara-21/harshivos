@@ -1,10 +1,11 @@
 # WonderPlay — Google Play Release Notes
 
 ## What's new
+- Rebuilt Bowling: a real perspective lane, flick-to-bowl, tumbling pins and ten proper frames.
+- Energetic new start screens for games — a clear “how to play” and a big Play button.
 - New Calm experiences: Gravity Garden (nudge slow orbiting planets) and Zen Stones (stack a calm cairn), joining Star Weaver and Firefly Glow.
 - More sensory variety in Calm — now spanning touch, drag, trace, hold, orbit, stacking, watching and breathing.
 - Play, Learn, Calm, Talk and Routines — all in one child-friendly companion.
-- A growing collection of playful games and hands-on sensory experiences.
 - Progress, levels and achievements that reward real play.
 - Easier discovery with Favorites, Recently Played and curated game sections.
 - Talk — a simple picture board that speaks for your child.
