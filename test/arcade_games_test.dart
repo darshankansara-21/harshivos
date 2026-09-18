@@ -33,6 +33,8 @@ void main() {
 
   testWidgets('Sky Hop builds and flaps', (tester) async {
     await _pump(tester, const SkyHopGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Sky Hop'), findsOneWidget);
     await tester.tapAt(const Offset(400, 800));
     await tester.pump(const Duration(milliseconds: 400));
@@ -41,6 +43,8 @@ void main() {
 
   testWidgets('Stack builds and drops', (tester) async {
     await _pump(tester, const StackGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Stack'), findsOneWidget);
     await tester.tapAt(const Offset(400, 800));
     await tester.pump(const Duration(milliseconds: 300));
@@ -49,6 +53,8 @@ void main() {
 
   testWidgets('Merge builds and slides', (tester) async {
     await _pump(tester, const MergeGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Merge'), findsOneWidget);
     await tester.drag(find.byType(MergeGame), const Offset(-200, 0));
     await tester.pump(const Duration(milliseconds: 200));
@@ -59,6 +65,8 @@ void main() {
 
   testWidgets('Echo builds and shows a sequence', (tester) async {
     await _pump(tester, const EchoGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Echo'), findsOneWidget);
     await tester.pump(const Duration(milliseconds: 800));
     await tester.tapAt(const Offset(300, 900));
@@ -68,6 +76,8 @@ void main() {
 
   testWidgets('Tic-Tac-Toe builds and plays a move', (tester) async {
     await _pump(tester, const TicTacToeGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Tic-Tac-Toe'), findsOneWidget);
     // Tap a few board positions; a full game resolves without exceptions.
     for (final p in <Offset>[
@@ -119,6 +129,8 @@ void main() {
 
   testWidgets('Quick Tap builds and reacts to taps', (tester) async {
     await _pump(tester, const QuickTapGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Quick Tap'), findsOneWidget);
     await tester.tapAt(const Offset(400, 900));
     await tester.pump(const Duration(seconds: 4));
@@ -129,6 +141,8 @@ void main() {
 
   testWidgets('Ball Sort builds and accepts taps', (tester) async {
     await _pump(tester, const BallSortGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Ball Sort'), findsOneWidget);
     await tester.tapAt(const Offset(200, 1000));
     await tester.pump(const Duration(milliseconds: 200));
@@ -139,6 +153,8 @@ void main() {
 
   testWidgets('Tap Order builds and accepts taps', (tester) async {
     await _pump(tester, const TapOrderGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Tap Order'), findsOneWidget);
     await tester.tapAt(const Offset(300, 1000));
     await tester.pump(const Duration(milliseconds: 200));
@@ -158,6 +174,8 @@ void main() {
 
   testWidgets('Block Blast builds and places pieces', (tester) async {
     await _pump(tester, const BlockBlastGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Block Blast'), findsOneWidget);
     await tester.tapAt(const Offset(200, 1900));
     await tester.pump(const Duration(milliseconds: 200));
@@ -179,6 +197,8 @@ void main() {
 
   testWidgets('Color Quest states its target and accepts a choice', (tester) async {
     await _pump(tester, const ColorQuestGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('8 correct answers wins'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('color_quest-option-0')));
     await tester.pump(const Duration(milliseconds: 100));
@@ -187,6 +207,8 @@ void main() {
 
   testWidgets('Shape Scout states its target and accepts a choice', (tester) async {
     await _pump(tester, const ShapeScoutGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('8 matches wins'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('shape_scout-option-0')));
     await tester.pump(const Duration(milliseconds: 100));
@@ -195,6 +217,8 @@ void main() {
 
   testWidgets('Number Splash states its target and accepts a choice', (tester) async {
     await _pump(tester, const NumberSplashGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('8 correct answers wins'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('number_splash-option-0')));
     await tester.pump(const Duration(milliseconds: 100));
@@ -203,6 +227,8 @@ void main() {
 
   testWidgets('Path Finder exposes and advances its glowing first step', (tester) async {
     await _pump(tester, const PathFinderGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Follow the glowing path'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('path-cell-20')));
     await tester.pump(const Duration(milliseconds: 200));
@@ -212,6 +238,8 @@ void main() {
 
   testWidgets('Goal Keeper exposes its win target and blocks a shot', (tester) async {
     await _pump(tester, const GoalKeeperGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Make 10 saves'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('goal-lane-1')));
     await tester.pump(const Duration(milliseconds: 100));

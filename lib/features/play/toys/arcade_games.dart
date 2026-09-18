@@ -452,7 +452,7 @@ class _SkyHopGameState extends State<SkyHopGame>
   int _score = 0;
   int _best = 0;
   bool _started = false;
-  GameStatus _status = GameStatus.playing;
+  GameStatus _status = GameStatus.ready;
 
   @override
   void initState() {
@@ -536,6 +536,8 @@ class _SkyHopGameState extends State<SkyHopGame>
     drain(context);
     return _Shell(
       title: '🐤 Sky Hop',
+      introHow: 'Tap to flap and fly through the gaps. Grab the coins!',
+      onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,
       status: _status,
@@ -647,7 +649,7 @@ class _StackGameState extends State<StackGame>
   int _perfectStreak = 0;
   String? _banner;
   double _bannerT = 0;
-  GameStatus _status = GameStatus.playing;
+  GameStatus _status = GameStatus.ready;
 
   @override
   void initState() {
@@ -744,6 +746,8 @@ class _StackGameState extends State<StackGame>
     drain(context);
     return _Shell(
       title: '🧱 Stack',
+      introHow: 'Tap to drop each block. Stack them as high as you can!',
+      onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,
       status: _status,
@@ -831,7 +835,7 @@ class _MergeGameState extends State<MergeGame> with _Emit {
   int _score = 0;
   int _best = 0;
   String? _banner;
-  GameStatus _status = GameStatus.playing;
+  GameStatus _status = GameStatus.ready;
 
   @override
   void initState() {
@@ -957,6 +961,8 @@ class _MergeGameState extends State<MergeGame> with _Emit {
     drain(context);
     return _Shell(
       title: '🔢 Merge',
+      introHow: 'Slide to move the tiles. Matching numbers merge into bigger ones!',
+      onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       target: _target,
       best: _best,
@@ -1045,7 +1051,7 @@ class _EchoGameState extends State<EchoGame>
   double _showT = 0;
   bool _showing = false;
   int _best = 0;
-  GameStatus _status = GameStatus.playing;
+  GameStatus _status = GameStatus.ready;
 
   @override
   void initState() {
@@ -1132,6 +1138,8 @@ class _EchoGameState extends State<EchoGame>
     drain(context);
     return _Shell(
       title: '🎵 Echo',
+      introHow: 'Watch the colours light up, then tap them back in order.',
+      onStart: () => setState(() => _status = GameStatus.playing),
       score: _seq.length,
       target: _target,
       best: _best,
@@ -1210,7 +1218,7 @@ class _TicTacToeGameState extends State<TicTacToeGame> with _Emit {
   static const String _id = 'tictactoe';
   final List<int> _b = List<int>.filled(9, 0); // 0 empty, 1 player, 2 ai
   int _best = 0; // wins
-  GameStatus _status = GameStatus.playing;
+  GameStatus _status = GameStatus.ready;
   String _overText = 'Draw';
 
   @override
@@ -1310,6 +1318,8 @@ class _TicTacToeGameState extends State<TicTacToeGame> with _Emit {
     drain(context);
     return _Shell(
       title: '⭕ Tic-Tac-Toe',
+      introHow: 'Get three in a row before the computer does!',
+      onStart: () => setState(() => _status = GameStatus.playing),
       score: _best,
       best: _best,
       status: _status,
@@ -2114,7 +2124,7 @@ class _BallSortGameState extends State<BallSortGame> with _Emit {
   int _score = 0;
   int _best = 0;
   String? _banner;
-  GameStatus _status = GameStatus.playing;
+  GameStatus _status = GameStatus.ready;
 
   @override
   void initState() {
@@ -2203,6 +2213,8 @@ class _BallSortGameState extends State<BallSortGame> with _Emit {
     drain(context);
     return _Shell(
       title: '🧪 Ball Sort',
+      introHow: 'Tap a tube, then another, to pour. Sort each colour together!',
+      onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,
       status: _status,
@@ -2297,7 +2309,7 @@ class _TapOrderGameState extends State<TapOrderGame> with _Emit {
   int _best = 0;
   String? _banner;
   int _wrongCell = -1;
-  GameStatus _status = GameStatus.playing;
+  GameStatus _status = GameStatus.ready;
 
   @override
   void initState() {
@@ -2356,6 +2368,8 @@ class _TapOrderGameState extends State<TapOrderGame> with _Emit {
     drain(context);
     return _Shell(
       title: '🔢 Tap Order',
+      introHow: 'Tap the numbers in order — 1, 2, 3… as fast as you can!',
+      onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,
       status: _status,
@@ -2627,7 +2641,7 @@ class _BlockBlastGameState extends State<BlockBlastGame> with _Emit {
   int _score = 0;
   int _best = 0;
   String? _banner;
-  GameStatus _status = GameStatus.playing;
+  GameStatus _status = GameStatus.ready;
 
   static const List<Color> _pieceColors = <Color>[
     Color(0xFFEF476F), Color(0xFFFFD166), Color(0xFF06D6A0),
@@ -2782,6 +2796,8 @@ class _BlockBlastGameState extends State<BlockBlastGame> with _Emit {
     drain(context);
     return _Shell(
       title: '🟦 Block Blast',
+      introHow: 'Drag the blocks onto the grid. Fill rows to clear them!',
+      onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,
       status: _status,
@@ -3194,7 +3210,7 @@ class _QuickTapGameState extends State<QuickTapGame>
   int _score = 0;
   int _best = 0;
   int _lastMs = 0;
-  GameStatus _status = GameStatus.playing;
+  GameStatus _status = GameStatus.ready;
 
   @override
   void initState() {
@@ -3287,6 +3303,8 @@ class _QuickTapGameState extends State<QuickTapGame>
             : 'Tap the moment it turns green';
     return _Shell(
       title: '⚡ Quick Tap',
+      introHow: 'Wait for green, then tap fast! Never tap on red.',
+      onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,
       target: _rounds,

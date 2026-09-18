@@ -19,6 +19,8 @@ class _GoalShell extends StatelessWidget {
     this.best = 0,
     this.stars = 0,
     this.message,
+    this.introHow,
+    this.onStart,
   });
 
   final String title;
@@ -32,6 +34,8 @@ class _GoalShell extends StatelessWidget {
   final VoidCallback onReset;
   final Widget child;
   final String? message;
+  final String? introHow;
+  final VoidCallback? onStart;
 
   @override
   Widget build(BuildContext context) {
@@ -106,7 +110,7 @@ class _GoalShell extends StatelessWidget {
             ),
           ),
         ),
-        if (status != GameStatus.playing)
+        if (status == GameStatus.won || status == GameStatus.over)
           Positioned.fill(
             child: ColoredBox(
               color: Colors.black.withOpacity(0.72),
@@ -171,6 +175,73 @@ class _GoalShell extends StatelessWidget {
               ),
             ),
           ),
+        if (status == GameStatus.ready && onStart != null)
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: <Color>[
+                    Colors.black.withOpacity(0.6),
+                    accent.withOpacity(0.3),
+                  ],
+                ),
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text(title.split(' ').first,
+                        style: const TextStyle(fontSize: 72)),
+                    const SizedBox(height: 8),
+                    Text(title,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.w900)),
+                    const SizedBox(height: 10),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
+                      child: Text(introHow ?? goal,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w600,
+                              height: 1.35)),
+                    ),
+                    const SizedBox(height: 22),
+                    FilledButton.icon(
+                      onPressed: () {
+                        TonePlayer.instance.playCue(SoundCue.gameStart);
+                        onStart!();
+                      },
+                      style: FilledButton.styleFrom(
+                        backgroundColor: accent,
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 30, vertical: 14),
+                        textStyle: const TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.w900),
+                      ),
+                      icon: const Icon(Icons.play_arrow_rounded, size: 28),
+                      label: const Text('Play'),
+                    ),
+                    const SizedBox(height: 8),
+                    Builder(
+                      builder: (context) => TextButton(
+                        onPressed: () => Navigator.of(context).maybePop(),
+                        child: const Text('Back to games',
+                            style: TextStyle(color: Colors.white60)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -216,7 +287,7 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> {
   int _wrong = 0;
   int _streak = 0;
   String? _message;
-  GameStatus _status = GameStatus.playing;
+  GameStatus _status = GameStatus.ready;
   late _ChoiceRound _round;
 
   int get _stars => _wrong == 0 ? 3 : (_wrong <= 2 ? 2 : 1);
@@ -276,6 +347,8 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> {
     return _GoalShell(
       title: widget.title,
       goal: widget.goal,
+      introHow: 'Tap the right answer. Get 8 correct to win!',
+      onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       target: _target,
       best: _best,
@@ -430,7 +503,7 @@ class _PathFinderGameState extends State<PathFinderGame> {
   int _step = 0;
   int _best = 0;
   String? _message;
-  GameStatus _status = GameStatus.playing;
+  GameStatus _status = GameStatus.ready;
 
   @override
   void initState() {
@@ -470,6 +543,8 @@ class _PathFinderGameState extends State<PathFinderGame> {
     return _GoalShell(
       title: '🗺️ Path Finder',
       goal: 'Start at the flag · Follow the glowing path to the treasure',
+      introHow: 'Tap each glowing tile to trace a path to the treasure!',
+      onStart: () => setState(() => _status = GameStatus.playing),
       score: _step,
       target: _path.length,
       best: _best,
@@ -565,7 +640,7 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
   double _timeLeft = 1.8;
   double _shotDuration = 1.8;
   String? _message;
-  GameStatus _status = GameStatus.playing;
+  GameStatus _status = GameStatus.ready;
 
   @override
   void initState() {
@@ -651,6 +726,8 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
     return _GoalShell(
       title: '🥅 Goal Keeper',
       goal: 'Tap the glowing goal before the ball arrives · Make 10 saves',
+      introHow: 'Tap the glowing goal to dive and save the shot!',
+      onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       target: _target,
       best: _best,

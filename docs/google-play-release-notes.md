@@ -1,7 +1,7 @@
 # WonderPlay — Google Play Release Notes
 
 ## What's new
-- Energetic new start screens with sound across many games — a clear “how to play” and a big Play button.
+- Every game now opens with an energetic start screen and sound — a clear “how to play” and a big Play button.
 - Rebuilt Bowling: a real perspective lane, flick-to-bowl, tumbling pins and ten proper frames.
 - New Calm experiences: Gravity Garden and Zen Stones, joining Star Weaver and Firefly Glow.
 - More sensory variety in Calm — touch, drag, trace, hold, orbit, stacking, watching and breathing.

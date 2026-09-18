@@ -22,6 +22,8 @@ void main() {
 
   testWidgets('Fruit Catch builds and runs without overflow', (tester) async {
     await _pumpGame(tester, const FruitCatchGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Catch'), findsOneWidget);
     await tester.tap(find.byType(FruitCatchGame), warnIfMissed: false);
     await tester.pump(const Duration(milliseconds: 100));
@@ -30,6 +32,8 @@ void main() {
 
   testWidgets('Balloon Pop builds and runs without overflow', (tester) async {
     await _pumpGame(tester, const BalloonPopGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Pop'), findsOneWidget);
     await tester.tap(find.byType(BalloonPopGame), warnIfMissed: false);
     await tester.pump(const Duration(milliseconds: 100));
@@ -38,6 +42,8 @@ void main() {
 
   testWidgets('Star Tap builds, is playable, and can be won', (tester) async {
     await _pumpGame(tester, const StarTapGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Star Catch'), findsOneWidget);
     // The grid is nine tappable cells; tapping all of them each round always
     // hits the active star, so the score climbs deterministically to a win

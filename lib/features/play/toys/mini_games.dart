@@ -332,7 +332,7 @@ class _FruitCatchGameState extends State<FruitCatchGame>
   int _best = 0;
   double _bannerT = 0;
   String? _banner;
-  GameStatus _status = GameStatus.playing;
+  GameStatus _status = GameStatus.ready;
 
   @override
   void initState() {
@@ -442,6 +442,8 @@ class _FruitCatchGameState extends State<FruitCatchGame>
     drainCompanion(context);
     return _GameShell(
       title: '🧺 Catch',
+      introHow: 'Drag the basket to catch the fruit — dodge the bombs!',
+      onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       target: _target,
       best: _best,
@@ -528,7 +530,7 @@ class _BalloonPopGameState extends State<BalloonPopGame>
   int _best = 0;
   double _bannerT = 0;
   String? _banner;
-  GameStatus _status = GameStatus.playing;
+  GameStatus _status = GameStatus.ready;
 
   @override
   void initState() {
@@ -638,6 +640,8 @@ class _BalloonPopGameState extends State<BalloonPopGame>
     drainCompanion(context);
     return _GameShell(
       title: '🎈 Pop',
+      introHow: 'Tap the balloons to pop them. Pop fast for combos!',
+      onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       target: _target,
       best: _best,
@@ -747,7 +751,7 @@ class _StarTapGameState extends State<StarTapGame>
   String? _banner;
   final List<_StarPop> _pops = <_StarPop>[];
   final List<Offset> _bgStars = <Offset>[];
-  GameStatus _status = GameStatus.playing;
+  GameStatus _status = GameStatus.ready;
 
   @override
   void initState() {
@@ -844,6 +848,8 @@ class _StarTapGameState extends State<StarTapGame>
     drainCompanion(context);
     return _GameShell(
       title: '⭐ Star Catch',
+      introHow: 'Tap the glowing star as fast as you can!',
+      onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       target: _target,
       best: _best,
