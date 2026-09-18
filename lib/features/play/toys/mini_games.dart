@@ -268,7 +268,12 @@ class _GameShell extends StatelessWidget {
                     ],
                     const SizedBox(height: 22),
                     FilledButton.icon(
-                      onPressed: onStart,
+                      onPressed: onStart == null
+                          ? null
+                          : () {
+                              TonePlayer.instance.playCue(SoundCue.gameStart);
+                              onStart!();
+                            },
                       style: FilledButton.styleFrom(
                         backgroundColor: accent,
                         foregroundColor: Colors.black,

@@ -23,6 +23,8 @@ void main() {
 
   testWidgets('Whack builds and accepts taps', (tester) async {
     await _pump(tester, const WhackGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Whack'), findsOneWidget);
     await tester.tapAt(const Offset(300, 800));
     await tester.pump(const Duration(milliseconds: 300));
@@ -83,6 +85,8 @@ void main() {
 
   testWidgets('Brick Break builds and runs the ball', (tester) async {
     await _pump(tester, const BrickBreakGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Brick Break'), findsOneWidget);
     await tester.dragFrom(const Offset(300, 1900), const Offset(120, 0));
     await tester.pump(const Duration(milliseconds: 400));
@@ -92,6 +96,8 @@ void main() {
 
   testWidgets('Space Dodge builds and steers', (tester) async {
     await _pump(tester, const SpaceDodgeGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Space Dodge'), findsOneWidget);
     await tester.dragFrom(const Offset(400, 1900), const Offset(180, 0));
     await tester.pump(const Duration(milliseconds: 500));
@@ -101,6 +107,8 @@ void main() {
 
   testWidgets('Memory Flip builds and flips cards', (tester) async {
     await _pump(tester, const MemoryFlipGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Memory Flip'), findsOneWidget);
     await tester.tapAt(const Offset(300, 1000));
     await tester.pump(const Duration(milliseconds: 200));
@@ -139,6 +147,8 @@ void main() {
 
   testWidgets('Piano Tiles builds and accepts taps', (tester) async {
     await _pump(tester, const PianoTilesGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Piano Tiles'), findsOneWidget);
     await tester.tapAt(const Offset(300, 1200));
     await tester.pump(const Duration(milliseconds: 300));
@@ -158,6 +168,8 @@ void main() {
 
   testWidgets('Bubble Shooter builds and fires', (tester) async {
     await _pump(tester, const BubbleShooterGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Bubble Shooter'), findsOneWidget);
     await tester.tapAt(const Offset(400, 900));
     await tester.pump(const Duration(milliseconds: 300));

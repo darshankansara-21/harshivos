@@ -24,6 +24,8 @@ class _Shell extends StatelessWidget {
     this.overText = 'Good try!',
     this.accent = const Color(0xFFFFD166),
     this.rankByScore = true,
+    this.introHow,
+    this.onStart,
   });
 
   final String title;
@@ -38,6 +40,8 @@ class _Shell extends StatelessWidget {
   final Widget child;
   final Color accent;
   final bool rankByScore;
+  final String? introHow;
+  final VoidCallback? onStart;
 
   @override
   Widget build(BuildContext context) {
@@ -93,7 +97,7 @@ class _Shell extends StatelessWidget {
             ),
           ),
         ),
-        if (status != GameStatus.playing)
+        if (status == GameStatus.won || status == GameStatus.over)
           Positioned.fill(
             child: ColoredBox(
               color: Colors.black.withOpacity(0.6),
@@ -152,6 +156,82 @@ class _Shell extends StatelessWidget {
               ),
             ),
           ),
+        if (status == GameStatus.ready && onStart != null)
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: <Color>[
+                    Colors.black.withOpacity(0.55),
+                    accent.withOpacity(0.28),
+                  ],
+                ),
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text(overEmoji, style: const TextStyle(fontSize: 76)),
+                    const SizedBox(height: 6),
+                    Text(title,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 30,
+                            fontWeight: FontWeight.w900)),
+                    if (introHow != null) ...<Widget>[
+                      const SizedBox(height: 10),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 32),
+                        child: Text(introHow!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w600,
+                                height: 1.35)),
+                      ),
+                    ],
+                    if (best > 0) ...<Widget>[
+                      const SizedBox(height: 12),
+                      Text('Best  ★ $best',
+                          style: TextStyle(
+                              color: accent,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800)),
+                    ],
+                    const SizedBox(height: 22),
+                    FilledButton.icon(
+                      onPressed: () {
+                        TonePlayer.instance.playCue(SoundCue.gameStart);
+                        onStart!();
+                      },
+                      style: FilledButton.styleFrom(
+                        backgroundColor: accent,
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 30, vertical: 14),
+                        textStyle: const TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.w900),
+                      ),
+                      icon: const Icon(Icons.play_arrow_rounded, size: 28),
+                      label: const Text('Play'),
+                    ),
+                    const SizedBox(height: 8),
+                    Builder(
+                      builder: (context) => TextButton(
+                        onPressed: () => Navigator.of(context).maybePop(),
+                        child: const Text('Back to games',
+                            style: TextStyle(color: Colors.white60)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -197,7 +277,7 @@ class _WhackGameState extends State<WhackGame>
   int _best = 0;
   double _bannerT = 0;
   String? _banner;
-  GameStatus _status = GameStatus.playing;
+  GameStatus _status = GameStatus.ready;
 
   @override
   void initState() {
@@ -291,6 +371,8 @@ class _WhackGameState extends State<WhackGame>
     drain(context);
     return _Shell(
       title: '🔨 Whack',
+      introHow: 'Tap the moles as they pop up — but never the bombs!',
+      onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,
       status: _status,
@@ -1309,7 +1391,7 @@ class _BrickBreakGameState extends State<BrickBreakGame>
   int _level = 1;
   String? _banner;
   double _bannerT = 0;
-  GameStatus _status = GameStatus.playing;
+  GameStatus _status = GameStatus.ready;
 
   static const double _paddleW = 0.24;
   static const double _ballR = 0.022;
@@ -1461,6 +1543,8 @@ class _BrickBreakGameState extends State<BrickBreakGame>
     drain(context);
     return _Shell(
       title: '🧱 Brick Break',
+      introHow: 'Move the paddle to bounce the ball and smash every brick!',
+      onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,
       status: _status,
@@ -1591,7 +1675,7 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
   bool _shield = false;
   String? _banner;
   double _bannerT = 0;
-  GameStatus _status = GameStatus.playing;
+  GameStatus _status = GameStatus.ready;
 
   static const double _shipR = 0.045;
 
@@ -1701,6 +1785,8 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
     drain(context);
     return _Shell(
       title: '🚀 Space Dodge',
+      introHow: 'Steer to dodge the meteors. Grab 💎 gems and shields!',
+      onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,
       status: _status,
@@ -1839,7 +1925,7 @@ class _MemoryFlipGameState extends State<MemoryFlipGame> with _Emit {
   int _score = 0;
   int _best = 0;
   String? _banner;
-  GameStatus _status = GameStatus.playing;
+  GameStatus _status = GameStatus.ready;
 
   int get _pairsThisLevel => (5 + _level).clamp(4, _facePool.length);
 
@@ -1861,7 +1947,6 @@ class _MemoryFlipGameState extends State<MemoryFlipGame> with _Emit {
     _second = -1;
     _locked = false;
     _pairs = 0;
-    _status = GameStatus.playing;
   }
 
   void _flash(String s) {
@@ -1936,6 +2021,7 @@ class _MemoryFlipGameState extends State<MemoryFlipGame> with _Emit {
         _score = 0;
         _banner = null;
         _deal();
+        _status = GameStatus.playing;
       });
 
   @override
@@ -1944,6 +2030,8 @@ class _MemoryFlipGameState extends State<MemoryFlipGame> with _Emit {
     final cols = _cards.length <= 12 ? 3 : 4;
     return _Shell(
       title: '🧠 Memory Flip',
+      introHow: 'Flip two cards to find matching pairs. Clear them all!',
+      onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,
       status: _status,
@@ -2361,7 +2449,7 @@ class _PianoTilesGameState extends State<PianoTilesGame>
   int _score = 0;
   int _best = 0;
   int _lastCol = -1;
-  GameStatus _status = GameStatus.playing;
+  GameStatus _status = GameStatus.ready;
 
   @override
   void initState() {
@@ -2452,6 +2540,8 @@ class _PianoTilesGameState extends State<PianoTilesGame>
     drain(context);
     return _Shell(
       title: '🎹 Piano Tiles',
+      introHow: 'Tap the black tiles in time — don’t miss one!',
+      onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,
       status: _status,
@@ -2837,7 +2927,7 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
   int _score = 0;
   int _best = 0;
   String? _banner;
-  GameStatus _status = GameStatus.playing;
+  GameStatus _status = GameStatus.ready;
 
   @override
   void initState() {
@@ -2999,6 +3089,8 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
     drain(context);
     return _Shell(
       title: '🫧 Bubble Shooter',
+      introHow: 'Aim and shoot to match 3 bubbles of the same colour!',
+      onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,
       status: _status,

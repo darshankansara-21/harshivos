@@ -42,6 +42,7 @@ enum SoundCue {
   talkAck,
   routineDone,
   success,
+  gameStart,
   gameOver,
 }
 
@@ -85,6 +86,7 @@ WonderAudioKind _kindForCue(SoundCue cue) => switch (cue) {
       SoundCue.completion =>
         WonderAudioKind.celebration,
       SoundCue.success => WonderAudioKind.success,
+      SoundCue.gameStart => WonderAudioKind.celebration,
       _ => WonderAudioKind.gameplay,
     };
 
@@ -223,6 +225,7 @@ class TonePlayer {
       SoundCue.talkAck || SoundCue.learnGood => 180,
       SoundCue.ripple || SoundCue.routineDone => 400,
       SoundCue.bowling => 500,
+      SoundCue.gameStart => 300,
       SoundCue.success || SoundCue.crash || SoundCue.gameOver => 700,
     };
     if (last != null && now.difference(last).inMilliseconds < cooldown) return;
@@ -321,6 +324,15 @@ class TonePlayer {
         await playNote(7, seconds: 0.14);
         await Future<void>.delayed(const Duration(milliseconds: 70));
         await playNote(9, seconds: 0.34);
+      case SoundCue.gameStart:
+        // A short, bright "let's go" fanfare to kick off a game.
+        await playNote(3, seconds: 0.11);
+        await Future<void>.delayed(const Duration(milliseconds: 60));
+        await playNote(5, seconds: 0.11);
+        await Future<void>.delayed(const Duration(milliseconds: 60));
+        await playNote(7, seconds: 0.10);
+        await Future<void>.delayed(const Duration(milliseconds: 55));
+        await playNote(10, seconds: 0.30);
       case SoundCue.gameOver:
         await _play(300,
             seconds: 0.20, wave: _Wave.sine, attack: 0.02, decay: 5);
