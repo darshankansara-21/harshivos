@@ -23,8 +23,9 @@ toy responds instantly to touch with soft sound and motion.
 🌊 CALM
 Soothing sensory experiences and simple breathing to help a child slow down and
 settle — ripple water, smooth kinetic sand, trace calm constellations in Star
-Weaver, or hold and gather fireflies in Firefly Glow. Adjustable sound and
-reduced motion keep it comfortable.
+Weaver, gather fireflies in Firefly Glow, conduct slow orbits in Gravity Garden,
+or stack a quiet cairn in Zen Stones. Adjustable sound and reduced motion keep
+it comfortable.
 
 💬 TALK
 A friendly picture board. Tap a card and WonderPlay speaks it out loud, so a

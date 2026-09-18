@@ -16,7 +16,9 @@ import '../lifeskills/avatar/pico.dart';
 import 'breathing_exercise.dart';
 import 'calm_sequence_screen.dart';
 import 'firefly_glow.dart';
+import 'gravity_garden.dart';
 import 'star_weaver.dart';
+import 'zen_stones.dart';
 
 /// Calm Me — one-tap emergency regulation. Big, low-pressure mood buttons.
 class CalmMeScreen extends StatefulWidget {
@@ -103,6 +105,14 @@ class _CalmMeScreenState extends State<CalmMeScreen> {
       Color(0x66B6FF9E),
       Color(0x662BD4B4),
     ], () => const FireflyGlowToy()),
+    _CalmActivity('Gravity Garden', '🪐', const <Color>[
+      Color(0x668FD0FF),
+      Color(0x66B6A8FF),
+    ], () => const GravityGardenToy()),
+    _CalmActivity('Zen Stones', '🪨', const <Color>[
+      Color(0x66B8A99A),
+      Color(0x669FB0A6),
+    ], () => const ZenStonesToy()),
   ];
 
   @override

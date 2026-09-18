@@ -1,8 +1,8 @@
 # WonderPlay — Google Play Release Notes
 
 ## What's new
-- New Calm experiences: Star Weaver (trace slow constellations) and Firefly Glow (hold to gather gentle fireflies).
-- More sensory variety in Calm — now spanning touch, drag, trace, hold, watch and breathing.
+- New Calm experiences: Gravity Garden (nudge slow orbiting planets) and Zen Stones (stack a calm cairn), joining Star Weaver and Firefly Glow.
+- More sensory variety in Calm — now spanning touch, drag, trace, hold, orbit, stacking, watching and breathing.
 - Play, Learn, Calm, Talk and Routines — all in one child-friendly companion.
 - A growing collection of playful games and hands-on sensory experiences.
 - Progress, levels and achievements that reward real play.
