@@ -58,6 +58,18 @@ class SensorySettingsScreen extends ConsumerWidget {
               value: preferences.reduceMotion,
               onChanged: notifier.setReduceMotion,
             ),
+            const SizedBox(height: 4),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Background music',
+                  style: TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.w800)),
+              subtitle: const Text(
+                  'Soft music during games (off by default). Still follows mute.',
+                  style: TextStyle(color: Colors.white70)),
+              value: preferences.musicEnabled,
+              onChanged: notifier.setMusicEnabled,
+            ),
             const SizedBox(height: 12),
             const Text(
               'These choices stay on this device. Haptic feedback is not yet controlled here.',

@@ -122,6 +122,7 @@ class SensoryPreferences {
     this.audioLevel = AudioLevel.normal,
     this.reduceMotion = false,
     this.muted = false,
+    this.musicEnabled = false,
   });
 
   final AudioLevel audioLevel;
@@ -131,6 +132,11 @@ class SensoryPreferences {
   /// regardless of [audioLevel] — one switch a child or parent can reach from
   /// the home screen and from inside any game.
   final bool muted;
+
+  /// Optional soft background music during games. Off by default — many
+  /// children are sound-sensitive, so ambient music is something a parent opts
+  /// into, and it still obeys the global mute.
+  final bool musicEnabled;
 
   double get volumeScale => muted
       ? 0
@@ -144,11 +150,13 @@ class SensoryPreferences {
     AudioLevel? audioLevel,
     bool? reduceMotion,
     bool? muted,
+    bool? musicEnabled,
   }) =>
       SensoryPreferences(
         audioLevel: audioLevel ?? this.audioLevel,
         reduceMotion: reduceMotion ?? this.reduceMotion,
         muted: muted ?? this.muted,
+        musicEnabled: musicEnabled ?? this.musicEnabled,
       );
 }
 
@@ -166,6 +174,7 @@ class SensoryPreferencesNotifier extends StateNotifier<SensoryPreferences> {
           ),
           reduceMotion: _storage.readBool('reduce_motion'),
           muted: _storage.readBool('audio_muted'),
+          musicEnabled: _storage.readBool('music_enabled'),
         ));
 
   final LocalStorage _storage;
@@ -186,6 +195,11 @@ class SensoryPreferencesNotifier extends StateNotifier<SensoryPreferences> {
   }
 
   Future<void> toggleMuted() => setMuted(!state.muted);
+
+  Future<void> setMusicEnabled(bool value) async {
+    state = state.copyWith(musicEnabled: value);
+    await _storage.writeBool('music_enabled', value);
+  }
 }
 
 final sensoryPreferencesProvider = StateNotifierProvider<

@@ -59,6 +59,10 @@ enum WonderAudioKind {
   celebration,
 }
 
+/// A soft looping background bed, one per game family. Off unless the parent
+/// opts in (see [TonePlayer.musicEnabled]); always obeys the global mute.
+enum WonderMusicBed { playful, arcade, puzzle }
+
 /// The one audio-loudness policy for the whole app. Values are multipliers on
 /// each sound's intrinsic level, so a companion tap can never be as loud as a
 /// win. Tuned so UI interaction is calm and unobtrusive.
@@ -110,6 +114,12 @@ class TonePlayer {
   int _next = 0;
   bool _ready = false;
   double volumeScale = 1;
+
+  /// Opt-in soft background music. Default off (many children are
+  /// sound-sensitive). Driven from `SensoryPreferences.musicEnabled`.
+  bool musicEnabled = false;
+  AudioPlayer? _musicPlayer;
+  WonderMusicBed? _musicBed;
 
   /// Loudness multiplier for the sound currently being dispatched, set from the
   /// [WonderAudioPolicy] for the duration of a [playCue]. Defaults to 1 so a
@@ -667,6 +677,110 @@ class TonePlayer {
     for (final p in _pool) {
       p.dispose();
     }
+    _musicPlayer?.dispose();
+  }
+
+  // --- Background music -------------------------------------------------------
+
+  /// Applies a live audio change (from `SensoryPreferences`): updates the
+  /// master volume and the music opt-in, stopping or re-leveling any bed.
+  void applyAudio(double scale, bool musicOn) {
+    volumeScale = scale;
+    musicEnabled = musicOn;
+    if (scale <= 0 || !musicOn) {
+      stopMusic();
+    } else {
+      _musicPlayer?.setVolume((0.22 * scale).clamp(0.0, 1.0));
+    }
+  }
+
+  /// Starts (or keeps) the looping bed for a game family. Idempotent, and a
+  /// no-op when music is disabled or muted, so shells can call it every frame.
+  Future<void> startMusic(WonderMusicBed bed) async {
+    if (!musicEnabled || volumeScale <= 0 || !_audioAvailable) {
+      await stopMusic();
+      return;
+    }
+    if (_musicBed == bed && _musicPlayer != null) {
+      await _musicPlayer!.setVolume((0.22 * volumeScale).clamp(0.0, 1.0));
+      return;
+    }
+    try {
+      if (!await _ensureReady()) return;
+      final path = await _fileFor('music_${bed.name}', () => _synthMusicBed(bed));
+      if (path == null) return;
+      final player = _musicPlayer ??= AudioPlayer();
+      await player.setReleaseMode(ReleaseMode.loop);
+      _musicBed = bed;
+      await player.play(DeviceFileSource(path),
+          volume: (0.22 * volumeScale).clamp(0.0, 1.0));
+    } catch (_) {
+      // Best-effort: never let music crash a game.
+    }
+  }
+
+  Future<void> stopMusic() async {
+    _musicBed = null;
+    final p = _musicPlayer;
+    if (p == null) return;
+    try {
+      await p.stop();
+    } catch (_) {}
+  }
+
+  static const Map<WonderMusicBed, List<List<double>>> _bedChords =
+      <WonderMusicBed, List<List<double>>>{
+    // Four gentle chords per 8-second loop (root · third · fifth).
+    WonderMusicBed.playful: <List<double>>[
+      <double>[261.63, 329.63, 392.00], // C
+      <double>[220.00, 261.63, 329.63], // Am
+      <double>[174.61, 220.00, 261.63], // F
+      <double>[196.00, 246.94, 293.66], // G
+    ],
+    WonderMusicBed.arcade: <List<double>>[
+      <double>[261.63, 329.63, 392.00], // C
+      <double>[196.00, 246.94, 293.66], // G
+      <double>[220.00, 261.63, 329.63], // Am
+      <double>[174.61, 220.00, 261.63], // F
+    ],
+    WonderMusicBed.puzzle: <List<double>>[
+      <double>[220.00, 261.63, 329.63], // Am
+      <double>[174.61, 220.00, 261.63], // F
+      <double>[261.63, 329.63, 392.00], // C
+      <double>[196.00, 246.94, 293.66], // G
+    ],
+  };
+
+  /// Renders an 8-second seamless-looping ambient pad: four soft chord swells
+  /// with raised-cosine fades so the loop boundary is silent (no click).
+  Uint8List _synthMusicBed(WonderMusicBed bed) {
+    const seconds = 8.0;
+    const barLen = 2.0;
+    const fade = 0.5;
+    final chords = _bedChords[bed]!;
+    final frames = (seconds * _sampleRate).round();
+    final data = Int16List(frames);
+    for (var i = 0; i < frames; i++) {
+      final t = i / _sampleRate;
+      final bar = (t / barLen).floor().clamp(0, 3);
+      final lt = t - bar * barLen;
+      double env;
+      if (lt < fade) {
+        env = 0.5 - 0.5 * math.cos(math.pi * lt / fade);
+      } else if (lt > barLen - fade) {
+        env = 0.5 - 0.5 * math.cos(math.pi * (barLen - lt) / fade);
+      } else {
+        env = 1.0;
+      }
+      final chord = chords[bar];
+      double s = 0;
+      for (final f in chord) {
+        s += math.sin(2 * math.pi * f * t);
+      }
+      s /= chord.length;
+      data[i] = (s * env * 32767 * 0.16).round().clamp(-32768, 32767);
+    }
+    return _wrapWav(data);
   }
 }
 

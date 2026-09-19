@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/toy/toy_ticker.dart';
+import '../../../services/audio/game_music_host.dart';
 import '../../../services/audio/tone_player.dart';
 import '../../companion/companion.dart';
 
@@ -96,7 +97,10 @@ class _GameShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scoreText = target != null ? '$score / $target' : '$score';
-    return Stack(
+    return GameMusicHost(
+      playing: status == GameStatus.playing,
+      bed: WonderMusicBed.playful,
+      child: Stack(
       fit: StackFit.expand,
       children: <Widget>[
         child,
@@ -299,6 +303,7 @@ class _GameShell extends StatelessWidget {
             ),
           ),
       ],
+    ),
     );
   }
 }

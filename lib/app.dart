@@ -17,7 +17,7 @@ class HarshivApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profileDone = ref.watch(profileCompleteProvider);
     final sensory = ref.watch(sensoryPreferencesProvider);
-    TonePlayer.instance.volumeScale = sensory.volumeScale;
+    TonePlayer.instance.applyAudio(sensory.volumeScale, sensory.musicEnabled);
     return MaterialApp(
       title: 'WonderPlay',
       debugShowCheckedModeBanner: false,

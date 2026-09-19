@@ -2,6 +2,7 @@
 
 ## What's new
 - Every game now opens with an energetic start screen and sound — a clear “how to play” and a big Play button.
+- New optional background music during games — off by default, and it always follows the mute switch (in Sensory settings).
 - Rebuilt Bowling: a real perspective lane, flick-to-bowl, tumbling pins and ten proper frames.
 - New Calm experiences: Gravity Garden and Zen Stones, joining Star Weaver and Firefly Glow.
 - More sensory variety in Calm — touch, drag, trace, hold, orbit, stacking, watching and breathing.

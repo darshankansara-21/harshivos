@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../core/toy/toy_ticker.dart';
+import '../../../services/audio/game_music_host.dart';
 import '../../../services/audio/tone_player.dart';
 import 'mini_games.dart' show GameScores, GameStatus;
 
@@ -39,7 +40,10 @@ class _GoalShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
+    return GameMusicHost(
+      playing: status == GameStatus.playing,
+      bed: WonderMusicBed.puzzle,
+      child: Stack(
       fit: StackFit.expand,
       children: <Widget>[
         child,
@@ -243,6 +247,7 @@ class _GoalShell extends StatelessWidget {
             ),
           ),
       ],
+    ),
     );
   }
 }
