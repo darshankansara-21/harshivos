@@ -746,6 +746,7 @@ class _StarTapGameState extends State<StarTapGame>
   final math.Random _rnd = math.Random();
   int _active = 0;
   int _kind = 0; // 0 = normal star, 1 = gold shooting star (worth 3)
+  int _decoy = -1; // a red star to avoid (-1 = none)
   double _life = 0;
   double _lifeMax = 1.6;
   double _t = 0;
@@ -776,6 +777,16 @@ class _StarTapGameState extends State<StarTapGame>
     // Gold stars are faster; everything speeds up as the score climbs.
     _lifeMax = math.max(0.6, (1.5 - _score * 0.05)) * (_kind == 1 ? 0.7 : 1);
     _life = _lifeMax;
+    // A red decoy appears once a child is doing well; tapping it costs a
+    // point, so the game becomes about looking, not just fast tapping.
+    final decoyChance = _score >= 6 ? math.min(0.55, 0.18 + _score * 0.03) : 0.0;
+    if (decoyChance > 0 && _rnd.nextDouble() < decoyChance) {
+      var d = _rnd.nextInt(_cells);
+      if (d == _active) d = (d + 1) % _cells;
+      _decoy = d;
+    } else {
+      _decoy = -1;
+    }
   }
 
   @override
@@ -799,6 +810,15 @@ class _StarTapGameState extends State<StarTapGame>
 
   void _tapCell(int i) {
     if (_status != GameStatus.playing) return;
+    if (i == _decoy) {
+      _combo = 0;
+      if (_score > 0) _score -= 1;
+      _pops.add(_StarPop(i, '-1'));
+      TonePlayer.instance.playCue(SoundCue.gentleRetry);
+      _flash('Skip the red one!');
+      setState(() {});
+      return;
+    }
     if (i == _active) {
       _combo++;
       final gain = (_kind == 1 ? 3 : 1) + (_combo >= 5 ? 1 : 0);
@@ -843,6 +863,7 @@ class _StarTapGameState extends State<StarTapGame>
       _banner = null;
       _bannerT = 0;
       _pops.clear();
+      _decoy = -1;
       _status = GameStatus.playing;
       _spawnStar();
     });
@@ -879,6 +900,7 @@ class _StarTapGameState extends State<StarTapGame>
                     onTapDown: (_) => _tapCell(i),
                     child: _StarCell(
                       active: i == _active,
+                      decoy: i == _decoy,
                       kind: _kind,
                       lifeFraction: _lifeMax > 0 ? (_life / _lifeMax) : 0,
                       pop: _popFor(i),
@@ -908,11 +930,13 @@ class _StarCell extends StatelessWidget {
     required this.kind,
     required this.lifeFraction,
     required this.pop,
+    this.decoy = false,
   });
   final bool active;
   final int kind;
   final double lifeFraction;
   final _StarPop? pop;
+  final bool decoy;
 
   @override
   Widget build(BuildContext context) {
@@ -933,6 +957,21 @@ class _StarCell extends StatelessWidget {
                 : const <BoxShadow>[],
           ),
         ),
+        if (decoy && !active) ...<Widget>[
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                    color: Colors.redAccent.withOpacity(0.75), width: 2),
+                boxShadow: <BoxShadow>[
+                  BoxShadow(color: Colors.red.withOpacity(0.45), blurRadius: 20),
+                ],
+              ),
+            ),
+          ),
+          const Text('\u{1F534}', style: TextStyle(fontSize: 36)),
+        ],
         if (active) ...<Widget>[
           Positioned.fill(
             child: Padding(
