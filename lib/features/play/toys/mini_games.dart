@@ -1679,26 +1679,75 @@ class _RacingGameState extends State<RacingGame>
   static const String _id = 'racing';
   static const List<double> _laneX = <double>[0.22, 0.5, 0.78];
   static const List<String> _traffic = <String>['🚗', '🚙', '🚕', '🚚'];
+  static const double _raceLen = 1000; // metres to the chequered flag
+  static const int _fieldSize = 4; // you + 3 rivals
   final math.Random _rnd = math.Random();
   final List<_Racer> _cars = <_Racer>[];
+  // The rival pack we are racing against.
+  final List<double> _rivals = <double>[]; // metres travelled
+  final List<double> _rivalMps = <double>[]; // pace per rival
+  final List<int> _rivalLane = <int>[];
   int _lane = 1;
   double _spawnIn = 0.9;
   double _t = 0;
-  double _aliveAcc = 0;
-  double _speed = 0.55;
+  double _speed = 0.55; // visual road scroll
+  double _distance = 0; // our progress down the track
   double _boostT = 0;
+  double _shuntT = 0; // temporary slow-down after a knock
+  int _finishPlace = 0;
   int _score = 0;
   int _best = 0;
   double _bannerT = 0;
   String? _banner;
   GameStatus _status = GameStatus.ready;
 
+  int get _place {
+    var ahead = 0;
+    for (final r in _rivals) {
+      if (r > _distance) ahead++;
+    }
+    return ahead + 1;
+  }
+
+  double get _mps {
+    var v = 95.0 + _score * 0.04; // pace lifts a little as you score
+    if (_boostT > 0) v += 75;
+    if (_shuntT > 0) v *= 0.42;
+    return v;
+  }
+
   @override
   void initState() {
     super.initState();
+    _startRace();
     GameScores.instance.ensureLoaded().then((_) {
       if (mounted) setState(() => _best = GameScores.instance.best(_id));
     });
+  }
+
+  void _startRace() {
+    _cars.clear();
+    _rivals
+      ..clear()
+      ..addAll(<double>[0, 0, 0]);
+    _rivalMps.clear();
+    _rivalLane
+      ..clear()
+      ..addAll(<int>[0, 2, 1]);
+    for (var i = 0; i < 3; i++) {
+      _rivalMps.add(88 + _rnd.nextDouble() * 20); // 88..108 mps
+    }
+    _lane = 1;
+    _distance = 0;
+    _speed = 0.55;
+    _boostT = 0;
+    _shuntT = 0;
+    _finishPlace = 0;
+    _score = 0;
+    _spawnIn = 0.9;
+    _t = 0;
+    _banner = null;
+    _bannerT = 0;
   }
 
   @override
@@ -1710,20 +1759,29 @@ class _RacingGameState extends State<RacingGame>
       if (_bannerT <= 0) _banner = null;
     }
     if (_boostT > 0) _boostT -= dt;
-    _speed = 0.55 + _score * 0.003;
-    _aliveAcc += dt;
-    if (_aliveAcc >= 0.6) {
-      _aliveAcc -= 0.6;
-      _score += _boostT > 0 ? 2 : 1;
+    if (_shuntT > 0) _shuntT -= dt;
+
+    // Advance ourselves and the rival pack down the track.
+    final mps = _mps;
+    _distance += mps * dt;
+    _speed = 0.5 + mps / 240; // couple the road scroll to our pace
+    for (var i = 0; i < _rivals.length; i++) {
+      _rivals[i] += _rivalMps[i] * dt;
     }
+    if (_distance >= _raceLen) {
+      _finish();
+      return;
+    }
+
+    // Spawn + advance traffic in screen space.
     _spawnIn -= dt;
     if (_spawnIn <= 0) {
-      _spawnIn = math.max(0.5, 1.0 - _score * 0.004) *
+      _spawnIn = math.max(0.45, 0.95 - _distance / _raceLen * 0.4) *
           (0.7 + _rnd.nextDouble() * 0.6);
       final lane = _rnd.nextInt(3);
       final roll = _rnd.nextDouble();
       final boost = roll < 0.08;
-      final coin = !boost && roll < 0.38;
+      final coin = !boost && roll < 0.36;
       _cars.add(_Racer(lane, -0.1, coin, boost,
           boost ? '⚡' : (coin ? '🪙' : _traffic[_rnd.nextInt(_traffic.length)])));
     }
@@ -1733,7 +1791,7 @@ class _RacingGameState extends State<RacingGame>
     _cars.removeWhere((c) {
       if (c.y >= 0.78 && c.y <= 0.92 && c.lane == _lane) {
         if (c.boost) {
-          _boostT = 4.0;
+          _boostT = 3.5;
           TonePlayer.instance.playCue(SoundCue.success);
           emit(ExperienceEvent.bubblePopped);
           _flash('⚡ Boost!');
@@ -1747,26 +1805,31 @@ class _RacingGameState extends State<RacingGame>
           return true;
         }
         if (_boostT > 0) {
-          // Boosting smashes through traffic instead of crashing.
+          // Boosting barges traffic aside instead of losing pace.
           _score += 2;
           TonePlayer.instance.playCue(SoundCue.crash);
           _flash('Smash! +2');
           return true;
         }
-        _crash();
+        // A knock is not fatal — it costs pace and drops you back in the field.
+        _shuntT = 1.2;
+        _distance = math.max(0, _distance - 25);
+        TonePlayer.instance.playCue(SoundCue.crash);
+        emit(ExperienceEvent.incorrectAnswer);
+        _flash('Shunt! lost pace');
         return true;
       }
       return c.y > 1.05;
     });
   }
 
-  void _crash() {
-    final prev = GameScores.instance.best(_id);
-    _status = GameStatus.over;
-    TonePlayer.instance.playCue(SoundCue.crash);
-    emit(_score > prev
-        ? ExperienceEvent.gameCompleted
-        : ExperienceEvent.incorrectAnswer);
+  void _finish() {
+    _status = GameStatus.won;
+    _finishPlace = _place;
+    _score += <int>[60, 30, 15, 5][(_finishPlace - 1).clamp(0, 3)];
+    TonePlayer.instance
+        .playCue(_finishPlace == 1 ? SoundCue.success : SoundCue.gameOver);
+    emit(ExperienceEvent.gameCompleted);
     GameScores.instance.submit(_id, _score).then((b) {
       if (mounted) setState(() => _best = b);
     });
@@ -1785,15 +1848,7 @@ class _RacingGameState extends State<RacingGame>
 
   void _reset() {
     setState(() {
-      _cars.clear();
-      _lane = 1;
-      _score = 0;
-      _speed = 0.55;
-      _boostT = 0;
-      _spawnIn = 0.9;
-      _aliveAcc = 0;
-      _banner = null;
-      _bannerT = 0;
+      _startRace();
       _status = GameStatus.playing;
     });
   }
@@ -1801,23 +1856,38 @@ class _RacingGameState extends State<RacingGame>
   @override
   Widget build(BuildContext context) {
     drainCompanion(context);
+    final remaining = (_raceLen - _distance).clamp(0, _raceLen);
     return _GameShell(
       title: '🏎️ Street Racer',
       score: _score,
       best: _best,
       status: _status,
-      banner: _banner ?? (_boostT > 0 ? '⚡ BOOST' : null),
-      overEmoji: '🏁',
-      overText: 'Crash!',
+      banner: _banner ??
+          (_boostT > 0
+              ? '⚡ BOOST · P$_place'
+              : 'P$_place/$_fieldSize · ${remaining.round()}m to flag'),
+      overEmoji: _status == GameStatus.won
+          ? (_finishPlace == 1 ? '🏆' : '🏁')
+          : '🏁',
+      overText: _status == GameStatus.won
+          ? (_finishPlace == 1
+              ? 'P1 — you won the race!'
+              : 'Finished P$_finishPlace')
+          : 'Race on!',
       accent: const Color(0xFFFF6B6B),
-      introHow: 'Tap left or right to switch lanes.\n'
-          'Dodge traffic, grab 🪙 coins and ⚡ boosts!',
+      introHow: 'Reach the 🏁 chequered flag ahead of 3 rivals.\n'
+          'Tap left/right to change lanes, grab 🪙 coins and ⚡ boosts, '
+          'dodge traffic — a knock costs pace but never ends the race.',
       onStart: () => setState(() => _status = GameStatus.playing),
       onPlayAgain: _reset,
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth;
           final h = c.maxHeight;
+          // Finish line rolls into view over the final 150 m.
+          final finishY = remaining <= 150
+              ? 0.08 + (1 - remaining / 150) * 0.72
+              : -1.0;
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTapDown: (d) => _move(d.localPosition.dx < w / 2 ? -1 : 1),
@@ -1826,7 +1896,28 @@ class _RacingGameState extends State<RacingGame>
             child: Stack(
               children: <Widget>[
                 Positioned.fill(
-                    child: CustomPaint(painter: _RoadPainter(_t * _speed))),
+                  child: CustomPaint(
+                    painter: _RoadPainter(
+                      _t * _speed,
+                      progress: (_distance / _raceLen).clamp(0.0, 1.0),
+                      finishY: finishY,
+                    ),
+                  ),
+                ),
+                // Rival racers, placed by how far ahead/behind us they are.
+                for (var i = 0; i < _rivals.length; i++)
+                  if (() {
+                    final ry = 0.8 - (_rivals[i] - _distance) / 320;
+                    return ry >= -0.02 && ry <= 0.95;
+                  }())
+                    Positioned(
+                      left: _laneX[_rivalLane[i]] * w - 22,
+                      top: (0.8 - (_rivals[i] - _distance) / 320) * h - 26,
+                      child: const Opacity(
+                        opacity: 0.9,
+                        child: Text('🚘', style: TextStyle(fontSize: 42)),
+                      ),
+                    ),
                 for (final car in _cars)
                   Positioned(
                     left: _laneX[car.lane] * w - 24,
@@ -1849,8 +1940,10 @@ class _RacingGameState extends State<RacingGame>
 }
 
 class _RoadPainter extends CustomPainter {
-  _RoadPainter(this.scroll);
+  _RoadPainter(this.scroll, {this.progress = 0, this.finishY = -1});
   final double scroll;
+  final double progress; // 0..1 down the track
+  final double finishY; // normalized y of the finish line, or <0 if hidden
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1867,6 +1960,41 @@ class _RoadPainter extends CustomPainter {
         canvas.drawLine(Offset(x, y + 8), Offset(x, y + 30), dash);
       }
     }
+
+    // Chequered finish line sweeping down as we approach the flag.
+    if (finishY >= 0) {
+      final y = finishY * size.height;
+      const cell = 22.0;
+      final cols = (size.width / cell).ceil();
+      for (var cx = 0; cx < cols; cx++) {
+        final dark = cx.isEven;
+        canvas.drawRect(
+          Rect.fromLTWH(cx * cell, y - cell, cell, cell),
+          Paint()..color = dark ? Colors.black : Colors.white,
+        );
+        canvas.drawRect(
+          Rect.fromLTWH(cx * cell, y, cell, cell),
+          Paint()..color = dark ? Colors.white : Colors.black,
+        );
+      }
+    }
+
+    // Slim progress bar down the right edge of the track.
+    final barH = size.height * 0.6;
+    final barTop = size.height * 0.2;
+    final barX = size.width - 10;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+          Rect.fromLTWH(barX - 3, barTop, 6, barH), const Radius.circular(3)),
+      Paint()..color = Colors.white24,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+          Rect.fromLTWH(barX - 3, barTop + barH * (1 - progress), 6,
+              barH * progress),
+          const Radius.circular(3)),
+      Paint()..color = const Color(0xFFFFD166),
+    );
   }
 
   @override

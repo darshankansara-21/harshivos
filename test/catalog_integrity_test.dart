@@ -13,6 +13,7 @@ void main() {
     'ball_sort', 'tap_order', 'piano_tiles', 'block_blast', 'bubble_shooter',
     'color_quest', 'shape_scout', 'number_splash', 'path_finder', 'goal_keeper',
     'trace_it', 'quick_tap',
+    'pinball',
   ];
 
   test('every registered game is playable, reachable and implemented', () {

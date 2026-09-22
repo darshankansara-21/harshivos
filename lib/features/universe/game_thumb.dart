@@ -44,6 +44,7 @@ class GameThumb extends StatelessWidget {
     'goal_keeper',
     'trace_it',
     'quick_tap',
+    'pinball',
   };
 
   @override
@@ -136,6 +137,8 @@ class _ThumbPainter extends CustomPainter {
         _traceIt(canvas, w, h);
       case 'quick_tap':
         _quickTap(canvas, w, h);
+      case 'pinball':
+        _pinball(canvas, w, h);
     }
   }
 
@@ -779,6 +782,27 @@ class _ThumbPainter extends CustomPainter {
       ..lineTo(w * 0.5, h * 0.44)
       ..close();
     canvas.drawPath(bolt, Paint()..color = Colors.white);
+  }
+
+  void _pinball(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF2A1A5A), Color(0xFF1A1140)]);
+    // Glowing bumpers.
+    for (final o in const [Offset(0.32, 0.30), Offset(0.66, 0.26), Offset(0.5, 0.5)]) {
+      canvas.drawCircle(Offset(w * o.dx, h * o.dy), w * 0.11,
+          Paint()..color = const Color(0xFFFF6BAA));
+      canvas.drawCircle(Offset(w * o.dx, h * o.dy), w * 0.05,
+          Paint()..color = Colors.white.withOpacity(0.8));
+    }
+    // Flippers.
+    final flip = Paint()
+      ..color = const Color(0xFFFFC857)
+      ..strokeWidth = w * 0.05
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(Offset(w * 0.3, h * 0.88), Offset(w * 0.46, h * 0.8), flip);
+    canvas.drawLine(Offset(w * 0.7, h * 0.88), Offset(w * 0.54, h * 0.8), flip);
+    // Ball.
+    canvas.drawCircle(Offset(w * 0.74, h * 0.66), w * 0.06,
+        Paint()..color = Colors.white);
   }
 
   @override

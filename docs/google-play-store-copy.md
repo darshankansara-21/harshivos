@@ -17,7 +17,8 @@ WonderPlay is built around five simple doors:
 
 🧸 PLAY
 Dozens of hands-on toys and gentle games — pop bubbles, smooth sand, swirl
-fluid, guide a slither snake, sort colours, trace shapes, and much more. Every
+fluid, guide a slither snake, race rivals to the chequered flag, flip a pinball,
+sort colours, trace shapes, and much more. Every
 toy responds instantly to touch with soft sound and motion.
 
 🌊 CALM

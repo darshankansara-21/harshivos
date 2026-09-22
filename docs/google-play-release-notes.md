@@ -1,6 +1,8 @@
 # WonderPlay — Google Play Release Notes
 
 ## What's new
+- New game — Pinball! Bounce the ball off glowing bumpers and use the flippers to keep it alive.
+- Rebuilt Street Racer into a real race — chase down three rivals to the chequered flag, with live placement and a finish line.
 - Star Catch adds a new challenge — skip the red decoy stars as you speed up.
 - Every game now opens with an energetic start screen and sound — a clear “how to play” and a big Play button.
 - New optional background music during games — off by default, and it always follows the mute switch (in Sensory settings).
