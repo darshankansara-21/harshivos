@@ -305,6 +305,39 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('Pattern Weaver builds and answers', (tester) async {
+    await _pump(tester, const PatternWeaverGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('Pattern Weaver'), findsOneWidget);
+    await tester.tapAt(const Offset(200, 760));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Balloon Math builds and pops', (tester) async {
+    await _pump(tester, const BalloonMathGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('Balloon Math'), findsOneWidget);
+    await tester.tapAt(const Offset(200, 450));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Dot-to-Dot builds and connects', (tester) async {
+    await _pump(tester, const DotToDotGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('Dot-to-Dot'), findsOneWidget);
+    await tester.tapAt(const Offset(300, 300));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Ball Sort builds and accepts taps', (tester) async {
     await _pump(tester, const BallSortGame());
     await tester.tap(find.widgetWithText(FilledButton, 'Play'));

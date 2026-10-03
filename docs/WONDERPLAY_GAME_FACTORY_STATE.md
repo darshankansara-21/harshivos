@@ -2,11 +2,11 @@
 
 **Mandatory resume file.** On a new context: READ THIS FIRST, then resume from "NEXT EXACT ACTION". Never restart the sprint.
 
-- **HEAD at last update:** 5d52c1a == origin/main (clean) — learn batch SHIPPED
+- **HEAD at last update:** 079311d == origin/main — pattern batch (pattern_weaver, balloon_math, dot_to_dot) pending commit
 - **Version:** 1.0.42+43 (HELD — no bump during factory; release builds are LAST)
 - **Updated:** 2026-10-03
-- **Tests:** 125 pass · **Analyze:** 112 info / 0 warnings / 0 errors
-- **Catalog:** 42 games (39 + firefly_count, sorting_train, shadow_match) + 20 sensory toys
+- **Tests:** 43 focused pass (arcade+catalog); full suite running
+- **Catalog:** 45 games (42 + pattern_weaver, balloon_math, dot_to_dot) + 20 sensory toys
 - **Note:** build machine pub-get is network-stalling on fresh terminals; use `flutter test --no-pub` / `flutter analyze --no-pub` once deps are resolved once per session.
 - **Device QA:** BLOCKED (phone off USB since sprint #3; needs physical replug). Not sprint-ending — continue implementation; run accumulated QA when device returns.
 
@@ -88,12 +88,13 @@ All 30 games meet the gameplay quality bar (clear in 5s · satisfying in 30s · 
 | Shadow Match | match/visual | arcade_games.dart | POLISHED (tests green) |
 
 ## Next backlog (auto-generated)
-1. Pattern Weaver (repeat/extend a colour pattern)
-2. Balloon Math (pop the balloon with the right sum)
-3. Dot-to-Dot (tap numbered dots in order to reveal a picture)
-4. Rhythm Clap (copy a clap rhythm)
+1. ~~Pattern Weaver~~ SHIPPED
+2. ~~Balloon Math~~ SHIPPED
+3. ~~Dot-to-Dot~~ SHIPPED
+4. Rhythm Clap (copy a clap rhythm — tap in time)
 5. Shape Builder (drag tangram pieces to fill an outline)
 6. Memory Pairs Deluxe (themed memory with streak scoring)
+7. (then generate next: Bug Catch, Weather Sort, Letter Trace, Spot the Difference, Maze Marble, Piano Song)
 
 ## NEXT EXACT ACTION
-Commit the learn batch (Firefly Count + Sorting Train + Shadow Match) once full `flutter test --no-pub` + `flutter analyze --no-pub` are green, then build the next batch starting with **Pattern Weaver** + **Balloon Math** + **Dot-to-Dot**. Wire all 6 sites each; test; commit; update this file. Keep going through the auto-generated backlog, regenerating when exhausted.
+Commit the pattern batch (Pattern Weaver + Balloon Math + Dot-to-Dot) once full `flutter test --no-pub` + `flutter analyze --no-pub` are green, then build **Rhythm Clap** + **Shape Builder** + **Memory Pairs Deluxe**. Wire all 6 sites each; test; commit; update this file. Then generate the next backlog and continue.

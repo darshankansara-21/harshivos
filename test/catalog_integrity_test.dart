@@ -28,6 +28,9 @@ void main() {
     'firefly_count',
     'sorting_train',
     'shadow_match',
+    'pattern_weaver',
+    'balloon_math',
+    'dot_to_dot',
   ];
 
   test('every registered game is playable, reachable and implemented', () {

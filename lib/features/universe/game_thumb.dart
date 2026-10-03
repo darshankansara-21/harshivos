@@ -59,6 +59,9 @@ class GameThumb extends StatelessWidget {
     'firefly_count',
     'sorting_train',
     'shadow_match',
+    'pattern_weaver',
+    'balloon_math',
+    'dot_to_dot',
   };
 
   @override
@@ -181,6 +184,12 @@ class _ThumbPainter extends CustomPainter {
         _sortingTrain(canvas, w, h);
       case 'shadow_match':
         _shadowMatch(canvas, w, h);
+      case 'pattern_weaver':
+        _patternWeaver(canvas, w, h);
+      case 'balloon_math':
+        _balloonMath(canvas, w, h);
+      case 'dot_to_dot':
+        _dotToDot(canvas, w, h);
     }
   }
 
@@ -1099,6 +1108,54 @@ class _ThumbPainter extends CustomPainter {
     for (var i = 0; i < 3; i++) {
       canvas.drawCircle(Offset(w * (0.28 + i * 0.22), h * 0.74), w * 0.08,
           Paint()..color = Colors.black.withOpacity(0.7));
+    }
+  }
+
+  void _patternWeaver(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF1E2A3A), Color(0xFF131C28)]);
+    const colors = <Color>[
+      Color(0xFFFF6B6B), Color(0xFFFFD166), Color(0xFFFF6B6B), Color(0xFFFFD166)
+    ];
+    for (var i = 0; i < 4; i++) {
+      canvas.drawCircle(Offset(w * (0.2 + i * 0.2), h * 0.4), w * 0.08,
+          Paint()..color = colors[i]);
+    }
+    canvas.drawCircle(Offset(w * 0.2 + w * 0.8, h * 0.4), w * 0.08,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3
+          ..color = Colors.white70);
+  }
+
+  void _balloonMath(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF9BD7F0), Color(0xFFD9F0FA)]);
+    const colors = <Color>[
+      Color(0xFFFF6B6B), Color(0xFF63E6BE), Color(0xFFB197FC)
+    ];
+    for (var i = 0; i < 3; i++) {
+      canvas.drawOval(
+          Rect.fromCenter(
+              center: Offset(w * (0.28 + i * 0.22), h * 0.5),
+              width: w * 0.16,
+              height: w * 0.2),
+          Paint()..color = colors[i]);
+    }
+  }
+
+  void _dotToDot(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF20283A), Color(0xFF141A28)]);
+    final pts = <Offset>[
+      Offset(w * 0.3, h * 0.3), Offset(w * 0.7, h * 0.35),
+      Offset(w * 0.6, h * 0.7), Offset(w * 0.3, h * 0.3)
+    ];
+    final line = Paint()
+      ..color = const Color(0xFFFFD166)
+      ..strokeWidth = 3;
+    for (var i = 1; i < pts.length; i++) {
+      canvas.drawLine(pts[i - 1], pts[i], line);
+    }
+    for (final p in pts.take(3)) {
+      canvas.drawCircle(p, w * 0.05, Paint()..color = Colors.white);
     }
   }
 
