@@ -46,6 +46,7 @@ class GameThumb extends StatelessWidget {
     'quick_tap',
     'pinball',
     'basketball',
+    'mini_golf',
   };
 
   @override
@@ -142,6 +143,8 @@ class _ThumbPainter extends CustomPainter {
         _pinball(canvas, w, h);
       case 'basketball':
         _basketball(canvas, w, h);
+      case 'mini_golf':
+        _miniGolf(canvas, w, h);
     }
   }
 
@@ -826,6 +829,31 @@ class _ThumbPainter extends CustomPainter {
         Paint()
           ..color = const Color(0xFF7A3A12)
           ..strokeWidth = 2);
+  }
+
+  void _miniGolf(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF2E9E5B), Color(0xFF1C6B3C)]);
+    // Cup + flag.
+    final cup = Offset(w * 0.62, h * 0.42);
+    canvas.drawCircle(cup, w * 0.07, Paint()..color = const Color(0xFF123A1E));
+    canvas.drawLine(cup, Offset(cup.dx, cup.dy - h * 0.26),
+        Paint()
+          ..color = Colors.white70
+          ..strokeWidth = 2);
+    final flag = Path()
+      ..moveTo(cup.dx, cup.dy - h * 0.26)
+      ..lineTo(cup.dx + w * 0.16, cup.dy - h * 0.22)
+      ..lineTo(cup.dx, cup.dy - h * 0.18)
+      ..close();
+    canvas.drawPath(flag, Paint()..color = const Color(0xFFE23B3B));
+    // Ball + aim dots.
+    canvas.drawCircle(Offset(w * 0.3, h * 0.78), w * 0.06,
+        Paint()..color = Colors.white);
+    final dot = Paint()..color = Colors.white60;
+    for (var i = 1; i <= 3; i++) {
+      canvas.drawCircle(
+          Offset(w * (0.3 + i * 0.08), h * (0.78 - i * 0.09)), 2.5, dot);
+    }
   }
 
   @override

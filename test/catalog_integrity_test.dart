@@ -15,6 +15,7 @@ void main() {
     'trace_it', 'quick_tap',
     'pinball',
     'basketball',
+    'mini_golf',
   ];
 
   test('every registered game is playable, reachable and implemented', () {

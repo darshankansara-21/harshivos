@@ -740,7 +740,6 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
   // Goal mouth + keeper plane, in normalised canvas space.
   static const double _goalLeft = 0.14;
   static const double _goalRight = 0.86;
-  static const double _crossbarY = 0.12;
   static const double _lineY = 0.34; // where the keeper stands
   static const double _spotY = 0.88; // penalty spot
   static const double _reach = 0.11; // how far the keeper's dive covers
@@ -766,7 +765,6 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
   bool _lastSaved = false;
 
   int _score = 0; // saves
-  int _conceded = 0;
   int _lives = 5;
   int _streak = 0;
   int _shotNum = 0;
@@ -784,7 +782,6 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
 
   void _begin() {
     _score = 0;
-    _conceded = 0;
     _lives = 5;
     _streak = 0;
     _shotNum = 0;
@@ -878,7 +875,6 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
         return;
       }
     } else {
-      _conceded++;
       _lives--;
       _streak = 0;
       _lastSaved = false;

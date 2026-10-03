@@ -162,6 +162,17 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('Mini Golf builds and putts', (tester) async {
+    await _pump(tester, const MiniGolfGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('Mini Golf'), findsOneWidget);
+    await tester.drag(find.byType(MiniGolfGame), const Offset(-40, -300));
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pump(const Duration(seconds: 1));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Ball Sort builds and accepts taps', (tester) async {
     await _pump(tester, const BallSortGame());
     await tester.tap(find.widgetWithText(FilledButton, 'Play'));
