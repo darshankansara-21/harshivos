@@ -14,6 +14,7 @@ void main() {
     'color_quest', 'shape_scout', 'number_splash', 'path_finder', 'goal_keeper',
     'trace_it', 'quick_tap',
     'pinball',
+    'basketball',
   ];
 
   test('every registered game is playable, reachable and implemented', () {

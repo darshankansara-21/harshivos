@@ -45,6 +45,7 @@ class GameThumb extends StatelessWidget {
     'trace_it',
     'quick_tap',
     'pinball',
+    'basketball',
   };
 
   @override
@@ -139,6 +140,8 @@ class _ThumbPainter extends CustomPainter {
         _quickTap(canvas, w, h);
       case 'pinball':
         _pinball(canvas, w, h);
+      case 'basketball':
+        _basketball(canvas, w, h);
     }
   }
 
@@ -803,6 +806,26 @@ class _ThumbPainter extends CustomPainter {
     // Ball.
     canvas.drawCircle(Offset(w * 0.74, h * 0.66), w * 0.06,
         Paint()..color = Colors.white);
+  }
+
+  void _basketball(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF123A6B), Color(0xFF0B2342)]);
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(
+            Rect.fromLTWH(w * 0.36, h * 0.12, w * 0.28, h * 0.17),
+            const Radius.circular(4)),
+        Paint()..color = Colors.white);
+    canvas.drawLine(Offset(w * 0.4, h * 0.32), Offset(w * 0.6, h * 0.32),
+        Paint()
+          ..color = const Color(0xFFFF6B35)
+          ..strokeWidth = w * 0.03
+          ..strokeCap = StrokeCap.round);
+    canvas.drawCircle(Offset(w * 0.5, h * 0.68), w * 0.12,
+        Paint()..color = const Color(0xFFEE7B30));
+    canvas.drawLine(Offset(w * 0.38, h * 0.68), Offset(w * 0.62, h * 0.68),
+        Paint()
+          ..color = const Color(0xFF7A3A12)
+          ..strokeWidth = 2);
   }
 
   @override
