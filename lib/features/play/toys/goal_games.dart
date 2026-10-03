@@ -485,7 +485,9 @@ class ColorQuestGame extends StatelessWidget {
 class ShapeScoutGame extends StatelessWidget {
   const ShapeScoutGame({super.key});
 
-  static const List<String> _shapes = <String>['●', '■', '▲', '◆'];
+  static const List<String> _shapes = <String>[
+    '●', '■', '▲', '◆', '★', '♥', '♠', '♣'
+  ];
 
   @override
   Widget build(BuildContext context) => _ChoiceGoalGame(
@@ -495,8 +497,9 @@ class ShapeScoutGame extends StatelessWidget {
         accent: const Color(0xFF4CC9F0),
         background: const <Color>[Color(0xFF123A52), Color(0xFF081D2E)],
         buildRound: (round, random) {
-          final options = List<String>.of(_shapes)..shuffle(random);
-          final answer = random.nextInt(options.length);
+          final choices = List<String>.of(_shapes)..shuffle(random);
+          final options = choices.take(4).toList();
+          final answer = random.nextInt(4);
           return _ChoiceRound('Match  ${options[answer]}', options, answer);
         },
       );
@@ -691,7 +694,7 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
   static const double _crossbarY = 0.12;
   static const double _lineY = 0.34; // where the keeper stands
   static const double _spotY = 0.88; // penalty spot
-  static const double _reach = 0.135; // how far the keeper's dive covers
+  static const double _reach = 0.11; // how far the keeper's dive covers
   double _kMin = _goalLeft + 0.05;
   double _kMax = _goalRight - 0.05;
 
