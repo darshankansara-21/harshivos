@@ -206,6 +206,29 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('Drum Garden builds and plays pads', (tester) async {
+    await _pump(tester, const DrumGardenGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('Drum Garden'), findsOneWidget);
+    await tester.tapAt(const Offset(200, 300));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Color Mixer builds and pours', (tester) async {
+    await _pump(tester, const ColorMixerGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('Color Mixer'), findsOneWidget);
+    await tester.tap(find.text('Red'));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.text('Yellow'));
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Ball Sort builds and accepts taps', (tester) async {
     await _pump(tester, const BallSortGame());
     await tester.tap(find.widgetWithText(FilledButton, 'Play'));

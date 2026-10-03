@@ -5752,4 +5752,488 @@ class _BubbleWrapPainter extends CustomPainter {
   bool shouldRepaint(_BubbleWrapPainter old) => true;
 }
 
+/// Drum Garden — six singing pads. Tap freely to make music, then follow the
+/// growing tune (a musical Simon). Match an 8-note tune to win.
+class DrumGardenGame extends StatefulWidget {
+  const DrumGardenGame({super.key});
+  @override
+  State<DrumGardenGame> createState() => _DrumGardenGameState();
+}
+
+class _DrumGardenGameState extends State<DrumGardenGame>
+    with TickerProviderStateMixin, ToyTicker, _Emit {
+  static const String _id = 'drum_garden';
+  static const int _pads = 6;
+  static const int _cols = 3;
+  static const int _target = 8;
+  static const List<int> _notes = <int>[0, 2, 4, 7, 9, 11];
+  static const List<Color> _colors = <Color>[
+    Color(0xFFFF6B6B),
+    Color(0xFFFFB84D),
+    Color(0xFFFFE066),
+    Color(0xFF8CE99A),
+    Color(0xFF66D9E8),
+    Color(0xFFB197FC),
+  ];
+  final math.Random _rnd = math.Random();
+  final List<int> _seq = <int>[];
+  int _inputIdx = 0;
+  int _phase = 0; // 0 free, 1 showing, 2 input, 3 result
+  int _showIdx = 0;
+  double _showT = 0;
+  double _nextT = 0;
+  int _flashPad = -1;
+  double _flashT = 0;
+  int _lives = 3;
+  int _best = 0;
+  String? _banner;
+  double _bannerT = 0;
+  GameStatus _status = GameStatus.ready;
+
+  @override
+  void initState() {
+    super.initState();
+    GameScores.instance.ensureLoaded().then((_) {
+      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+    });
+  }
+
+  void _flash(String s) {
+    _banner = s;
+    _bannerT = 1.4;
+  }
+
+  void _startRound() {
+    _seq.add(_rnd.nextInt(_pads));
+    _phase = 1;
+    _showIdx = 0;
+    _showT = 0.5;
+    _inputIdx = 0;
+  }
+
+  void _replaySequence() {
+    _phase = 1;
+    _showIdx = 0;
+    _showT = 0.5;
+    _inputIdx = 0;
+  }
+
+  @override
+  void onTick(double dt) {
+    if (_status != GameStatus.playing) return;
+    if (_bannerT > 0) {
+      _bannerT -= dt;
+      if (_bannerT <= 0) _banner = null;
+    }
+    if (_flashT > 0) {
+      _flashT -= dt;
+      if (_flashT <= 0) _flashPad = -1;
+    }
+    if (_phase == 1) {
+      _showT -= dt;
+      if (_showT <= 0) {
+        if (_showIdx < _seq.length) {
+          _flashPad = _seq[_showIdx];
+          _flashT = 0.4;
+          TonePlayer.instance.playNote(_notes[_seq[_showIdx]], seconds: 0.3);
+          _showIdx++;
+          _showT = 0.62;
+        } else {
+          _phase = 2;
+          _inputIdx = 0;
+        }
+      }
+    } else if (_phase == 3) {
+      _nextT -= dt;
+      if (_nextT <= 0) _startRound();
+    }
+  }
+
+  void _tapPad(int i) {
+    if (_status != GameStatus.playing) return;
+    if (_phase == 1) return; // watching the tune
+    _flashPad = i;
+    _flashT = 0.3;
+    TonePlayer.instance.playNote(_notes[i], seconds: 0.28);
+    if (_phase != 2) return; // free play between rounds
+    if (i == _seq[_inputIdx]) {
+      _inputIdx++;
+      if (_inputIdx >= _seq.length) {
+        _phase = 3;
+        _nextT = 0.8;
+        emit(ExperienceEvent.bubblePopped);
+        if (_seq.length >= _target) {
+          _status = GameStatus.won;
+          TonePlayer.instance.playCue(SoundCue.gameStart);
+          emit(ExperienceEvent.gameCompleted);
+        } else {
+          _flash('Nice! 🥁 Tune of ${_seq.length}');
+          GameScores.instance.submit(_id, _seq.length).then((b) {
+            if (mounted) setState(() => _best = b);
+          });
+        }
+      }
+    } else {
+      _lives--;
+      if (_lives <= 0) {
+        _status = GameStatus.over;
+        TonePlayer.instance.playCue(SoundCue.gentleRetry);
+      } else {
+        _flash('Listen again · ${'💛' * _lives}');
+        _replaySequence();
+      }
+    }
+  }
+
+  void _reset() {
+    setState(() {
+      _seq.clear();
+      _inputIdx = 0;
+      _phase = 0;
+      _flashPad = -1;
+      _flashT = 0;
+      _lives = 3;
+      _banner = null;
+      _bannerT = 0;
+      _nextT = 0;
+      _status = GameStatus.playing;
+      _startRound();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    drain(context);
+    final phaseLabel = _phase == 1
+        ? 'Listen… 🎵'
+        : _phase == 2
+            ? 'Your turn! ${_inputIdx}/${_seq.length}'
+            : 'Tap the pads';
+    return _Shell(
+      title: '🥁 Drum Garden',
+      introHow:
+          'Tap the singing pads to make music, then repeat the tune you hear. It grows each round!',
+      onStart: () => setState(() {
+        _status = GameStatus.playing;
+        _startRound();
+      }),
+      score: _seq.isEmpty ? 0 : _seq.length,
+      best: _best,
+      target: _target,
+      status: _status,
+      banner: _banner ?? '$phaseLabel · ${'💛' * _lives}',
+      overEmoji: '🥁',
+      overText: _seq.length >= _target ? 'What a tune!' : 'Keep the beat!',
+      accent: const Color(0xFFB197FC),
+      onPlayAgain: _reset,
+      child: LayoutBuilder(
+        builder: (context, c) {
+          final w = c.maxWidth, h = c.maxHeight;
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTapDown: (d) {
+              final col = (d.localPosition.dx / w * _cols).floor();
+              final row = (d.localPosition.dy / h * 2).floor();
+              final idx = row * _cols + col;
+              if (idx >= 0 && idx < _pads) _tapPad(idx);
+            },
+            child: CustomPaint(
+              painter: _DrumPainter(
+                cols: _cols,
+                pads: _pads,
+                colors: _colors,
+                flashPad: _flashPad,
+                flashT: _flashT,
+              ),
+              size: Size.infinite,
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _DrumPainter extends CustomPainter {
+  _DrumPainter({
+    required this.cols,
+    required this.pads,
+    required this.colors,
+    required this.flashPad,
+    required this.flashT,
+  });
+  final int cols, pads;
+  final List<Color> colors;
+  final int flashPad;
+  final double flashT;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    canvas.drawRect(
+        Offset.zero & size,
+        Paint()
+          ..shader = const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: <Color>[Color(0xFF241B3A), Color(0xFF15102A)],
+          ).createShader(Offset.zero & size));
+    final rows = (pads / cols).ceil();
+    final cw = w / cols, ch = h / rows;
+    for (var i = 0; i < pads; i++) {
+      final col = i % cols, row = i ~/ cols;
+      final c = Offset((col + 0.5) * cw, (row + 0.5) * ch);
+      final r = math.min(cw, ch) * 0.38;
+      final lit = flashPad == i ? (flashT / 0.4).clamp(0.0, 1.0) : 0.0;
+      canvas.drawCircle(c, r + lit * 10,
+          Paint()..color = colors[i].withOpacity(0.25 + lit * 0.4));
+      canvas.drawCircle(c, r, Paint()..color = colors[i].withOpacity(0.85));
+      canvas.drawCircle(c, r * 0.6,
+          Paint()..color = Colors.white.withOpacity(0.15 + lit * 0.5));
+      canvas.drawCircle(c, r,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 3
+            ..color = Colors.white.withOpacity(0.3 + lit * 0.6));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DrumPainter old) => true;
+}
+
+/// Color Mixer — drop primary paints into the bowl to match the target colour.
+/// Teaches mixing (red + yellow = orange) through play. Match eight to win.
+class ColorMixerGame extends StatefulWidget {
+  const ColorMixerGame({super.key});
+  @override
+  State<ColorMixerGame> createState() => _ColorMixerGameState();
+}
+
+class _ColorMixerGameState extends State<ColorMixerGame> with _Emit {
+  static const String _id = 'color_mixer';
+  static const int _target = 8;
+  // Primaries as (r,g,b) 0..1: red, yellow, blue, white.
+  static const List<List<double>> _dye = <List<double>>[
+    <double>[0.90, 0.20, 0.22],
+    <double>[0.98, 0.85, 0.22],
+    <double>[0.20, 0.45, 0.90],
+    <double>[0.96, 0.96, 0.96],
+  ];
+  static const List<String> _dyeName = <String>['Red', 'Yellow', 'Blue', 'White'];
+  static const List<Color> _dyeColor = <Color>[
+    Color(0xFFE63339),
+    Color(0xFFFAD938),
+    Color(0xFF3373E6),
+    Color(0xFFF5F5F5),
+  ];
+  // Recipes: name + primary indices.
+  static const List<List<int>> _recipes = <List<int>>[
+    <int>[0, 1], // orange
+    <int>[1, 2], // green
+    <int>[0, 2], // purple
+    <int>[0, 1, 2], // brown
+    <int>[0, 3], // pink
+    <int>[2, 3], // sky
+  ];
+  static const List<String> _recipeName = <String>[
+    'Orange', 'Green', 'Purple', 'Brown', 'Pink', 'Sky blue',
+  ];
+  final math.Random _rnd = math.Random();
+  final List<int> _drops = <int>[];
+  int _recipe = 0;
+  int _score = 0;
+  int _best = 0;
+  String? _banner;
+  GameStatus _status = GameStatus.ready;
+
+  @override
+  void initState() {
+    super.initState();
+    GameScores.instance.ensureLoaded().then((_) {
+      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+    });
+  }
+
+  List<double> _mixOf(List<int> drops) {
+    if (drops.isEmpty) return <double>[0.96, 0.96, 0.96];
+    var r = 0.0, g = 0.0, b = 0.0;
+    for (final d in drops) {
+      r += _dye[d][0];
+      g += _dye[d][1];
+      b += _dye[d][2];
+    }
+    return <double>[r / drops.length, g / drops.length, b / drops.length];
+  }
+
+  List<double> get _targetRgb => _mixOf(_recipes[_recipe]);
+
+  Color _toColor(List<double> c) =>
+      Color.fromARGB(255, (c[0] * 255).round(), (c[1] * 255).round(),
+          (c[2] * 255).round());
+
+  void _newTarget() {
+    _recipe = _rnd.nextInt(_recipes.length);
+    _drops.clear();
+  }
+
+  void _addDrop(int i) {
+    if (_status != GameStatus.playing) return;
+    setState(() {
+      _drops.add(i);
+      TonePlayer.instance.playPop(0.6 + _drops.length * 0.03);
+      final mix = _mixOf(_drops);
+      final t = _targetRgb;
+      final dist = math.sqrt(math.pow(mix[0] - t[0], 2) +
+          math.pow(mix[1] - t[1], 2) +
+          math.pow(mix[2] - t[2], 2));
+      if (_drops.length >= 2 && dist < 0.14) {
+        _score++;
+        _banner = 'Matched ${_recipeName[_recipe]}! 🎨';
+        emit(ExperienceEvent.bubblePopped);
+        TonePlayer.instance.playCue(SoundCue.success);
+        GameScores.instance.submit(_id, _score).then((b) {
+          if (mounted) setState(() => _best = b);
+        });
+        if (_score >= _target) {
+          _status = GameStatus.won;
+          TonePlayer.instance.playCue(SoundCue.gameStart);
+          emit(ExperienceEvent.gameCompleted);
+        } else {
+          _newTarget();
+        }
+      }
+    });
+  }
+
+  void _clearBowl() {
+    if (_status != GameStatus.playing) return;
+    setState(() => _drops.clear());
+  }
+
+  void _reset() {
+    setState(() {
+      _score = 0;
+      _banner = null;
+      _newTarget();
+      _status = GameStatus.playing;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    drain(context);
+    final target = _toColor(_targetRgb);
+    final mix = _toColor(_mixOf(_drops));
+    return _Shell(
+      title: '🎨 Color Mixer',
+      introHow:
+          'Tap the paint drops to pour them in and match the target colour. Red + yellow = orange!',
+      onStart: () => setState(() {
+        _newTarget();
+        _status = GameStatus.playing;
+      }),
+      score: _score,
+      best: _best,
+      target: _target,
+      status: _status,
+      banner: _banner ?? 'Make ${_recipeName[_recipe]}',
+      overEmoji: '🎨',
+      overText: 'Master mixer!',
+      accent: const Color(0xFFE0407A),
+      onPlayAgain: _reset,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: <Widget>[
+            Column(
+              children: <Widget>[
+                Text('Make ${_recipeName[_recipe]}',
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700)),
+                const SizedBox(height: 8),
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    color: target,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white54, width: 3),
+                  ),
+                ),
+              ],
+            ),
+            Column(
+              children: <Widget>[
+                const Text('Your bowl',
+                    style: TextStyle(color: Colors.white70, fontSize: 13)),
+                const SizedBox(height: 6),
+                TweenAnimationBuilder<Color?>(
+                  tween: ColorTween(begin: mix, end: mix),
+                  duration: const Duration(milliseconds: 250),
+                  builder: (context, c, _) => Container(
+                    width: 108,
+                    height: 108,
+                    decoration: BoxDecoration(
+                      color: c ?? mix,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 4),
+                      boxShadow: const <BoxShadow>[
+                        BoxShadow(color: Colors.black38, blurRadius: 8)
+                      ],
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(_drops.isEmpty ? 'empty' : '${_drops.length}',
+                        style: TextStyle(
+                            color: Colors.black.withOpacity(0.45),
+                            fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                for (var i = 0; i < _dye.length; i++)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    child: GestureDetector(
+                      onTap: () => _addDrop(i),
+                      child: Column(
+                        children: <Widget>[
+                          Container(
+                            width: 56,
+                            height: 56,
+                            decoration: BoxDecoration(
+                              color: _dyeColor[i],
+                              shape: BoxShape.circle,
+                              border:
+                                  Border.all(color: Colors.white70, width: 2),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(_dyeName[i],
+                              style: const TextStyle(
+                                  color: Colors.white70, fontSize: 11)),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            TextButton.icon(
+              onPressed: _clearBowl,
+              icon: const Icon(Icons.refresh, color: Colors.white70, size: 18),
+              label: const Text('Empty the bowl',
+                  style: TextStyle(color: Colors.white70)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 

@@ -50,6 +50,8 @@ class GameThumb extends StatelessWidget {
     'air_hockey',
     'target_toss',
     'bubble_wrap',
+    'drum_garden',
+    'color_mixer',
   };
 
   @override
@@ -154,6 +156,10 @@ class _ThumbPainter extends CustomPainter {
         _targetToss(canvas, w, h);
       case 'bubble_wrap':
         _bubbleWrap(canvas, w, h);
+      case 'drum_garden':
+        _drumGarden(canvas, w, h);
+      case 'color_mixer':
+        _colorMixer(canvas, w, h);
     }
   }
 
@@ -911,6 +917,40 @@ class _ThumbPainter extends CustomPainter {
               Paint()..color = Colors.white);
         }
       }
+    }
+  }
+
+  void _drumGarden(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF241B3A), Color(0xFF15102A)]);
+    const colors = <Color>[
+      Color(0xFFFF6B6B), Color(0xFFFFB84D), Color(0xFFFFE066),
+      Color(0xFF8CE99A), Color(0xFF66D9E8), Color(0xFFB197FC),
+    ];
+    const cols = 3, rows = 2;
+    final cw = w / cols, ch = h / rows;
+    final r = math.min(cw, ch) * 0.34;
+    for (var i = 0; i < 6; i++) {
+      final c = Offset(((i % cols) + 0.5) * cw, ((i ~/ cols) + 0.5) * ch);
+      canvas.drawCircle(c, r, Paint()..color = colors[i]);
+      canvas.drawCircle(c, r * 0.55, Paint()..color = Colors.white24);
+    }
+  }
+
+  void _colorMixer(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFFE0407A), Color(0xFF3A1F33)]);
+    canvas.drawCircle(Offset(w * 0.5, h * 0.45), w * 0.22,
+        Paint()..color = const Color(0xFFF08A3C));
+    canvas.drawCircle(Offset(w * 0.5, h * 0.45), w * 0.22,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3
+          ..color = Colors.white);
+    const drops = <Color>[
+      Color(0xFFE63339), Color(0xFFFAD938), Color(0xFF3373E6)
+    ];
+    for (var i = 0; i < 3; i++) {
+      canvas.drawCircle(Offset(w * (0.28 + i * 0.22), h * 0.82), w * 0.07,
+          Paint()..color = drops[i]);
     }
   }
 

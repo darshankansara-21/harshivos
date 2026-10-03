@@ -210,6 +210,14 @@ const List<ToyMeta> kToyCatalog = <ToyMeta>[
       implemented: true,
       gradient: [Color(0xFF5FB2E6), Color(0xFF8FC2DC)],
       channels: [SensoryChannel.visual, SensoryChannel.tactile]),
+  ToyMeta(id: 'drum_garden', title: 'Drum Garden', emoji: '🥁',
+      implemented: true,
+      gradient: [Color(0xFFB197FC), Color(0xFF241B3A)],
+      channels: [SensoryChannel.visual, SensoryChannel.auditory]),
+  ToyMeta(id: 'color_mixer', title: 'Color Mixer', emoji: '🎨',
+      implemented: true,
+      gradient: [Color(0xFFE0407A), Color(0xFF3A1F33)],
+      channels: [SensoryChannel.visual]),
 ];
 
 ToyMeta toyMetaById(String id) =>

@@ -19,6 +19,8 @@ void main() {
     'air_hockey',
     'target_toss',
     'bubble_wrap',
+    'drum_garden',
+    'color_mixer',
   ];
 
   test('every registered game is playable, reachable and implemented', () {

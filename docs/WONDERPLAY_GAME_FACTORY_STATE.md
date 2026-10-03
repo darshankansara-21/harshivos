@@ -2,11 +2,11 @@
 
 **Mandatory resume file.** On a new context: READ THIS FIRST, then resume from "NEXT EXACT ACTION". Never restart the sprint.
 
-- **HEAD at last update:** 21f59f8 == origin/main (clean) — sports/calm batch (air_hockey, target_toss, bubble_wrap) pending commit
+- **HEAD at last update:** 05189c6 == origin/main (clean) — music/creative batch (drum_garden, color_mixer) pending commit
 - **Version:** 1.0.42+43 (HELD — no bump during factory; release builds are LAST)
 - **Updated:** 2026-10-03
-- **Tests:** 31 focused pass (arcade+catalog); full suite pending
-- **Catalog:** 33 games (30 + air_hockey + target_toss + bubble_wrap) + 20 sensory toys
+- **Tests:** 33 focused pass (arcade+catalog); full suite 116 green last run
+- **Catalog:** 35 games (30 + air_hockey, target_toss, bubble_wrap, drum_garden, color_mixer) + 20 sensory toys
 - **Device QA:** BLOCKED (phone off USB since sprint #3; needs physical replug). Not sprint-ending — continue implementation; run accumulated QA when device returns.
 
 ## Build/terminal facts (critical)
@@ -73,12 +73,14 @@ All 30 games meet the gameplay quality bar (clear in 5s · satisfying in 30s · 
 |------|----------|------|--------|
 | Basketball | sports | arcade_games.dart | SHIPPED (b89288c) |
 | Mini Golf | sports | arcade_games.dart | SHIPPED (21f59f8) |
-| Air Hockey | sports | arcade_games.dart | POLISHED (tests green) |
-| Target Toss | sports | arcade_games.dart | POLISHED (tests green) |
-| Bubble Wrap | calm/sensory | arcade_games.dart | POLISHED (tests green) |
-| Drum Garden | music | arcade_games.dart | CONCEPT → BUILDING NEXT |
-| Color Mixer | creative | arcade_games.dart | CONCEPT |
-| (then generate next backlog: Fishing, Beat Builder, Maze, Catch-the-Beat, Firefly Count, Simon-tones…) | | | |
+| Air Hockey | sports | arcade_games.dart | SHIPPED (05189c6) |
+| Target Toss | sports | arcade_games.dart | SHIPPED (05189c6) |
+| Bubble Wrap | calm/sensory | arcade_games.dart | SHIPPED (05189c6) |
+| Drum Garden | music | arcade_games.dart | POLISHED (tests green) |
+| Color Mixer | creative | arcade_games.dart | POLISHED (tests green) |
+| Fishing | sports/calm | arcade_games.dart | CONCEPT → NEXT |
+| Maze Run | puzzle | arcade_games.dart | CONCEPT → NEXT |
+| Simon Says / Light Chase | reaction | arcade_games.dart | CONCEPT |
 
 ## NEXT EXACT ACTION
-Commit the sports/calm batch (Air Hockey + Target Toss + Bubble Wrap) once `flutter test` + `flutter analyze` are green, then build **Drum Garden** (tap pads = instant notes, free-play + call-and-response rounds) and **Color Mixer** (drag primary drops together to discover a target colour) in the next batch; wire all 6 sites each; test; commit; update this file.
+Commit the music/creative batch (Drum Garden + Color Mixer) once full `flutter test` + `flutter analyze` are green, then build the next batch: **Fishing** (cast + bite-timing + reel) and **Maze Run** (tilt/drag a dot to the exit, collect keys) — wire all 6 sites each; test; commit; update this file. Keep generating backlog as needed (Beat Builder, Catch-the-Beat, Firefly Count, Sorting Train, Shadow Match).
