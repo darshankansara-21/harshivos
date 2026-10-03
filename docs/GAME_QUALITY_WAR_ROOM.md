@@ -16,7 +16,7 @@ responsive touch/sound/visual feedback · clear scoring · real progression · W
 | bowling | Ten-Pin Bowling | TRANSFORMED | Perspective lane, flick-to-bowl, topple chain, 10 frames. Device-verified. |
 | racing | Street Racer | TRANSFORMED | Real race: 1000m track, finish line, 3 rivals, placement, non-fatal shunts. Device-verified. |
 | snake | Snake · Orbs | TRANSFORMED | Slither + AI worms + gold orbs + combos + particle juice + boost glow. Device-verified. |
-| star_tap | Star Catch | IN_PROGRESS | Has gold + combo + red decoys. Needs: star variety, timing, special stars, clearer arc. |
+| star_tap | Star Catch | TRANSFORMED | Gold +3, rainbow +5, Quick! timing bonus, on-fire combo, wave shooting-stars. |
 | fruit_catch | Fruit Catch | NOT_STARTED | Review vs gate. |
 | balloon_pop | Balloon Pop | NOT_STARTED | Already has gold/bomb/combo; review feel + juice. |
 
@@ -38,7 +38,7 @@ responsive touch/sound/visual feedback · clear scoring · real progression · W
 | space_dodge | Space Dodge | IN_PROGRESS | Added thruster + collect bursts. Review. |
 | bubble_shooter | Bubble Shooter | IN_PROGRESS | Added pop particles. Review. |
 | sky_hop | Sky Hop | IN_PROGRESS | Added coin sparkles + flap puffs. Review. |
-| piano_tiles | Piano Tiles | NOT_STARTED | PRIORITY: immediate sound benchmark; polish note feedback. |
+| piano_tiles | Piano Tiles | TRANSFORMED | Tiles carry a pentatonic melody (tap = play a tune), pitch-coloured tiles, column hit-flash. |
 | stack | Stack | NOT_STARTED | Has perfect-streak; review. |
 | merge | Merge | NOT_STARTED | Review. |
 | echo | Echo | NOT_STARTED | Review. |
@@ -60,8 +60,8 @@ responsive touch/sound/visual feedback · clear scoring · real progression · W
 3. Bowling — DONE (TRANSFORMED)
 4. Snake — DONE (TRANSFORMED)
 5. Pinball — DONE (TRANSFORMED)
-6. Star Catch — IN_PROGRESS
-7. Piano/Music — NEXT
+6. Star Catch — DONE (TRANSFORMED)
+7. Piano/Music — Piano Tiles TRANSFORMED; Music Garden (free-play) VERIFIED-GOOD, preserved.
 
 ## Shared systems in place
 Start card (all shell games) · gameStart fanfare · opt-in ambient music (mute-gated) ·
