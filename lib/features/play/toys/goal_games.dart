@@ -253,11 +253,12 @@ class _GoalShell extends StatelessWidget {
 }
 
 class _ChoiceRound {
-  const _ChoiceRound(this.prompt, this.options, this.answer);
+  const _ChoiceRound(this.prompt, this.options, this.answer, {this.colors});
 
   final String prompt;
   final List<String> options;
   final int answer;
+  final List<Color>? colors;
 }
 
 typedef _RoundBuilder = _ChoiceRound Function(int round, math.Random random);
@@ -291,6 +292,7 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> {
   int _roundNumber = 0;
   int _wrong = 0;
   int _streak = 0;
+  int _wrongIndex = -1;
   String? _message;
   GameStatus _status = GameStatus.ready;
   late _ChoiceRound _round;
@@ -312,6 +314,7 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> {
       setState(() {
         _wrong++;
         _streak = 0;
+        _wrongIndex = index;
         _message = 'Try another one';
       });
       TonePlayer.instance.playCue(SoundCue.gentleRetry);
@@ -319,6 +322,7 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> {
     }
     TonePlayer.instance.playCue(SoundCue.correct);
     setState(() {
+      _wrongIndex = -1;
       _score++;
       _roundNumber++;
       _streak++;
@@ -341,6 +345,7 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> {
       _roundNumber = 0;
       _wrong = 0;
       _streak = 0;
+      _wrongIndex = -1;
       _message = null;
       _status = GameStatus.playing;
       _round = widget.buildRound(_roundNumber, _random);
@@ -394,28 +399,46 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> {
                     childAspectRatio: 1.45,
                   ),
                   itemCount: _round.options.length,
-                  itemBuilder: (context, index) => Semantics(
-                    button: true,
-                    label: _round.options[index],
-                    child: Material(
-                      color: Colors.white.withOpacity(0.14),
-                      borderRadius: BorderRadius.circular(20),
-                      child: InkWell(
-                        key: ValueKey('${widget.id}-option-$index'),
-                        onTap: () => _choose(index),
+                  itemBuilder: (context, index) {
+                    final swatch =
+                        _round.colors != null ? _round.colors![index] : null;
+                    final isWrong = index == _wrongIndex;
+                    return Semantics(
+                      button: true,
+                      label: _round.options[index],
+                      child: Material(
+                        color: swatch ?? Colors.white.withOpacity(0.14),
                         borderRadius: BorderRadius.circular(20),
-                        child: Center(
-                          child: Text(_round.options[index],
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 30,
-                                fontWeight: FontWeight.w900,
-                              )),
+                        child: InkWell(
+                          key: ValueKey('${widget.id}-option-$index'),
+                          onTap: () => _choose(index),
+                          borderRadius: BorderRadius.circular(20),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              border: isWrong
+                                  ? Border.all(
+                                      color: Colors.redAccent, width: 4)
+                                  : (swatch != null
+                                      ? Border.all(
+                                          color: Colors.white24, width: 2)
+                                      : null),
+                            ),
+                            alignment: Alignment.center,
+                            child: swatch != null
+                                ? const SizedBox.shrink()
+                                : Text(_round.options[index],
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 30,
+                                      fontWeight: FontWeight.w900,
+                                    )),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
+                    );
+                  },
                 ),
               ],
             ),
@@ -433,6 +456,15 @@ class ColorQuestGame extends StatelessWidget {
     'RED', 'BLUE', 'GREEN', 'YELLOW', 'ORANGE', 'PURPLE'
   ];
 
+  static const Map<String, Color> _swatch = <String, Color>{
+    'RED': Color(0xFFE63946),
+    'BLUE': Color(0xFF4361EE),
+    'GREEN': Color(0xFF2A9D8F),
+    'YELLOW': Color(0xFFFFD166),
+    'ORANGE': Color(0xFFF77F00),
+    'PURPLE': Color(0xFF9B5DE5),
+  };
+
   @override
   Widget build(BuildContext context) => _ChoiceGoalGame(
         id: 'color_quest',
@@ -441,10 +473,11 @@ class ColorQuestGame extends StatelessWidget {
         accent: const Color(0xFFFFD166),
         background: const <Color>[Color(0xFF28205A), Color(0xFF111836)],
         buildRound: (round, random) {
-          final answer = random.nextInt(4);
           final choices = List<String>.of(_colors)..shuffle(random);
           final options = choices.take(4).toList();
-          return _ChoiceRound('Find ${options[answer]}', options, answer);
+          final answer = random.nextInt(4);
+          return _ChoiceRound('Tap ${options[answer]}', options, answer,
+              colors: <Color>[for (final o in options) _swatch[o]!]);
         },
       );
 }

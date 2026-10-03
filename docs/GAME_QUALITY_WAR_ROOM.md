@@ -17,16 +17,16 @@ responsive touch/sound/visual feedback · clear scoring · real progression · W
 | racing | Street Racer | TRANSFORMED | Real race: 1000m track, finish line, 3 rivals, placement, non-fatal shunts. Device-verified. |
 | snake | Snake · Orbs | TRANSFORMED | Slither + AI worms + gold orbs + combos + particle juice + boost glow. Device-verified. |
 | star_tap | Star Catch | TRANSFORMED | Gold +3, rainbow +5, Quick! timing bonus, on-fire combo, wave shooting-stars. |
-| fruit_catch | Fruit Catch | NOT_STARTED | Review vs gate. |
-| balloon_pop | Balloon Pop | NOT_STARTED | Already has gold/bomb/combo; review feel + juice. |
+| fruit_catch | Fruit Catch | TRANSFORMED | Catch-splash particles + gold/combo/bombs. |
+| balloon_pop | Balloon Pop | TRANSFORMED | Pop-burst particles + gold/bomb/combo. |
 
 ### goal_games.dart
 | id | name | status | notes |
 |----|------|--------|-------|
 | goal_keeper | Goal Keeper | TRANSFORMED | REBUILT: real goal, keeper slides to read+dive a flying ball; curve shots, lives, streaks, sparks. Needs device QA. |
-| color_quest | Color Quest | NOT_STARTED | Choice game; review. |
-| shape_scout | Shape Scout | NOT_STARTED | Choice game; review. |
-| number_splash | Number Splash | NOT_STARTED | Choice game; review. |
+| color_quest | Color Quest | TRANSFORMED | Now real COLOR SWATCHES (tap a colour, not a word) + wrong-tile red flash. |
+| shape_scout | Shape Scout | TRANSFORMED | Wrong-tile red flash; visual glyph matching. |
+| number_splash | Number Splash | TRANSFORMED | Wrong-tile red flash. |
 | path_finder | Path Finder | NOT_STARTED | Review. |
 
 ### arcade_games.dart
