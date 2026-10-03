@@ -276,6 +276,7 @@ class _WhackGameState extends State<WhackGame>
   final math.Random _rnd = math.Random();
   final List<double> _mole = List<double>.filled(_holes, 0); // seconds left
   final List<bool> _isBomb = List<bool>.filled(_holes, false);
+  final List<double> _splat = List<double>.filled(_holes, 0); // hit burst timer
   double _spawnIn = 0.7;
   int _score = 0;
   int _combo = 0;
@@ -300,6 +301,7 @@ class _WhackGameState extends State<WhackGame>
       if (_bannerT <= 0) _banner = null;
     }
     for (var i = 0; i < _holes; i++) {
+      if (_splat[i] > 0) _splat[i] -= dt;
       if (_mole[i] > 0) {
         _mole[i] -= dt;
         if (_mole[i] <= 0) {
@@ -344,6 +346,7 @@ class _WhackGameState extends State<WhackGame>
       }
       _combo++;
       _score += 1 + (_combo >= 5 ? 1 : 0);
+      _splat[i] = 0.35;
       TonePlayer.instance.playCue(SoundCue.wood);
       emit(ExperienceEvent.bubblePopped);
       if (_combo >= 5) {
@@ -361,6 +364,7 @@ class _WhackGameState extends State<WhackGame>
       for (var i = 0; i < _holes; i++) {
         _mole[i] = 0;
         _isBomb[i] = false;
+        _splat[i] = 0;
       }
       _score = 0;
       _combo = 0;
@@ -410,11 +414,25 @@ class _WhackGameState extends State<WhackGame>
                       border: Border.all(color: const Color(0xFF4A3420), width: 3),
                     ),
                     alignment: Alignment.center,
-                    child: AnimatedScale(
-                      scale: _mole[i] > 0 ? 1 : 0,
-                      duration: const Duration(milliseconds: 120),
-                      child: Text(_isBomb[i] ? '💣' : '🐹',
-                          style: const TextStyle(fontSize: 46)),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: <Widget>[
+                        AnimatedScale(
+                          scale: _mole[i] > 0 ? 1 : 0,
+                          duration: const Duration(milliseconds: 120),
+                          child: Text(_isBomb[i] ? '💣' : '🐹',
+                              style: const TextStyle(fontSize: 46)),
+                        ),
+                        if (_splat[i] > 0)
+                          Opacity(
+                            opacity: (_splat[i] / 0.35).clamp(0.0, 1.0),
+                            child: Transform.scale(
+                              scale: 1 + (1 - _splat[i] / 0.35) * 1.5,
+                              child: const Text('💥',
+                                  style: TextStyle(fontSize: 44)),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
@@ -1388,6 +1406,13 @@ class BrickBreakGame extends StatefulWidget {
   State<BrickBreakGame> createState() => _BrickBreakGameState();
 }
 
+class _Shard {
+  _Shard(this.x, this.y, this.vx, this.vy, this.color) : life = 0.5;
+  double x, y, vx, vy;
+  final Color color;
+  double life;
+}
+
 class _BrickBreakGameState extends State<BrickBreakGame>
     with TickerProviderStateMixin, ToyTicker, _Emit {
   static const String _id = 'brick_break';
@@ -1395,6 +1420,7 @@ class _BrickBreakGameState extends State<BrickBreakGame>
   final math.Random _rnd = math.Random();
   int _rowCount = 4;
   List<bool> _bricks = List<bool>.filled(_cols * 4, true);
+  final List<_Shard> _shards = <_Shard>[];
   double _paddleX = 0.5; // centre, 0..1
   double _bx = 0.5, _by = 0.6; // ball centre
   double _vx = 0.34, _vy = -0.55; // ball velocity (per second)
@@ -1468,7 +1494,16 @@ class _BrickBreakGameState extends State<BrickBreakGame>
 
   @override
   void onTick(double dt) {
-    if (_status != GameStatus.playing || !_started) return;
+    if (_status != GameStatus.playing) return;
+    for (var i = _shards.length - 1; i >= 0; i--) {
+      final s = _shards[i];
+      s.x += s.vx * dt;
+      s.y += s.vy * dt;
+      s.vy += 0.8 * dt;
+      s.life -= dt;
+      if (s.life <= 0) _shards.removeAt(i);
+    }
+    if (!_started) return;
     if (_bannerT > 0) {
       _bannerT -= dt;
       if (_bannerT <= 0) _banner = null;
@@ -1514,6 +1549,16 @@ class _BrickBreakGameState extends State<BrickBreakGame>
         _bricks[i] = false;
         _vy = -_vy;
         _score++;
+        final cx = c * (1.0 / _cols) + (1.0 / _cols) / 2;
+        final cy = 0.1 + r * 0.05 + 0.021;
+        final col =
+            HSVColor.fromAHSV(1, (r * 55).toDouble(), 0.6, 0.95).toColor();
+        for (var s = 0; s < 7; s++) {
+          final a = _rnd.nextDouble() * math.pi * 2;
+          final sp = 0.25 + _rnd.nextDouble() * 0.35;
+          _shards.add(_Shard(
+              cx, cy, math.cos(a) * sp, math.sin(a) * sp - 0.1, col));
+        }
         TonePlayer.instance.playCue(SoundCue.brick);
         emit(ExperienceEvent.bubblePopped);
         GameScores.instance.submit(_id, _score).then((b) {
@@ -1544,6 +1589,7 @@ class _BrickBreakGameState extends State<BrickBreakGame>
       _speedMul = 1;
       _rowCount = 4;
       _buildBricks();
+      _shards.clear();
       _paddleX = 0.5;
       _serveBall();
       _score = 0;
@@ -1576,7 +1622,7 @@ class _BrickBreakGameState extends State<BrickBreakGame>
             onPanDown: (d) => _aim(d.localPosition.dx, constraints.maxWidth),
             child: CustomPaint(
               painter: _BrickPainter(_bricks, _cols, _paddleX, _paddleW, _bx,
-                  _by, _ballR, _started),
+                  _by, _ballR, _started, _shards),
               size: Size.infinite,
             ),
           );
@@ -1588,7 +1634,7 @@ class _BrickBreakGameState extends State<BrickBreakGame>
 
 class _BrickPainter extends CustomPainter {
   _BrickPainter(this.bricks, this.cols, this.paddleX, this.paddleW, this.bx,
-      this.by, this.ballR, this.started);
+      this.by, this.ballR, this.started, this.shards);
   final List<bool> bricks;
   final int cols;
   final double paddleX;
@@ -1597,6 +1643,7 @@ class _BrickPainter extends CustomPainter {
   final double by;
   final double ballR;
   final bool started;
+  final List<_Shard> shards;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1639,6 +1686,15 @@ class _BrickPainter extends CustomPainter {
     // Ball.
     canvas.drawCircle(
         Offset(bx * w, by * h), ballR * w, Paint()..color = Colors.white);
+    // Brick shards.
+    for (final s in shards) {
+      final k = (s.life / 0.5).clamp(0.0, 1.0);
+      final sz = 3 + 5 * k;
+      canvas.drawRect(
+          Rect.fromCenter(
+              center: Offset(s.x * w, s.y * h), width: sz, height: sz),
+          Paint()..color = s.color.withOpacity(k));
+    }
     if (!started) {
       final tp = TextPainter(
         text: const TextSpan(
