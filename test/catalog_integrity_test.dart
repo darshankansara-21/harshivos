@@ -34,6 +34,9 @@ void main() {
     'rhythm_clap',
     'shape_builder',
     'memory_deluxe',
+    'bug_catch',
+    'spot_difference',
+    'weather_sort',
   ];
 
   test('every registered game is playable, reachable and implemented', () {

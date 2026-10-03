@@ -65,6 +65,9 @@ class GameThumb extends StatelessWidget {
     'rhythm_clap',
     'shape_builder',
     'memory_deluxe',
+    'bug_catch',
+    'spot_difference',
+    'weather_sort',
   };
 
   @override
@@ -199,6 +202,12 @@ class _ThumbPainter extends CustomPainter {
         _shapeBuilder(canvas, w, h);
       case 'memory_deluxe':
         _memoryDeluxe(canvas, w, h);
+      case 'bug_catch':
+        _bugCatch(canvas, w, h);
+      case 'spot_difference':
+        _spotDifference(canvas, w, h);
+      case 'weather_sort':
+        _weatherSort(canvas, w, h);
     }
   }
 
@@ -1213,6 +1222,54 @@ class _ThumbPainter extends CustomPainter {
                 const Radius.circular(6)),
             Paint()..color = up ? Colors.white : const Color(0xFF4A3A6E));
       }
+    }
+  }
+
+  void _bugCatch(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF2B3B23), Color(0xFF1A2416)]);
+    const colors = <Color>[
+      Color(0xFFFF6B6B), Color(0xFFFFD166), Color(0xFF63E6BE)
+    ];
+    final spots = <Offset>[
+      Offset(w * 0.32, h * 0.35), Offset(w * 0.68, h * 0.4), Offset(w * 0.5, h * 0.68)
+    ];
+    for (var i = 0; i < 3; i++) {
+      final c = spots[i];
+      canvas.drawCircle(c, w * 0.09, Paint()..color = colors[i]);
+      canvas.drawCircle(c.translate(0, -w * 0.07), w * 0.045,
+          Paint()..color = Colors.black87);
+    }
+  }
+
+  void _spotDifference(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF12131A), Color(0xFF0C0D12)]);
+    const n = 3;
+    final cw = w / n, ch = h / n;
+    for (var r = 0; r < n; r++) {
+      for (var c = 0; c < n; c++) {
+        final odd = r == 1 && c == 2;
+        canvas.drawRRect(
+            RRect.fromRectAndRadius(
+                Rect.fromLTWH(c * cw + 4, r * ch + 4, cw - 8, ch - 8),
+                const Radius.circular(8)),
+            Paint()..color = odd ? const Color(0xFF3AA0B0) : const Color(0xFF66D9E8));
+      }
+    }
+  }
+
+  void _weatherSort(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF3A6EA5), Color(0xFF203040)]);
+    canvas.drawCircle(Offset(w * 0.5, h * 0.32), w * 0.14,
+        Paint()..color = const Color(0xFFFFD166));
+    for (var i = 0; i < 3; i++) {
+      canvas.drawRRect(
+          RRect.fromRectAndRadius(
+              Rect.fromCenter(
+                  center: Offset(w * (0.28 + i * 0.22), h * 0.74),
+                  width: w * 0.16,
+                  height: w * 0.16),
+              const Radius.circular(8)),
+          Paint()..color = Colors.white.withOpacity(0.18));
     }
   }
 

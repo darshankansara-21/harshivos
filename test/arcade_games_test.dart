@@ -371,6 +371,39 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('Bug Catch builds and taps', (tester) async {
+    await _pump(tester, const BugCatchGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('Bug Catch'), findsOneWidget);
+    await tester.tapAt(const Offset(200, 400));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(seconds: 1));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Spot the Difference builds and picks', (tester) async {
+    await _pump(tester, const SpotDifferenceGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('Spot the Difference'), findsOneWidget);
+    await tester.tapAt(const Offset(200, 400));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Weather Sort builds and sorts', (tester) async {
+    await _pump(tester, const WeatherSortGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('Weather Sort'), findsOneWidget);
+    await tester.tap(find.text('☀️'));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Ball Sort builds and accepts taps', (tester) async {
     await _pump(tester, const BallSortGame());
     await tester.tap(find.widgetWithText(FilledButton, 'Play'));

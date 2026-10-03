@@ -2,12 +2,12 @@
 
 **Mandatory resume file.** On a new context: READ THIS FIRST, then resume from "NEXT EXACT ACTION". Never restart the sprint.
 
-- **HEAD at last update:** 8cb3aad == origin/main (clean) — rhythm/shape/memory batch SHIPPED
+- **HEAD at last update:** 5444dc7 == origin/main — bug/spot/weather batch pending commit
 - **Version:** 1.0.42+43 (HELD — no bump during factory; release builds are LAST)
 - **Updated:** 2026-10-03
-- **Tests:** 131 pass · **Analyze:** 112 info / 0 warnings / 0 errors
-- **Catalog:** 48 games (45 + rhythm_clap, shape_builder, memory_deluxe) + 20 sensory toys
-- **Note:** build machine pub-get is network-stalling on fresh terminals; use `flutter test --no-pub` / `flutter analyze --no-pub` once deps are resolved once per session. ToyCategory = {sensory,fidget,arcade,creative,calm,learning,communication,lifeSkills} (NO 'puzzle'). ToyEngagement = {endless,deep,quick}.
+- **Tests:** 49 focused pass (arcade+catalog); full suite running
+- **Catalog:** 51 games (48 + bug_catch, spot_difference, weather_sort) + 20 sensory toys
+- **Note:** build machine pub-get NETWORK-STALLS hard on fresh terminals (file stuck 2642 bytes). `.dart_tool/package_config.json` persists on disk across sessions, so `flutter test --no-pub` / `flutter analyze --no-pub` work even in a FRESH terminal — use them directly, do NOT wait on pub get. ToyCategory = {sensory,fidget,arcade,creative,calm,learning,communication,lifeSkills} (NO 'puzzle'). ToyEngagement = {endless,deep,quick}.
 - **Device QA:** BLOCKED (phone off USB since sprint #3; needs physical replug). Not sprint-ending — continue implementation; run accumulated QA when device returns.
 
 ## Build/terminal facts (critical)
@@ -94,12 +94,12 @@ All 30 games meet the gameplay quality bar (clear in 5s · satisfying in 30s · 
 4. ~~Rhythm Clap~~ SHIPPED
 5. ~~Shape Builder~~ SHIPPED
 6. ~~Memory Pairs Deluxe~~ SHIPPED
-7. Bug Catch (tap the bugs that match the asked colour before they scurry off)
-8. Weather Sort (drag/tap items under sun/rain/snow)
-9. Spot the Difference (tap the odd one out in a grid)
-10. Maze Marble (tilt-style drag a marble through gates)
-11. Piano Song (play a known nursery tune by following lit keys)
-12. Letter Trace (trace letters/numbers with a finger)
+7. ~~Bug Catch~~ SHIPPED
+8. ~~Spot the Difference~~ SHIPPED
+9. ~~Weather Sort~~ SHIPPED
+10. Maze Marble (drag a marble through gates to the goal)
+11. Piano Song (follow lit keys to play a nursery tune)
+12. Letter Trace (trace a letter/number along a dotted path)
 
 ## NEXT EXACT ACTION
-Commit the rhythm/shape/memory batch (Rhythm Clap + Shape Builder + Memory Pairs Deluxe) once green, then build **Bug Catch** + **Spot the Difference** + **Weather Sort**. Wire all 6 sites each; `flutter test --no-pub` + `flutter analyze --no-pub` (0 warn/0 err via `^\s*(warning|error) -`); commit; update this file. Keep going; regenerate backlog when exhausted.
+Commit the bug/spot/weather batch once full `flutter test --no-pub` + `flutter analyze --no-pub` are green, then build **Maze Marble** + **Piano Song** + **Letter Trace**. Wire all 6 sites each; test; commit; update this file. Then generate the next backlog (balance: sports, arcade, music, creative, puzzle, learning, calm, motor, communication) and continue.
