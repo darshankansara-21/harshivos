@@ -2,11 +2,12 @@
 
 **Mandatory resume file.** On a new context: READ THIS FIRST, then resume from "NEXT EXACT ACTION". Never restart the sprint.
 
-- **HEAD at last update:** fa98209 == origin/main — Fishing/Maze/Beat/Catch batch pending commit
+- **HEAD at last update:** b9978ee == origin/main — learn batch (firefly_count, sorting_train, shadow_match) pending commit
 - **Version:** 1.0.42+43 (HELD — no bump during factory; release builds are LAST)
 - **Updated:** 2026-10-03
-- **Tests:** 37 focused pass (arcade+catalog); full suite running
-- **Catalog:** 39 games (35 + fishing, maze_run, beat_builder, catch_beat) + 20 sensory toys
+- **Tests:** 40 focused pass (arcade+catalog); full suite running
+- **Catalog:** 42 games (39 + firefly_count, sorting_train, shadow_match) + 20 sensory toys
+- **Note:** build machine pub-get is network-stalling on fresh terminals; use `flutter test --no-pub` / `flutter analyze --no-pub` once deps are resolved once per session.
 - **Device QA:** BLOCKED (phone off USB since sprint #3; needs physical replug). Not sprint-ending — continue implementation; run accumulated QA when device returns.
 
 ## Build/terminal facts (critical)
@@ -80,11 +81,19 @@ All 30 games meet the gameplay quality bar (clear in 5s · satisfying in 30s · 
 | Color Mixer | creative | arcade_games.dart | SHIPPED (ac99155) |
 | Fishing | sports/calm | arcade_games.dart | POLISHED (tests green) |
 | Maze Run | puzzle | arcade_games.dart | POLISHED (tests green) |
-| Beat Builder | music | arcade_games.dart | POLISHED (tests green) |
-| Catch the Beat | rhythm | arcade_games.dart | POLISHED (tests green) |
-| Firefly Count | learn/number | arcade_games.dart | CONCEPT → NEXT |
-| Sorting Train | puzzle/learn | arcade_games.dart | CONCEPT → NEXT |
-| Shadow Match | match/visual | arcade_games.dart | CONCEPT → NEXT |
+| Beat Builder | music | arcade_games.dart | SHIPPED (b9978ee) |
+| Catch the Beat | rhythm | arcade_games.dart | SHIPPED (b9978ee) |
+| Firefly Count | learn/number | arcade_games.dart | POLISHED (tests green) |
+| Sorting Train | learn/sort | arcade_games.dart | POLISHED (tests green) |
+| Shadow Match | match/visual | arcade_games.dart | POLISHED (tests green) |
+
+## Next backlog (auto-generated)
+1. Pattern Weaver (repeat/extend a colour pattern)
+2. Balloon Math (pop the balloon with the right sum)
+3. Dot-to-Dot (tap numbered dots in order to reveal a picture)
+4. Rhythm Clap (copy a clap rhythm)
+5. Shape Builder (drag tangram pieces to fill an outline)
+6. Memory Pairs Deluxe (themed memory with streak scoring)
 
 ## NEXT EXACT ACTION
-Commit the Fishing/Maze/Beat/Catch batch once full `flutter test` + `flutter analyze` are green, then build the learn batch: **Firefly Count** (fireflies drift in; tap to count how many match the asked number), **Sorting Train** (drag items into the matching colour/shape wagon), **Shadow Match** (match an object to its silhouette). Wire all 6 sites each; test; commit; update this file. Then generate the next backlog (Memory Pairs Deluxe, Pattern Weaver, Balloon Math, Shape Builder, Dot-to-Dot, Rhythm Clap).
+Commit the learn batch (Firefly Count + Sorting Train + Shadow Match) once full `flutter test --no-pub` + `flutter analyze --no-pub` are green, then build the next batch starting with **Pattern Weaver** + **Balloon Math** + **Dot-to-Dot**. Wire all 6 sites each; test; commit; update this file. Keep going through the auto-generated backlog, regenerating when exhausted.

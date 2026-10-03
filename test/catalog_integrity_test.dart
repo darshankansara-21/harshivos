@@ -25,6 +25,9 @@ void main() {
     'maze_run',
     'beat_builder',
     'catch_beat',
+    'firefly_count',
+    'sorting_train',
+    'shadow_match',
   ];
 
   test('every registered game is playable, reachable and implemented', () {

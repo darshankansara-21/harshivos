@@ -56,6 +56,9 @@ class GameThumb extends StatelessWidget {
     'maze_run',
     'beat_builder',
     'catch_beat',
+    'firefly_count',
+    'sorting_train',
+    'shadow_match',
   };
 
   @override
@@ -172,6 +175,12 @@ class _ThumbPainter extends CustomPainter {
         _beatBuilder(canvas, w, h);
       case 'catch_beat':
         _catchBeat(canvas, w, h);
+      case 'firefly_count':
+        _fireflyCount(canvas, w, h);
+      case 'sorting_train':
+        _sortingTrain(canvas, w, h);
+      case 'shadow_match':
+        _shadowMatch(canvas, w, h);
     }
   }
 
@@ -1038,6 +1047,58 @@ class _ThumbPainter extends CustomPainter {
       final y = h * (0.2 + i * 0.16);
       canvas.drawCircle(Offset((i + 0.5) * lw, y), lw * 0.28,
           Paint()..color = colors[i]);
+    }
+  }
+
+  void _fireflyCount(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF1B2450), Color(0xFF0C1030)]);
+    for (final o in const [
+      Offset(0.3, 0.3), Offset(0.6, 0.25), Offset(0.5, 0.5), Offset(0.72, 0.5)
+    ]) {
+      canvas.drawCircle(Offset(w * o.dx, h * o.dy), w * 0.1,
+          Paint()..color = const Color(0xFFFFF3B0).withOpacity(0.3));
+      canvas.drawCircle(Offset(w * o.dx, h * o.dy), w * 0.04,
+          Paint()..color = const Color(0xFFFFE066));
+    }
+  }
+
+  void _sortingTrain(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF162032), Color(0xFF0E1622)]);
+    const colors = <Color>[
+      Color(0xFFFF6B6B), Color(0xFFFFD166), Color(0xFF63E6BE), Color(0xFF66D9E8)
+    ];
+    final lw = w / 4;
+    for (var i = 0; i < 4; i++) {
+      canvas.drawRRect(
+          RRect.fromRectAndRadius(
+              Rect.fromLTWH(i * lw + 4, h * 0.62, lw - 8, h * 0.26),
+              const Radius.circular(6)),
+          Paint()..color = colors[i]);
+    }
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(
+            Rect.fromCenter(
+                center: Offset(w * 0.5, h * 0.3), width: w * 0.2, height: w * 0.2),
+            const Radius.circular(8)),
+        Paint()..color = const Color(0xFFFFD166));
+  }
+
+  void _shadowMatch(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF2A2140), Color(0xFF17122A)]);
+    final star = Path();
+    final c = Offset(w * 0.5, h * 0.3);
+    final r = w * 0.16;
+    for (var i = 0; i < 10; i++) {
+      final rr = i.isEven ? r : r * 0.45;
+      final a = -math.pi / 2 + i * math.pi / 5;
+      final pt = Offset(c.dx + math.cos(a) * rr, c.dy + math.sin(a) * rr);
+      i == 0 ? star.moveTo(pt.dx, pt.dy) : star.lineTo(pt.dx, pt.dy);
+    }
+    star.close();
+    canvas.drawPath(star, Paint()..color = const Color(0xFFFFD166));
+    for (var i = 0; i < 3; i++) {
+      canvas.drawCircle(Offset(w * (0.28 + i * 0.22), h * 0.74), w * 0.08,
+          Paint()..color = Colors.black.withOpacity(0.7));
     }
   }
 

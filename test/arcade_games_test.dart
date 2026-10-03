@@ -272,6 +272,39 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('Firefly Count builds and answers', (tester) async {
+    await _pump(tester, const FireflyCountGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('Firefly Count'), findsOneWidget);
+    await tester.tapAt(const Offset(200, 760));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Sorting Train builds and loads', (tester) async {
+    await _pump(tester, const SortingTrainGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('Sorting Train'), findsOneWidget);
+    await tester.tapAt(const Offset(200, 760));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Shadow Match builds and picks', (tester) async {
+    await _pump(tester, const ShadowMatchGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('Shadow Match'), findsOneWidget);
+    await tester.tapAt(const Offset(200, 600));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Ball Sort builds and accepts taps', (tester) async {
     await _pump(tester, const BallSortGame());
     await tester.tap(find.widgetWithText(FilledButton, 'Play'));
