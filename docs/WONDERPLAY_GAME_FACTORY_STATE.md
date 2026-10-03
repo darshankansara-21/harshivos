@@ -2,11 +2,12 @@
 
 **Mandatory resume file.** On a new context: READ THIS FIRST, then resume from "NEXT EXACT ACTION". Never restart the sprint.
 
-- **HEAD at last update:** 19bf5bb == origin/main (clean) — bug/spot/weather batch SHIPPED
+- **HEAD at last update:** (refactor commit — see git) == origin/main (clean) — FACTORY SCALABILITY REFACTOR done
 - **Version:** 1.0.42+43 (HELD — no bump during factory; release builds are LAST)
 - **Updated:** 2026-10-03
 - **Tests:** 134 pass · **Analyze:** 112 info / 0 warnings / 0 errors
 - **Catalog:** 51 games (48 + bug_catch, spot_difference, weather_sort) + 20 sensory toys
+- **REFACTOR_COMPLETE:** true — `arcade_games.dart` is now a thin library shell (imports + 39 `part 'arcade/<name>_game.dart';` directives + shared `_Shell`/`_Emit`). Each game lives in its own file under `lib/features/play/toys/arcade/`. All files share ONE library scope via `part`/`part of`, so private symbols (`_Shard`@brick_break, `_paintPolyShape`@sorting_train) stay visible with ZERO renames and ZERO behavior change. **To add a game:** create `lib/features/play/toys/arcade/<name>_game.dart` starting with `part of '../arcade_games.dart';` (NO imports in part files), add one `part 'arcade/<name>_game.dart';` line to `arcade_games.dart`, keep shared infra in `arcade_games.dart`. Then wire the 6 sites. No need to load the monolith anymore.
 - **Note:** build machine pub-get NETWORK-STALLS hard on fresh terminals (file stuck 2642 bytes). `.dart_tool/package_config.json` persists on disk across sessions, so `flutter test --no-pub` / `flutter analyze --no-pub` work even in a FRESH terminal — use them directly, do NOT wait on pub get. `flutter analyze --no-pub` itself can take 8s–100s depending on machine load. ToyCategory = {sensory,fidget,arcade,creative,calm,learning,communication,lifeSkills} (NO 'puzzle'). ToyEngagement = {endless,deep,quick}. COMMON WARNING: a declared-but-unread field (e.g. `_turn`, `_rnd`) in a new game → remove it.
 - **Device QA:** BLOCKED (phone off USB since sprint #3; needs physical replug). Not sprint-ending — continue implementation; run accumulated QA when device returns.
 
@@ -102,4 +103,4 @@ All 30 games meet the gameplay quality bar (clear in 5s · satisfying in 30s · 
 12. Letter Trace (trace a letter/number along a dotted path)
 
 ## NEXT EXACT ACTION
-Commit the bug/spot/weather batch once full `flutter test --no-pub` + `flutter analyze --no-pub` are green, then build **Maze Marble** + **Piano Song** + **Letter Trace**. Wire all 6 sites each; test; commit; update this file. Then generate the next backlog (balance: sports, arcade, music, creative, puzzle, learning, calm, motor, communication) and continue.
+Refactor is committed. Build **Maze Marble** + **Piano Song** + **Letter Trace**, each as a NEW part file in `lib/features/play/toys/arcade/` (`part of '../arcade_games.dart';`) with a matching `part` line added to `arcade_games.dart`. Wire all 6 sites each; `flutter test --no-pub` + `flutter analyze --no-pub`; commit; update this file. Then generate the next backlog (balance: sports, arcade, music, creative, puzzle, learning, calm, motor, communication) and continue.

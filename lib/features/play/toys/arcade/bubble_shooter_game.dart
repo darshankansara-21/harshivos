@@ -1,0 +1,308 @@
+part of '../arcade_games.dart';
+
+class BubbleShooterGame extends StatefulWidget {
+  const BubbleShooterGame({super.key});
+  @override
+  State<BubbleShooterGame> createState() => _BubbleShooterGameState();
+}
+
+class _BubbleShooterGameState extends State<BubbleShooterGame>
+    with TickerProviderStateMixin, ToyTicker, _Emit {
+  static const String _id = 'bubble_shooter';
+  static const int _cols = 7;
+  static const List<Color> _pal = <Color>[
+    Color(0xFFEF476F),
+    Color(0xFFFFD166),
+    Color(0xFF06D6A0),
+    Color(0xFF4CC9F0),
+    Color(0xFF9B5DE5),
+  ];
+  final math.Random _rnd = math.Random();
+  late List<List<Color?>> _grid;
+  final List<_Shard> _pops = <_Shard>[]; // pixel-space pop particles
+  int _rows = 0;
+  double _w = 0;
+  double _h = 0;
+  double _cell = 0;
+  double _r = 0;
+  bool _init = false;
+  Offset? _pos; // flying bubble centre, null when idle
+  Offset _vel = Offset.zero;
+  Color _shot = _pal[0];
+  Color _next = _pal[1];
+  int _score = 0;
+  int _best = 0;
+  String? _banner;
+  GameStatus _status = GameStatus.ready;
+
+  @override
+  void initState() {
+    super.initState();
+    _shot = _pal[_rnd.nextInt(_pal.length)];
+    _next = _pal[_rnd.nextInt(_pal.length)];
+    GameScores.instance.ensureLoaded().then((_) {
+      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+    });
+  }
+
+  void _layout(double w, double h) {
+    if (_init && (w - _w).abs() < 0.5) return;
+    _w = w;
+    _h = h;
+    _cell = w / _cols;
+    _r = _cell / 2;
+    _rows = math.max(6, (h / _cell).floor());
+    _grid =
+        List<List<Color?>>.generate(_rows, (_) => List<Color?>.filled(_cols, null));
+    for (var r = 0; r < 5; r++) {
+      for (var c = 0; c < _cols; c++) {
+        _grid[r][c] = _pal[_rnd.nextInt(_pal.length)];
+      }
+    }
+    _init = true;
+  }
+
+  Offset _center(int r, int c) =>
+      Offset((c + 0.5) * _cell, (r + 0.5) * _cell);
+
+  bool _hitsBubble(Offset p) {
+    for (var r = 0; r < _rows; r++) {
+      for (var c = 0; c < _cols; c++) {
+        if (_grid[r][c] != null &&
+            (_center(r, c) - p).distance < _cell * 0.9) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  @override
+  void onTick(double dt) {
+    if (_status != GameStatus.playing) return;
+    for (var i = _pops.length - 1; i >= 0; i--) {
+      final s = _pops[i];
+      s.x += s.vx * dt;
+      s.y += s.vy * dt;
+      s.vy += 300 * dt;
+      s.life -= dt;
+      if (s.life <= 0) _pops.removeAt(i);
+    }
+    if (_pos == null) return;
+    var p = _pos! + _vel * dt;
+    if (p.dx < _r) {
+      p = Offset(_r, p.dy);
+      _vel = Offset(_vel.dx.abs(), _vel.dy);
+    } else if (p.dx > _w - _r) {
+      p = Offset(_w - _r, p.dy);
+      _vel = Offset(-_vel.dx.abs(), _vel.dy);
+    }
+    _pos = p;
+    if (p.dy <= _r || _hitsBubble(p)) {
+      _snap(p);
+    }
+  }
+
+  void _snap(Offset p) {
+    double bestD = double.infinity;
+    int br = -1, bc = -1;
+    for (var r = 0; r < _rows; r++) {
+      for (var c = 0; c < _cols; c++) {
+        if (_grid[r][c] != null) continue;
+        final d = (_center(r, c) - p).distance;
+        if (d < bestD) {
+          bestD = d;
+          br = r;
+          bc = c;
+        }
+      }
+    }
+    _pos = null;
+    if (br < 0) {
+      _gameOver();
+      return;
+    }
+    _grid[br][bc] = _shot;
+    final group = _flood(br, bc, _shot);
+    if (group.length >= 3) {
+      for (final cell in group) {
+        final ctr = _center(cell.x, cell.y);
+        for (var s = 0; s < 5; s++) {
+          final a = _rnd.nextDouble() * math.pi * 2;
+          final sp = 60 + _rnd.nextDouble() * 150;
+          _pops.add(_Shard(
+              ctr.dx, ctr.dy, math.cos(a) * sp, math.sin(a) * sp, _shot));
+        }
+        _grid[cell.x][cell.y] = null;
+      }
+      _score += group.length;
+      _banner = 'Pop ${group.length}!';
+      TonePlayer.instance.playCue(SoundCue.bubble);
+      emit(ExperienceEvent.bubblePopped);
+      GameScores.instance.submit(_id, _score).then((b) {
+        if (mounted && b != _best) _best = b;
+      });
+    } else {
+      TonePlayer.instance.playCue(SoundCue.ball);
+    }
+    _shot = _next;
+    _next = _pal[_rnd.nextInt(_pal.length)];
+    if (br >= _rows - 1) {
+      _gameOver();
+    }
+  }
+
+  List<math.Point<int>> _flood(int r, int c, Color color) {
+    final seen = <String>{};
+    final out = <math.Point<int>>[];
+    final stack = <math.Point<int>>[math.Point<int>(r, c)];
+    while (stack.isNotEmpty) {
+      final p = stack.removeLast();
+      final key = '${p.x},${p.y}';
+      if (seen.contains(key)) continue;
+      if (p.x < 0 || p.x >= _rows || p.y < 0 || p.y >= _cols) continue;
+      if (_grid[p.x][p.y] != color) continue;
+      seen.add(key);
+      out.add(p);
+      stack.add(math.Point<int>(p.x + 1, p.y));
+      stack.add(math.Point<int>(p.x - 1, p.y));
+      stack.add(math.Point<int>(p.x, p.y + 1));
+      stack.add(math.Point<int>(p.x, p.y - 1));
+    }
+    return out;
+  }
+
+  void _fire(Offset target) {
+    if (_status != GameStatus.playing || _pos != null || !_init) return;
+    final origin = Offset(_w / 2, _h - _cell);
+    var dir = target - origin;
+    if (dir.dy > -8) dir = Offset(dir.dx, -8);
+    final n = dir / dir.distance;
+    _vel = n * 640;
+    _pos = origin;
+  }
+
+  void _gameOver() {
+    final prev = GameScores.instance.best(_id);
+    _status = GameStatus.over;
+    TonePlayer.instance.playCue(SoundCue.gameOver);
+    emit(_score > prev
+        ? ExperienceEvent.gameCompleted
+        : ExperienceEvent.incorrectAnswer);
+    GameScores.instance.submit(_id, _score).then((b) {
+      if (mounted) setState(() => _best = b);
+    });
+  }
+
+  void _reset() {
+    setState(() {
+      _init = false;
+      _pos = null;
+      _pops.clear();
+      _score = 0;
+      _banner = null;
+      _status = GameStatus.playing;
+      _shot = _pal[_rnd.nextInt(_pal.length)];
+      _next = _pal[_rnd.nextInt(_pal.length)];
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    drain(context);
+    return _Shell(
+      title: '🫧 Bubble Shooter',
+      introHow: 'Aim and shoot to match 3 bubbles of the same colour!',
+      onStart: () => setState(() => _status = GameStatus.playing),
+      score: _score,
+      best: _best,
+      status: _status,
+      banner: _banner,
+      overEmoji: '🫧',
+      overText: 'Bubbles reached the floor!',
+      accent: const Color(0xFF4CC9F0),
+      onPlayAgain: _reset,
+      child: LayoutBuilder(
+        builder: (context, c) {
+          _layout(c.maxWidth, c.maxHeight);
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTapDown: (d) => _fire(d.localPosition),
+            child: CustomPaint(
+              painter: _BubblePainter(_grid, _rows, _cols, _cell, _r, _pos,
+                  _shot, _next, _w, _h, _pops),
+              size: Size.infinite,
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _BubblePainter extends CustomPainter {
+  _BubblePainter(this.grid, this.rows, this.cols, this.cell, this.r, this.pos,
+      this.shot, this.next, this.w, this.h, this.pops);
+  final List<List<Color?>> grid;
+  final int rows;
+  final int cols;
+  final double cell;
+  final double r;
+  final Offset? pos;
+  final Color shot;
+  final Color next;
+  final double w;
+  final double h;
+  final List<_Shard> pops;
+
+  void _ball(Canvas canvas, Offset center, Color color) {
+    canvas.drawCircle(center, r - 1.5, Paint()..color = color);
+    canvas.drawCircle(
+        center.translate(-r * 0.28, -r * 0.28),
+        r * 0.3,
+        Paint()..color = Colors.white.withOpacity(0.4));
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(
+        Offset.zero & size,
+        Paint()
+          ..shader = const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: <Color>[Color(0xFF0E1830), Color(0xFF060B18)],
+          ).createShader(Offset.zero & size));
+    for (var rr = 0; rr < rows; rr++) {
+      for (var cc = 0; cc < cols; cc++) {
+        final col = grid[rr][cc];
+        if (col != null) {
+          _ball(canvas, Offset((cc + 0.5) * cell, (rr + 0.5) * cell), col);
+        }
+      }
+    }
+    // Launcher + next colour.
+    final origin = Offset(w / 2, h - cell);
+    if (pos != null) {
+      _ball(canvas, pos!, shot);
+    } else {
+      _ball(canvas, origin, shot);
+    }
+    _ball(canvas, Offset(w / 2 + cell * 1.2, h - cell * 0.6), next);
+    // Pop particles.
+    for (final s in pops) {
+      final k = (s.life / 0.5).clamp(0.0, 1.0);
+      canvas.drawCircle(Offset(s.x, s.y), r * 0.5 * k + 2,
+          Paint()..color = s.color.withOpacity(k));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_BubblePainter oldDelegate) => true;
+}
+
+// ===========================================================================
+// Quick Tap — a pure reaction game. Wait on red, and the instant the screen
+// flashes green, tap as fast as you can. Tapping too early costs the round.
+// Faster reactions score more; five rounds make a run.
+// ===========================================================================

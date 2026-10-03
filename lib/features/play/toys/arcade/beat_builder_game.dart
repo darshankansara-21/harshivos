@@ -1,0 +1,185 @@
+part of '../arcade_games.dart';
+
+/// Beat Builder — a 4x8 step sequencer. Tap cells to switch on drums; a
+/// playhead loops and plays your beat. Fill the grid for a full groove.
+class BeatBuilderGame extends StatefulWidget {
+  const BeatBuilderGame({super.key});
+  @override
+  State<BeatBuilderGame> createState() => _BeatBuilderGameState();
+}
+
+class _BeatBuilderGameState extends State<BeatBuilderGame>
+    with TickerProviderStateMixin, ToyTicker, _Emit {
+  static const String _id = 'beat_builder';
+  static const int _rowsN = 4;
+  static const int _steps = 8;
+  static const double _tempo = 0.26;
+  static const List<int> _rowNotes = <int>[0, 3, 7, 11];
+  static const List<Color> _rowColors = <Color>[
+    Color(0xFFFF6B6B),
+    Color(0xFFFFD166),
+    Color(0xFF8CE99A),
+    Color(0xFF66D9E8),
+  ];
+  final List<bool> _grid = List<bool>.filled(_rowsN * _steps, false);
+  int _step = 0;
+  double _stepT = 0;
+  int _active = 0;
+  int _best = 0;
+  String? _banner;
+  double _bannerT = 0;
+  GameStatus _status = GameStatus.ready;
+
+  @override
+  void initState() {
+    super.initState();
+    GameScores.instance.ensureLoaded().then((_) {
+      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+    });
+  }
+
+  @override
+  void onTick(double dt) {
+    if (_status != GameStatus.playing) return;
+    if (_bannerT > 0) {
+      _bannerT -= dt;
+      if (_bannerT <= 0) _banner = null;
+    }
+    _stepT += dt;
+    if (_stepT >= _tempo) {
+      _stepT -= _tempo;
+      _step = (_step + 1) % _steps;
+      for (var r = 0; r < _rowsN; r++) {
+        if (_grid[r * _steps + _step]) {
+          TonePlayer.instance.playNote(_rowNotes[r], seconds: 0.18);
+        }
+      }
+    }
+  }
+
+  void _toggle(Offset p, double w, double h) {
+    if (_status != GameStatus.playing) return;
+    final col = (p.dx / w * _steps).floor();
+    final row = (p.dy / h * _rowsN).floor();
+    if (col < 0 || col >= _steps || row < 0 || row >= _rowsN) return;
+    final idx = row * _steps + col;
+    setState(() {
+      _grid[idx] = !_grid[idx];
+      _active = _grid.where((b) => b).length;
+      if (_grid[idx]) {
+        TonePlayer.instance.playNote(_rowNotes[row], seconds: 0.2);
+      }
+      if (_active > _best) {
+        _best = _active;
+        GameScores.instance.submit(_id, _active);
+      }
+      if (_active == _rowsN * _steps) {
+        _banner = 'Full groove! 🔥';
+        _bannerT = 1.6;
+        emit(ExperienceEvent.bubblePopped);
+      }
+    });
+  }
+
+  void _reset() {
+    setState(() {
+      for (var i = 0; i < _grid.length; i++) {
+        _grid[i] = false;
+      }
+      _active = 0;
+      _step = 0;
+      _stepT = 0;
+      _banner = null;
+      _bannerT = 0;
+      _status = GameStatus.playing;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    drain(context);
+    return _Shell(
+      title: '🎛️ Beat Builder',
+      introHow:
+          'Tap the squares to switch drums on and off. The line sweeps across and plays your beat on a loop!',
+      onStart: () => setState(() => _status = GameStatus.playing),
+      score: _active,
+      best: _best,
+      target: _rowsN * _steps,
+      status: _status,
+      banner: _banner ?? 'Beat: $_active drums on',
+      overEmoji: '🎛️',
+      overText: 'Nice groove!',
+      accent: const Color(0xFF66D9E8),
+      onPlayAgain: _reset,
+      child: LayoutBuilder(
+        builder: (context, c) {
+          final w = c.maxWidth, h = c.maxHeight;
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTapDown: (d) => _toggle(d.localPosition, w, h),
+            child: CustomPaint(
+              painter: _BeatPainter(
+                grid: _grid,
+                rows: _rowsN,
+                steps: _steps,
+                step: _step,
+                colors: _rowColors,
+              ),
+              size: Size.infinite,
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _BeatPainter extends CustomPainter {
+  _BeatPainter({
+    required this.grid,
+    required this.rows,
+    required this.steps,
+    required this.step,
+    required this.colors,
+  });
+  final List<bool> grid;
+  final int rows, steps, step;
+  final List<Color> colors;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    canvas.drawRect(Offset.zero & size,
+        Paint()..color = const Color(0xFF1A1030));
+    final cw = w / steps, ch = h / rows;
+    // Playhead column.
+    canvas.drawRect(Rect.fromLTWH(step * cw, 0, cw, h),
+        Paint()..color = Colors.white.withOpacity(0.10));
+    for (var r = 0; r < rows; r++) {
+      for (var s = 0; s < steps; s++) {
+        final rect = Rect.fromLTWH(s * cw + 3, r * ch + 3, cw - 6, ch - 6);
+        final on = grid[r * steps + s];
+        final playing = on && s == step;
+        canvas.drawRRect(
+            RRect.fromRectAndRadius(rect, const Radius.circular(8)),
+            Paint()
+              ..color = on
+                  ? colors[r].withOpacity(playing ? 1.0 : 0.85)
+                  : Colors.white.withOpacity(0.06));
+        if (playing) {
+          canvas.drawRRect(
+              RRect.fromRectAndRadius(rect.inflate(2), const Radius.circular(9)),
+              Paint()
+                ..style = PaintingStyle.stroke
+                ..strokeWidth = 3
+                ..color = Colors.white);
+        }
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_BeatPainter old) => true;
+}
+
