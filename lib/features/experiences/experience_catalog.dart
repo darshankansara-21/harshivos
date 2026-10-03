@@ -41,7 +41,7 @@ class ExperienceCatalog {
       ExperienceTally(
         category: ExperienceCategory.play,
         current: kToyUniverse.where((t) => t.working).length,
-        capacity: 80,
+        capacity: 120,
         notes: 'Playable toys and open sensory experiences.',
       ),
       ExperienceTally(

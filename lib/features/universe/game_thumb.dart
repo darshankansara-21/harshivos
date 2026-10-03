@@ -47,6 +47,9 @@ class GameThumb extends StatelessWidget {
     'pinball',
     'basketball',
     'mini_golf',
+    'air_hockey',
+    'target_toss',
+    'bubble_wrap',
   };
 
   @override
@@ -145,6 +148,12 @@ class _ThumbPainter extends CustomPainter {
         _basketball(canvas, w, h);
       case 'mini_golf':
         _miniGolf(canvas, w, h);
+      case 'air_hockey':
+        _airHockey(canvas, w, h);
+      case 'target_toss':
+        _targetToss(canvas, w, h);
+      case 'bubble_wrap':
+        _bubbleWrap(canvas, w, h);
     }
   }
 
@@ -853,6 +862,55 @@ class _ThumbPainter extends CustomPainter {
     for (var i = 1; i <= 3; i++) {
       canvas.drawCircle(
           Offset(w * (0.3 + i * 0.08), h * (0.78 - i * 0.09)), 2.5, dot);
+    }
+  }
+
+  void _airHockey(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF0E2A4E), Color(0xFF123F63)]);
+    final line = Paint()
+      ..color = Colors.white54
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    canvas.drawLine(Offset(0, h / 2), Offset(w, h / 2), line);
+    canvas.drawCircle(Offset(w / 2, h / 2), w * 0.16, line);
+    canvas.drawCircle(Offset(w * 0.5, h * 0.2), w * 0.14,
+        Paint()..color = const Color(0xFF4F7BFF));
+    canvas.drawCircle(Offset(w * 0.5, h * 0.8), w * 0.14,
+        Paint()..color = const Color(0xFFFF5E5E));
+    canvas.drawCircle(Offset(w * 0.5, h * 0.5), w * 0.07,
+        Paint()..color = const Color(0xFF14181F));
+  }
+
+  void _targetToss(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF2A1733), Color(0xFF3E1F33)]);
+    final tc = Offset(w * 0.56, h * 0.36);
+    const rings = <Color>[
+      Color(0xFF2E7D32), Color(0xFFFFFFFF), Color(0xFF1565C0), Color(0xFFD32F2F)
+    ];
+    final radii = <double>[0.22, 0.16, 0.1, 0.05];
+    for (var i = 0; i < rings.length; i++) {
+      canvas.drawCircle(tc, radii[i] * w, Paint()..color = rings[i]);
+    }
+    canvas.drawCircle(Offset(w * 0.3, h * 0.82), w * 0.08,
+        Paint()..color = const Color(0xFFF4A64B));
+  }
+
+  void _bubbleWrap(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFFB9DCEB), Color(0xFF8FC2DC)]);
+    const cols = 4, rows = 5;
+    final cw = w / cols, ch = h / rows;
+    final r = math.min(cw, ch) * 0.4;
+    for (var row = 0; row < rows; row++) {
+      for (var col = 0; col < cols; col++) {
+        final c = Offset((col + 0.5) * cw, (row + 0.5) * ch);
+        if ((row * cols + col) % 5 == 0) {
+          canvas.drawCircle(c, r * 0.6, Paint()..color = Colors.black12);
+        } else {
+          canvas.drawCircle(c, r, Paint()..color = Colors.white60);
+          canvas.drawCircle(c.translate(-r * 0.3, -r * 0.3), r * 0.3,
+              Paint()..color = Colors.white);
+        }
+      }
     }
   }
 

@@ -16,6 +16,9 @@ void main() {
     'pinball',
     'basketball',
     'mini_golf',
+    'air_hockey',
+    'target_toss',
+    'bubble_wrap',
   ];
 
   test('every registered game is playable, reachable and implemented', () {

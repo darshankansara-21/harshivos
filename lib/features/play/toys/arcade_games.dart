@@ -4880,5 +4880,876 @@ class _GolfPainter extends CustomPainter {
   bool shouldRepaint(_GolfPainter old) => true;
 }
 
+/// Air Hockey — drag your mallet to slam the puck past the AI into the top
+/// goal. Low-friction puck physics, a defending AI, first to 7 wins.
+class AirHockeyGame extends StatefulWidget {
+  const AirHockeyGame({super.key});
+  @override
+  State<AirHockeyGame> createState() => _AirHockeyGameState();
+}
+
+class _AirHockeyGameState extends State<AirHockeyGame>
+    with TickerProviderStateMixin, ToyTicker, _Emit {
+  static const String _id = 'air_hockey';
+  static const int _target = 7;
+  static const double _puckR = 0.042;
+  static const double _paddleR = 0.075;
+  static const double _goalL = 0.33;
+  static const double _goalR = 0.67;
+  final math.Random _rnd = math.Random();
+  final List<_Shard> _bits = <_Shard>[];
+  double _px = 0.5, _py = 0.5, _pvx = 0, _pvy = 0;
+  double _ppx = 0.5, _ppy = 0.84; // player mallet (bottom half)
+  double _prevPpx = 0.5, _prevPpy = 0.84;
+  double _aix = 0.5, _aiy = 0.16; // ai mallet (top half)
+  int _playerScore = 0, _aiScore = 0, _best = 0;
+  double _resetT = 0;
+  double _goalGlow = 0; // >0 player glow, <0 ai glow
+  String? _banner;
+  double _bannerT = 0;
+  GameStatus _status = GameStatus.ready;
+
+  @override
+  void initState() {
+    super.initState();
+    GameScores.instance.ensureLoaded().then((_) {
+      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+    });
+  }
+
+  void _flash(String s) {
+    _banner = s;
+    _bannerT = 1.4;
+  }
+
+  void _serve({required bool towardPlayer}) {
+    _px = 0.5;
+    _py = 0.5;
+    final ang = (_rnd.nextDouble() - 0.5) * 0.7;
+    final sp = 0.55;
+    _pvx = math.sin(ang) * sp;
+    _pvy = math.cos(ang) * sp * (towardPlayer ? 1 : -1);
+  }
+
+  @override
+  void onTick(double dt) {
+    if (_status != GameStatus.playing) return;
+    if (_bannerT > 0) {
+      _bannerT -= dt;
+      if (_bannerT <= 0) _banner = null;
+    }
+    if (_goalGlow > 0) _goalGlow -= dt;
+    if (_goalGlow < 0) _goalGlow += dt;
+    for (var i = _bits.length - 1; i >= 0; i--) {
+      final b = _bits[i];
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.life -= dt;
+      if (b.life <= 0) _bits.removeAt(i);
+    }
+    if (_resetT > 0) {
+      _resetT -= dt;
+      if (_resetT <= 0) _serve(towardPlayer: _rnd.nextBool());
+      return;
+    }
+
+    _px += _pvx * dt;
+    _py += _pvy * dt;
+    final damp = (1 - 0.3 * dt).clamp(0.0, 1.0);
+    _pvx *= damp;
+    _pvy *= damp;
+
+    if (_px < _puckR) {
+      _px = _puckR;
+      _pvx = _pvx.abs() * 0.92;
+      TonePlayer.instance.playCue(SoundCue.wood);
+    } else if (_px > 1 - _puckR) {
+      _px = 1 - _puckR;
+      _pvx = -_pvx.abs() * 0.92;
+      TonePlayer.instance.playCue(SoundCue.wood);
+    }
+    if (_py < _puckR) {
+      if (_px > _goalL && _px < _goalR) {
+        _goal(player: true);
+        return;
+      }
+      _py = _puckR;
+      _pvy = _pvy.abs() * 0.92;
+      TonePlayer.instance.playCue(SoundCue.wood);
+    } else if (_py > 1 - _puckR) {
+      if (_px > _goalL && _px < _goalR) {
+        _goal(player: false);
+        return;
+      }
+      _py = 1 - _puckR;
+      _pvy = -_pvy.abs() * 0.92;
+      TonePlayer.instance.playCue(SoundCue.wood);
+    }
+
+    final ppvx = (_ppx - _prevPpx) / math.max(dt, 1e-3);
+    final ppvy = (_ppy - _prevPpy) / math.max(dt, 1e-3);
+    _prevPpx = _ppx;
+    _prevPpy = _ppy;
+    _collide(_ppx, _ppy, ppvx, ppvy);
+
+    _updateAi(dt);
+    _collide(_aix, _aiy, 0, 0);
+
+    final sp = math.sqrt(_pvx * _pvx + _pvy * _pvy);
+    if (sp > 1.5) {
+      _pvx *= 1.5 / sp;
+      _pvy *= 1.5 / sp;
+    }
+  }
+
+  void _collide(double cx, double cy, double vx, double vy) {
+    final dx = _px - cx, dy = _py - cy;
+    final d = math.sqrt(dx * dx + dy * dy);
+    const minD = _puckR + _paddleR;
+    if (d < minD && d > 1e-4) {
+      final nx = dx / d, ny = dy / d;
+      _px = cx + nx * minD;
+      _py = cy + ny * minD;
+      final push = 0.55 + math.max(0.0, vx * nx + vy * ny);
+      _pvx = nx * push + vx * 0.3;
+      _pvy = ny * push + vy * 0.3;
+      TonePlayer.instance.playCue(SoundCue.ball);
+    }
+  }
+
+  void _updateAi(double dt) {
+    double targetX, targetY;
+    if (_py < 0.52) {
+      targetX = _px;
+      targetY = (_py - 0.09).clamp(0.06, 0.44);
+    } else {
+      targetX = 0.5;
+      targetY = 0.14;
+    }
+    final ease = (3.2 * dt).clamp(0.0, 1.0);
+    _aix += (targetX - _aix) * ease;
+    _aiy += (targetY - _aiy) * ease;
+    _aix = _aix.clamp(_paddleR, 1 - _paddleR);
+    _aiy = _aiy.clamp(0.06, 0.46);
+  }
+
+  void _goal({required bool player}) {
+    if (player) {
+      _playerScore++;
+      _goalGlow = 0.8;
+    } else {
+      _aiScore++;
+      _goalGlow = -0.8;
+    }
+    final gy = player ? 0.0 : 1.0;
+    for (var i = 0; i < 16; i++) {
+      final a = _rnd.nextDouble() * math.pi * 2;
+      final sp = 0.2 + _rnd.nextDouble() * 0.4;
+      _bits.add(_Shard(_px, gy, math.cos(a) * sp, math.sin(a) * sp,
+          player ? const Color(0xFFFFD166) : const Color(0xFFFF7B7B)));
+    }
+    _px = 0.5;
+    _py = 0.5;
+    _pvx = 0;
+    _pvy = 0;
+    emit(ExperienceEvent.bubblePopped);
+    if (player) {
+      TonePlayer.instance.playCue(SoundCue.success);
+      _flash('GOAL! $_playerScore–$_aiScore');
+      GameScores.instance.submit(_id, _playerScore).then((b) {
+        if (mounted) setState(() => _best = b);
+      });
+    } else {
+      TonePlayer.instance.playCue(SoundCue.gentleRetry);
+      _flash('They scored · $_playerScore–$_aiScore');
+    }
+    if (_playerScore >= _target) {
+      _status = GameStatus.won;
+      TonePlayer.instance.playCue(SoundCue.gameStart);
+      emit(ExperienceEvent.gameCompleted);
+    } else if (_aiScore >= _target) {
+      _status = GameStatus.over;
+    } else {
+      _resetT = 0.8;
+    }
+  }
+
+  void _movePaddle(Offset p, double w, double h) {
+    if (_status != GameStatus.playing) return;
+    _ppx = (p.dx / w).clamp(_paddleR, 1 - _paddleR);
+    _ppy = (p.dy / h).clamp(0.52, 1 - _paddleR);
+  }
+
+  void _reset() {
+    setState(() {
+      _playerScore = 0;
+      _aiScore = 0;
+      _bits.clear();
+      _banner = null;
+      _bannerT = 0;
+      _resetT = 0;
+      _goalGlow = 0;
+      _px = 0.5;
+      _py = 0.5;
+      _pvx = 0;
+      _pvy = 0;
+      _ppx = 0.5;
+      _ppy = 0.84;
+      _aix = 0.5;
+      _aiy = 0.16;
+      _status = GameStatus.playing;
+      _serve(towardPlayer: true);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    drain(context);
+    return _Shell(
+      title: '🏒 Air Hockey',
+      introHow:
+          'Drag your mallet at the bottom to slam the puck into the top goal. First to 7!',
+      onStart: () => setState(() {
+        _status = GameStatus.playing;
+        _serve(towardPlayer: true);
+      }),
+      score: _playerScore,
+      best: _best,
+      target: _target,
+      status: _status,
+      banner: _banner ?? 'You $_playerScore  ·  AI $_aiScore',
+      overEmoji: _playerScore >= _target ? '🏆' : '🏒',
+      overText: _playerScore >= _target ? 'You win the match!' : 'Good game!',
+      accent: const Color(0xFF28C2D1),
+      onPlayAgain: _reset,
+      child: LayoutBuilder(
+        builder: (context, c) {
+          final w = c.maxWidth, h = c.maxHeight;
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onPanStart: (d) => _movePaddle(d.localPosition, w, h),
+            onPanUpdate: (d) => _movePaddle(d.localPosition, w, h),
+            child: CustomPaint(
+              painter: _HockeyPainter(
+                px: _px,
+                py: _py,
+                ppx: _ppx,
+                ppy: _ppy,
+                aix: _aix,
+                aiy: _aiy,
+                puckR: _puckR,
+                paddleR: _paddleR,
+                goalL: _goalL,
+                goalR: _goalR,
+                goalGlow: _goalGlow,
+                bits: _bits,
+              ),
+              size: Size.infinite,
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _HockeyPainter extends CustomPainter {
+  _HockeyPainter({
+    required this.px,
+    required this.py,
+    required this.ppx,
+    required this.ppy,
+    required this.aix,
+    required this.aiy,
+    required this.puckR,
+    required this.paddleR,
+    required this.goalL,
+    required this.goalR,
+    required this.goalGlow,
+    required this.bits,
+  });
+  final double px, py, ppx, ppy, aix, aiy, puckR, paddleR, goalL, goalR, goalGlow;
+  final List<_Shard> bits;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    double sx(double x) => x * w;
+    double sy(double y) => y * h;
+    canvas.drawRect(
+        Offset.zero & size,
+        Paint()
+          ..shader = const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: <Color>[Color(0xFF0E2A4E), Color(0xFF123F63)],
+          ).createShader(Offset.zero & size));
+    final line = Paint()
+      ..color = Colors.white.withOpacity(0.5)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    canvas.drawLine(Offset(0, h / 2), Offset(w, h / 2), line);
+    canvas.drawCircle(Offset(w / 2, h / 2), w * 0.16, line);
+    canvas.drawCircle(Offset(w / 2, h / 2), 3, Paint()..color = Colors.white54);
+
+    // Goal mouths.
+    void goal(double y, double glow, Color c) {
+      final p = Paint()..color = c.withOpacity(0.35 + glow.abs() * 0.5);
+      canvas.drawRect(Rect.fromLTWH(sx(goalL), y, sx(goalR - goalL), 6), p);
+    }
+
+    goal(0, goalGlow > 0 ? goalGlow : 0, const Color(0xFFFFD166));
+    goal(h - 6, goalGlow < 0 ? -goalGlow : 0, const Color(0xFFFF7B7B));
+
+    // Mallets.
+    void mallet(double cx, double cy, Color c) {
+      canvas.drawCircle(Offset(sx(cx), sy(cy)), paddleR * w,
+          Paint()..color = c);
+      canvas.drawCircle(Offset(sx(cx), sy(cy)), paddleR * w * 0.5,
+          Paint()..color = Colors.white.withOpacity(0.85));
+      canvas.drawCircle(Offset(sx(cx), sy(cy)), paddleR * w,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2
+            ..color = Colors.black26);
+    }
+
+    mallet(aix, aiy, const Color(0xFF4F7BFF));
+    mallet(ppx, ppy, const Color(0xFFFF5E5E));
+
+    // Puck.
+    final pc = Offset(sx(px), sy(py));
+    canvas.drawCircle(pc.translate(1, 2), puckR * w, Paint()..color = Colors.black38);
+    canvas.drawCircle(pc, puckR * w, Paint()..color = const Color(0xFF14181F));
+    canvas.drawCircle(pc.translate(-puckR * w * 0.3, -puckR * w * 0.3),
+        puckR * w * 0.35, Paint()..color = Colors.white24);
+
+    for (final s in bits) {
+      final k = (s.life / 0.5).clamp(0.0, 1.0);
+      canvas.drawCircle(Offset(sx(s.x), sy(s.y)), 2 + 3 * k,
+          Paint()..color = s.color.withOpacity(k));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_HockeyPainter old) => true;
+}
+
+/// Target Toss — flick a bean bag at a sliding bullseye. Center rings score
+/// more; the board speeds up as you climb to 24 points.
+class TargetTossGame extends StatefulWidget {
+  const TargetTossGame({super.key});
+  @override
+  State<TargetTossGame> createState() => _TargetTossGameState();
+}
+
+class _TargetTossGameState extends State<TargetTossGame>
+    with TickerProviderStateMixin, ToyTicker, _Emit {
+  static const String _id = 'target_toss';
+  static const int _target = 24;
+  static const double _ballR = 0.035;
+  static const double _targetY = 0.22;
+  final math.Random _rnd = math.Random();
+  final List<_Shard> _bits = <_Shard>[];
+  double _bx = 0.5, _by = 0.86, _vx = 0, _vy = 0;
+  bool _flying = false;
+  double _tx = 0.5; // target centre x
+  double _tDir = 1;
+  double _tSpeed = 0.18;
+  double _hitPulse = 0;
+  double _resetT = 0;
+  int _score = 0;
+  int _throws = 0;
+  int _best = 0;
+  Offset? _aim;
+  String? _banner;
+  double _bannerT = 0;
+  GameStatus _status = GameStatus.ready;
+
+  @override
+  void initState() {
+    super.initState();
+    GameScores.instance.ensureLoaded().then((_) {
+      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+    });
+  }
+
+  void _flash(String s) {
+    _banner = s;
+    _bannerT = 1.3;
+  }
+
+  Offset _throwVel(Offset aim) {
+    var v = aim * 3.4;
+    final m = v.distance;
+    if (m > 2.1) v = v * (2.1 / m);
+    return v;
+  }
+
+  void _resetBall() {
+    _bx = 0.5;
+    _by = 0.86;
+    _vx = 0;
+    _vy = 0;
+    _flying = false;
+    _aim = null;
+  }
+
+  @override
+  void onTick(double dt) {
+    if (_status != GameStatus.playing) return;
+    if (_bannerT > 0) {
+      _bannerT -= dt;
+      if (_bannerT <= 0) _banner = null;
+    }
+    if (_hitPulse > 0) _hitPulse -= dt;
+    // Slide the target.
+    _tx += _tDir * _tSpeed * dt;
+    if (_tx < 0.16) {
+      _tx = 0.16;
+      _tDir = 1;
+    } else if (_tx > 0.84) {
+      _tx = 0.84;
+      _tDir = -1;
+    }
+    for (var i = _bits.length - 1; i >= 0; i--) {
+      final b = _bits[i];
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.vy += 0.5 * dt;
+      b.life -= dt;
+      if (b.life <= 0) _bits.removeAt(i);
+    }
+    if (_resetT > 0) {
+      _resetT -= dt;
+      if (_resetT <= 0) _resetBall();
+      return;
+    }
+    if (!_flying) return;
+
+    final prevY = _by;
+    _vy += 0.35 * dt; // gentle gravity
+    _bx += _vx * dt;
+    _by += _vy * dt;
+
+    if (prevY > _targetY && _by <= _targetY) {
+      final d = (_bx - _tx).abs();
+      if (d < 0.14) {
+        _registerHit(d);
+        return;
+      }
+    }
+    if (_by < -0.05 || _bx < -0.05 || _bx > 1.05 || _by > 1.1) {
+      _flying = false;
+      _resetT = 0.3;
+      _flash('Missed — toss again');
+    }
+  }
+
+  void _registerHit(double d) {
+    _flying = false;
+    int pts;
+    String label;
+    if (d < 0.03) {
+      pts = 5;
+      label = 'Bullseye! +5';
+    } else if (d < 0.06) {
+      pts = 3;
+      label = 'Great! +3';
+    } else if (d < 0.1) {
+      pts = 2;
+      label = 'Nice +2';
+    } else {
+      pts = 1;
+      label = '+1';
+    }
+    _score += pts;
+    _hitPulse = 0.5;
+    for (var i = 0; i < 14; i++) {
+      final a = _rnd.nextDouble() * math.pi * 2;
+      final sp = 0.15 + _rnd.nextDouble() * 0.35;
+      _bits.add(_Shard(_tx, _targetY, math.cos(a) * sp, math.sin(a) * sp,
+          const Color(0xFFFFD166)));
+    }
+    TonePlayer.instance.playCue(SoundCue.success);
+    emit(ExperienceEvent.bubblePopped);
+    _flash(label);
+    _tSpeed = 0.18 + (_score / _target) * 0.26;
+    GameScores.instance.submit(_id, _score).then((b) {
+      if (mounted) setState(() => _best = b);
+    });
+    if (_score >= _target) {
+      _status = GameStatus.won;
+      TonePlayer.instance.playCue(SoundCue.gameStart);
+      emit(ExperienceEvent.gameCompleted);
+    } else {
+      _resetT = 0.5;
+    }
+  }
+
+  void _aimAt(Offset p, double w, double h) {
+    if (_flying || _resetT > 0 || _status != GameStatus.playing) return;
+    _aim = Offset(p.dx / w - _bx, p.dy / h - _by);
+  }
+
+  void _toss() {
+    final a = _aim;
+    _aim = null;
+    if (a == null || _flying || _resetT > 0) return;
+    if (a.dy > -0.03) return;
+    final v = _throwVel(a);
+    _vx = v.dx;
+    _vy = v.dy;
+    _flying = true;
+    _throws++;
+    TonePlayer.instance.playCue(SoundCue.ball);
+  }
+
+  void _reset() {
+    setState(() {
+      _score = 0;
+      _throws = 0;
+      _tSpeed = 0.18;
+      _tx = 0.5;
+      _tDir = 1;
+      _bits.clear();
+      _banner = null;
+      _bannerT = 0;
+      _resetT = 0;
+      _status = GameStatus.playing;
+      _resetBall();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    drain(context);
+    return _Shell(
+      title: '🎯 Target Toss',
+      introHow:
+          'Drag from the bean bag toward the moving target, then let go. Hit the centre for 5!',
+      onStart: () => setState(() => _status = GameStatus.playing),
+      score: _score,
+      best: _best,
+      target: _target,
+      status: _status,
+      banner: _banner ?? 'Points $_score/$_target · tosses $_throws',
+      overEmoji: '🎯',
+      overText: 'Sharp shooter!',
+      accent: const Color(0xFFE23B5B),
+      onPlayAgain: _reset,
+      child: LayoutBuilder(
+        builder: (context, c) {
+          final w = c.maxWidth, h = c.maxHeight;
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onPanStart: (d) => _aimAt(d.localPosition, w, h),
+            onPanUpdate: (d) => _aimAt(d.localPosition, w, h),
+            onPanEnd: (_) => _toss(),
+            child: CustomPaint(
+              painter: _TargetPainter(
+                bx: _bx,
+                by: _by,
+                ballR: _ballR,
+                tx: _tx,
+                targetY: _targetY,
+                hitPulse: _hitPulse,
+                bits: _bits,
+                aim: _flying ? null : _aim,
+                launch: _aim == null ? Offset.zero : _throwVel(_aim!),
+              ),
+              size: Size.infinite,
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _TargetPainter extends CustomPainter {
+  _TargetPainter({
+    required this.bx,
+    required this.by,
+    required this.ballR,
+    required this.tx,
+    required this.targetY,
+    required this.hitPulse,
+    required this.bits,
+    required this.aim,
+    required this.launch,
+  });
+  final double bx, by, ballR, tx, targetY, hitPulse;
+  final List<_Shard> bits;
+  final Offset? aim;
+  final Offset launch;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    double sx(double x) => x * w;
+    double sy(double y) => y * h;
+    canvas.drawRect(
+        Offset.zero & size,
+        Paint()
+          ..shader = const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: <Color>[Color(0xFF2A1733), Color(0xFF3E1F33)],
+          ).createShader(Offset.zero & size));
+
+    // Target board (concentric rings).
+    final tc = Offset(sx(tx), sy(targetY));
+    final pulse = hitPulse > 0 ? 1 + hitPulse * 0.4 : 1.0;
+    const rings = <Color>[
+      Color(0xFF2E7D32),
+      Color(0xFFFFFFFF),
+      Color(0xFF1565C0),
+      Color(0xFFD32F2F),
+    ];
+    final radii = <double>[0.14, 0.1, 0.06, 0.03];
+    for (var i = 0; i < rings.length; i++) {
+      canvas.drawCircle(tc, radii[i] * w * pulse, Paint()..color = rings[i]);
+    }
+    canvas.drawCircle(tc, 0.012 * w * pulse, Paint()..color = Colors.yellow);
+
+    // Aim preview.
+    if (aim != null && aim!.dy < -0.03) {
+      var px = bx, py = by;
+      var vx = launch.dx, vy = launch.dy;
+      final dot = Paint()..color = Colors.white.withOpacity(0.55);
+      for (var i = 0; i < 22; i++) {
+        vy += 0.35 * 0.05;
+        px += vx * 0.05;
+        py += vy * 0.05;
+        if (py < 0 || px < 0 || px > 1) break;
+        if (i.isEven) canvas.drawCircle(Offset(sx(px), sy(py)), 3, dot);
+      }
+    }
+
+    // Bean bag.
+    final bc = Offset(sx(bx), sy(by));
+    final r = ballR * w;
+    canvas.drawCircle(bc.translate(1, 2), r, Paint()..color = Colors.black38);
+    canvas.drawCircle(bc, r, Paint()..color = const Color(0xFFF4A64B));
+    canvas.drawLine(Offset(bc.dx - r, bc.dy), Offset(bc.dx + r, bc.dy),
+        Paint()
+          ..color = const Color(0xFF8A4B16)
+          ..strokeWidth = 2);
+
+    for (final s in bits) {
+      final k = (s.life / 0.5).clamp(0.0, 1.0);
+      canvas.drawCircle(Offset(sx(s.x), sy(s.y)), 2 + 3 * k,
+          Paint()..color = s.color.withOpacity(k));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_TargetPainter old) => true;
+}
+
+/// Bubble Wrap — a no-fail sensory popper. Tap or drag across the sheet to pop
+/// every bubble with a satisfying burst; clear a sheet and a fresh one rolls in.
+class BubbleWrapGame extends StatefulWidget {
+  const BubbleWrapGame({super.key});
+  @override
+  State<BubbleWrapGame> createState() => _BubbleWrapGameState();
+}
+
+class _BubbleWrapGameState extends State<BubbleWrapGame>
+    with TickerProviderStateMixin, ToyTicker, _Emit {
+  static const String _id = 'bubble_wrap';
+  static const int _cols = 7;
+  static const int _rows = 10;
+  static const int _sheet = _cols * _rows;
+  final math.Random _rnd = math.Random();
+  final List<_Shard> _bits = <_Shard>[];
+  late List<bool> _popped;
+  int _sheetPopped = 0;
+  int _total = 0;
+  int _best = 0;
+  double _refillT = 0;
+  String? _banner;
+  double _bannerT = 0;
+  GameStatus _status = GameStatus.ready;
+
+  @override
+  void initState() {
+    super.initState();
+    _popped = List<bool>.filled(_sheet, false);
+    GameScores.instance.ensureLoaded().then((_) {
+      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+    });
+  }
+
+  void _flash(String s) {
+    _banner = s;
+    _bannerT = 1.4;
+  }
+
+  @override
+  void onTick(double dt) {
+    if (_status != GameStatus.playing) return;
+    if (_bannerT > 0) {
+      _bannerT -= dt;
+      if (_bannerT <= 0) _banner = null;
+    }
+    for (var i = _bits.length - 1; i >= 0; i--) {
+      final b = _bits[i];
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.vy += 0.4 * dt;
+      b.life -= dt;
+      if (b.life <= 0) _bits.removeAt(i);
+    }
+    if (_refillT > 0) {
+      _refillT -= dt;
+      if (_refillT <= 0) {
+        _popped = List<bool>.filled(_sheet, false);
+        _sheetPopped = 0;
+      }
+    }
+  }
+
+  void _popAt(Offset p, double w, double h) {
+    if (_status != GameStatus.playing || _refillT > 0) return;
+    final col = (p.dx / w * _cols).floor();
+    final row = (p.dy / h * _rows).floor();
+    if (col < 0 || col >= _cols || row < 0 || row >= _rows) return;
+    final idx = row * _cols + col;
+    if (_popped[idx]) return;
+    setState(() {
+      _popped[idx] = true;
+      _sheetPopped++;
+      _total++;
+    });
+    final cx = (col + 0.5) / _cols, cy = (row + 0.5) / _rows;
+    for (var i = 0; i < 6; i++) {
+      final a = _rnd.nextDouble() * math.pi * 2;
+      final sp = 0.1 + _rnd.nextDouble() * 0.25;
+      _bits.add(_Shard(cx, cy, math.cos(a) * sp, math.sin(a) * sp,
+          const Color(0xFFBFE3FF)));
+    }
+    TonePlayer.instance.playCue(SoundCue.bubble);
+    if (_total > _best) {
+      _best = _total;
+      GameScores.instance.submit(_id, _total);
+    }
+    if (_sheetPopped >= _sheet) {
+      emit(ExperienceEvent.bubblePopped);
+      TonePlayer.instance.playCue(SoundCue.success);
+      _flash('Sheet clear! 🎉 Fresh one coming…');
+      _refillT = 1.0;
+    }
+  }
+
+  void _reset() {
+    setState(() {
+      _popped = List<bool>.filled(_sheet, false);
+      _sheetPopped = 0;
+      _bits.clear();
+      _banner = null;
+      _bannerT = 0;
+      _refillT = 0;
+      _status = GameStatus.playing;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    drain(context);
+    return _Shell(
+      title: '🫧 Bubble Wrap',
+      introHow:
+          'Tap or drag across the sheet to pop every bubble. Clear it and a fresh sheet rolls in — no rush, no fail.',
+      onStart: () => setState(() => _status = GameStatus.playing),
+      score: _sheetPopped,
+      best: _best,
+      target: _sheet,
+      status: _status,
+      banner: _banner ?? 'Popped $_sheetPopped/$_sheet · total $_total',
+      overEmoji: '🫧',
+      overText: 'So satisfying!',
+      accent: const Color(0xFF5FB2E6),
+      onPlayAgain: _reset,
+      child: LayoutBuilder(
+        builder: (context, c) {
+          final w = c.maxWidth, h = c.maxHeight;
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTapDown: (d) => _popAt(d.localPosition, w, h),
+            onPanStart: (d) => _popAt(d.localPosition, w, h),
+            onPanUpdate: (d) => _popAt(d.localPosition, w, h),
+            child: CustomPaint(
+              painter: _BubbleWrapPainter(
+                popped: _popped,
+                cols: _cols,
+                rows: _rows,
+                bits: _bits,
+              ),
+              size: Size.infinite,
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _BubbleWrapPainter extends CustomPainter {
+  _BubbleWrapPainter({
+    required this.popped,
+    required this.cols,
+    required this.rows,
+    required this.bits,
+  });
+  final List<bool> popped;
+  final int cols, rows;
+  final List<_Shard> bits;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    canvas.drawRect(
+        Offset.zero & size,
+        Paint()
+          ..shader = const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: <Color>[Color(0xFFB9DCEB), Color(0xFF8FC2DC)],
+          ).createShader(Offset.zero & size));
+    final cw = w / cols, ch = h / rows;
+    final r = math.min(cw, ch) * 0.42;
+    for (var row = 0; row < rows; row++) {
+      for (var col = 0; col < cols; col++) {
+        final c = Offset((col + 0.5) * cw, (row + 0.5) * ch);
+        if (popped[row * cols + col]) {
+          canvas.drawCircle(c, r * 0.8,
+              Paint()..color = Colors.black.withOpacity(0.08));
+          canvas.drawCircle(c, r * 0.5,
+              Paint()..color = Colors.black.withOpacity(0.06));
+        } else {
+          canvas.drawCircle(c, r,
+              Paint()..color = Colors.white.withOpacity(0.55));
+          canvas.drawCircle(c, r,
+              Paint()
+                ..style = PaintingStyle.stroke
+                ..strokeWidth = 1.5
+                ..color = Colors.white.withOpacity(0.8));
+          canvas.drawCircle(c.translate(-r * 0.3, -r * 0.3), r * 0.28,
+              Paint()..color = Colors.white.withOpacity(0.9));
+        }
+      }
+    }
+    for (final s in bits) {
+      final k = (s.life / 0.5).clamp(0.0, 1.0);
+      canvas.drawCircle(Offset(s.x * w, s.y * h), 2 + 4 * k,
+          Paint()..color = s.color.withOpacity(k * 0.8));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_BubbleWrapPainter old) => true;
+}
 
 
