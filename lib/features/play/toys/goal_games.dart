@@ -618,31 +618,40 @@ class _PathFinderGameState extends State<PathFinderGame> {
                         key: ValueKey('path-cell-$cell'),
                         onTap: () => _tap(cell),
                         borderRadius: BorderRadius.circular(12),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 180),
-                          decoration: BoxDecoration(
-                            color: completed
-                                ? const Color(0xFF43E97B)
-                                : next
-                                    ? const Color(0xFFFFD166)
-                                    : onPath
-                                        ? Colors.white.withOpacity(0.13)
-                                        : Colors.white.withOpacity(0.05),
-                            borderRadius: BorderRadius.circular(12),
-                            border: next
-                                ? Border.all(color: Colors.white, width: 3)
-                                : null,
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            cell == _path.first
-                                ? '🚩'
-                                : cell == _path.last
-                                    ? '🎁'
-                                    : next
-                                        ? '•'
-                                        : '',
-                            style: const TextStyle(fontSize: 24),
+                        child: TweenAnimationBuilder<double>(
+                          key: ValueKey('pf-$cell-$completed'),
+                          tween: Tween<double>(
+                              begin: completed ? 1.3 : 1.0, end: 1.0),
+                          duration: const Duration(milliseconds: 240),
+                          curve: Curves.easeOutBack,
+                          builder: (ctx, s, child) =>
+                              Transform.scale(scale: s, child: child),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
+                            decoration: BoxDecoration(
+                              color: completed
+                                  ? const Color(0xFF43E97B)
+                                  : next
+                                      ? const Color(0xFFFFD166)
+                                      : onPath
+                                          ? Colors.white.withOpacity(0.13)
+                                          : Colors.white.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(12),
+                              border: next
+                                  ? Border.all(color: Colors.white, width: 3)
+                                  : null,
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              cell == _path.first
+                                  ? '🚩'
+                                  : cell == _path.last
+                                      ? '🎁'
+                                      : next
+                                          ? '•'
+                                          : '',
+                              style: const TextStyle(fontSize: 24),
+                            ),
                           ),
                         ),
                       ),

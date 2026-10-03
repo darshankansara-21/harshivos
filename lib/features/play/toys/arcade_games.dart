@@ -3117,11 +3117,22 @@ class _BlockBlastGameState extends State<BlockBlastGame> with _Emit {
                       for (var c = 0; c < _n; c++)
                         GestureDetector(
                           onTapDown: (_) => _place(r, c),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color:
-                                  _grid[r][c] ?? Colors.white.withOpacity(0.05),
-                              borderRadius: BorderRadius.circular(4),
+                          child: TweenAnimationBuilder<double>(
+                            key: ValueKey(
+                                'bb-$r-$c-${_grid[r][c]?.hashCode ?? 0}'),
+                            tween: Tween<double>(
+                                begin: _grid[r][c] != null ? 1.25 : 1.0,
+                                end: 1.0),
+                            duration: const Duration(milliseconds: 180),
+                            curve: Curves.easeOutBack,
+                            builder: (ctx, s, child) =>
+                                Transform.scale(scale: s, child: child),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: _grid[r][c] ??
+                                    Colors.white.withOpacity(0.05),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
                             ),
                           ),
                         ),

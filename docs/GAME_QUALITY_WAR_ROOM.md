@@ -27,7 +27,7 @@ responsive touch/sound/visual feedback · clear scoring · real progression · W
 | color_quest | Color Quest | TRANSFORMED | Now real COLOR SWATCHES (tap a colour, not a word) + wrong-tile red flash. |
 | shape_scout | Shape Scout | TRANSFORMED | Wrong-tile red flash; visual glyph matching. |
 | number_splash | Number Splash | TRANSFORMED | Wrong-tile red flash. |
-| path_finder | Path Finder | NOT_STARTED | Review. |
+| path_finder | Path Finder | TRANSFORMED | Completion pop as each step lights green. |
 
 ### arcade_games.dart
 | id | name | status | notes |
@@ -39,22 +39,22 @@ responsive touch/sound/visual feedback · clear scoring · real progression · W
 | bubble_shooter | Bubble Shooter | IN_PROGRESS | Added pop particles. Review. |
 | sky_hop | Sky Hop | IN_PROGRESS | Added coin sparkles + flap puffs. Review. |
 | piano_tiles | Piano Tiles | TRANSFORMED | Tiles carry a pentatonic melody (tap = play a tune), pitch-coloured tiles, column hit-flash. |
-| stack | Stack | NOT_STARTED | Has perfect-streak; review. |
-| echo | Echo | REVIEWED | Simon-says; functional pad flash + tone. Low priority. |
-| merge | Merge | REVIEWED | 2048-style; functional, HSV tiles + merge sound. Low priority. |
+| stack | Stack | TRANSFORMED | Drop-impact sparks (gold on perfect) + perfect-streak bonus. |
+| echo | Echo | TRANSFORMED | Tap-flash input feedback (pads light when pressed) + input progress count. |
+| merge | Merge | TRANSFORMED | Tiles pop (easeOutBack) when their value changes = satisfying landing/merge. |
 | tic_tac_toe | Tic-Tac-Toe | TRANSFORMED | Placement pop, distinct AI sound, winning-line gold highlight. |
 | memory_flip | Memory Flip | TRANSFORMED | Match pop (easeOutBack) + gold glow border on matched pairs. |
 | tap_order | Tap Order | TRANSFORMED | Pop as each number completes + existing wrong-cell red flash. |
 | memory_flip | Memory Flip | DONE above | |
-| ball_sort | Ball Sort | REVIEWED | Functional: tube lift, water sound, clear celebration. Low priority. |
+| ball_sort | Ball Sort | TRANSFORMED | Balls pop on landing (keyed per slot) + tube lift + water pour. |
 | tap_order | Tap Order | DONE above | |
-| block_blast | Block Blast | NOT_STARTED | No ticker; needs retrofit for clear-burst. |
-| quick_tap | Quick Tap | NOT_STARTED | Reaction game; review. |
+| block_blast | Block Blast | TRANSFORMED | Placement pop on filled cells (timer-free) + clear banner/sound. |
+| quick_tap | Quick Tap | TRANSFORMED | Result moment (shows ms + rating ⚡Lightning!/Fast!/Nice) + tap flash. |
 
 ### trace_game.dart
 | id | name | status | notes |
 |----|------|--------|-------|
-| trace_it | Trace It | NOT_STARTED | Fine-motor; review. |
+| trace_it | Trace It | TRANSFORMED | Shape-complete chime + shape-transition pop + rising-pitch dot trace. |
 
 ## Priority deep rebuilds
 1. Racing — DONE (TRANSFORMED)

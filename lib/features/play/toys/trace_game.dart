@@ -100,6 +100,7 @@ class _TraceGameState extends State<TraceGame> {
         _status = GameStatus.won;
         TonePlayer.instance.playCue(SoundCue.success);
       } else {
+        TonePlayer.instance.playCue(SoundCue.correct);
         _load(_score);
       }
     }
@@ -134,9 +135,17 @@ class _TraceGameState extends State<TraceGame> {
                 behavior: HitTestBehavior.opaque,
                 onPanStart: (d) => _drag(d.localPosition, size),
                 onPanUpdate: (d) => _drag(d.localPosition, size),
-                child: CustomPaint(
-                  painter: _TracePainter(_pts, _lit),
-                  size: Size.infinite,
+                child: TweenAnimationBuilder<double>(
+                  key: ValueKey('trace-$_score'),
+                  tween: Tween<double>(begin: 1.12, end: 1.0),
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOutBack,
+                  builder: (ctx, s, child) =>
+                      Transform.scale(scale: s, child: child),
+                  child: CustomPaint(
+                    painter: _TracePainter(_pts, _lit),
+                    size: Size.infinite,
+                  ),
                 ),
               );
             },
