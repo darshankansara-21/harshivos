@@ -3506,6 +3506,7 @@ class _PinballGameState extends State<PinballGame>
     _Bumper(0.78, 0.54, 0.055),
   ];
   final math.Random _rnd = math.Random();
+  final List<_Shard> _sparks = <_Shard>[];
   double _bx = 0.86;
   double _by = 0.86;
   double _vx = 0;
@@ -3547,6 +3548,14 @@ class _PinballGameState extends State<PinballGame>
     if (_flashT > 0) _flashT -= dt;
     if (_leftT > 0) _leftT = math.max(0, _leftT - dt * 5);
     if (_rightT > 0) _rightT = math.max(0, _rightT - dt * 5);
+    for (var i = _sparks.length - 1; i >= 0; i--) {
+      final s = _sparks[i];
+      s.x += s.vx * dt;
+      s.y += s.vy * dt;
+      s.vy += 0.5 * dt;
+      s.life -= dt;
+      if (s.life <= 0) _sparks.removeAt(i);
+    }
 
     _vy += 0.85 * dt; // gentle gravity
     _bx += _vx * dt;
@@ -3584,6 +3593,12 @@ class _PinballGameState extends State<PinballGame>
         _score += 10;
         _flashT = 0.25;
         _flashBumper = i;
+        for (var k = 0; k < 9; k++) {
+          final a = _rnd.nextDouble() * math.pi * 2;
+          final sp = 0.15 + _rnd.nextDouble() * 0.28;
+          _sparks.add(_Shard(_bx, _by, math.cos(a) * sp, math.sin(a) * sp,
+              const Color(0xFFFFF07C)));
+        }
         TonePlayer.instance.playCue(SoundCue.ball);
         emit(ExperienceEvent.bubblePopped);
         _flash('+10');
@@ -3660,6 +3675,7 @@ class _PinballGameState extends State<PinballGame>
       _banner = null;
       _bannerT = 0;
       _status = GameStatus.playing;
+      _sparks.clear();
       _launch();
     });
   }
@@ -3698,6 +3714,7 @@ class _PinballGameState extends State<PinballGame>
                 left: _left,
                 right: _right,
                 top: _top,
+                sparks: _sparks,
               ),
               size: Size.infinite,
             ),
@@ -3720,10 +3737,12 @@ class _PinballPainter extends CustomPainter {
     required this.left,
     required this.right,
     required this.top,
+    required this.sparks,
   });
   final double bx, by, rB, leftT, rightT, left, right, top;
   final List<_Bumper> bumpers;
   final int flashBumper;
+  final List<_Shard> sparks;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -3783,6 +3802,16 @@ class _PinballPainter extends CustomPainter {
 
     flipper(true, leftT);
     flipper(false, rightT);
+
+    for (final s in sparks) {
+      final k = (s.life / 0.5).clamp(0.0, 1.0);
+      canvas.drawCircle(
+          Offset(sx(s.x), sy(s.y)),
+          2 + 3 * k,
+          Paint()
+            ..color = s.color.withOpacity(k)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2));
+    }
 
     final bc = Offset(sx(bx), sy(by));
     canvas.drawCircle(
