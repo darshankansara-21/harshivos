@@ -1,6 +1,7 @@
 # WonderPlay — Google Play Release Notes
 
 ## What's new
+- Every game now feels more alive — satisfying pops, sparks and sounds on every action, across the whole game library.
 - Big game-quality update! Goal Keeper is now a real read-and-dive keeper game, Piano Tiles plays an actual melody, and Star Catch adds rainbow stars and timing bonuses.
 - More satisfying effects across the games — particle bursts, trails and pops that make every tap feel alive.
 - New game — Pinball! Bounce the ball off glowing bumpers and use the flippers to keep it alive.
