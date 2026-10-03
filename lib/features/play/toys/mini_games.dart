@@ -745,13 +745,15 @@ class _StarTapGameState extends State<StarTapGame>
   static const int _cells = 9;
   final math.Random _rnd = math.Random();
   int _active = 0;
-  int _kind = 0; // 0 = normal star, 1 = gold shooting star (worth 3)
+  int _kind = 0; // 0 = normal, 1 = gold (+3), 2 = rainbow (+5, rare)
   int _decoy = -1; // a red star to avoid (-1 = none)
   double _life = 0;
   double _lifeMax = 1.6;
   double _t = 0;
   int _score = 0;
   int _combo = 0;
+  int _wave = 0;
+  double _shootT = 0; // shooting-star streak timer on a new wave
   int _best = 0;
   double _bannerT = 0;
   String? _banner;
@@ -773,9 +775,17 @@ class _StarTapGameState extends State<StarTapGame>
 
   void _spawnStar() {
     _active = _rnd.nextInt(_cells);
-    _kind = _rnd.nextDouble() < 0.22 ? 1 : 0;
-    // Gold stars are faster; everything speeds up as the score climbs.
-    _lifeMax = math.max(0.6, (1.5 - _score * 0.05)) * (_kind == 1 ? 0.7 : 1);
+    final roll = _rnd.nextDouble();
+    // Rainbow stars are rare, fast and worth the most; gold are the mid tier.
+    if (_score >= 10 && roll < 0.10) {
+      _kind = 2;
+    } else if (roll < 0.26) {
+      _kind = 1;
+    } else {
+      _kind = 0;
+    }
+    // Special stars are faster; everything speeds up as the score climbs.
+    _lifeMax = math.max(0.6, (1.5 - _score * 0.05)) * (_kind >= 1 ? 0.7 : 1);
     _life = _lifeMax;
     // A red decoy appears once a child is doing well; tapping it costs a
     // point, so the game becomes about looking, not just fast tapping.
@@ -800,6 +810,7 @@ class _StarTapGameState extends State<StarTapGame>
     for (final p in _pops) {
       p.t -= dt;
     }
+    if (_shootT > 0) _shootT -= dt;
     _pops.removeWhere((p) => p.t <= 0);
     _life -= dt;
     if (_life <= 0) {
@@ -821,16 +832,30 @@ class _StarTapGameState extends State<StarTapGame>
     }
     if (i == _active) {
       _combo++;
-      final gain = (_kind == 1 ? 3 : 1) + (_combo >= 5 ? 1 : 0);
+      final quick = _lifeMax > 0 && (_life / _lifeMax) > 0.6;
+      final base = _kind == 2 ? 5 : (_kind == 1 ? 3 : 1);
+      final gain = base + (_combo >= 5 ? 1 : 0) + (quick ? 1 : 0);
       _score += gain;
       _pops.add(_StarPop(i, '+$gain'));
       TonePlayer.instance
-          .playCue(_kind == 1 ? SoundCue.coin : SoundCue.correct);
+          .playCue(_kind >= 1 ? SoundCue.coin : SoundCue.correct);
       emit(ExperienceEvent.bubblePopped);
-      if (_kind == 1) {
+      if (_kind == 2) {
+        _flash('Rainbow star +5! 🌈');
+      } else if (_kind == 1) {
         _flash('Shooting star +3!');
+      } else if (_combo >= 8) {
+        _flash('On fire! x$_combo 🔥');
+      } else if (quick) {
+        _flash('Quick! +$gain');
       } else if (_combo >= 5) {
         _flash('Combo x$_combo!');
+      }
+      // Every 5 points starts a new wave with a shooting-star across the sky.
+      final newWave = _score ~/ 5;
+      if (newWave > _wave) {
+        _wave = newWave;
+        _shootT = 1.0;
       }
       if (_score >= _target) {
         _end(GameStatus.won);
@@ -860,6 +885,8 @@ class _StarTapGameState extends State<StarTapGame>
     setState(() {
       _score = 0;
       _combo = 0;
+      _wave = 0;
+      _shootT = 0;
       _banner = null;
       _bannerT = 0;
       _pops.clear();
@@ -886,7 +913,7 @@ class _StarTapGameState extends State<StarTapGame>
       child: Stack(
         fit: StackFit.expand,
         children: <Widget>[
-          CustomPaint(painter: _NightSkyPainter(_bgStars, _t)),
+          CustomPaint(painter: _NightSkyPainter(_bgStars, _t, _shootT)),
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 92, 24, 40),
             child: GridView.count(
@@ -941,7 +968,9 @@ class _StarCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final gold = kind == 1;
-    final glow = gold ? const Color(0xFFFFE066) : const Color(0xFFFFD166);
+    final glow = kind == 2
+        ? const Color(0xFFB388FF)
+        : (gold ? const Color(0xFFFFE066) : const Color(0xFFFFD166));
     return Stack(
       alignment: Alignment.center,
       children: <Widget>[
@@ -984,7 +1013,8 @@ class _StarCell extends StatelessWidget {
               ),
             ),
           ),
-          Text(gold ? '🌟' : '⭐', style: const TextStyle(fontSize: 42)),
+          Text(kind == 2 ? '💫' : (gold ? '🌟' : '⭐'),
+              style: const TextStyle(fontSize: 42)),
         ],
         if (pop != null)
           Transform.translate(
@@ -1005,9 +1035,10 @@ class _StarCell extends StatelessWidget {
 
 /// A slow, twinkling night sky with a soft moon — Star Catch's own backdrop.
 class _NightSkyPainter extends CustomPainter {
-  _NightSkyPainter(this.stars, this.t);
+  _NightSkyPainter(this.stars, this.t, [this.shootT = 0]);
   final List<Offset> stars;
   final double t;
+  final double shootT;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1032,6 +1063,23 @@ class _NightSkyPainter extends CustomPainter {
           Offset(s.dx * size.width, s.dy * size.height),
           1.4 + tw,
           Paint()..color = Colors.white.withOpacity(0.25 + 0.4 * tw));
+    }
+    // A shooting star streaks across on each new wave.
+    if (shootT > 0) {
+      final p = (1 - shootT).clamp(0.0, 1.0);
+      final head = Offset(size.width * (0.1 + p * 0.85), size.height * (0.1 + p * 0.5));
+      final tail = head - const Offset(90, 50);
+      canvas.drawLine(
+          tail,
+          head,
+          Paint()
+            ..shader = LinearGradient(colors: <Color>[
+              Colors.white.withOpacity(0),
+              Colors.white.withOpacity(0.9),
+            ]).createShader(Rect.fromPoints(tail, head))
+            ..strokeWidth = 3
+            ..strokeCap = StrokeCap.round);
+      canvas.drawCircle(head, 4, Paint()..color = Colors.white);
     }
   }
 
