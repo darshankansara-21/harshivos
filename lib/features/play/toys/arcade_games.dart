@@ -349,7 +349,12 @@ class _WhackGameState extends State<WhackGame>
       _splat[i] = 0.35;
       TonePlayer.instance.playCue(SoundCue.wood);
       emit(ExperienceEvent.bubblePopped);
-      if (_combo >= 5) {
+      // Milestone cheers give the endless whack a sense of achievement.
+      if (_score == 10 || _score == 25 || (_score >= 50 && _score % 25 == 0)) {
+        _banner = '$_score moles! 🎉';
+        _bannerT = 1.3;
+        TonePlayer.instance.playCue(SoundCue.milestone);
+      } else if (_combo >= 5) {
         _banner = 'Combo x$_combo!';
         _bannerT = 1.0;
       }

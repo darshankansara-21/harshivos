@@ -71,3 +71,13 @@ result overlay + "Back to games" · progression XP hook · particle primitives `
 
 ## Rules for this sprint
 NO version bump · NO release AAB/APK · targeted tests + analyze + device QA only, until catalog substantially done.
+
+## AUTONOMOUS SPRINT #3 — depth over feedback
+Focus: the named remaining weaknesses (flashcard choice games, perfect-AI Tic-Tac-Toe, shallow Merge).
+- **Choice games (Color Quest / Shape Scout / Number Splash)** — added a **collection tray** (8 stars pop in as you answer, turning "8 correct" into a visible treasure hunt) + a gentle **quick-answer bonus** (⚡ under 2.2s). Shared `_ChoiceGoalGameState`.
+- **Number Splash** — math now **evolves**: gentle subtraction appears from round 3.
+- **Tic-Tac-Toe** — AI is now **child-friendly/beatable** (always takes a win, blocks ~65%, some randomness) — a perfect opponent was frustrating for the audience.
+- **Merge** — **new-best-tile milestone** celebrations ("New best: 32! 🎉") for discovery/anticipation.
+- Gates: 111 tests pass, analyze 112 info (0 err/0 warn). HEAD 126fe58.
+- **Device QA BLOCKED this sprint**: Pixel 6a dropped off USB during the QA build (documented under-load behavior, needs physical replug). Changes are test-verified; earlier sprints device-verified the catalog direction.
+
