@@ -1267,6 +1267,7 @@ class TicTacToeGame extends StatefulWidget {
 class _TicTacToeGameState extends State<TicTacToeGame> with _Emit {
   static const String _id = 'tictactoe';
   final List<int> _b = List<int>.filled(9, 0); // 0 empty, 1 player, 2 ai
+  List<int> _winLine = const <int>[];
   int _best = 0; // wins
   GameStatus _status = GameStatus.ready;
   String _overText = 'Draw';
@@ -1280,17 +1281,25 @@ class _TicTacToeGameState extends State<TicTacToeGame> with _Emit {
   }
 
   int _winner(List<int> b) {
-    const lines = <List<int>>[
-      [0, 1, 2], [3, 4, 5], [6, 7, 8],
-      [0, 3, 6], [1, 4, 7], [2, 5, 8],
-      [0, 4, 8], [2, 4, 6],
-    ];
-    for (final l in lines) {
+    for (final l in _lines) {
       if (b[l[0]] != 0 && b[l[0]] == b[l[1]] && b[l[1]] == b[l[2]]) {
         return b[l[0]];
       }
     }
     return 0;
+  }
+
+  static const List<List<int>> _lines = <List<int>>[
+    [0, 1, 2], [3, 4, 5], [6, 7, 8],
+    [0, 3, 6], [1, 4, 7], [2, 5, 8],
+    [0, 4, 8], [2, 4, 6],
+  ];
+
+  List<int> _winLineFor(List<int> b) {
+    for (final l in _lines) {
+      if (b[l[0]] != 0 && b[l[0]] == b[l[1]] && b[l[1]] == b[l[2]]) return l;
+    }
+    return const <int>[];
   }
 
   int? _findMove(int player) {
@@ -1317,7 +1326,7 @@ class _TicTacToeGameState extends State<TicTacToeGame> with _Emit {
     }
     if (move != null) {
       _b[move] = 2;
-      TonePlayer.instance.playCue(SoundCue.wood);
+      TonePlayer.instance.playClick(pitch: 0.7);
     }
   }
 
@@ -1350,7 +1359,10 @@ class _TicTacToeGameState extends State<TicTacToeGame> with _Emit {
         _aiMove();
         w = _winner(_b);
       }
-      if (w != 0 || !_b.contains(0)) _finish(w);
+      if (w != 0 || !_b.contains(0)) {
+        _winLine = _winLineFor(_b);
+        _finish(w);
+      }
     });
   }
 
@@ -1359,6 +1371,7 @@ class _TicTacToeGameState extends State<TicTacToeGame> with _Emit {
       for (var i = 0; i < 9; i++) {
         _b[i] = 0;
       }
+      _winLine = const <int>[];
       _status = GameStatus.playing;
     });
   }
@@ -1403,12 +1416,27 @@ class _TicTacToeGameState extends State<TicTacToeGame> with _Emit {
                       child: Container(
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.06),
+                          color: _winLine.contains(i)
+                              ? const Color(0xFFFFD166).withOpacity(0.35)
+                              : Colors.white.withOpacity(0.06),
                           borderRadius: BorderRadius.circular(16),
+                          border: _winLine.contains(i)
+                              ? Border.all(
+                                  color: const Color(0xFFFFD166), width: 3)
+                              : null,
                         ),
-                        child: Text(
-                          _b[i] == 1 ? '⭐' : _b[i] == 2 ? '🐾' : '',
-                          style: const TextStyle(fontSize: 52),
+                        child: TweenAnimationBuilder<double>(
+                          key: ValueKey('ttt-$i-${_b[i]}'),
+                          tween: Tween<double>(
+                              begin: _b[i] != 0 ? 1.4 : 1.0, end: 1.0),
+                          duration: const Duration(milliseconds: 260),
+                          curve: Curves.easeOutBack,
+                          builder: (c, s, child) =>
+                              Transform.scale(scale: s, child: child),
+                          child: Text(
+                            _b[i] == 1 ? '⭐' : _b[i] == 2 ? '🐾' : '',
+                            style: const TextStyle(fontSize: 52),
+                          ),
                         ),
                       ),
                     ),
@@ -2202,22 +2230,44 @@ class _MemoryFlipGameState extends State<MemoryFlipGame> with _Emit {
                 for (var i = 0; i < _cards.length; i++)
                   GestureDetector(
                     onTapDown: (_) => _tap(i),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: _matched[i]
-                            ? const Color(0xFF06D6A0).withOpacity(0.35)
-                            : (i == _first || i == _second)
-                                ? Colors.white
-                                : const Color(0xFF1E3A5F),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Text(
-                        (_matched[i] || i == _first || i == _second)
-                            ? _cards[i]
-                            : '',
-                        style: TextStyle(fontSize: cols == 3 ? 40 : 30),
+                    child: TweenAnimationBuilder<double>(
+                      // Re-keys when a card becomes matched, firing a pop.
+                      key: ValueKey('mem-$i-${_matched[i]}'),
+                      tween: Tween<double>(
+                          begin: _matched[i] ? 1.35 : 1.0, end: 1.0),
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeOutBack,
+                      builder: (context, scale, child) =>
+                          Transform.scale(scale: scale, child: child),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: _matched[i]
+                              ? const Color(0xFF06D6A0).withOpacity(0.35)
+                              : (i == _first || i == _second)
+                                  ? Colors.white
+                                  : const Color(0xFF1E3A5F),
+                          borderRadius: BorderRadius.circular(14),
+                          border: _matched[i]
+                              ? Border.all(
+                                  color: const Color(0xFFFFD166), width: 2)
+                              : null,
+                          boxShadow: _matched[i]
+                              ? <BoxShadow>[
+                                  BoxShadow(
+                                      color: const Color(0xFF06D6A0)
+                                          .withOpacity(0.5),
+                                      blurRadius: 14)
+                                ]
+                              : const <BoxShadow>[],
+                        ),
+                        child: Text(
+                          (_matched[i] || i == _first || i == _second)
+                              ? _cards[i]
+                              : '',
+                          style: TextStyle(fontSize: cols == 3 ? 40 : 30),
+                        ),
                       ),
                     ),
                   ),
@@ -2536,23 +2586,32 @@ class _TapOrderGameState extends State<TapOrderGame> with _Emit {
                     for (var i = 0; i < 25; i++)
                       GestureDetector(
                         onTapDown: (_) => _tap(i),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 120),
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: _wrongCell == i
-                                ? const Color(0xFFEF476F)
-                                : _cells[i] < _next
-                                    ? const Color(0xFF06D6A0).withOpacity(0.3)
-                                    : Colors.white.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            _cells[i] < _next ? '' : '${_cells[i]}',
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 22,
-                                fontWeight: FontWeight.w800),
+                        child: TweenAnimationBuilder<double>(
+                          key: ValueKey('tap-$i-${_cells[i] < _next}'),
+                          tween: Tween<double>(
+                              begin: _cells[i] < _next ? 1.25 : 1.0, end: 1.0),
+                          duration: const Duration(milliseconds: 220),
+                          curve: Curves.easeOutBack,
+                          builder: (c, s, child) =>
+                              Transform.scale(scale: s, child: child),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 120),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: _wrongCell == i
+                                  ? const Color(0xFFEF476F)
+                                  : _cells[i] < _next
+                                      ? const Color(0xFF06D6A0).withOpacity(0.3)
+                                      : Colors.white.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              _cells[i] < _next ? '' : '${_cells[i]}',
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w800),
+                            ),
                           ),
                         ),
                       ),
