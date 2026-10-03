@@ -2,7 +2,7 @@
 
 **Mandatory resume file.** On a new context: READ THIS FIRST, then resume from "NEXT EXACT ACTION". Never restart the sprint.
 
-- **HEAD at last update:** 7afc9b6 == origin/main — rhythm/shape/memory batch pending commit
+- **HEAD at last update:** 8cb3aad == origin/main (clean) — rhythm/shape/memory batch SHIPPED
 - **Version:** 1.0.42+43 (HELD — no bump during factory; release builds are LAST)
 - **Updated:** 2026-10-03
 - **Tests:** 131 pass · **Analyze:** 112 info / 0 warnings / 0 errors
