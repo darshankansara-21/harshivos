@@ -31,6 +31,9 @@ void main() {
     'pattern_weaver',
     'balloon_math',
     'dot_to_dot',
+    'rhythm_clap',
+    'shape_builder',
+    'memory_deluxe',
   ];
 
   test('every registered game is playable, reachable and implemented', () {

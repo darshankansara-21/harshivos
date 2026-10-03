@@ -62,6 +62,9 @@ class GameThumb extends StatelessWidget {
     'pattern_weaver',
     'balloon_math',
     'dot_to_dot',
+    'rhythm_clap',
+    'shape_builder',
+    'memory_deluxe',
   };
 
   @override
@@ -190,6 +193,12 @@ class _ThumbPainter extends CustomPainter {
         _balloonMath(canvas, w, h);
       case 'dot_to_dot':
         _dotToDot(canvas, w, h);
+      case 'rhythm_clap':
+        _rhythmClap(canvas, w, h);
+      case 'shape_builder':
+        _shapeBuilder(canvas, w, h);
+      case 'memory_deluxe':
+        _memoryDeluxe(canvas, w, h);
     }
   }
 
@@ -1156,6 +1165,54 @@ class _ThumbPainter extends CustomPainter {
     }
     for (final p in pts.take(3)) {
       canvas.drawCircle(p, w * 0.05, Paint()..color = Colors.white);
+    }
+  }
+
+  void _rhythmClap(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF241B3A), Color(0xFF15102A)]);
+    canvas.drawLine(Offset(w * 0.1, h * 0.35), Offset(w * 0.9, h * 0.35),
+        Paint()..color = Colors.white24..strokeWidth = 3);
+    for (var i = 0; i < 4; i++) {
+      canvas.drawCircle(Offset(w * (0.2 + i * 0.2), h * 0.35), w * 0.045,
+          Paint()..color = const Color(0xFFFFD166));
+    }
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(
+            Rect.fromCenter(
+                center: Offset(w * 0.5, h * 0.72), width: w * 0.5, height: h * 0.3),
+            const Radius.circular(14)),
+        Paint()..color = const Color(0xFF3A2E5E));
+  }
+
+  void _shapeBuilder(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF26314A), Color(0xFF161C2C)]);
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(
+            Rect.fromCenter(
+                center: Offset(w * 0.5, h * 0.6), width: w * 0.3, height: w * 0.3),
+            const Radius.circular(4)),
+        Paint()..color = const Color(0xFFFFD166));
+    final roof = Path()
+      ..moveTo(w * 0.5, h * 0.2)
+      ..lineTo(w * 0.72, h * 0.42)
+      ..lineTo(w * 0.28, h * 0.42)
+      ..close();
+    canvas.drawPath(roof, Paint()..color = const Color(0xFFFF6B6B));
+  }
+
+  void _memoryDeluxe(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF2A2140), Color(0xFF17122A)]);
+    const cols = 3, rows = 3;
+    final cw = w / cols, ch = h / rows;
+    for (var r = 0; r < rows; r++) {
+      for (var c = 0; c < cols; c++) {
+        final up = (r * cols + c) % 4 == 0;
+        canvas.drawRRect(
+            RRect.fromRectAndRadius(
+                Rect.fromLTWH(c * cw + 4, r * ch + 4, cw - 8, ch - 8),
+                const Radius.circular(6)),
+            Paint()..color = up ? Colors.white : const Color(0xFF4A3A6E));
+      }
     }
   }
 

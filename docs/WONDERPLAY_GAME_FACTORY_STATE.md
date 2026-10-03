@@ -2,12 +2,12 @@
 
 **Mandatory resume file.** On a new context: READ THIS FIRST, then resume from "NEXT EXACT ACTION". Never restart the sprint.
 
-- **HEAD at last update:** 079311d == origin/main — pattern batch (pattern_weaver, balloon_math, dot_to_dot) pending commit
+- **HEAD at last update:** 7afc9b6 == origin/main — rhythm/shape/memory batch pending commit
 - **Version:** 1.0.42+43 (HELD — no bump during factory; release builds are LAST)
 - **Updated:** 2026-10-03
-- **Tests:** 43 focused pass (arcade+catalog); full suite running
-- **Catalog:** 45 games (42 + pattern_weaver, balloon_math, dot_to_dot) + 20 sensory toys
-- **Note:** build machine pub-get is network-stalling on fresh terminals; use `flutter test --no-pub` / `flutter analyze --no-pub` once deps are resolved once per session.
+- **Tests:** 131 pass · **Analyze:** 112 info / 0 warnings / 0 errors
+- **Catalog:** 48 games (45 + rhythm_clap, shape_builder, memory_deluxe) + 20 sensory toys
+- **Note:** build machine pub-get is network-stalling on fresh terminals; use `flutter test --no-pub` / `flutter analyze --no-pub` once deps are resolved once per session. ToyCategory = {sensory,fidget,arcade,creative,calm,learning,communication,lifeSkills} (NO 'puzzle'). ToyEngagement = {endless,deep,quick}.
 - **Device QA:** BLOCKED (phone off USB since sprint #3; needs physical replug). Not sprint-ending — continue implementation; run accumulated QA when device returns.
 
 ## Build/terminal facts (critical)
@@ -91,10 +91,15 @@ All 30 games meet the gameplay quality bar (clear in 5s · satisfying in 30s · 
 1. ~~Pattern Weaver~~ SHIPPED
 2. ~~Balloon Math~~ SHIPPED
 3. ~~Dot-to-Dot~~ SHIPPED
-4. Rhythm Clap (copy a clap rhythm — tap in time)
-5. Shape Builder (drag tangram pieces to fill an outline)
-6. Memory Pairs Deluxe (themed memory with streak scoring)
-7. (then generate next: Bug Catch, Weather Sort, Letter Trace, Spot the Difference, Maze Marble, Piano Song)
+4. ~~Rhythm Clap~~ SHIPPED
+5. ~~Shape Builder~~ SHIPPED
+6. ~~Memory Pairs Deluxe~~ SHIPPED
+7. Bug Catch (tap the bugs that match the asked colour before they scurry off)
+8. Weather Sort (drag/tap items under sun/rain/snow)
+9. Spot the Difference (tap the odd one out in a grid)
+10. Maze Marble (tilt-style drag a marble through gates)
+11. Piano Song (play a known nursery tune by following lit keys)
+12. Letter Trace (trace letters/numbers with a finger)
 
 ## NEXT EXACT ACTION
-Commit the pattern batch (Pattern Weaver + Balloon Math + Dot-to-Dot) once full `flutter test --no-pub` + `flutter analyze --no-pub` are green, then build **Rhythm Clap** + **Shape Builder** + **Memory Pairs Deluxe**. Wire all 6 sites each; test; commit; update this file. Then generate the next backlog and continue.
+Commit the rhythm/shape/memory batch (Rhythm Clap + Shape Builder + Memory Pairs Deluxe) once green, then build **Bug Catch** + **Spot the Difference** + **Weather Sort**. Wire all 6 sites each; `flutter test --no-pub` + `flutter analyze --no-pub` (0 warn/0 err via `^\s*(warning|error) -`); commit; update this file. Keep going; regenerate backlog when exhausted.
