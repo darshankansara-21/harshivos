@@ -2,10 +2,10 @@
 
 **Mandatory resume file.** On a new context: READ THIS FIRST, then resume from "NEXT EXACT ACTION". Never restart the sprint.
 
-- **HEAD at last update:** 05189c6 == origin/main (clean) — music/creative batch (drum_garden, color_mixer) pending commit
+- **HEAD at last update:** ac99155 == origin/main (clean) — music/creative batch SHIPPED
 - **Version:** 1.0.42+43 (HELD — no bump during factory; release builds are LAST)
 - **Updated:** 2026-10-03
-- **Tests:** 33 focused pass (arcade+catalog); full suite 116 green last run
+- **Tests:** 118 pass · **Analyze:** 112 info / 0 warnings / 0 errors
 - **Catalog:** 35 games (30 + air_hockey, target_toss, bubble_wrap, drum_garden, color_mixer) + 20 sensory toys
 - **Device QA:** BLOCKED (phone off USB since sprint #3; needs physical replug). Not sprint-ending — continue implementation; run accumulated QA when device returns.
 
@@ -76,11 +76,11 @@ All 30 games meet the gameplay quality bar (clear in 5s · satisfying in 30s · 
 | Air Hockey | sports | arcade_games.dart | SHIPPED (05189c6) |
 | Target Toss | sports | arcade_games.dart | SHIPPED (05189c6) |
 | Bubble Wrap | calm/sensory | arcade_games.dart | SHIPPED (05189c6) |
-| Drum Garden | music | arcade_games.dart | POLISHED (tests green) |
-| Color Mixer | creative | arcade_games.dart | POLISHED (tests green) |
+| Drum Garden | music | arcade_games.dart | SHIPPED (ac99155) |
+| Color Mixer | creative | arcade_games.dart | SHIPPED (ac99155) |
 | Fishing | sports/calm | arcade_games.dart | CONCEPT → NEXT |
 | Maze Run | puzzle | arcade_games.dart | CONCEPT → NEXT |
 | Simon Says / Light Chase | reaction | arcade_games.dart | CONCEPT |
 
 ## NEXT EXACT ACTION
-Commit the music/creative batch (Drum Garden + Color Mixer) once full `flutter test` + `flutter analyze` are green, then build the next batch: **Fishing** (cast + bite-timing + reel) and **Maze Run** (tilt/drag a dot to the exit, collect keys) — wire all 6 sites each; test; commit; update this file. Keep generating backlog as needed (Beat Builder, Catch-the-Beat, Firefly Count, Sorting Train, Shadow Match).
+Build the next batch: **Fishing** (cast meter → wait → bite-timing tap → reel; rarity fish; score to win) and **Maze Run** (drag a dot through walls to the exit, collect keys, levels grow). Wire all 6 sites each (registry, toy_meta implemented:true, universe UniverseToy + arcadeToys rail, game_thumb painted-set+switch+painter, catalog_integrity gameIds, arcade smoke test). Run `flutter test` + `flutter analyze` (0 warn/0 err via `^\s*(warning|error) -`). Commit + push. Update this file. Then keep generating backlog (Beat Builder, Catch-the-Beat, Firefly Count, Sorting Train, Shadow Match, Tangram).
