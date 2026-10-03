@@ -689,7 +689,10 @@ class _Block {
 class _StackGameState extends State<StackGame>
     with TickerProviderStateMixin, ToyTicker, _Emit {
   static const String _id = 'stack';
+  final math.Random _rnd = math.Random();
   final List<_Block> _tower = <_Block>[];
+  final List<_Shard> _bits = <_Shard>[];
+  Size _view = const Size(360, 640);
   double _curLeft = 0.1;
   double _curWidth = 0.44;
   double _dir = 1;
@@ -716,6 +719,14 @@ class _StackGameState extends State<StackGame>
     if (_bannerT > 0) {
       _bannerT -= dt;
       if (_bannerT <= 0) _banner = null;
+    }
+    for (var i = _bits.length - 1; i >= 0; i--) {
+      final s = _bits[i];
+      s.x += s.vx * dt;
+      s.y += s.vy * dt;
+      s.vy += 400 * dt;
+      s.life -= dt;
+      if (s.life <= 0) _bits.removeAt(i);
     }
     _curLeft += _dir * _speed * dt;
     if (_curLeft + _curWidth > 1) {
@@ -756,6 +767,9 @@ class _StackGameState extends State<StackGame>
     }
     _speed = math.min(1.1, _speed + 0.03);
     _curLeft = _dir > 0 ? 0 : 1 - _curWidth;
+    final nb = _tower.last;
+    _impact((nb.left + nb.width / 2) * _view.width, _view.height - 70,
+        misalign < 0.012);
     emit(ExperienceEvent.bubblePopped);
     GameScores.instance.submit(_id, _score).then((b) {
       if (mounted && b != _best) setState(() => _best = b);
@@ -774,11 +788,22 @@ class _StackGameState extends State<StackGame>
     });
   }
 
+  void _impact(double x, double y, bool perfect) {
+    final color =
+        perfect ? const Color(0xFFFFD166) : const Color(0xFF9EE7FF);
+    for (var i = 0; i < (perfect ? 12 : 7); i++) {
+      final a = -math.pi / 2 + (_rnd.nextDouble() - 0.5) * 2.4;
+      final sp = 80 + _rnd.nextDouble() * 170;
+      _bits.add(_Shard(x, y, math.cos(a) * sp, math.sin(a) * sp, color));
+    }
+  }
+
   void _reset() {
     setState(() {
       _tower
         ..clear()
         ..add(_Block(0.28, 0.44));
+      _bits.clear();
       _curLeft = 0.1;
       _curWidth = 0.44;
       _dir = 1;
@@ -806,23 +831,29 @@ class _StackGameState extends State<StackGame>
       overText: 'Toppled!',
       accent: const Color(0xFF4CC9F0),
       onPlayAgain: _reset,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapDown: (_) => _drop(),
-        child: CustomPaint(
-          painter: _StackPainter(_tower, _curLeft, _curWidth),
-          size: Size.infinite,
-        ),
+      child: LayoutBuilder(
+        builder: (context, c) {
+          _view = Size(c.maxWidth, c.maxHeight);
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTapDown: (_) => _drop(),
+            child: CustomPaint(
+              painter: _StackPainter(_tower, _curLeft, _curWidth, _bits),
+              size: Size.infinite,
+            ),
+          );
+        },
       ),
     );
   }
 }
 
 class _StackPainter extends CustomPainter {
-  _StackPainter(this.tower, this.curLeft, this.curWidth);
+  _StackPainter(this.tower, this.curLeft, this.curWidth, this.bits);
   final List<_Block> tower;
   final double curLeft;
   final double curWidth;
+  final List<_Shard> bits;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -860,6 +891,12 @@ class _StackPainter extends CustomPainter {
           const Radius.circular(5)),
       Paint()..color = Colors.white,
     );
+    // Drop-impact sparks.
+    for (final s in bits) {
+      final k = (s.life / 0.5).clamp(0.0, 1.0);
+      canvas.drawCircle(Offset(s.x, s.y), 2 + 3 * k,
+          Paint()..color = s.color.withOpacity(k));
+    }
   }
 
   @override
@@ -1048,18 +1085,27 @@ class _MergeGameState extends State<MergeGame> with _Emit {
                   children: <Widget>[
                     for (var r = 0; r < _n; r++)
                       for (var c = 0; c < _n; c++)
-                        Container(
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: _tileColor(_g[r][c]),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            _g[r][c] == 0 ? '' : '${_g[r][c]}',
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 26,
-                                fontWeight: FontWeight.w900),
+                        TweenAnimationBuilder<double>(
+                          key: ValueKey('merge-$r-$c-${_g[r][c]}'),
+                          tween: Tween<double>(
+                              begin: _g[r][c] == 0 ? 1.0 : 1.18, end: 1.0),
+                          duration: const Duration(milliseconds: 170),
+                          curve: Curves.easeOutBack,
+                          builder: (ctx, s, child) =>
+                              Transform.scale(scale: s, child: child),
+                          child: Container(
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: _tileColor(_g[r][c]),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              _g[r][c] == 0 ? '' : '${_g[r][c]}',
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w900),
+                            ),
                           ),
                         ),
                   ],
@@ -1097,6 +1143,8 @@ class _EchoGameState extends State<EchoGame>
   final List<int> _seq = <int>[];
   int _inputAt = 0;
   int _flash = -1;
+  int _tapFlash = -1;
+  double _tapFlashT = 0;
   int _showAt = 0;
   double _showT = 0;
   bool _showing = false;
@@ -1123,7 +1171,12 @@ class _EchoGameState extends State<EchoGame>
 
   @override
   void onTick(double dt) {
-    if (_status != GameStatus.playing || !_showing) return;
+    if (_status != GameStatus.playing) return;
+    if (_tapFlashT > 0) {
+      _tapFlashT -= dt;
+      if (_tapFlashT <= 0) _tapFlash = -1;
+    }
+    if (!_showing) return;
     _showT += dt;
     // Longer sequences flash faster, so recall gets harder as you go.
     final onT = math.max(0.16, 0.35 - _seq.length * 0.015);
@@ -1148,6 +1201,8 @@ class _EchoGameState extends State<EchoGame>
 
   void _tap(int pad) {
     if (_status != GameStatus.playing || _showing) return;
+    _tapFlash = pad;
+    _tapFlashT = 0.22;
     TonePlayer.instance.playNote(pad + 2, seconds: 0.18);
     if (_seq[_inputAt] == pad) {
       _inputAt++;
@@ -1211,7 +1266,7 @@ class _EchoGameState extends State<EchoGame>
             padding: const EdgeInsets.fromLTRB(28, 120, 28, 90),
             child: Column(
               children: <Widget>[
-                Text(_showing ? 'Watch…' : 'Your turn!',
+                Text(_showing ? 'Watch…' : 'Your turn!  $_inputAt/${_seq.length}',
                     style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 18,
@@ -1230,11 +1285,11 @@ class _EchoGameState extends State<EchoGame>
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 90),
                             decoration: BoxDecoration(
-                              color: _flash == i
+                              color: (_flash == i || _tapFlash == i)
                                   ? _pads[i]
                                   : _pads[i].withOpacity(0.35),
                               borderRadius: BorderRadius.circular(20),
-                              boxShadow: _flash == i
+                              boxShadow: (_flash == i || _tapFlash == i)
                                   ? <BoxShadow>[
                                       BoxShadow(color: _pads[i], blurRadius: 24)
                                     ]
@@ -2452,15 +2507,24 @@ class _BallSortGameState extends State<BallSortGame> with _Emit {
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             for (var s = _cap - 1; s >= 0; s--)
-              Container(
-                width: ball,
-                height: ball,
-                margin: const EdgeInsets.symmetric(vertical: 2),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: s < t.length
-                      ? _colorsPal[t[s]]
-                      : Colors.white.withOpacity(0.04),
+              TweenAnimationBuilder<double>(
+                key: ValueKey('bs-$i-$s-${s < t.length ? t[s] : -1}'),
+                tween: Tween<double>(
+                    begin: s < t.length ? 1.3 : 1.0, end: 1.0),
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutBack,
+                builder: (ctx, sc, child) =>
+                    Transform.scale(scale: sc, child: child),
+                child: Container(
+                  width: ball,
+                  height: ball,
+                  margin: const EdgeInsets.symmetric(vertical: 2),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: s < t.length
+                        ? _colorsPal[t[s]]
+                        : Colors.white.withOpacity(0.04),
+                  ),
                 ),
               ),
           ],
@@ -3450,9 +3514,12 @@ class _QuickTapGameState extends State<QuickTapGame>
   static const String _id = 'quick_tap';
   static const int _rounds = 5;
   final math.Random _rnd = math.Random();
-  int _phase = 0; // 0 = waiting (red), 1 = go (green), 2 = too soon
+  int _phase = 0; // 0 waiting(red) 1 go(green) 2 too-soon 3 result
   double _waitT = 0;
   double _reactT = 0;
+  double _resultT = 0;
+  double _flashT = 0;
+  String _rating = '';
   int _round = 0;
   int _score = 0;
   int _best = 0;
@@ -3477,16 +3544,29 @@ class _QuickTapGameState extends State<QuickTapGame>
   @override
   void onTick(double dt) {
     if (_status != GameStatus.playing) return;
+    if (_flashT > 0) _flashT -= dt;
     if (_phase == 0) {
       _waitT -= dt;
       if (_waitT <= 0) _phase = 1;
     } else if (_phase == 1) {
       _reactT += dt;
+    } else if (_phase == 3) {
+      _resultT -= dt;
+      if (_resultT <= 0) _startRound();
     }
   }
 
+  String _ratingFor(int ms) => ms < 250
+      ? '⚡ Lightning!'
+      : ms < 400
+          ? 'Fast!'
+          : ms < 600
+              ? 'Nice'
+              : 'Got it';
+
   void _tap() {
     if (_status != GameStatus.playing) return;
+    if (_phase == 3) return; // result showing
     if (_phase == 2) {
       setState(_startRound);
       return;
@@ -3499,6 +3579,8 @@ class _QuickTapGameState extends State<QuickTapGame>
     }
     // Green — score by reaction speed.
     _lastMs = (_reactT * 1000).round();
+    _rating = _ratingFor(_lastMs);
+    _flashT = 0.3;
     final pts = math.max(5, 120 - _lastMs ~/ 10);
     _score += pts;
     _round++;
@@ -3515,7 +3597,8 @@ class _QuickTapGameState extends State<QuickTapGame>
       GameScores.instance.submit(_id, _score).then((b) {
         if (mounted && b != _best) _best = b;
       });
-      _startRound();
+      _phase = 3;
+      _resultT = 0.9;
     }
     setState(() {});
   }
@@ -3525,6 +3608,8 @@ class _QuickTapGameState extends State<QuickTapGame>
       _round = 0;
       _score = 0;
       _lastMs = 0;
+      _rating = '';
+      _flashT = 0;
       _status = GameStatus.playing;
       _startRound();
     });
@@ -3537,17 +3622,25 @@ class _QuickTapGameState extends State<QuickTapGame>
         ? const Color(0xFF06D6A0)
         : _phase == 2
             ? const Color(0xFFF4A259)
-            : const Color(0xFFC0392B);
+            : _phase == 3
+                ? const Color(0xFF118AB2)
+                : const Color(0xFFC0392B);
     final String big = _phase == 1
         ? 'TAP!'
         : _phase == 2
             ? 'Too soon!'
-            : 'Wait…';
+            : _phase == 3
+                ? '${_lastMs}ms'
+                : 'Wait…';
     final String sub = _phase == 2
         ? 'Tap to try this round again'
-        : _phase == 1
-            ? 'Go go go!'
-            : 'Tap the moment it turns green';
+        : _phase == 3
+            ? _rating
+            : _phase == 1
+                ? 'Go go go!'
+                : (_lastMs > 0
+                    ? 'Last: ${_lastMs}ms · $_rating'
+                    : 'Tap the moment it turns green');
     return _Shell(
       title: '⚡ Quick Tap',
       introHow: 'Wait for green, then tap fast! Never tap on red.',
@@ -3566,7 +3659,8 @@ class _QuickTapGameState extends State<QuickTapGame>
         onTapDown: (_) => _tap(),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 90),
-          color: bg,
+          color: Color.lerp(
+              bg, Colors.white, _flashT > 0 ? (_flashT / 0.3) * 0.5 : 0),
           alignment: Alignment.center,
           child: Column(
             mainAxisSize: MainAxisSize.min,
