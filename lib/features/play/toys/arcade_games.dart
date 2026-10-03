@@ -1736,6 +1736,7 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
   final math.Random _rnd = math.Random();
   final List<_Meteor> _meteors = <_Meteor>[];
   final List<Offset> _stars = <Offset>[];
+  final List<_Shard> _shards = <_Shard>[];
   double _shipX = 0.5;
   double _elapsed = 0;
   double _spawnIn = 0.6;
@@ -1765,6 +1766,24 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
   void onTick(double dt) {
     if (_status != GameStatus.playing) return;
     _elapsed += dt;
+    // Rocket thruster trail.
+    if (_rnd.nextDouble() < 0.9) {
+      _shards.add(_Shard(
+          _shipX + (_rnd.nextDouble() - 0.5) * 0.03,
+          0.9,
+          (_rnd.nextDouble() - 0.5) * 0.08,
+          0.25 + _rnd.nextDouble() * 0.18,
+          _rnd.nextBool()
+              ? const Color(0xFFFFB703)
+              : const Color(0xFFFB5607)));
+    }
+    for (var i = _shards.length - 1; i >= 0; i--) {
+      final s = _shards[i];
+      s.x += s.vx * dt;
+      s.y += s.vy * dt;
+      s.life -= dt;
+      if (s.life <= 0) _shards.removeAt(i);
+    }
     if (_bannerT > 0) {
       _bannerT -= dt;
       if (_bannerT <= 0) _banner = null;
@@ -1791,6 +1810,7 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
       if (dx * dx + dy * dy < (m.r + _shipR) * (m.r + _shipR)) {
         if (m.kind == 1) {
           _bonus += 15;
+          _burstAt(m.x, m.y, const Color(0xFF06D6A0), 12);
           m.y = 2; // consumed
           TonePlayer.instance.playCue(SoundCue.coin);
           _flash('Gem +15');
@@ -1799,6 +1819,7 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
         }
         if (m.kind == 2) {
           _shield = true;
+          _burstAt(m.x, m.y, const Color(0xFF4CC9F0), 12);
           m.y = 2;
           TonePlayer.instance.playCue(SoundCue.success);
           _flash('Shield up!');
@@ -1806,6 +1827,7 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
         }
         if (_shield) {
           _shield = false;
+          _burstAt(m.x, m.y, const Color(0xFF4CC9F0), 16);
           m.y = 2;
           TonePlayer.instance.playCue(SoundCue.metal);
           _flash('Shield saved you!');
@@ -1831,6 +1853,14 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
     _bannerT = 1.0;
   }
 
+  void _burstAt(double x, double y, Color color, int n) {
+    for (var i = 0; i < n; i++) {
+      final a = _rnd.nextDouble() * math.pi * 2;
+      final sp = 0.2 + _rnd.nextDouble() * 0.4;
+      _shards.add(_Shard(x, y, math.cos(a) * sp, math.sin(a) * sp, color));
+    }
+  }
+
   void _steer(double localX, double width) {
     _shipX = (localX / width).clamp(_shipR, 1 - _shipR);
   }
@@ -1838,6 +1868,7 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
   void _reset() {
     setState(() {
       _meteors.clear();
+      _shards.clear();
       _shipX = 0.5;
       _elapsed = 0;
       _spawnIn = 0.6;
@@ -1873,7 +1904,8 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
             onPanUpdate: (d) => _steer(d.localPosition.dx, constraints.maxWidth),
             onPanDown: (d) => _steer(d.localPosition.dx, constraints.maxWidth),
             child: CustomPaint(
-              painter: _SpacePainter(_meteors, _stars, _shipX, _shipR, _shield),
+              painter: _SpacePainter(_meteors, _stars, _shipX, _shipR, _shield,
+                  _shards),
               size: Size.infinite,
             ),
           );
@@ -1884,12 +1916,14 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
 }
 
 class _SpacePainter extends CustomPainter {
-  _SpacePainter(this.meteors, this.stars, this.shipX, this.shipR, this.shield);
+  _SpacePainter(
+      this.meteors, this.stars, this.shipX, this.shipR, this.shield, this.shards);
   final List<_Meteor> meteors;
   final List<Offset> stars;
   final double shipX;
   final double shipR;
   final bool shield;
+  final List<_Shard> shards;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1946,6 +1980,16 @@ class _SpacePainter extends CustomPainter {
     // Rocket.
     final sx = shipX * w;
     final sy = 0.85 * h;
+    // Thruster / collect particles behind the ship.
+    for (final s in shards) {
+      final k = (s.life / 0.5).clamp(0.0, 1.0);
+      canvas.drawCircle(
+          Offset(s.x * w, s.y * h),
+          2 + 3 * k,
+          Paint()
+            ..color = s.color.withOpacity(k)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2));
+    }
     final path = Path()
       ..moveTo(sx, sy - shipR * w)
       ..lineTo(sx - shipR * w * 0.7, sy + shipR * w)
@@ -2991,6 +3035,7 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
   ];
   final math.Random _rnd = math.Random();
   late List<List<Color?>> _grid;
+  final List<_Shard> _pops = <_Shard>[]; // pixel-space pop particles
   int _rows = 0;
   double _w = 0;
   double _h = 0;
@@ -3050,7 +3095,16 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
 
   @override
   void onTick(double dt) {
-    if (_status != GameStatus.playing || _pos == null) return;
+    if (_status != GameStatus.playing) return;
+    for (var i = _pops.length - 1; i >= 0; i--) {
+      final s = _pops[i];
+      s.x += s.vx * dt;
+      s.y += s.vy * dt;
+      s.vy += 300 * dt;
+      s.life -= dt;
+      if (s.life <= 0) _pops.removeAt(i);
+    }
+    if (_pos == null) return;
     var p = _pos! + _vel * dt;
     if (p.dx < _r) {
       p = Offset(_r, p.dy);
@@ -3088,6 +3142,13 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
     final group = _flood(br, bc, _shot);
     if (group.length >= 3) {
       for (final cell in group) {
+        final ctr = _center(cell.x, cell.y);
+        for (var s = 0; s < 5; s++) {
+          final a = _rnd.nextDouble() * math.pi * 2;
+          final sp = 60 + _rnd.nextDouble() * 150;
+          _pops.add(_Shard(
+              ctr.dx, ctr.dy, math.cos(a) * sp, math.sin(a) * sp, _shot));
+        }
         _grid[cell.x][cell.y] = null;
       }
       _score += group.length;
@@ -3153,6 +3214,7 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
     setState(() {
       _init = false;
       _pos = null;
+      _pops.clear();
       _score = 0;
       _banner = null;
       _status = GameStatus.playing;
@@ -3184,7 +3246,7 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
             onTapDown: (d) => _fire(d.localPosition),
             child: CustomPaint(
               painter: _BubblePainter(_grid, _rows, _cols, _cell, _r, _pos,
-                  _shot, _next, _w, _h),
+                  _shot, _next, _w, _h, _pops),
               size: Size.infinite,
             ),
           );
@@ -3196,7 +3258,7 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
 
 class _BubblePainter extends CustomPainter {
   _BubblePainter(this.grid, this.rows, this.cols, this.cell, this.r, this.pos,
-      this.shot, this.next, this.w, this.h);
+      this.shot, this.next, this.w, this.h, this.pops);
   final List<List<Color?>> grid;
   final int rows;
   final int cols;
@@ -3207,6 +3269,7 @@ class _BubblePainter extends CustomPainter {
   final Color next;
   final double w;
   final double h;
+  final List<_Shard> pops;
 
   void _ball(Canvas canvas, Offset center, Color color) {
     canvas.drawCircle(center, r - 1.5, Paint()..color = color);
@@ -3242,6 +3305,12 @@ class _BubblePainter extends CustomPainter {
       _ball(canvas, origin, shot);
     }
     _ball(canvas, Offset(w / 2 + cell * 1.2, h - cell * 0.6), next);
+    // Pop particles.
+    for (final s in pops) {
+      final k = (s.life / 0.5).clamp(0.0, 1.0);
+      canvas.drawCircle(Offset(s.x, s.y), r * 0.5 * k + 2,
+          Paint()..color = s.color.withOpacity(k));
+    }
   }
 
   @override
