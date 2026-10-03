@@ -404,6 +404,39 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('Maze Marble builds and drags', (tester) async {
+    await _pump(tester, const MazeMarbleGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('Maze Marble'), findsOneWidget);
+    await tester.drag(find.byType(CustomPaint).last, const Offset(0, 120));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Piano Song builds and plays a key', (tester) async {
+    await _pump(tester, const PianoSongGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('Piano Song'), findsOneWidget);
+    await tester.tap(find.text('C'));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Letter Trace builds and traces', (tester) async {
+    await _pump(tester, const LetterTraceGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('Letter Trace'), findsOneWidget);
+    await tester.drag(find.byType(CustomPaint).last, const Offset(40, 60));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Ball Sort builds and accepts taps', (tester) async {
     await _pump(tester, const BallSortGame());
     await tester.tap(find.widgetWithText(FilledButton, 'Play'));

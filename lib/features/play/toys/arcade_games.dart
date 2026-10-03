@@ -47,6 +47,9 @@ part 'arcade/memory_pairs_deluxe_game.dart';
 part 'arcade/bug_catch_game.dart';
 part 'arcade/spot_difference_game.dart';
 part 'arcade/weather_sort_game.dart';
+part 'arcade/maze_marble_game.dart';
+part 'arcade/piano_song_game.dart';
+part 'arcade/letter_trace_game.dart';
 
 
 /// Shared chrome for the arcade games — score + best pill, optional target, a

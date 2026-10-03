@@ -68,6 +68,9 @@ class GameThumb extends StatelessWidget {
     'bug_catch',
     'spot_difference',
     'weather_sort',
+    'maze_marble',
+    'piano_song',
+    'letter_trace',
   };
 
   @override
@@ -208,6 +211,12 @@ class _ThumbPainter extends CustomPainter {
         _spotDifference(canvas, w, h);
       case 'weather_sort':
         _weatherSort(canvas, w, h);
+      case 'maze_marble':
+        _mazeMarble(canvas, w, h);
+      case 'piano_song':
+        _pianoSong(canvas, w, h);
+      case 'letter_trace':
+        _letterTrace(canvas, w, h);
     }
   }
 
@@ -1271,6 +1280,50 @@ class _ThumbPainter extends CustomPainter {
               const Radius.circular(8)),
           Paint()..color = Colors.white.withOpacity(0.18));
     }
+  }
+
+  void _mazeMarble(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF13203A), Color(0xFF0A1322)]);
+    final wallPaint = Paint()..color = const Color(0xFF5C7C9E);
+    for (var i = 0; i < 2; i++) {
+      final y = h * (0.38 + i * 0.26);
+      final gapX = i == 0 ? w * 0.55 : w * 0.25;
+      canvas.drawRect(Rect.fromLTWH(0, y, gapX, h * 0.05), wallPaint);
+      canvas.drawRect(
+          Rect.fromLTWH(gapX + w * 0.28, y, w, h * 0.05), wallPaint);
+    }
+    canvas.drawCircle(Offset(w * 0.5, h * 0.2), w * 0.08,
+        Paint()..color = const Color(0xFF6CC4FF));
+    canvas.drawCircle(Offset(w * 0.6, h * 0.88), w * 0.07,
+        Paint()..color = const Color(0xFF2EC4B6));
+  }
+
+  void _pianoSong(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF2A1A3E), Color(0xFF140C22)]);
+    for (var i = 0; i < 5; i++) {
+      final lit = i == 2;
+      canvas.drawRRect(
+          RRect.fromRectAndRadius(
+              Rect.fromLTWH(w * (0.08 + i * 0.17), h * 0.3, w * 0.14, h * 0.5),
+              const Radius.circular(5)),
+          Paint()..color = lit ? const Color(0xFFFF8ED8) : Colors.white);
+    }
+  }
+
+  void _letterTrace(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF13241B), Color(0xFF0A1510)]);
+    final pts = <Offset>[
+      Offset(w * 0.3, h * 0.78),
+      Offset(w * 0.5, h * 0.24),
+      Offset(w * 0.7, h * 0.78),
+    ];
+    for (final p in pts) {
+      canvas.drawCircle(p, w * 0.045, Paint()..color = const Color(0xFF57CC99));
+    }
+    canvas.drawCircle(Offset(w * 0.4, h * 0.51), w * 0.04,
+        Paint()..color = const Color(0xFF57CC99));
+    canvas.drawCircle(Offset(w * 0.6, h * 0.51), w * 0.04,
+        Paint()..color = const Color(0xFF57CC99));
   }
 
   @override

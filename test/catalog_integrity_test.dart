@@ -37,6 +37,9 @@ void main() {
     'bug_catch',
     'spot_difference',
     'weather_sort',
+    'maze_marble',
+    'piano_song',
+    'letter_trace',
   ];
 
   test('every registered game is playable, reachable and implemented', () {
