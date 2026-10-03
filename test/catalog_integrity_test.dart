@@ -21,6 +21,10 @@ void main() {
     'bubble_wrap',
     'drum_garden',
     'color_mixer',
+    'fishing',
+    'maze_run',
+    'beat_builder',
+    'catch_beat',
   ];
 
   test('every registered game is playable, reachable and implemented', () {

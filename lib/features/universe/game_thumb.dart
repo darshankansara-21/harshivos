@@ -52,6 +52,10 @@ class GameThumb extends StatelessWidget {
     'bubble_wrap',
     'drum_garden',
     'color_mixer',
+    'fishing',
+    'maze_run',
+    'beat_builder',
+    'catch_beat',
   };
 
   @override
@@ -160,6 +164,14 @@ class _ThumbPainter extends CustomPainter {
         _drumGarden(canvas, w, h);
       case 'color_mixer':
         _colorMixer(canvas, w, h);
+      case 'fishing':
+        _fishing(canvas, w, h);
+      case 'maze_run':
+        _mazeRun(canvas, w, h);
+      case 'beat_builder':
+        _beatBuilder(canvas, w, h);
+      case 'catch_beat':
+        _catchBeat(canvas, w, h);
     }
   }
 
@@ -951,6 +963,81 @@ class _ThumbPainter extends CustomPainter {
     for (var i = 0; i < 3; i++) {
       canvas.drawCircle(Offset(w * (0.28 + i * 0.22), h * 0.82), w * 0.07,
           Paint()..color = drops[i]);
+    }
+  }
+
+  void _fishing(Canvas canvas, double w, double h) {
+    canvas.drawRect(Rect.fromLTWH(0, 0, w, h * 0.42),
+        Paint()..color = const Color(0xFFBDE8F7));
+    canvas.drawRect(Rect.fromLTWH(0, h * 0.42, w, h * 0.58),
+        Paint()..color = const Color(0xFF2FA7C4));
+    // bobber + line
+    canvas.drawLine(Offset(w * 0.5, 0), Offset(w * 0.5, h * 0.55),
+        Paint()..color = Colors.white70..strokeWidth = 1.5);
+    canvas.drawCircle(Offset(w * 0.5, h * 0.55), w * 0.05,
+        Paint()..color = Colors.white);
+    canvas.drawCircle(Offset(w * 0.5, h * 0.55), w * 0.05,
+        Paint()..style = PaintingStyle.stroke..strokeWidth = 3
+          ..color = const Color(0xFFE23B3B));
+    // a golden fish
+    canvas.drawOval(
+        Rect.fromCenter(center: Offset(w * 0.3, h * 0.72), width: w * 0.2, height: w * 0.12),
+        Paint()..color = const Color(0xFFFFD166));
+  }
+
+  void _mazeRun(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF14241A), Color(0xFF0E1A12)]);
+    final wall = Paint()
+      ..color = const Color(0xFF7BD389)
+      ..strokeWidth = 3;
+    const n = 4;
+    final cw = w / n, ch = h / n;
+    for (var i = 1; i < n; i++) {
+      if (i != 2) {
+        canvas.drawLine(Offset(i * cw, 0), Offset(i * cw, h * 0.7), wall);
+      }
+      if (i != 1) {
+        canvas.drawLine(Offset(i * cw - cw, i * ch), Offset(w, i * ch), wall);
+      }
+    }
+    canvas.drawCircle(Offset(cw * 0.5, ch * 0.5), math.min(cw, ch) * 0.28,
+        Paint()..color = const Color(0xFFFFE066));
+    canvas.drawCircle(Offset(w - cw * 0.5, h - ch * 0.5), math.min(cw, ch) * 0.3,
+        Paint()..color = const Color(0xFF63E6BE));
+  }
+
+  void _beatBuilder(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF1A1030), Color(0xFF120A24)]);
+    const rows = 4, steps = 4;
+    const colors = <Color>[
+      Color(0xFFFF6B6B), Color(0xFFFFD166), Color(0xFF8CE99A), Color(0xFF66D9E8)
+    ];
+    final cw = w / steps, ch = h / rows;
+    for (var r = 0; r < rows; r++) {
+      for (var s = 0; s < steps; s++) {
+        final on = (r + s) % 3 == 0;
+        canvas.drawRRect(
+            RRect.fromRectAndRadius(
+                Rect.fromLTWH(s * cw + 3, r * ch + 3, cw - 6, ch - 6),
+                const Radius.circular(5)),
+            Paint()
+              ..color = on ? colors[r] : Colors.white.withOpacity(0.08));
+      }
+    }
+  }
+
+  void _catchBeat(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF13112A), Color(0xFF0C0A1E)]);
+    const colors = <Color>[
+      Color(0xFFFF6B6B), Color(0xFFFFD166), Color(0xFF8CE99A), Color(0xFF66D9E8)
+    ];
+    final lw = w / 4;
+    canvas.drawLine(Offset(0, h * 0.78), Offset(w, h * 0.78),
+        Paint()..color = Colors.white70..strokeWidth = 3);
+    for (var i = 0; i < 4; i++) {
+      final y = h * (0.2 + i * 0.16);
+      canvas.drawCircle(Offset((i + 0.5) * lw, y), lw * 0.28,
+          Paint()..color = colors[i]);
     }
   }
 

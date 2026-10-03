@@ -229,6 +229,49 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('Fishing builds and casts', (tester) async {
+    await _pump(tester, const FishingGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('Fishing'), findsOneWidget);
+    await tester.tapAt(const Offset(200, 400));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(seconds: 1));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Maze Run builds and swipes', (tester) async {
+    await _pump(tester, const MazeRunGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('Maze Run'), findsOneWidget);
+    await tester.fling(find.byType(MazeRunGame), const Offset(200, 0), 800);
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Beat Builder builds and toggles', (tester) async {
+    await _pump(tester, const BeatBuilderGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('Beat Builder'), findsOneWidget);
+    await tester.tapAt(const Offset(200, 300));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Catch the Beat builds and taps lanes', (tester) async {
+    await _pump(tester, const CatchBeatGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('Catch the Beat'), findsOneWidget);
+    await tester.tapAt(const Offset(200, 500));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(seconds: 1));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Ball Sort builds and accepts taps', (tester) async {
     await _pump(tester, const BallSortGame());
     await tester.tap(find.widgetWithText(FilledButton, 'Play'));

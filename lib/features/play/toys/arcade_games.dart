@@ -6237,3 +6237,985 @@ class _ColorMixerGameState extends State<ColorMixerGame> with _Emit {
   }
 }
 
+/// Fishing — tap the water to cast, wait for a nibble, then tap the moment the
+/// bobber dips to land the fish. Golden fish are worth more; catch 10 to win.
+class FishingGame extends StatefulWidget {
+  const FishingGame({super.key});
+  @override
+  State<FishingGame> createState() => _FishingGameState();
+}
+
+class _Fish {
+  _Fish(this.x, this.y, this.vx, this.gold);
+  double x, y, vx;
+  final bool gold;
+}
+
+class _FishingGameState extends State<FishingGame>
+    with TickerProviderStateMixin, ToyTicker, _Emit {
+  static const String _id = 'fishing';
+  static const int _target = 10;
+  static const double _waterTop = 0.42;
+  final math.Random _rnd = math.Random();
+  final List<_Fish> _fish = <_Fish>[];
+  final List<_Shard> _bits = <_Shard>[];
+  double _hookX = 0.5;
+  final double _hookY = 0.6;
+  double _biteT = 0; // >0 while a fish nibbles (tap window)
+  bool _biteGold = false;
+  double _bobT = 0; // bob animation
+  int _score = 0;
+  int _best = 0;
+  String? _banner;
+  double _bannerT = 0;
+  GameStatus _status = GameStatus.ready;
+
+  @override
+  void initState() {
+    super.initState();
+    GameScores.instance.ensureLoaded().then((_) {
+      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+    });
+  }
+
+  void _flash(String s) {
+    _banner = s;
+    _bannerT = 1.4;
+  }
+
+  void _spawnFish() {
+    final fromLeft = _rnd.nextBool();
+    final y = _waterTop + 0.08 + _rnd.nextDouble() * 0.4;
+    final speed = 0.08 + _rnd.nextDouble() * 0.12;
+    _fish.add(_Fish(fromLeft ? -0.05 : 1.05, y, fromLeft ? speed : -speed,
+        _rnd.nextInt(4) == 0));
+  }
+
+  double get _window => math.max(0.55, 1.2 - _score * 0.06);
+
+  @override
+  void onTick(double dt) {
+    if (_status != GameStatus.playing) return;
+    if (_bannerT > 0) {
+      _bannerT -= dt;
+      if (_bannerT <= 0) _banner = null;
+    }
+    _bobT += dt;
+    while (_fish.length < 4) {
+      _spawnFish();
+    }
+    for (var i = _fish.length - 1; i >= 0; i--) {
+      final f = _fish[i];
+      f.x += f.vx * dt;
+      if (f.x < -0.1 || f.x > 1.1) _fish.removeAt(i);
+    }
+    for (var i = _bits.length - 1; i >= 0; i--) {
+      final b = _bits[i];
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.vy += 0.5 * dt;
+      b.life -= dt;
+      if (b.life <= 0) _bits.removeAt(i);
+    }
+    if (_biteT > 0) {
+      _biteT -= dt;
+      if (_biteT <= 0) {
+        _flash('It got away…');
+        TonePlayer.instance.playCue(SoundCue.gentleRetry);
+      }
+      return;
+    }
+    // Look for a fish reaching the hook to start a nibble.
+    for (final f in _fish) {
+      if ((f.x - _hookX).abs() < 0.05 && (f.y - _hookY).abs() < 0.12) {
+        _biteT = _window;
+        _biteGold = f.gold;
+        _fish.remove(f);
+        TonePlayer.instance.playCue(SoundCue.bubble);
+        break;
+      }
+    }
+  }
+
+  void _tap(Offset p, double w, double h) {
+    if (_status != GameStatus.playing) return;
+    if (_biteT > 0) {
+      final pts = _biteGold ? 3 : 1;
+      _score += pts;
+      for (var i = 0; i < 14; i++) {
+        final a = _rnd.nextDouble() * math.pi * 2;
+        final sp = 0.15 + _rnd.nextDouble() * 0.3;
+        _bits.add(_Shard(_hookX, _hookY, math.cos(a) * sp, math.sin(a) * sp,
+            _biteGold ? const Color(0xFFFFD166) : const Color(0xFF9BE3FF)));
+      }
+      _biteT = 0;
+      TonePlayer.instance.playCue(SoundCue.success);
+      emit(ExperienceEvent.bubblePopped);
+      _flash(_biteGold ? 'Golden catch! +3 🐟' : 'Caught it! +1 🐟');
+      GameScores.instance.submit(_id, _score).then((b) {
+        if (mounted) setState(() => _best = b);
+      });
+      if (_score >= _target) {
+        _status = GameStatus.won;
+        TonePlayer.instance.playCue(SoundCue.gameStart);
+        emit(ExperienceEvent.gameCompleted);
+      }
+    } else {
+      _hookX = (p.dx / w).clamp(0.05, 0.95);
+      TonePlayer.instance.playPop(0.5);
+    }
+  }
+
+  void _reset() {
+    setState(() {
+      _score = 0;
+      _fish.clear();
+      _bits.clear();
+      _biteT = 0;
+      _hookX = 0.5;
+      _banner = null;
+      _bannerT = 0;
+      _status = GameStatus.playing;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    drain(context);
+    return _Shell(
+      title: '🎣 Fishing',
+      introHow:
+          'Tap the water to move your bobber. When a fish nibbles and the bobber dips, tap fast to catch it!',
+      onStart: () => setState(() => _status = GameStatus.playing),
+      score: _score,
+      best: _best,
+      target: _target,
+      status: _status,
+      banner: _banner ??
+          (_biteT > 0 ? 'A bite! Tap now!' : 'Caught $_score/$_target'),
+      overEmoji: '🎣',
+      overText: 'Reel master!',
+      accent: const Color(0xFF2FA7C4),
+      onPlayAgain: _reset,
+      child: LayoutBuilder(
+        builder: (context, c) {
+          final w = c.maxWidth, h = c.maxHeight;
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTapDown: (d) => _tap(d.localPosition, w, h),
+            child: CustomPaint(
+              painter: _FishingPainter(
+                waterTop: _waterTop,
+                hookX: _hookX,
+                hookY: _hookY,
+                biteT: _biteT,
+                window: _window,
+                bobT: _bobT,
+                fish: _fish,
+                bits: _bits,
+              ),
+              size: Size.infinite,
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _FishingPainter extends CustomPainter {
+  _FishingPainter({
+    required this.waterTop,
+    required this.hookX,
+    required this.hookY,
+    required this.biteT,
+    required this.window,
+    required this.bobT,
+    required this.fish,
+    required this.bits,
+  });
+  final double waterTop, hookX, hookY, biteT, window, bobT;
+  final List<_Fish> fish;
+  final List<_Shard> bits;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    double sx(double x) => x * w;
+    double sy(double y) => y * h;
+    // Sky.
+    canvas.drawRect(
+        Rect.fromLTWH(0, 0, w, sy(waterTop)),
+        Paint()
+          ..shader = const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: <Color>[Color(0xFF8FD3F4), Color(0xFFBDE8F7)],
+          ).createShader(Rect.fromLTWH(0, 0, w, sy(waterTop))));
+    // Water.
+    canvas.drawRect(
+        Rect.fromLTWH(0, sy(waterTop), w, h - sy(waterTop)),
+        Paint()
+          ..shader = const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: <Color>[Color(0xFF2FA7C4), Color(0xFF12506B)],
+          ).createShader(Rect.fromLTWH(0, sy(waterTop), w, h - sy(waterTop))));
+    // Surface ripples.
+    final surf = Paint()
+      ..color = Colors.white.withOpacity(0.35)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    final path = Path()..moveTo(0, sy(waterTop));
+    for (var x = 0.0; x <= w; x += 12) {
+      path.lineTo(x, sy(waterTop) + math.sin(x / 26 + bobT * 2) * 3);
+    }
+    canvas.drawPath(path, surf);
+
+    // Fish.
+    for (final f in fish) {
+      final c = Offset(sx(f.x), sy(f.y));
+      final dir = f.vx >= 0 ? 1.0 : -1.0;
+      final body = Paint()
+        ..color = f.gold ? const Color(0xFFFFD166) : const Color(0xFF7FDBFF);
+      canvas.drawOval(
+          Rect.fromCenter(center: c, width: w * 0.08, height: w * 0.05), body);
+      final tail = Path()
+        ..moveTo(c.dx - dir * w * 0.04, c.dy)
+        ..lineTo(c.dx - dir * w * 0.07, c.dy - w * 0.025)
+        ..lineTo(c.dx - dir * w * 0.07, c.dy + w * 0.025)
+        ..close();
+      canvas.drawPath(tail, body);
+      canvas.drawCircle(
+          Offset(c.dx + dir * w * 0.025, c.dy - w * 0.008), 2, Paint()..color = Colors.black87);
+    }
+
+    // Line + bobber (dips during a bite).
+    final dip = biteT > 0 ? math.sin(bobT * 30) * 0.02 + 0.03 : 0.0;
+    final bob = Offset(sx(hookX), sy(hookY + dip));
+    canvas.drawLine(Offset(sx(hookX), 0), bob,
+        Paint()
+          ..color = Colors.white70
+          ..strokeWidth = 1.5);
+    canvas.drawCircle(bob, w * 0.03, Paint()..color = Colors.white);
+    canvas.drawCircle(bob, w * 0.03,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3
+          ..color = const Color(0xFFE23B3B));
+    if (biteT > 0) {
+      canvas.drawCircle(bob, w * 0.03 + (1 - biteT / window) * w * 0.08,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2
+            ..color = Colors.white.withOpacity(biteT / window));
+    }
+
+    for (final s in bits) {
+      final k = (s.life / 0.5).clamp(0.0, 1.0);
+      canvas.drawCircle(Offset(sx(s.x), sy(s.y)), 2 + 3 * k,
+          Paint()..color = s.color.withOpacity(k));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_FishingPainter old) => true;
+}
+
+/// Maze Run — swipe to slide the dot through the maze. Grab the key, then reach
+/// the glowing exit. Each maze you solve is bigger. Solve five to win.
+class MazeRunGame extends StatefulWidget {
+  const MazeRunGame({super.key});
+  @override
+  State<MazeRunGame> createState() => _MazeRunGameState();
+}
+
+class _MazeRunGameState extends State<MazeRunGame> with _Emit {
+  static const String _id = 'maze_run';
+  static const int _target = 5;
+  final math.Random _rnd = math.Random();
+  int _cols = 5, _rows = 6;
+  List<int> _cell = <int>[]; // bitmask: 1=up,2=right,4=down,8=left
+  int _px = 0, _py = 0;
+  int _exit = 0;
+  int _key = 0;
+  bool _hasKey = false;
+  int _level = 1;
+  int _solved = 0;
+  int _best = 0;
+  String? _banner;
+  GameStatus _status = GameStatus.ready;
+
+  @override
+  void initState() {
+    super.initState();
+    GameScores.instance.ensureLoaded().then((_) {
+      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+    });
+  }
+
+  void _genMaze() {
+    _cols = (4 + _level).clamp(4, 8);
+    _rows = (5 + _level).clamp(5, 10);
+    final n = _cols * _rows;
+    _cell = List<int>.filled(n, 0);
+    final visited = List<bool>.filled(n, false);
+    final stack = <int>[0];
+    visited[0] = true;
+    while (stack.isNotEmpty) {
+      final c = stack.last;
+      final cx = c % _cols, cy = c ~/ _cols;
+      final nb = <List<int>>[];
+      if (cy > 0 && !visited[c - _cols]) nb.add(<int>[0, c - _cols]);
+      if (cx < _cols - 1 && !visited[c + 1]) nb.add(<int>[1, c + 1]);
+      if (cy < _rows - 1 && !visited[c + _cols]) nb.add(<int>[2, c + _cols]);
+      if (cx > 0 && !visited[c - 1]) nb.add(<int>[3, c - 1]);
+      if (nb.isEmpty) {
+        stack.removeLast();
+        continue;
+      }
+      final pick = nb[_rnd.nextInt(nb.length)];
+      final dir = pick[0], nIdx = pick[1];
+      _cell[c] |= (1 << dir);
+      _cell[nIdx] |= (1 << ((dir + 2) % 4));
+      visited[nIdx] = true;
+      stack.add(nIdx);
+    }
+    _px = 0;
+    _py = 0;
+    _exit = n - 1;
+    do {
+      _key = _rnd.nextInt(n);
+    } while (_key == 0 || _key == _exit);
+    _hasKey = false;
+  }
+
+  void _slide(int dx, int dy) {
+    if (_status != GameStatus.playing) return;
+    final dir = dy < 0 ? 0 : (dx > 0 ? 1 : (dy > 0 ? 2 : 3));
+    var moved = false;
+    while (true) {
+      final c = _py * _cols + _px;
+      if ((_cell[c] & (1 << dir)) == 0) break;
+      _px += dx;
+      _py += dy;
+      moved = true;
+      final nc = _py * _cols + _px;
+      if (nc == _key && !_hasKey) {
+        _hasKey = true;
+        TonePlayer.instance.playCue(SoundCue.success);
+        _banner = 'Key! 🔑 Now find the exit';
+      }
+      if (nc == _exit && _hasKey) {
+        _solve();
+        return;
+      }
+    }
+    if (moved) {
+      setState(() {});
+      TonePlayer.instance.playPop(0.7);
+    }
+  }
+
+  void _solve() {
+    _solved++;
+    _level++;
+    emit(ExperienceEvent.bubblePopped);
+    TonePlayer.instance.playCue(SoundCue.success);
+    GameScores.instance.submit(_id, _solved).then((b) {
+      if (mounted) setState(() => _best = b);
+    });
+    if (_solved >= _target) {
+      setState(() {
+        _banner = 'Maze master!';
+        _status = GameStatus.won;
+      });
+      TonePlayer.instance.playCue(SoundCue.gameStart);
+      emit(ExperienceEvent.gameCompleted);
+    } else {
+      setState(() {
+        _banner = 'Solved! Bigger maze…';
+        _genMaze();
+      });
+    }
+  }
+
+  void _reset() {
+    setState(() {
+      _level = 1;
+      _solved = 0;
+      _banner = null;
+      _genMaze();
+      _status = GameStatus.playing;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    drain(context);
+    if (_cell.isEmpty) _genMaze();
+    return _Shell(
+      title: '🧩 Maze Run',
+      introHow:
+          'Swipe up, down, left or right to slide the dot. Grab the key, then reach the glowing exit!',
+      onStart: () => setState(() {
+        _genMaze();
+        _status = GameStatus.playing;
+      }),
+      score: _solved,
+      best: _best,
+      target: _target,
+      status: _status,
+      banner: _banner ?? (_hasKey ? 'Find the exit!' : 'Grab the key 🔑'),
+      overEmoji: '🧩',
+      overText: 'Maze master!',
+      accent: const Color(0xFF7BD389),
+      onPlayAgain: _reset,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onPanEnd: (d) {
+          final v = d.velocity.pixelsPerSecond;
+          if (v.distance < 40) return;
+          if (v.dx.abs() > v.dy.abs()) {
+            _slide(v.dx > 0 ? 1 : -1, 0);
+          } else {
+            _slide(0, v.dy > 0 ? 1 : -1);
+          }
+        },
+        child: CustomPaint(
+          painter: _MazePainter(
+            cols: _cols,
+            rows: _rows,
+            cell: _cell,
+            px: _px,
+            py: _py,
+            exit: _exit,
+            key: _key,
+            hasKey: _hasKey,
+          ),
+          size: Size.infinite,
+        ),
+      ),
+    );
+  }
+}
+
+class _MazePainter extends CustomPainter {
+  _MazePainter({
+    required this.cols,
+    required this.rows,
+    required this.cell,
+    required this.px,
+    required this.py,
+    required this.exit,
+    required this.key,
+    required this.hasKey,
+  });
+  final int cols, rows, px, py, exit, key;
+  final List<int> cell;
+  final bool hasKey;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    canvas.drawRect(Offset.zero & size,
+        Paint()..color = const Color(0xFF14241A));
+    if (cell.isEmpty) return;
+    final pad = w * 0.06;
+    final gw = w - pad * 2, gh = h - pad * 2;
+    final cw = gw / cols, ch = gh / rows;
+    final wall = Paint()
+      ..color = const Color(0xFF7BD389)
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.round;
+    Offset cellTL(int cx, int cy) => Offset(pad + cx * cw, pad + cy * ch);
+    // Key.
+    if (!hasKey) {
+      final kc = Offset(pad + (key % cols + 0.5) * cw, pad + (key ~/ cols + 0.5) * ch);
+      canvas.drawCircle(kc, math.min(cw, ch) * 0.22,
+          Paint()..color = const Color(0xFFFFD166));
+    }
+    // Exit.
+    final ec = Offset(pad + (exit % cols + 0.5) * cw, pad + (exit ~/ cols + 0.5) * ch);
+    canvas.drawCircle(ec, math.min(cw, ch) * 0.36,
+        Paint()..color = (hasKey ? const Color(0xFF63E6BE) : Colors.white24));
+    // Walls (draw edges that are closed).
+    for (var cy = 0; cy < rows; cy++) {
+      for (var cx = 0; cx < cols; cx++) {
+        final m = cell[cy * cols + cx];
+        final tl = cellTL(cx, cy);
+        final tr = tl + Offset(cw, 0);
+        final bl = tl + Offset(0, ch);
+        final br = tl + Offset(cw, ch);
+        if (m & 1 == 0) canvas.drawLine(tl, tr, wall); // up
+        if (m & 2 == 0) canvas.drawLine(tr, br, wall); // right
+        if (m & 4 == 0) canvas.drawLine(bl, br, wall); // down
+        if (m & 8 == 0) canvas.drawLine(tl, bl, wall); // left
+      }
+    }
+    // Player dot.
+    final pc = Offset(pad + (px + 0.5) * cw, pad + (py + 0.5) * ch);
+    canvas.drawCircle(pc, math.min(cw, ch) * 0.3,
+        Paint()..color = const Color(0xFFFFE066));
+    canvas.drawCircle(pc.translate(-cw * 0.08, -ch * 0.08),
+        math.min(cw, ch) * 0.1, Paint()..color = Colors.white);
+  }
+
+  @override
+  bool shouldRepaint(_MazePainter old) => true;
+}
+
+/// Beat Builder — a 4x8 step sequencer. Tap cells to switch on drums; a
+/// playhead loops and plays your beat. Fill the grid for a full groove.
+class BeatBuilderGame extends StatefulWidget {
+  const BeatBuilderGame({super.key});
+  @override
+  State<BeatBuilderGame> createState() => _BeatBuilderGameState();
+}
+
+class _BeatBuilderGameState extends State<BeatBuilderGame>
+    with TickerProviderStateMixin, ToyTicker, _Emit {
+  static const String _id = 'beat_builder';
+  static const int _rowsN = 4;
+  static const int _steps = 8;
+  static const double _tempo = 0.26;
+  static const List<int> _rowNotes = <int>[0, 3, 7, 11];
+  static const List<Color> _rowColors = <Color>[
+    Color(0xFFFF6B6B),
+    Color(0xFFFFD166),
+    Color(0xFF8CE99A),
+    Color(0xFF66D9E8),
+  ];
+  final List<bool> _grid = List<bool>.filled(_rowsN * _steps, false);
+  int _step = 0;
+  double _stepT = 0;
+  int _active = 0;
+  int _best = 0;
+  String? _banner;
+  double _bannerT = 0;
+  GameStatus _status = GameStatus.ready;
+
+  @override
+  void initState() {
+    super.initState();
+    GameScores.instance.ensureLoaded().then((_) {
+      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+    });
+  }
+
+  @override
+  void onTick(double dt) {
+    if (_status != GameStatus.playing) return;
+    if (_bannerT > 0) {
+      _bannerT -= dt;
+      if (_bannerT <= 0) _banner = null;
+    }
+    _stepT += dt;
+    if (_stepT >= _tempo) {
+      _stepT -= _tempo;
+      _step = (_step + 1) % _steps;
+      for (var r = 0; r < _rowsN; r++) {
+        if (_grid[r * _steps + _step]) {
+          TonePlayer.instance.playNote(_rowNotes[r], seconds: 0.18);
+        }
+      }
+    }
+  }
+
+  void _toggle(Offset p, double w, double h) {
+    if (_status != GameStatus.playing) return;
+    final col = (p.dx / w * _steps).floor();
+    final row = (p.dy / h * _rowsN).floor();
+    if (col < 0 || col >= _steps || row < 0 || row >= _rowsN) return;
+    final idx = row * _steps + col;
+    setState(() {
+      _grid[idx] = !_grid[idx];
+      _active = _grid.where((b) => b).length;
+      if (_grid[idx]) {
+        TonePlayer.instance.playNote(_rowNotes[row], seconds: 0.2);
+      }
+      if (_active > _best) {
+        _best = _active;
+        GameScores.instance.submit(_id, _active);
+      }
+      if (_active == _rowsN * _steps) {
+        _banner = 'Full groove! 🔥';
+        _bannerT = 1.6;
+        emit(ExperienceEvent.bubblePopped);
+      }
+    });
+  }
+
+  void _reset() {
+    setState(() {
+      for (var i = 0; i < _grid.length; i++) {
+        _grid[i] = false;
+      }
+      _active = 0;
+      _step = 0;
+      _stepT = 0;
+      _banner = null;
+      _bannerT = 0;
+      _status = GameStatus.playing;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    drain(context);
+    return _Shell(
+      title: '🎛️ Beat Builder',
+      introHow:
+          'Tap the squares to switch drums on and off. The line sweeps across and plays your beat on a loop!',
+      onStart: () => setState(() => _status = GameStatus.playing),
+      score: _active,
+      best: _best,
+      target: _rowsN * _steps,
+      status: _status,
+      banner: _banner ?? 'Beat: $_active drums on',
+      overEmoji: '🎛️',
+      overText: 'Nice groove!',
+      accent: const Color(0xFF66D9E8),
+      onPlayAgain: _reset,
+      child: LayoutBuilder(
+        builder: (context, c) {
+          final w = c.maxWidth, h = c.maxHeight;
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTapDown: (d) => _toggle(d.localPosition, w, h),
+            child: CustomPaint(
+              painter: _BeatPainter(
+                grid: _grid,
+                rows: _rowsN,
+                steps: _steps,
+                step: _step,
+                colors: _rowColors,
+              ),
+              size: Size.infinite,
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _BeatPainter extends CustomPainter {
+  _BeatPainter({
+    required this.grid,
+    required this.rows,
+    required this.steps,
+    required this.step,
+    required this.colors,
+  });
+  final List<bool> grid;
+  final int rows, steps, step;
+  final List<Color> colors;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    canvas.drawRect(Offset.zero & size,
+        Paint()..color = const Color(0xFF1A1030));
+    final cw = w / steps, ch = h / rows;
+    // Playhead column.
+    canvas.drawRect(Rect.fromLTWH(step * cw, 0, cw, h),
+        Paint()..color = Colors.white.withOpacity(0.10));
+    for (var r = 0; r < rows; r++) {
+      for (var s = 0; s < steps; s++) {
+        final rect = Rect.fromLTWH(s * cw + 3, r * ch + 3, cw - 6, ch - 6);
+        final on = grid[r * steps + s];
+        final playing = on && s == step;
+        canvas.drawRRect(
+            RRect.fromRectAndRadius(rect, const Radius.circular(8)),
+            Paint()
+              ..color = on
+                  ? colors[r].withOpacity(playing ? 1.0 : 0.85)
+                  : Colors.white.withOpacity(0.06));
+        if (playing) {
+          canvas.drawRRect(
+              RRect.fromRectAndRadius(rect.inflate(2), const Radius.circular(9)),
+              Paint()
+                ..style = PaintingStyle.stroke
+                ..strokeWidth = 3
+                ..color = Colors.white);
+        }
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_BeatPainter old) => true;
+}
+
+/// Catch-the-Beat — colour orbs drop in four lanes. Tap a lane the instant its
+/// orb crosses the glowing line. Keep a combo and catch 20 to win.
+class CatchBeatGame extends StatefulWidget {
+  const CatchBeatGame({super.key});
+  @override
+  State<CatchBeatGame> createState() => _CatchBeatGameState();
+}
+
+class _Orb {
+  _Orb(this.lane, this.y);
+  final int lane;
+  double y;
+  bool dead = false;
+}
+
+class _CatchBeatGameState extends State<CatchBeatGame>
+    with TickerProviderStateMixin, ToyTicker, _Emit {
+  static const String _id = 'catch_beat';
+  static const int _lanes = 4;
+  static const int _target = 20;
+  static const double _hitY = 0.82;
+  static const double _window = 0.1;
+  static const List<int> _laneNotes = <int>[0, 4, 7, 11];
+  static const List<Color> _laneColors = <Color>[
+    Color(0xFFFF6B6B),
+    Color(0xFFFFD166),
+    Color(0xFF8CE99A),
+    Color(0xFF66D9E8),
+  ];
+  final math.Random _rnd = math.Random();
+  final List<_Orb> _orbs = <_Orb>[];
+  final List<_Shard> _bits = <_Shard>[];
+  double _spawnT = 0;
+  double _fall = 0.55;
+  int _score = 0;
+  int _combo = 0;
+  int _bestCombo = 0;
+  int _lives = 3;
+  int _best = 0;
+  int _laneFlash = -1;
+  double _laneFlashT = 0;
+  String? _banner;
+  double _bannerT = 0;
+  GameStatus _status = GameStatus.ready;
+
+  @override
+  void initState() {
+    super.initState();
+    GameScores.instance.ensureLoaded().then((_) {
+      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+    });
+  }
+
+  void _flash(String s) {
+    _banner = s;
+    _bannerT = 1.2;
+  }
+
+  @override
+  void onTick(double dt) {
+    if (_status != GameStatus.playing) return;
+    if (_bannerT > 0) {
+      _bannerT -= dt;
+      if (_bannerT <= 0) _banner = null;
+    }
+    if (_laneFlashT > 0) {
+      _laneFlashT -= dt;
+      if (_laneFlashT <= 0) _laneFlash = -1;
+    }
+    for (var i = _bits.length - 1; i >= 0; i--) {
+      final b = _bits[i];
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.life -= dt;
+      if (b.life <= 0) _bits.removeAt(i);
+    }
+    _spawnT -= dt;
+    if (_spawnT <= 0) {
+      _orbs.add(_Orb(_rnd.nextInt(_lanes), -0.05));
+      _spawnT = math.max(0.5, 1.1 - _score * 0.03);
+    }
+    for (var i = _orbs.length - 1; i >= 0; i--) {
+      final o = _orbs[i];
+      o.y += _fall * dt;
+      if (o.dead) {
+        _orbs.removeAt(i);
+        continue;
+      }
+      if (o.y > _hitY + _window) {
+        // Missed.
+        o.dead = true;
+        _combo = 0;
+        _lives--;
+        _flash('Missed!');
+        TonePlayer.instance.playCue(SoundCue.gentleRetry);
+        if (_lives <= 0) {
+          _status = GameStatus.over;
+        }
+        _orbs.removeAt(i);
+      }
+    }
+  }
+
+  void _tapLane(int lane) {
+    if (_status != GameStatus.playing) return;
+    _laneFlash = lane;
+    _laneFlashT = 0.2;
+    _Orb? best;
+    var bestDist = 999.0;
+    for (final o in _orbs) {
+      if (o.lane != lane || o.dead) continue;
+      final d = (o.y - _hitY).abs();
+      if (d < bestDist) {
+        bestDist = d;
+        best = o;
+      }
+    }
+    if (best != null && bestDist <= _window) {
+      best.dead = true;
+      _score++;
+      _combo++;
+      if (_combo > _bestCombo) _bestCombo = _combo;
+      _fall = (0.55 + _score * 0.02).clamp(0.55, 1.1);
+      for (var i = 0; i < 10; i++) {
+        final a = _rnd.nextDouble() * math.pi * 2;
+        final sp = 0.15 + _rnd.nextDouble() * 0.3;
+        _bits.add(_Shard((lane + 0.5) / _lanes, _hitY, math.cos(a) * sp,
+            math.sin(a) * sp, _laneColors[lane]));
+      }
+      TonePlayer.instance.playNote(_laneNotes[lane], seconds: 0.22);
+      emit(ExperienceEvent.bubblePopped);
+      if (bestDist < _window * 0.4) {
+        _flash(_combo >= 3 ? 'Perfect! x$_combo 🔥' : 'Perfect!');
+      } else if (_combo >= 3) {
+        _flash('Combo x$_combo');
+      }
+      GameScores.instance.submit(_id, _score).then((b) {
+        if (mounted) setState(() => _best = b);
+      });
+      if (_score >= _target) {
+        _status = GameStatus.won;
+        TonePlayer.instance.playCue(SoundCue.gameStart);
+        emit(ExperienceEvent.gameCompleted);
+      }
+    }
+  }
+
+  void _reset() {
+    setState(() {
+      _orbs.clear();
+      _bits.clear();
+      _spawnT = 0;
+      _fall = 0.55;
+      _score = 0;
+      _combo = 0;
+      _lives = 3;
+      _banner = null;
+      _bannerT = 0;
+      _status = GameStatus.playing;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    drain(context);
+    return _Shell(
+      title: '🎶 Catch the Beat',
+      introHow:
+          'Orbs fall in four lanes. Tap a lane right when its orb hits the glowing line. Keep your combo!',
+      onStart: () => setState(() => _status = GameStatus.playing),
+      score: _score,
+      best: _best,
+      target: _target,
+      status: _status,
+      banner: _banner ?? 'Caught $_score/$_target · ${'💛' * _lives}',
+      overEmoji: '🎶',
+      overText: _score >= _target ? 'Rhythm star!' : 'Nice rhythm!',
+      accent: const Color(0xFF66D9E8),
+      onPlayAgain: _reset,
+      child: LayoutBuilder(
+        builder: (context, c) {
+          final w = c.maxWidth;
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTapDown: (d) =>
+                _tapLane((d.localPosition.dx / w * _lanes).floor().clamp(0, _lanes - 1)),
+            child: CustomPaint(
+              painter: _CatchPainter(
+                lanes: _lanes,
+                hitY: _hitY,
+                orbs: _orbs,
+                colors: _laneColors,
+                laneFlash: _laneFlash,
+                laneFlashT: _laneFlashT,
+                bits: _bits,
+              ),
+              size: Size.infinite,
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _CatchPainter extends CustomPainter {
+  _CatchPainter({
+    required this.lanes,
+    required this.hitY,
+    required this.orbs,
+    required this.colors,
+    required this.laneFlash,
+    required this.laneFlashT,
+    required this.bits,
+  });
+  final int lanes;
+  final double hitY;
+  final List<_Orb> orbs;
+  final List<Color> colors;
+  final int laneFlash;
+  final double laneFlashT;
+  final List<_Shard> bits;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    canvas.drawRect(Offset.zero & size,
+        Paint()..color = const Color(0xFF13112A));
+    final lw = w / lanes;
+    for (var i = 0; i < lanes; i++) {
+      if (i.isOdd) {
+        canvas.drawRect(Rect.fromLTWH(i * lw, 0, lw, h),
+            Paint()..color = Colors.white.withOpacity(0.03));
+      }
+      if (laneFlash == i) {
+        canvas.drawRect(Rect.fromLTWH(i * lw, 0, lw, h),
+            Paint()..color = colors[i].withOpacity(laneFlashT / 0.2 * 0.25));
+      }
+    }
+    // Hit line.
+    canvas.drawLine(Offset(0, hitY * h), Offset(w, hitY * h),
+        Paint()
+          ..color = Colors.white.withOpacity(0.8)
+          ..strokeWidth = 3);
+    for (var i = 0; i < lanes; i++) {
+      canvas.drawCircle(Offset((i + 0.5) * lw, hitY * h), lw * 0.3,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2
+            ..color = colors[i].withOpacity(0.6));
+    }
+    for (final o in orbs) {
+      if (o.dead) continue;
+      canvas.drawCircle(Offset((o.lane + 0.5) * lw, o.y * h), lw * 0.3,
+          Paint()..color = colors[o.lane]);
+      canvas.drawCircle(
+          Offset((o.lane + 0.5) * lw - lw * 0.08, o.y * h - lw * 0.08),
+          lw * 0.1,
+          Paint()..color = Colors.white.withOpacity(0.7));
+    }
+    for (final s in bits) {
+      final k = (s.life / 0.5).clamp(0.0, 1.0);
+      canvas.drawCircle(Offset(s.x * w, s.y * h), 2 + 3 * k,
+          Paint()..color = s.color.withOpacity(k));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_CatchPainter old) => true;
+}
+
