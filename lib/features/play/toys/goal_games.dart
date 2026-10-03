@@ -293,6 +293,7 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> {
   int _wrong = 0;
   int _streak = 0;
   int _wrongIndex = -1;
+  DateTime _shownAt = DateTime.now();
   String? _message;
   GameStatus _status = GameStatus.ready;
   late _ChoiceRound _round;
@@ -303,6 +304,7 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> {
   void initState() {
     super.initState();
     _round = widget.buildRound(_roundNumber, _random);
+    _shownAt = DateTime.now();
     GameScores.instance.ensureLoaded().then((_) {
       if (mounted) setState(() => _best = GameScores.instance.best(widget.id));
     });
@@ -321,17 +323,23 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> {
       return;
     }
     TonePlayer.instance.playCue(SoundCue.correct);
+    final quick = DateTime.now().difference(_shownAt).inMilliseconds < 2200;
     setState(() {
       _wrongIndex = -1;
       _score++;
       _roundNumber++;
       _streak++;
-      _message = _streak >= 3 ? 'Streak x$_streak! 🔥' : 'Correct!';
+      _message = quick
+          ? 'Quick! ⚡'
+          : _streak >= 3
+              ? 'Streak x$_streak! 🔥'
+              : 'Correct!';
       if (_score >= _target) {
         _status = GameStatus.won;
         TonePlayer.instance.playCue(SoundCue.success);
       } else {
         _round = widget.buildRound(_roundNumber, _random);
+        _shownAt = DateTime.now();
       }
     });
     GameScores.instance.submit(widget.id, _score).then((best) {
@@ -349,6 +357,7 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> {
       _message = null;
       _status = GameStatus.playing;
       _round = widget.buildRound(_roundNumber, _random);
+      _shownAt = DateTime.now();
     });
   }
 
@@ -439,6 +448,40 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> {
                       ),
                     );
                   },
+                ),
+                const SizedBox(height: 26),
+                // Collection tray — fills with a star for each correct answer,
+                // turning "8 correct" into a visible treasure hunt.
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: <Widget>[
+                    for (var i = 0; i < _target; i++)
+                      TweenAnimationBuilder<double>(
+                        key: ValueKey('tray-$i-${i < _score}'),
+                        tween: Tween<double>(
+                            begin: i < _score ? 1.6 : 1.0, end: 1.0),
+                        duration: const Duration(milliseconds: 340),
+                        curve: Curves.easeOutBack,
+                        builder: (ctx, s, child) =>
+                            Transform.scale(scale: s, child: child),
+                        child: Container(
+                          width: 30,
+                          height: 30,
+                          decoration: BoxDecoration(
+                            color: i < _score
+                                ? widget.accent.withOpacity(0.92)
+                                : Colors.white.withOpacity(0.08),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white24),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(i < _score ? '⭐' : '',
+                              style: const TextStyle(fontSize: 15)),
+                        ),
+                      ),
+                  ],
                 ),
               ],
             ),

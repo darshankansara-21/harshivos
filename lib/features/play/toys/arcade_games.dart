@@ -919,6 +919,8 @@ class _MergeGameState extends State<MergeGame> with _Emit {
   static const int _target = 64;
   final math.Random _rnd = math.Random();
   late List<List<int>> _g;
+  int _maxTile = 2;
+  int _milestone = 0;
   int _score = 0;
   int _best = 0;
   String? _banner;
@@ -955,6 +957,10 @@ class _MergeGameState extends State<MergeGame> with _Emit {
         final merged = nums[i] * 2;
         out.add(merged);
         _score += merged;
+        if (merged > _maxTile) {
+          _maxTile = merged;
+          _milestone = merged;
+        }
         if (merged >= _target) _status = GameStatus.won;
         i++;
       } else {
@@ -969,6 +975,7 @@ class _MergeGameState extends State<MergeGame> with _Emit {
 
   void _move(int dir) {
     if (_status != GameStatus.playing) return;
+    _banner = null;
     final before = _g.map((r) => r.join(',')).join('|');
     // 0 left, 1 right, 2 up, 3 down — normalise to a left-slide.
     List<List<int>> g = _g;
@@ -990,6 +997,11 @@ class _MergeGameState extends State<MergeGame> with _Emit {
       _spawn();
       TonePlayer.instance.playCue(SoundCue.wood);
       emit(ExperienceEvent.bubblePopped);
+    }
+    if (_milestone > 0 && _status != GameStatus.won) {
+      _banner = 'New best: $_milestone! 🎉';
+      TonePlayer.instance.playCue(SoundCue.milestone);
+      _milestone = 0;
     }
     if (_status == GameStatus.won) {
       TonePlayer.instance.playCue(SoundCue.success);
@@ -1030,6 +1042,8 @@ class _MergeGameState extends State<MergeGame> with _Emit {
     setState(() {
       _g = List<List<int>>.generate(_n, (_) => List<int>.filled(_n, 0));
       _score = 0;
+      _maxTile = 2;
+      _milestone = 0;
       _banner = null;
       _status = GameStatus.playing;
       _spawn();
@@ -1321,6 +1335,7 @@ class TicTacToeGame extends StatefulWidget {
 
 class _TicTacToeGameState extends State<TicTacToeGame> with _Emit {
   static const String _id = 'tictactoe';
+  final math.Random _rnd = math.Random();
   final List<int> _b = List<int>.filled(9, 0); // 0 empty, 1 player, 2 ai
   List<int> _winLine = const <int>[];
   int _best = 0; // wins
@@ -1369,14 +1384,18 @@ class _TicTacToeGameState extends State<TicTacToeGame> with _Emit {
   }
 
   void _aiMove() {
-    var move = _findMove(2) ?? _findMove(1);
+    // Always take a win; but Pico only blocks most of the time so a child can
+    // actually win — a perfect opponent is no fun for this audience.
+    var move = _findMove(2);
+    if (move == null && _rnd.nextDouble() < 0.65) move = _findMove(1);
     if (move == null) {
       const prefs = <int>[4, 0, 2, 6, 8, 1, 3, 5, 7];
-      for (final p in prefs) {
-        if (_b[p] == 0) {
-          move = p;
-          break;
-        }
+      final avail = <int>[for (final p in prefs) if (_b[p] == 0) p];
+      if (avail.isNotEmpty) {
+        // Favour good squares but mix in some chance so it's beatable.
+        move = _rnd.nextDouble() < 0.6
+            ? avail.first
+            : avail[_rnd.nextInt(avail.length)];
       }
     }
     if (move != null) {
