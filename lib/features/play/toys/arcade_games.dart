@@ -469,6 +469,7 @@ class _SkyHopGameState extends State<SkyHopGame>
   static const double _gap = 0.28; // fraction of height
   final math.Random _rnd = math.Random();
   final List<_Pipe> _pipes = <_Pipe>[];
+  final List<_Shard> _bits = <_Shard>[];
   double _birdY = 0.5;
   double _vy = 0;
   double _spawnIn = 0;
@@ -487,7 +488,16 @@ class _SkyHopGameState extends State<SkyHopGame>
 
   @override
   void onTick(double dt) {
-    if (_status != GameStatus.playing || !_started) return;
+    if (_status != GameStatus.playing) return;
+    for (var i = _bits.length - 1; i >= 0; i--) {
+      final s = _bits[i];
+      s.x += s.vx * dt;
+      s.y += s.vy * dt;
+      s.vy += 0.6 * dt;
+      s.life -= dt;
+      if (s.life <= 0) _bits.removeAt(i);
+    }
+    if (!_started) return;
     _vy += 1.6 * dt; // gravity
     _birdY += _vy * dt;
     _spawnIn -= dt;
@@ -511,6 +521,12 @@ class _SkyHopGameState extends State<SkyHopGame>
           (_birdY - p.coinY).abs() < 0.05) {
         p.coinTaken = true;
         _score += 2;
+        for (var k = 0; k < 8; k++) {
+          final a = _rnd.nextDouble() * math.pi * 2;
+          final sp = 0.1 + _rnd.nextDouble() * 0.22;
+          _bits.add(_Shard(p.x, p.coinY, math.cos(a) * sp, math.sin(a) * sp,
+              const Color(0xFFFFE066)));
+        }
         TonePlayer.instance.playCue(SoundCue.coin);
       }
       if ((p.x - 0.3).abs() < 0.11 &&
@@ -527,6 +543,10 @@ class _SkyHopGameState extends State<SkyHopGame>
     if (_status != GameStatus.playing) return;
     _started = true;
     _vy = -0.62;
+    for (var k = 0; k < 4; k++) {
+      _bits.add(_Shard(0.3, _birdY + 0.03, -0.14 - _rnd.nextDouble() * 0.1,
+          0.05 + _rnd.nextDouble() * 0.1, Colors.white));
+    }
     TonePlayer.instance.playClick(pitch: 1.3);
   }
 
@@ -545,6 +565,7 @@ class _SkyHopGameState extends State<SkyHopGame>
   void _reset() {
     setState(() {
       _pipes.clear();
+      _bits.clear();
       _birdY = 0.5;
       _vy = 0;
       _spawnIn = 0;
@@ -572,7 +593,7 @@ class _SkyHopGameState extends State<SkyHopGame>
         behavior: HitTestBehavior.opaque,
         onTapDown: (_) => _flap(),
         child: CustomPaint(
-          painter: _SkyHopPainter(_pipes, _birdY, _gap, _started),
+          painter: _SkyHopPainter(_pipes, _birdY, _gap, _started, _bits),
           size: Size.infinite,
         ),
       ),
@@ -581,11 +602,12 @@ class _SkyHopGameState extends State<SkyHopGame>
 }
 
 class _SkyHopPainter extends CustomPainter {
-  _SkyHopPainter(this.pipes, this.birdY, this.gap, this.started);
+  _SkyHopPainter(this.pipes, this.birdY, this.gap, this.started, this.bits);
   final List<_Pipe> pipes;
   final double birdY;
   final double gap;
   final bool started;
+  final List<_Shard> bits;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -623,6 +645,11 @@ class _SkyHopPainter extends CustomPainter {
     }
     final bx = w * 0.3;
     final by = birdY * h;
+    for (final s in bits) {
+      final k = (s.life / 0.5).clamp(0.0, 1.0);
+      canvas.drawCircle(Offset(s.x * w, s.y * h), w * 0.012 * k + 1.5,
+          Paint()..color = s.color.withOpacity(k));
+    }
     canvas.drawCircle(Offset(bx, by), w * 0.05, Paint()..color = const Color(0xFFFFD166));
     canvas.drawCircle(
         Offset(bx + w * 0.02, by - w * 0.015), 3, Paint()..color = Colors.black);
