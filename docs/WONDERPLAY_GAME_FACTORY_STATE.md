@@ -2,10 +2,10 @@
 
 **Mandatory resume file.** On a new context: READ THIS FIRST, then resume from "NEXT EXACT ACTION". Never restart the sprint.
 
-- **HEAD at last update:** b9978ee == origin/main — learn batch (firefly_count, sorting_train, shadow_match) pending commit
+- **HEAD at last update:** 5d52c1a == origin/main (clean) — learn batch SHIPPED
 - **Version:** 1.0.42+43 (HELD — no bump during factory; release builds are LAST)
 - **Updated:** 2026-10-03
-- **Tests:** 40 focused pass (arcade+catalog); full suite running
+- **Tests:** 125 pass · **Analyze:** 112 info / 0 warnings / 0 errors
 - **Catalog:** 42 games (39 + firefly_count, sorting_train, shadow_match) + 20 sensory toys
 - **Note:** build machine pub-get is network-stalling on fresh terminals; use `flutter test --no-pub` / `flutter analyze --no-pub` once deps are resolved once per session.
 - **Device QA:** BLOCKED (phone off USB since sprint #3; needs physical replug). Not sprint-ending — continue implementation; run accumulated QA when device returns.
