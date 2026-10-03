@@ -1071,6 +1071,15 @@ class _AiWorm {
   final List<Offset> path = <Offset>[];
 }
 
+class _Particle {
+  _Particle(this.pos, this.vel, this.color, this.life) : maxLife = life;
+  Offset pos;
+  Offset vel;
+  final Color color;
+  double life;
+  final double maxLife;
+}
+
 class _SnakeGameState extends State<SnakeGame>
     with TickerProviderStateMixin, ToyTicker, _CompanionEmitter {
   static const String _id = 'snake';
@@ -1091,6 +1100,7 @@ class _SnakeGameState extends State<SnakeGame>
   double _t = 0;
   final List<_Orb> _orbs = <_Orb>[];
   final List<_AiWorm> _ai = <_AiWorm>[];
+  final List<_Particle> _particles = <_Particle>[];
   int _score = 0;
   int _best = 0;
   int _combo = 0;
@@ -1128,6 +1138,7 @@ class _SnakeGameState extends State<SnakeGame>
     _score = 0;
     _combo = 0;
     _comboT = 0;
+    _particles.clear();
     _orbs.clear();
     for (var i = 0; i < 240; i++) {
       _orbs.add(_randomOrb());
@@ -1180,6 +1191,13 @@ class _SnakeGameState extends State<SnakeGame>
       _comboT -= dt;
       if (_comboT <= 0) _combo = 0;
     }
+    for (var i = _particles.length - 1; i >= 0; i--) {
+      final p = _particles[i];
+      p.pos += p.vel * dt;
+      p.vel *= 0.88;
+      p.life -= dt;
+      if (p.life <= 0) _particles.removeAt(i);
+    }
 
     // Steer toward the target heading with a capped turn rate.
     double diff = _target - _angle;
@@ -1212,7 +1230,11 @@ class _SnakeGameState extends State<SnakeGame>
     for (var i = _orbs.length - 1; i >= 0; i--) {
       if ((_orbs[i].pos - _head).distance < 15) {
         final golden = _orbs[i].golden;
+        final orbPos = _orbs[i].pos;
+        final orbColor = _orbs[i].color;
         _orbs.removeAt(i);
+        _burst(orbPos, golden ? const Color(0xFFFFE066) : orbColor,
+            golden ? 16 : 9, golden ? 220 : 150);
         // Rapid, back-to-back eating builds a combo that fades if you pause.
         _combo = _comboT > 0 ? _combo + 1 : 1;
         _comboT = 1.4;
@@ -1270,6 +1292,7 @@ class _SnakeGameState extends State<SnakeGame>
         for (var i = 0; i < w.path.length; i += 6) {
           _orbs.add(_Orb(w.path[i], const Color(0xFF06D6A0), 4.5));
         }
+        _burst(w.head, const Color(0xFF06D6A0), 22, 260);
         _ai.removeAt(wi);
         _ai.add(_spawnAiWorm());
         _score += 3;
@@ -1341,6 +1364,15 @@ class _SnakeGameState extends State<SnakeGame>
     }
   }
 
+  void _burst(Offset pos, Color color, int n, double speed) {
+    for (var i = 0; i < n; i++) {
+      final a = _rnd.nextDouble() * math.pi * 2;
+      final sp = speed * (0.4 + _rnd.nextDouble());
+      _particles.add(_Particle(pos, Offset(math.cos(a), math.sin(a)) * sp,
+          color, 0.4 + _rnd.nextDouble() * 0.4));
+    }
+  }
+
   void _flash(String s) {
     _banner = s;
     _bannerT = 1.1;
@@ -1359,7 +1391,10 @@ class _SnakeGameState extends State<SnakeGame>
     });
   }
 
-  void _gameOver() => _finish(GameStatus.over);
+  void _gameOver() {
+    _burst(_head, const Color(0xFFFF4D6D), 26, 300);
+    _finish(GameStatus.over);
+  }
 
   void _steerTo(Offset local) {
     final v = local - Offset(_view.width / 2, _view.height / 2);
@@ -1404,7 +1439,7 @@ class _SnakeGameState extends State<SnakeGame>
                 onPanUpdate: (d) => _steerTo(d.localPosition),
                 child: CustomPaint(
                   painter: _SnakePainter(_head, _angle, _path, _length, _seg,
-                      _orbs, _ai, _arenaR, _t),
+                      _orbs, _ai, _arenaR, _t, _particles, _boost),
                   size: Size.infinite,
                 ),
               ),
@@ -1522,7 +1557,7 @@ class _SnakeLeaderboard extends StatelessWidget {
 
 class _SnakePainter extends CustomPainter {
   _SnakePainter(this.head, this.angle, this.path, this.length, this.seg,
-      this.orbs, this.ai, this.arenaR, this.t);
+      this.orbs, this.ai, this.arenaR, this.t, this.particles, this.boost);
   final Offset head;
   final double angle;
   final List<Offset> path;
@@ -1532,6 +1567,8 @@ class _SnakePainter extends CustomPainter {
   final List<_AiWorm> ai;
   final double arenaR;
   final double t;
+  final List<_Particle> particles;
+  final bool boost;
 
   List<Offset> _resample(List<Offset> pts, double spacing, int count) {
     final out = <Offset>[];
@@ -1613,6 +1650,24 @@ class _SnakePainter extends CustomPainter {
       }
     }
 
+    // Eat / death particle bursts — the juice.
+    for (final p in particles) {
+      final s = toScreen(p.pos);
+      if (s.dx < -16 ||
+          s.dx > size.width + 16 ||
+          s.dy < -16 ||
+          s.dy > size.height + 16) {
+        continue;
+      }
+      final k = (p.life / p.maxLife).clamp(0.0, 1.0);
+      canvas.drawCircle(
+          s,
+          2 + 3.5 * k,
+          Paint()
+            ..color = p.color.withOpacity(k)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3));
+    }
+
     // Friendly AI worms.
     for (final w in ai) {
       final body = _resample(w.path, seg, w.length);
@@ -1641,6 +1696,14 @@ class _SnakePainter extends CustomPainter {
     }
     // Head + eyes looking forward.
     final hs = toScreen(head);
+    if (boost) {
+      canvas.drawCircle(
+          hs,
+          26,
+          Paint()
+            ..color = const Color(0xFF9EE7FF).withOpacity(0.5)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12));
+    }
     canvas.drawCircle(hs, 12, Paint()..color = const Color(0xFFFFF3C4));
     final perp = Offset(-math.sin(angle), math.cos(angle));
     final fwd = Offset(math.cos(angle), math.sin(angle));
