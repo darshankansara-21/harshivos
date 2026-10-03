@@ -559,17 +559,23 @@ class NumberSplashGame extends StatelessWidget {
         accent: const Color(0xFF43E97B),
         background: const <Color>[Color(0xFF174D3A), Color(0xFF092A28)],
         buildRound: (round, random) {
-          final left = 1 + random.nextInt(5 + round ~/ 3);
-          final right = 1 + random.nextInt(5 + round ~/ 3);
-          final sum = left + right;
-          final values = <int>{sum};
+          final hi = 5 + round ~/ 3;
+          final a = 1 + random.nextInt(hi);
+          final b = 1 + random.nextInt(hi);
+          // Subtraction starts appearing once the child is warmed up.
+          final sub = round >= 3 && random.nextBool();
+          final left = sub ? math.max(a, b) : a;
+          final right = sub ? math.min(a, b) : b;
+          final answer = sub ? left - right : left + right;
+          final op = sub ? '−' : '+';
+          final values = <int>{answer};
           while (values.length < 4) {
-            values.add(math.max(1, sum + random.nextInt(7) - 3));
+            values.add(math.max(0, answer + random.nextInt(7) - 3));
           }
           final options = values.map((value) => '$value').toList()
             ..shuffle(random);
           return _ChoiceRound(
-              '$left + $right = ?', options, options.indexOf('$sum'));
+              '$left $op $right = ?', options, options.indexOf('$answer'));
         },
       );
 }
