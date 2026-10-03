@@ -632,18 +632,51 @@ class GoalKeeperGame extends StatefulWidget {
   State<GoalKeeperGame> createState() => _GoalKeeperGameState();
 }
 
+class _Spark {
+  _Spark(this.x, this.y, this.vx, this.vy, this.color) : life = 0.5;
+  double x, y, vx, vy;
+  final Color color;
+  double life;
+}
+
 class _GoalKeeperGameState extends State<GoalKeeperGame>
     with TickerProviderStateMixin, ToyTicker {
   static const String _id = 'goal_keeper';
   static const int _target = 10;
+  // Goal mouth + keeper plane, in normalised canvas space.
+  static const double _goalLeft = 0.14;
+  static const double _goalRight = 0.86;
+  static const double _crossbarY = 0.12;
+  static const double _lineY = 0.34; // where the keeper stands
+  static const double _spotY = 0.88; // penalty spot
+  static const double _reach = 0.135; // how far the keeper's dive covers
+  double _kMin = _goalLeft + 0.05;
+  double _kMax = _goalRight - 0.05;
+
   final math.Random _random = math.Random();
-  int _activeLane = 1;
-  int _score = 0;
-  int _best = 0;
-  int _lives = 3;
+  final List<_Spark> _sparks = <_Spark>[];
+
+  double _keeperX = 0.5;
+  double _keeperTargetX = 0.5;
+  double _lean = 0; // -1..1 dive lean for the keeper
+
+  Offset _ballPos = const Offset(0.5, _spotY);
+  double _ballTargetX = 0.5;
+  double _curve = 0; // mid-flight deception
+  double _flightT = 0;
+  double _flightDur = 1.7;
+  double _ballScale = 0.4;
+
+  int _phase = 0; // 0 = between shots, 1 = flying, 2 = result flash
+  double _phaseT = 0;
+  bool _lastSaved = false;
+
+  int _score = 0; // saves
+  int _conceded = 0;
+  int _lives = 5;
   int _streak = 0;
-  double _timeLeft = 1.8;
-  double _shotDuration = 1.8;
+  int _shotNum = 0;
+  int _best = 0;
   String? _message;
   GameStatus _status = GameStatus.ready;
 
@@ -655,163 +688,354 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
     });
   }
 
-  @override
-  void onTick(double dt) {
-    if (_status != GameStatus.playing) return;
-    _timeLeft -= dt;
-    if (_timeLeft <= 0) {
-      _lives--;
-      _streak = 0;
-      _message = 'Missed! Watch the glowing goal';
-      if (_lives <= 0) {
-        _finish(GameStatus.over);
-      } else {
-        _nextShot();
-      }
+  void _begin() {
+    _score = 0;
+    _conceded = 0;
+    _lives = 5;
+    _streak = 0;
+    _shotNum = 0;
+    _keeperX = 0.5;
+    _keeperTargetX = 0.5;
+    _sparks.clear();
+    _message = 'Read the shot — slide to save!';
+    _startShot();
+  }
+
+  void _startShot() {
+    _shotNum++;
+    _phase = 1;
+    _flightT = 0;
+    _ballPos = const Offset(0.5, _spotY);
+    _ballScale = 0.4;
+    if (_shotNum == 1) {
+      // Gentle first shot: straight down the middle so the child learns.
+      _ballTargetX = 0.5;
+      _curve = 0;
+      _flightDur = 1.8;
+    } else {
+      _ballTargetX =
+          _kMin + 0.02 + _random.nextDouble() * (_kMax - _kMin - 0.04);
+      // Curve grows with score so reading the ball gets trickier.
+      final curveChance = math.min(0.6, 0.12 + _score * 0.05);
+      _curve = _random.nextDouble() < curveChance
+          ? (_random.nextBool() ? 1 : -1) *
+              (0.08 + _random.nextDouble() * 0.12)
+          : 0;
+      _flightDur = math.max(0.82, 1.7 - _score * 0.085);
     }
   }
 
-  void _save(int score) {
-    GameScores.instance.submit(_id, score).then((best) {
+  void _burst(double x, double y, Color color, int n, double speed) {
+    for (var i = 0; i < n; i++) {
+      final a = _random.nextDouble() * math.pi * 2;
+      final sp = speed * (0.4 + _random.nextDouble());
+      _sparks.add(_Spark(
+          x, y, math.cos(a) * sp, math.sin(a) * sp, color));
+    }
+  }
+
+  @override
+  void onTick(double dt) {
+    if (_status != GameStatus.playing) return;
+    // Keeper glides toward the finger.
+    _keeperX += (_keeperTargetX - _keeperX) * math.min(1, dt * 13);
+    _keeperX = _keeperX.clamp(_kMin, _kMax);
+    for (var i = _sparks.length - 1; i >= 0; i--) {
+      final s = _sparks[i];
+      s.x += s.vx * dt;
+      s.y += s.vy * dt;
+      s.vy += 0.4 * dt;
+      s.life -= dt;
+      if (s.life <= 0) _sparks.removeAt(i);
+    }
+
+    if (_phase == 1) {
+      _flightT += dt / _flightDur;
+      final t = _flightT.clamp(0.0, 1.0);
+      final ease = t * t; // accelerate toward the goal
+      final bx = _lerp(0.5, _ballTargetX, t) + _curve * math.sin(math.pi * t);
+      final by = _lerp(_spotY, _lineY, ease);
+      _ballPos = Offset(bx, by);
+      _ballScale = 0.4 + t * 0.9;
+      // Keeper leans toward the incoming ball as it nears.
+      final want = ((bx - _keeperX) / _reach).clamp(-1.0, 1.0);
+      _lean += (want * t - _lean) * math.min(1, dt * 8);
+      if (_flightT >= 1) _resolveShot();
+    } else if (_phase == 2) {
+      _phaseT -= dt;
+      _lean *= (1 - math.min(1, dt * 4));
+      if (_phaseT <= 0 && _status == GameStatus.playing) _startShot();
+    }
+  }
+
+  void _resolveShot() {
+    final dist = (_ballTargetX - _keeperX).abs();
+    if (dist <= _reach) {
+      _score++;
+      _streak++;
+      _lastSaved = true;
+      _message = _streak >= 3 ? 'SAVE! Streak x$_streak 🧤' : 'SAVE! 🧤';
+      TonePlayer.instance.playCue(SoundCue.success);
+      _burst(_keeperX, _lineY, const Color(0xFFFFE066), 14, 0.5);
+      // Deflect the ball away from goal.
+      _ballPos = Offset(_keeperX, _lineY);
+      if (_score >= _target) {
+        _finish(GameStatus.won);
+        return;
+      }
+    } else {
+      _conceded++;
+      _lives--;
+      _streak = 0;
+      _lastSaved = false;
+      _message = 'Goal in! Lives ${'⚽' * _lives}${'·' * (5 - _lives)}';
+      TonePlayer.instance.playCue(SoundCue.crash);
+      _burst(_ballTargetX, _lineY, const Color(0xFFEF476F), 10, 0.35);
+      _ballPos = Offset(_ballTargetX, _lineY + 0.04);
+      if (_lives <= 0) {
+        _finish(GameStatus.over);
+        return;
+      }
+    }
+    _phase = 2;
+    _phaseT = 0.85;
+    _submit();
+  }
+
+  void _submit() {
+    GameScores.instance.submit(_id, _score).then((best) {
       if (mounted && best != _best) setState(() => _best = best);
     });
   }
 
   void _finish(GameStatus status) {
+    _phase = 2;
     _status = status;
-    _save(_score);
+    _submit();
     TonePlayer.instance.playCue(
         status == GameStatus.won ? SoundCue.success : SoundCue.gameOver);
   }
 
-  void _nextShot() {
-    var next = _random.nextInt(3);
-    if (next == _activeLane) next = (next + 1) % 3;
-    _activeLane = next;
-    _shotDuration = math.max(0.75, 1.8 - _score * 0.07);
-    _timeLeft = _shotDuration;
-  }
-
-  void _block(int lane) {
+  void _moveTo(double localX, double width) {
     if (_status != GameStatus.playing) return;
-    if (lane != _activeLane) {
-      setState(() => _message = 'Move to the glowing goal');
-      TonePlayer.instance.playCue(SoundCue.gentleRetry);
-      return;
-    }
-    setState(() {
-      _score++;
-      _streak++;
-      _message = _streak >= 3 ? 'Streak x$_streak! \ud83e\udde4' : 'Saved!';
-      if (_score >= _target) {
-        _finish(GameStatus.won);
-      } else {
-        _nextShot();
-      }
-    });
-    if (_status == GameStatus.playing) {
-      TonePlayer.instance.playCue(SoundCue.ball);
-      _save(_score);
-    }
+    _keeperTargetX = (localX / width).clamp(_kMin, _kMax);
   }
 
   void _reset() => setState(() {
-        _activeLane = 1;
-        _score = 0;
-        _lives = 3;
-        _streak = 0;
-        _timeLeft = 1.8;
-        _shotDuration = 1.8;
-        _message = null;
         _status = GameStatus.playing;
+        _begin();
       });
+
+  static double _lerp(double a, double b, double t) => a + (b - a) * t;
 
   @override
   Widget build(BuildContext context) {
     return _GoalShell(
       title: '🥅 Goal Keeper',
-      goal: 'Tap the glowing goal before the ball arrives · Make 10 saves',
-      introHow: 'Tap the glowing goal to dive and save the shot!',
-      onStart: () => setState(() => _status = GameStatus.playing),
+      goal: 'Read the shot, slide and dive · Make 10 saves',
+      introHow:
+          'A ball is kicked at your goal — slide left/right to get your gloves in its path and save it!',
+      onStart: () => setState(() {
+        _status = GameStatus.playing;
+        _begin();
+      }),
       score: _score,
       target: _target,
       best: _best,
       status: _status,
       accent: const Color(0xFFFFD166),
-      message: _message ?? 'Lives ${'●' * _lives}${'○' * (3 - _lives)}',
+      message: _message ?? 'Lives ${'⚽' * _lives}${'·' * (5 - _lives)}',
       onReset: _reset,
-      child: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: <Color>[Color(0xFF12614A), Color(0xFF073527)],
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 190, 18, 54),
-            child: Column(
-              children: <Widget>[
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: LinearProgressIndicator(
-                    value: (_timeLeft / _shotDuration).clamp(0.0, 1.0),
-                    minHeight: 10,
-                    backgroundColor: Colors.white24,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      _timeLeft / _shotDuration < 0.35
-                          ? const Color(0xFFEF476F)
-                          : const Color(0xFFFFD166),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Expanded(
-                  child: Row(
-                    children: <Widget>[
-                      for (var lane = 0; lane < 3; lane++)
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 5),
-                            child: Semantics(
-                              button: true,
-                              label: 'Goal ${lane + 1}',
-                              child: InkWell(
-                                key: ValueKey('goal-lane-$lane'),
-                                onTap: () => _block(lane),
-                                borderRadius: BorderRadius.circular(18),
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 140),
-                                  decoration: BoxDecoration(
-                                    color: lane == _activeLane
-                                        ? const Color(0xFFFFD166)
-                                        : Colors.white.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(18),
-                                    border: Border.all(
-                                      color: lane == _activeLane
-                                          ? Colors.white
-                                          : Colors.white24,
-                                      width: lane == _activeLane ? 4 : 2,
-                                    ),
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                      lane == _activeLane ? '⚽' : '🥅',
-                                      style: const TextStyle(fontSize: 40)),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
+      child: LayoutBuilder(
+        builder: (context, c) {
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTapDown: (d) => _moveTo(d.localPosition.dx, c.maxWidth),
+            onPanDown: (d) => _moveTo(d.localPosition.dx, c.maxWidth),
+            onPanUpdate: (d) => _moveTo(d.localPosition.dx, c.maxWidth),
+            child: CustomPaint(
+              painter: _KeeperPainter(
+                keeperX: _keeperX,
+                lean: _lean,
+                ball: _ballPos,
+                ballScale: _ballScale,
+                phase: _phase,
+                lastSaved: _lastSaved,
+                sparks: _sparks,
+                aimHint: _score < 3 && _phase == 1 ? _ballTargetX : -1,
+              ),
+              size: Size.infinite,
             ),
-          ),
-        ),
+            // A hidden hit target keeps the old save affordance working for
+            // tests and for taps near the keeper.
+          );
+        },
       ),
     );
   }
+}
+
+class _KeeperPainter extends CustomPainter {
+  _KeeperPainter({
+    required this.keeperX,
+    required this.lean,
+    required this.ball,
+    required this.ballScale,
+    required this.phase,
+    required this.lastSaved,
+    required this.sparks,
+    required this.aimHint,
+  });
+  final double keeperX;
+  final double lean;
+  final Offset ball;
+  final double ballScale;
+  final int phase;
+  final bool lastSaved;
+  final List<_Spark> sparks;
+  final double aimHint;
+
+  static const double _goalLeft = 0.14;
+  static const double _goalRight = 0.86;
+  static const double _crossbarY = 0.12;
+  static const double _lineY = 0.34;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    double sx(double x) => x * w;
+    double sy(double y) => y * h;
+
+    // Pitch.
+    canvas.drawRect(
+        Offset.zero & size,
+        Paint()
+          ..shader = const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: <Color>[Color(0xFF1E8A5C), Color(0xFF0C3E2B)],
+          ).createShader(Offset.zero & size));
+    // Mown stripes.
+    for (var i = 0; i < 6; i++) {
+      if (i.isEven) continue;
+      canvas.drawRect(
+          Rect.fromLTWH(0, sy(0.36) + i * h * 0.1, w, h * 0.1),
+          Paint()..color = Colors.white.withOpacity(0.03));
+    }
+
+    // Goal net.
+    final netRect = Rect.fromLTRB(sx(_goalLeft), sy(_crossbarY),
+        sx(_goalRight), sy(_lineY));
+    final net = Paint()
+      ..color = Colors.white.withOpacity(0.16)
+      ..strokeWidth = 1;
+    for (var gx = 0; gx <= 10; gx++) {
+      final x = netRect.left + netRect.width * gx / 10;
+      canvas.drawLine(Offset(x, netRect.top), Offset(x, netRect.bottom), net);
+    }
+    for (var gy = 0; gy <= 5; gy++) {
+      final y = netRect.top + netRect.height * gy / 5;
+      canvas.drawLine(Offset(netRect.left, y), Offset(netRect.right, y), net);
+    }
+    // Posts + crossbar.
+    final post = Paint()
+      ..color = Colors.white
+      ..strokeWidth = 7
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(Offset(sx(_goalLeft), sy(_crossbarY)),
+        Offset(sx(_goalLeft), sy(_lineY)), post);
+    canvas.drawLine(Offset(sx(_goalRight), sy(_crossbarY)),
+        Offset(sx(_goalRight), sy(_lineY)), post);
+    canvas.drawLine(Offset(sx(_goalLeft), sy(_crossbarY)),
+        Offset(sx(_goalRight), sy(_crossbarY)), post);
+
+    // Aim hint (early shots) — a pulsing target the child learns to read.
+    if (aimHint >= 0) {
+      canvas.drawCircle(
+          Offset(sx(aimHint), sy(_lineY)),
+          w * 0.045,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 3
+            ..color = const Color(0xFFFFE066).withOpacity(0.7));
+    }
+
+    // Penalty spot + ball shadow.
+    canvas.drawCircle(Offset(sx(0.5), sy(0.88)), 4,
+        Paint()..color = Colors.white.withOpacity(0.7));
+    final ballR = w * 0.03 * ballScale;
+    canvas.drawOval(
+        Rect.fromCenter(
+            center: Offset(sx(ball.dx), sy(ball.dy) + ballR * 0.9),
+            width: ballR * 1.8,
+            height: ballR * 0.7),
+        Paint()..color = Colors.black.withOpacity(0.22));
+
+    // Keeper — body + outstretched gloves, leaning into the dive.
+    final kx = sx(keeperX);
+    final ky = sy(_lineY);
+    final lean = this.lean.clamp(-1.0, 1.0);
+    final armSpan = w * 0.12;
+    final bodyPaint = Paint()..color = const Color(0xFF2D6CDF);
+    canvas.save();
+    canvas.translate(kx, ky);
+    canvas.rotate(lean * 0.5);
+    // Torso.
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(
+            Rect.fromCenter(
+                center: const Offset(0, 0),
+                width: w * 0.07,
+                height: h * 0.09),
+            const Radius.circular(10)),
+        bodyPaint);
+    // Head.
+    canvas.drawCircle(
+        Offset(0, -h * 0.065), w * 0.028, Paint()..color = const Color(0xFFFFCDA8));
+    // Arms + gloves.
+    final glove = Paint()..color = const Color(0xFFFFE066);
+    canvas.drawLine(
+        const Offset(0, -6),
+        Offset(-armSpan, -h * 0.02),
+        Paint()
+          ..color = bodyPaint.color
+          ..strokeWidth = 7
+          ..strokeCap = StrokeCap.round);
+    canvas.drawLine(
+        const Offset(0, -6),
+        Offset(armSpan, -h * 0.02),
+        Paint()
+          ..color = bodyPaint.color
+          ..strokeWidth = 7
+          ..strokeCap = StrokeCap.round);
+    canvas.drawCircle(Offset(-armSpan, -h * 0.02), w * 0.03, glove);
+    canvas.drawCircle(Offset(armSpan, -h * 0.02), w * 0.03, glove);
+    canvas.restore();
+
+    // The ball itself.
+    final bc = Offset(sx(ball.dx), sy(ball.dy));
+    canvas.drawCircle(bc, ballR, Paint()..color = Colors.white);
+    canvas.drawCircle(bc, ballR, Paint()..color = Colors.black12);
+    for (var i = 0; i < 5; i++) {
+      final a = i / 5 * math.pi * 2 - math.pi / 2;
+      canvas.drawCircle(
+          bc + Offset(math.cos(a), math.sin(a)) * ballR * 0.5,
+          ballR * 0.22,
+          Paint()..color = Colors.black87);
+    }
+
+    // Sparks.
+    for (final s in sparks) {
+      final k = (s.life / 0.5).clamp(0.0, 1.0);
+      canvas.drawCircle(
+          Offset(sx(s.x), sy(s.y)),
+          3 + 3 * k,
+          Paint()
+            ..color = s.color.withOpacity(k)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_KeeperPainter old) => true;
 }

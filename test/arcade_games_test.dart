@@ -248,13 +248,17 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Goal Keeper exposes its win target and blocks a shot', (tester) async {
+  testWidgets('Goal Keeper reads a shot and makes the opening save', (tester) async {
     await _pump(tester, const GoalKeeperGame());
     await tester.tap(find.widgetWithText(FilledButton, 'Play'));
-    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 80));
     expect(find.textContaining('Make 10 saves'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('goal-lane-1')));
-    await tester.pump(const Duration(milliseconds: 100));
+    // The opening shot is straight down the middle and the keeper starts
+    // centred, so letting it fly in is a guaranteed save. Pump in small
+    // steps because the game loop skips large frame deltas.
+    for (var i = 0; i < 32; i++) {
+      await tester.pump(const Duration(milliseconds: 80));
+    }
     expect(find.textContaining('1 / 10'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
