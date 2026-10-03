@@ -330,6 +330,7 @@ class _FruitCatchGameState extends State<FruitCatchGame>
   static const int _target = 18;
   final math.Random _rnd = math.Random();
   final List<_Faller> _items = <_Faller>[];
+  final List<_Particle> _splash = <_Particle>[];
   double _basketX = 0.5;
   double _spawnIn = 0.6;
   int _score = 0;
@@ -369,6 +370,13 @@ class _FruitCatchGameState extends State<FruitCatchGame>
       _bannerT -= dt;
       if (_bannerT <= 0) _banner = null;
     }
+    for (var i = _splash.length - 1; i >= 0; i--) {
+      final p = _splash[i];
+      p.pos += p.vel * dt;
+      p.vel = Offset(p.vel.dx * 0.9, p.vel.dy * 0.9 + 0.8 * dt);
+      p.life -= dt;
+      if (p.life <= 0) _splash.removeAt(i);
+    }
     _spawnIn -= dt;
     if (_spawnIn <= 0) {
       _spawnIn = math.max(0.32, 0.7 - _score * 0.01) *
@@ -401,6 +409,9 @@ class _FruitCatchGameState extends State<FruitCatchGame>
     _combo++;
     final gain = (f.kind == 1 ? 3 : 1) + (_combo >= 3 ? 1 : 0);
     _score += gain;
+    _splashAt(f.x, f.y,
+        f.kind == 1 ? const Color(0xFFFFD166) : const Color(0xFF43E97B),
+        f.kind == 1 ? 14 : 9);
     TonePlayer.instance.playCue(SoundCue.fruit);
     emit(ExperienceEvent.bubblePopped);
     if (f.kind == 1) {
@@ -414,6 +425,16 @@ class _FruitCatchGameState extends State<FruitCatchGame>
   void _flash(String s) {
     _banner = s;
     _bannerT = 1.1;
+  }
+
+  void _splashAt(double x, double y, Color color, int n) {
+    for (var i = 0; i < n; i++) {
+      final a = _rnd.nextDouble() * math.pi * 2;
+      final sp = 0.3 + _rnd.nextDouble() * 0.5;
+      _splash.add(_Particle(Offset(x, y),
+          Offset(math.cos(a) * sp, math.sin(a) * sp), color,
+          0.4 + _rnd.nextDouble() * 0.3));
+    }
   }
 
   void _end(GameStatus s) {
@@ -433,6 +454,7 @@ class _FruitCatchGameState extends State<FruitCatchGame>
   void _reset() {
     setState(() {
       _items.clear();
+      _splash.clear();
       _score = 0;
       _combo = 0;
       _banner = null;
@@ -482,6 +504,9 @@ class _FruitCatchGameState extends State<FruitCatchGame>
                       child: Text(f.emoji,
                           style: const TextStyle(fontSize: 40)),
                     ),
+                  Positioned.fill(
+                    child: CustomPaint(painter: _SplashPainter(_splash)),
+                  ),
                   Positioned(
                     left: _basketX * w - 40,
                     top: 0.85 * h,
@@ -528,6 +553,7 @@ class _BalloonPopGameState extends State<BalloonPopGame>
   static const int _target = 20;
   final math.Random _rnd = math.Random();
   final List<_Balloon> _items = <_Balloon>[];
+  final List<_Particle> _pop = <_Particle>[];
   double _spawnIn = 0.4;
   double _t = 0;
   int _score = 0;
@@ -552,6 +578,13 @@ class _BalloonPopGameState extends State<BalloonPopGame>
     if (_bannerT > 0) {
       _bannerT -= dt;
       if (_bannerT <= 0) _banner = null;
+    }
+    for (var i = _pop.length - 1; i >= 0; i--) {
+      final p = _pop[i];
+      p.pos += p.vel * dt;
+      p.vel = Offset(p.vel.dx * 0.88, p.vel.dy * 0.88 + 0.5 * dt);
+      p.life -= dt;
+      if (p.life <= 0) _pop.removeAt(i);
     }
     _spawnIn -= dt;
     if (_spawnIn <= 0) {
@@ -592,14 +625,17 @@ class _BalloonPopGameState extends State<BalloonPopGame>
       final by = b.y * h;
       if ((px - bx).abs() < 52 && (py - by).abs() < 62) {
         _items.removeAt(i);
+        final vx = b.x + math.sin(_t * 1.5 + b.sway) * 0.03;
         if (b.kind == 2) {
           _combo = 0;
+          _popBurst(vx, b.y, const Color(0xFF9AA0B5), 10);
           TonePlayer.instance.playCue(SoundCue.gentleRetry);
           _flash('Oops! Avoid bombs');
           return;
         }
         _combo++;
         _score += (b.kind == 1 ? 3 : 1) + (_combo >= 4 ? 1 : 0);
+        _popBurst(vx, b.y, b.color, b.kind == 1 ? 18 : 12);
         TonePlayer.instance.playCue(SoundCue.balloon);
         emit(ExperienceEvent.bubblePopped);
         if (b.kind == 1) {
@@ -618,6 +654,16 @@ class _BalloonPopGameState extends State<BalloonPopGame>
     _bannerT = 1.1;
   }
 
+  void _popBurst(double x, double y, Color color, int n) {
+    for (var i = 0; i < n; i++) {
+      final a = _rnd.nextDouble() * math.pi * 2;
+      final sp = 0.35 + _rnd.nextDouble() * 0.55;
+      _pop.add(_Particle(Offset(x, y),
+          Offset(math.cos(a) * sp, math.sin(a) * sp), color,
+          0.35 + _rnd.nextDouble() * 0.3));
+    }
+  }
+
   void _end(GameStatus s) {
     _status = s;
     emit(s == GameStatus.won
@@ -631,6 +677,7 @@ class _BalloonPopGameState extends State<BalloonPopGame>
   void _reset() {
     setState(() {
       _items.clear();
+      _pop.clear();
       _score = 0;
       _combo = 0;
       _banner = null;
@@ -678,6 +725,9 @@ class _BalloonPopGameState extends State<BalloonPopGame>
                       top: b.y * h - 32,
                       child: _BalloonShape(color: b.color, kind: b.kind),
                     ),
+                  Positioned.fill(
+                    child: CustomPaint(painter: _SplashPainter(_pop)),
+                  ),
                 ],
               ),
             ),
@@ -716,6 +766,25 @@ class _BalloonShape extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Shared normalized-space particle overlay for the catch/pop mini games.
+class _SplashPainter extends CustomPainter {
+  _SplashPainter(this.parts);
+  final List<_Particle> parts;
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (final p in parts) {
+      final k = (p.life / p.maxLife).clamp(0.0, 1.0);
+      canvas.drawCircle(
+          Offset(p.pos.dx * size.width, p.pos.dy * size.height),
+          3 + 4 * k,
+          Paint()..color = p.color.withOpacity(k));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_SplashPainter oldDelegate) => true;
 }
 
 
