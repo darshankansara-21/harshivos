@@ -589,7 +589,9 @@ class PathFinderGame extends StatefulWidget {
 
 class _PathFinderGameState extends State<PathFinderGame> {
   static const String _id = 'path_finder';
-  static const List<int> _path = <int>[20, 15, 16, 11, 6, 7, 8, 3, 4];
+  final math.Random _rnd = math.Random();
+  List<int> _path = <int>[];
+  int _level = 0;
   int _step = 0;
   int _best = 0;
   String? _message;
@@ -598,9 +600,44 @@ class _PathFinderGameState extends State<PathFinderGame> {
   @override
   void initState() {
     super.initState();
+    _path = _makePath(_pathLenFor(_level));
     GameScores.instance.ensureLoaded().then((_) {
       if (mounted) setState(() => _best = GameScores.instance.best(_id));
     });
+  }
+
+  int _pathLenFor(int level) => math.min(16, 9 + level);
+
+  // Self-avoiding random walk on the 5x5 grid (orthogonal steps only), so
+  // every game is a brand-new maze instead of one memorised fixed route.
+  List<int> _makePath(int length) {
+    while (true) {
+      final visited = <int>{};
+      final path = <int>[_rnd.nextInt(25)];
+      visited.add(path.first);
+      var stuck = false;
+      while (path.length < length) {
+        final cur = path.last;
+        final r = cur ~/ 5, c = cur % 5;
+        final next = <int>[];
+        for (final d in const <List<int>>[
+          [-1, 0], [1, 0], [0, -1], [0, 1]
+        ]) {
+          final nr = r + d[0], nc = c + d[1];
+          if (nr < 0 || nr >= 5 || nc < 0 || nc >= 5) continue;
+          final cell = nr * 5 + nc;
+          if (!visited.contains(cell)) next.add(cell);
+        }
+        if (next.isEmpty) {
+          stuck = true;
+          break;
+        }
+        final pick = next[_rnd.nextInt(next.length)];
+        path.add(pick);
+        visited.add(pick);
+      }
+      if (!stuck) return path;
+    }
   }
 
   void _tap(int cell) {
@@ -613,7 +650,10 @@ class _PathFinderGameState extends State<PathFinderGame> {
     setState(() {
       _step++;
       _message = _step == _path.length ? 'Treasure found!' : 'Keep going!';
-      if (_step == _path.length) _status = GameStatus.won;
+      if (_step == _path.length) {
+        _status = GameStatus.won;
+        _level++;
+      }
     });
     TonePlayer.instance.playCue(
         _status == GameStatus.won ? SoundCue.success : SoundCue.correct);
@@ -623,6 +663,7 @@ class _PathFinderGameState extends State<PathFinderGame> {
   }
 
   void _reset() => setState(() {
+        _path = _makePath(_pathLenFor(_level));
         _step = 0;
         _message = null;
         _status = GameStatus.playing;

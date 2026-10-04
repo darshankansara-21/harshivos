@@ -793,7 +793,9 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Play'));
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Follow the glowing path'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('path-cell-20')));
+    // The maze path is randomised every game, so find the flag (the start
+    // of today's path) rather than a hardcoded cell index.
+    await tester.tap(find.text('🚩'));
     await tester.pump(const Duration(milliseconds: 200));
     expect(find.textContaining('1 / 9'), findsOneWidget);
     expect(tester.takeException(), isNull);
