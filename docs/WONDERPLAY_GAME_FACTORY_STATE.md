@@ -22,7 +22,7 @@ QUALITY_D:         (none recorded; no rebuild required in this batch)
 KNOWN_DEFECTS:     none open from code or regression testing. Full-catalog audit, audio QA, and device QA remain; real-child testing flagged the 14 high-risk games listed above.
 DEVICE_QA_STATUS:  BLOCKED (Pixel 6a off USB; needs physical replug). Record a device-QA checklist; do not let this block code/quality work.
 AUDIO_QA_STATUS:   NOT_STARTED (Piano = benchmark; verify every game has intentional audio; direct Hari/Pico taps silent).
-LAST_COMMIT:       9885c21
+LAST_COMMIT:       1a2c705
 NEXT_ACTION:       Keep the quality pass moving through the remaining Play catalog: review the next in-progress arcade title, tune one more actual gameplay loop, then rerun tests/analyze and update this state with the fresh commit hash.
 ```
 
