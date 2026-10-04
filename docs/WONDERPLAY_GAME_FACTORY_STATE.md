@@ -10,10 +10,10 @@
 ## FACTORY STATUS
 
 ```
-CURRENT_PHASE:     4 — QUALITY AUDIT & TRANSFORM (catalog expansion FROZEN)
-CURRENT_GAME:      stack (B-tier arcade pass: stronger precision rewards, clearer streak feedback, and a more pronounced level ramp to make the stacking loop feel like a real challenge rather than a tap-to-guess mini-game)
-CURRENT_BATCH:     polish-batch-4 (B-game stack pass; live level progression + precision feedback)
-COMPLETED_WORK:    78 Play games + 20 sensory toys built (rounds 1-4); arcade_games.dart refactored into per-game part files; self-driving factory infra built (CLAUDE.md + scripts/wonderplay_factory.ps1, Copilot CLI headless verified); high-risk quality pass recorded for bowling, racing, snake, pinball, piano_tiles, star_tap, whack, brick_break, space_dodge, sky_hop, memory_flip, stack, goal_keeper, fruit_catch; sky_hop B-pass polished with clearer coin streak feedback, whack was deepened with 3-life pressure, memory_flip now adds lives plus a more decisive fail-state loop, and stack now rewards precise placement with a stronger level ramp and clearer live pressure cues.
+CURRENT_PHASE:     4 ? QUALITY AUDIT & TRANSFORM (catalog expansion FROZEN)
+CURRENT_GAME:      brick_break (B-tier arcade pass: multi-hit brick pressure, combo scoring, and stronger level pacing to turn the loop from a simple bounce game into a real arcade challenge)
+CURRENT_BATCH:     polish-batch-4 (B-game brick_break pass; multi-hit brick pacing, combo pressure, and clearer fail-state feedback)
+COMPLETED_WORK:    78 Play games + 20 sensory toys built (rounds 1-4); arcade_games.dart refactored into per-game part files; self-driving factory infra built (CLAUDE.md + scripts/wonderplay_factory.ps1, Copilot CLI headless verified); high-risk quality pass recorded for bowling, racing, snake, pinball, piano_tiles, star_tap, whack, brick_break, space_dodge, sky_hop, memory_flip, stack, goal_keeper, fruit_catch; sky_hop B-pass polished with clearer coin streak feedback, whack was deepened with 3-life pressure, memory_flip adds lives plus a more decisive fail-state loop, stack rewards precise placement with a stronger level ramp, and brick_break now adds multi-hit brick pacing plus combo pressure for a more decisive run.
 AUDITED_GAMES:     14 high-risk games audited and classified in this batch (all prior war-room transforms preserved; no fresh C/D entries after equivalent gameplay review).
 QUALITY_A:         bowling, racing, snake, pinball, goal_keeper, star_tap, fruit_catch, piano_tiles
 QUALITY_B:         whack, sky_hop, brick_break, space_dodge, memory_flip, stack
@@ -23,7 +23,7 @@ KNOWN_DEFECTS:     none open. Real-child testing flagged these as weak/high-risk
 DEVICE_QA_STATUS:  BLOCKED (Pixel 6a off USB; needs physical replug). Record a device-QA checklist; do not let this block code/quality work.
 AUDIO_QA_STATUS:   NOT_STARTED (Piano = benchmark; verify every game has intentional audio; direct Hari/Pico taps silent).
 LAST_COMMIT:       72c844a330775fd08dbb4b9a7331a495bf93be50
-NEXT_ACTION:       Continue the B-game quality pass with the next remaining weak arcade loop (brick_break or space_dodge), rerun flutter test --no-pub + flutter analyze --no-pub, and update the state block with the verified post-pass QA and any remaining device findings.
+NEXT_ACTION:       Continue the B-game quality pass with the remaining weak arcade loop (space_dodge), rerun flutter test --no-pub + flutter analyze --no-pub, and update the state block with the verified post-pass QA and any remaining device findings.
 FACTORY_COMPLETE:  FALSE
 ```
 

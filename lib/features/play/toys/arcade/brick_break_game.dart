@@ -19,7 +19,7 @@ class _BrickBreakGameState extends State<BrickBreakGame>
   static const int _cols = 6;
   final math.Random _rnd = math.Random();
   int _rowCount = 4;
-  List<bool> _bricks = List<bool>.filled(_cols * 4, true);
+  List<int> _bricks = List<int>.filled(_cols * 4, 1);
   final List<_Shard> _shards = <_Shard>[];
   double _paddleX = 0.5; // centre, 0..1
   double _bx = 0.5, _by = 0.6; // ball centre
@@ -30,6 +30,7 @@ class _BrickBreakGameState extends State<BrickBreakGame>
   int _best = 0;
   int _lives = 3;
   int _level = 1;
+  int _combo = 0;
   String? _banner;
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
@@ -46,7 +47,11 @@ class _BrickBreakGameState extends State<BrickBreakGame>
   }
 
   void _buildBricks() {
-    _bricks = List<bool>.filled(_cols * _rowCount, true);
+    _bricks = List<int>.generate(_cols * _rowCount, (index) {
+      final row = index ~/ _cols;
+      final isHeavy = _level > 2 && row >= _rowCount - 2 && (index + _level) % 4 == 0;
+      return isHeavy ? 2 : 1;
+    });
   }
 
   void _serveBall() {
@@ -64,6 +69,7 @@ class _BrickBreakGameState extends State<BrickBreakGame>
 
   void _loseLife() {
     _lives--;
+    _combo = 0;
     if (_lives <= 0) {
       _status = GameStatus.over;
       TonePlayer.instance.playCue(SoundCue.gameOver);
@@ -83,6 +89,7 @@ class _BrickBreakGameState extends State<BrickBreakGame>
 
   void _nextLevel() {
     _level++;
+    _combo = 0;
     _speedMul = math.min(1.8, _speedMul + 0.12);
     _rowCount = math.min(6, 3 + _level);
     _buildBricks();
@@ -135,7 +142,7 @@ class _BrickBreakGameState extends State<BrickBreakGame>
     }
     // Brick collisions.
     for (var i = 0; i < _bricks.length; i++) {
-      if (!_bricks[i]) continue;
+      if (_bricks[i] <= 0) continue;
       final r = i ~/ _cols;
       final c = i % _cols;
       const bw = 1.0 / _cols;
@@ -146,25 +153,35 @@ class _BrickBreakGameState extends State<BrickBreakGame>
           _bx < rect.right + _ballR &&
           _by > rect.top - _ballR &&
           _by < rect.bottom + _ballR) {
-        _bricks[i] = false;
-        _vy = -_vy;
-        _score++;
+        final remaining = _bricks[i] - 1;
+        _bricks[i] = remaining;
+        _combo = remaining <= 0 ? _combo + 1 : 0;
+        _vy = -_vy.abs();
+        _vx += (_bx - (c + 0.5) * bw) * 1.2;
+        _vx = _vx.clamp(-0.8, 0.8);
+        _score += remaining <= 0 ? 10 + _level * 3 + _combo : 4 + _level;
         final cx = c * (1.0 / _cols) + (1.0 / _cols) / 2;
         final cy = 0.1 + r * 0.05 + 0.021;
         final col =
             HSVColor.fromAHSV(1, (r * 55).toDouble(), 0.6, 0.95).toColor();
-        for (var s = 0; s < 7; s++) {
+        for (var s = 0; s < (remaining <= 0 ? 9 : 6); s++) {
           final a = _rnd.nextDouble() * math.pi * 2;
           final sp = 0.25 + _rnd.nextDouble() * 0.35;
           _shards.add(_Shard(
               cx, cy, math.cos(a) * sp, math.sin(a) * sp - 0.1, col));
         }
-        TonePlayer.instance.playCue(SoundCue.brick);
+        if (remaining <= 0) {
+          _flash(_combo > 1 ? 'Combo x$_combo!' : 'Nice hit!');
+          TonePlayer.instance.playCue(SoundCue.brick);
+        } else {
+          _flash('Cracked!');
+          TonePlayer.instance.playCue(SoundCue.ball);
+        }
         emit(ExperienceEvent.bubblePopped);
         GameScores.instance.submit(_id, _score).then((b) {
           if (mounted && b != _best) setState(() => _best = b);
         });
-        if (!_bricks.contains(true)) {
+        if (!_bricks.any((hp) => hp > 0)) {
           _nextLevel();
         }
         break;
@@ -188,6 +205,7 @@ class _BrickBreakGameState extends State<BrickBreakGame>
       _lives = 3;
       _speedMul = 1;
       _rowCount = 4;
+      _combo = 0;
       _buildBricks();
       _shards.clear();
       _paddleX = 0.5;
@@ -235,7 +253,7 @@ class _BrickBreakGameState extends State<BrickBreakGame>
 class _BrickPainter extends CustomPainter {
   _BrickPainter(this.bricks, this.cols, this.paddleX, this.paddleW, this.bx,
       this.by, this.ballR, this.started, this.shards);
-  final List<bool> bricks;
+  final List<int> bricks;
   final int cols;
   final double paddleX;
   final double paddleW;
@@ -259,19 +277,34 @@ class _BrickPainter extends CustomPainter {
           ).createShader(Offset.zero & size));
     final bw = 1.0 / cols;
     for (var i = 0; i < bricks.length; i++) {
-      if (!bricks[i]) continue;
+      if (bricks[i] <= 0) continue;
       final r = i ~/ cols;
       final c = i % cols;
       final left = (c * bw + 0.008) * w;
       final top = (0.1 + r * 0.05) * h;
+      final strength = bricks[i];
+      final brickW = (bw - 0.016) * w;
+      final brickH = 0.042 * h;
       canvas.drawRRect(
         RRect.fromRectAndRadius(
-            Rect.fromLTWH(left, top, (bw - 0.016) * w, 0.042 * h),
+            Rect.fromLTWH(left, top, brickW, brickH),
             const Radius.circular(4)),
         Paint()
-          ..color =
-              HSVColor.fromAHSV(1, (r * 55).toDouble(), 0.6, 0.95).toColor(),
+          ..color = (strength > 1
+                  ? const Color(0xFFFFC857)
+                  : HSVColor.fromAHSV(1, (r * 55).toDouble(), 0.6, 0.95).toColor())
+          ..strokeWidth = strength > 1 ? 2 : 1
+          ..style = PaintingStyle.fill,
       );
+      if (strength > 1) {
+        final hpPainter = TextPainter(
+          text: TextSpan(
+              text: '2',
+              style: TextStyle(color: Colors.black87, fontSize: 11, fontWeight: FontWeight.w800)),
+          textDirection: TextDirection.ltr,
+        )..layout();
+        hpPainter.paint(canvas, Offset(left + brickW / 2 - hpPainter.width / 2, top + brickH / 2 - hpPainter.height / 2));
+      }
     }
     // Paddle.
     canvas.drawRRect(
