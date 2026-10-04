@@ -77,6 +77,9 @@ class GameThumb extends StatelessWidget {
     'counting_baskets',
     'star_path',
     'feelings_match',
+    'penalty_dash',
+    'shape_sort_chute',
+    'balloon_bounce',
   };
 
   @override
@@ -235,6 +238,12 @@ class _ThumbPainter extends CustomPainter {
         _starPath(canvas, w, h);
       case 'feelings_match':
         _feelingsMatch(canvas, w, h);
+      case 'penalty_dash':
+        _penaltyDash(canvas, w, h);
+      case 'shape_sort_chute':
+        _shapeSortChute(canvas, w, h);
+      case 'balloon_bounce':
+        _balloonBounce(canvas, w, h);
     }
   }
 
@@ -1446,6 +1455,54 @@ class _ThumbPainter extends CustomPainter {
     canvas.drawArc(
         Rect.fromCircle(center: Offset(c.dx, c.dy + w * 0.02), radius: w * 0.1),
         0.2, math.pi - 0.4, false, smile);
+  }
+
+  void _penaltyDash(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF2E7D32), Color(0xFF1B5E20)]);
+    final post = Paint()
+      ..color = Colors.white
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(Offset(w * 0.2, h * 0.4), Offset(w * 0.2, h * 0.2), post);
+    canvas.drawLine(Offset(w * 0.8, h * 0.4), Offset(w * 0.8, h * 0.2), post);
+    canvas.drawLine(Offset(w * 0.2, h * 0.2), Offset(w * 0.8, h * 0.2), post);
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(
+            Rect.fromCenter(center: Offset(w * 0.5, h * 0.33), width: w * 0.12, height: h * 0.12),
+            const Radius.circular(6)),
+        Paint()..color = const Color(0xFFFFD166));
+    canvas.drawCircle(Offset(w * 0.35, h * 0.78), w * 0.05, Paint()..color = Colors.white);
+  }
+
+  void _shapeSortChute(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF17202B), Color(0xFF0D1218)]);
+    final blue = Paint()..color = const Color(0xFF4CC9F0);
+    canvas.drawCircle(Offset(w * 0.5, h * 0.3), w * 0.1, blue);
+    for (var i = 0; i < 3; i++) {
+      canvas.drawRRect(
+          RRect.fromRectAndRadius(
+              Rect.fromCenter(
+                  center: Offset(w * (i / 3 + 1 / 6), h * 0.78),
+                  width: w * 0.24,
+                  height: h * 0.24),
+              const Radius.circular(8)),
+          Paint()..color = Colors.white12);
+    }
+    canvas.drawCircle(Offset(w * 0.5, h * 0.78), w * 0.06, blue);
+  }
+
+  void _balloonBounce(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF8ECAE6), Color(0xFFBDE0FE)]);
+    canvas.drawRect(Rect.fromLTWH(0, h * 0.92, w, h * 0.08),
+        Paint()..color = const Color(0xFF52B788));
+    final c = Offset(w * 0.5, h * 0.4);
+    canvas.drawOval(
+        Rect.fromCenter(center: c, width: w * 0.3, height: h * 0.34),
+        Paint()..color = const Color(0xFFFF5DA2));
+    canvas.drawLine(Offset(c.dx, c.dy + h * 0.17), Offset(c.dx, c.dy + h * 0.3),
+        Paint()
+          ..color = Colors.white70
+          ..strokeWidth = 2);
   }
 
   @override

@@ -56,6 +56,9 @@ part 'arcade/jigsaw_four_game.dart';
 part 'arcade/counting_baskets_game.dart';
 part 'arcade/star_path_game.dart';
 part 'arcade/feelings_match_game.dart';
+part 'arcade/penalty_dash_game.dart';
+part 'arcade/shape_sort_chute_game.dart';
+part 'arcade/balloon_bounce_game.dart';
 
 
 /// Shared chrome for the arcade games — score + best pill, optional target, a

@@ -99,6 +99,9 @@ const Map<String, ToyBuilder> toyBuilders = <String, ToyBuilder>{
   'counting_baskets': CountingBasketsGame.new,
   'star_path': StarPathGame.new,
   'feelings_match': FeelingsMatchGame.new,
+  'penalty_dash': PenaltyDashGame.new,
+  'shape_sort_chute': ShapeSortChuteGame.new,
+  'balloon_bounce': BalloonBounceGame.new,
 };
 
 bool toyIsPlayable(String id) => toyBuilders.containsKey(id);

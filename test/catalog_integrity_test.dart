@@ -46,6 +46,9 @@ void main() {
     'counting_baskets',
     'star_path',
     'feelings_match',
+    'penalty_dash',
+    'shape_sort_chute',
+    'balloon_bounce',
   ];
 
   test('every registered game is playable, reachable and implemented', () {
