@@ -11,19 +11,19 @@
 
 ```
 CURRENT_PHASE:     4 ? QUALITY AUDIT & TRANSFORM (catalog expansion FROZEN)
-CURRENT_GAME:      sky_hop (B-tier polish complete: target score goal, speed ramp, tighter coin timing, and a satisfying win condition)
-CURRENT_BATCH:     sky_hop-polish-1 (clear score target, pace ladder, and coin timing)
-COMPLETED_WORK:    78 Play games + 20 sensory toys built (rounds 1-4); arcade_games.dart refactored into per-game part files; self-driving factory infra built (CLAUDE.md + scripts/wonderplay_factory.ps1, Copilot CLI headless verified); high-risk quality pass recorded for bowling, racing, snake, pinball, piano_tiles, star_tap, whack, brick_break, space_dodge, sky_hop, memory_flip, stack, goal_keeper, fruit_catch; sky_hop now has a clear score target, progressive difficulty, and more forgiving coin timing instead of an endless run.
+CURRENT_GAME:      whack (clear win target, tighter pressure ramps, and a satisfying completion state)
+CURRENT_BATCH:     whack-polish-1 (explicit finish target plus more readable danger pacing)
+COMPLETED_WORK:    78 Play games + 20 sensory toys built (rounds 1-4); arcade_games.dart refactored into per-game part files; self-driving factory infra built (CLAUDE.md + scripts/wonderplay_factory.ps1, Copilot CLI headless verified); high-risk quality pass recorded for bowling, racing, snake, pinball, piano_tiles, star_tap, whack, brick_break, space_dodge, sky_hop, memory_flip, stack, goal_keeper, fruit_catch; whack now has a clear 35-point win target and a satisfying finish state instead of endless survival.
 AUDITED_GAMES:     14 high-risk games audited and classified in this batch (all prior war-room transforms preserved; no fresh C/D entries after equivalent gameplay review).
-QUALITY_A:         bowling, racing, snake, pinball, goal_keeper, star_tap, fruit_catch, piano_tiles, sky_hop
-QUALITY_B:         whack, brick_break, space_dodge, memory_flip, stack
+QUALITY_A:         bowling, racing, snake, pinball, goal_keeper, star_tap, fruit_catch, piano_tiles, sky_hop, whack
+QUALITY_B:         brick_break, space_dodge, memory_flip, stack
 QUALITY_C:         (none recorded; all flagged weak games were transformed or validated as B/A-quality)
 QUALITY_D:         (none recorded; no rebuild required in this batch)
 KNOWN_DEFECTS:     none open from code or regression testing. Full-catalog audit, audio QA, and device QA remain; real-child testing flagged the 14 high-risk games listed above.
 DEVICE_QA_STATUS:  BLOCKED (Pixel 6a off USB; needs physical replug). Record a device-QA checklist; do not let this block code/quality work.
 AUDIO_QA_STATUS:   NOT_STARTED (Piano = benchmark; verify every game has intentional audio; direct Hari/Pico taps silent).
-LAST_COMMIT:       1a2c705
-NEXT_ACTION:       Keep the quality pass moving through the remaining Play catalog: review the next in-progress arcade title, tune one more actual gameplay loop, then rerun tests/analyze and update this state with the fresh commit hash.
+LAST_COMMIT:       cd10b07
+NEXT_ACTION:       Keep the quality pass moving through the remaining B-tier arcade titles — especially brick_break and space_dodge — then rerun the suite, analyze, and update this state with the fresh commit hash.
 ```
 
 > **How to run the factory (human, once):**

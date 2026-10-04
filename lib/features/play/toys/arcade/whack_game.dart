@@ -10,6 +10,7 @@ class _WhackGameState extends State<WhackGame>
     with TickerProviderStateMixin, ToyTicker, _Emit {
   static const String _id = 'whack';
   static const int _holes = 9;
+  static const int _winTarget = 35;
   final math.Random _rnd = math.Random();
   final List<double> _mole = List<double>.filled(_holes, 0); // seconds left
   final List<bool> _isBomb = List<bool>.filled(_holes, false);
@@ -93,8 +94,24 @@ class _WhackGameState extends State<WhackGame>
     }
   }
 
+  void _checkWin() {
+    if (_status != GameStatus.playing || _score < _winTarget) return;
+    _status = GameStatus.won;
+    _banner = 'Whack complete! $_score points!';
+    _bannerT = 1.8;
+    TonePlayer.instance.playCue(SoundCue.success);
+    emit(ExperienceEvent.gameCompleted);
+    GameScores.instance.submit(_id, _score).then((b) {
+      if (mounted) setState(() => _best = b);
+    });
+  }
+
   void _advanceRound() {
     if (_status != GameStatus.playing) return;
+    if (_score >= _winTarget) {
+      _checkWin();
+      return;
+    }
     if (_score < _roundTarget) return;
     _round++;
     _lives = math.min(5, _lives + 1);
@@ -123,7 +140,9 @@ class _WhackGameState extends State<WhackGame>
       _splat[i] = 0.35;
       TonePlayer.instance.playCue(SoundCue.wood);
       emit(ExperienceEvent.bubblePopped);
-      if (_score >= _roundTarget) {
+      if (_score >= _winTarget) {
+        _checkWin();
+      } else if (_score >= _roundTarget) {
         _advanceRound();
       } else if (_score == 10 || _score == 25 || (_score >= 50 && _score % 25 == 0)) {
         _banner = '$_score moles! 🎉';
@@ -152,8 +171,8 @@ class _WhackGameState extends State<WhackGame>
       _round = 1;
       _roundTarget = 10;
       _dangerLevel = 0;
-      _banner = null;
-      _bannerT = 0;
+      _banner = 'Whack 35 points to win!';
+      _bannerT = 1.4;
       _spawnIn = 0.7;
       _status = GameStatus.playing;
     });
@@ -164,10 +183,11 @@ class _WhackGameState extends State<WhackGame>
     drain(context);
     return _Shell(
       title: '🔨 Whack',
-      introHow: 'Tap the moles as they pop up, dodge bombs, and survive 3 lives through the rounds!',
+      introHow: 'Tap the moles as they pop up, dodge bombs, and reach 35 points before your 3 lives run out!',
       onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,
+      target: _winTarget,
       status: _status,
       banner: _banner,
       accent: const Color(0xFF8D5A3B),
