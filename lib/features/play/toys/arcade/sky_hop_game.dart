@@ -19,12 +19,15 @@ class _SkyHopGameState extends State<SkyHopGame>
     with TickerProviderStateMixin, ToyTicker, _Emit {
   static const String _id = 'sky_hop';
   static const double _gap = 0.28; // fraction of height
+  static const int _goalScore = 18;
+  static const double _basePipeSpeed = 0.42;
   final math.Random _rnd = math.Random();
   final List<_Pipe> _pipes = <_Pipe>[];
   final List<_Shard> _bits = <_Shard>[];
   double _birdY = 0.5;
   double _vy = 0;
   double _spawnIn = 0;
+  double _pipeSpeed = _basePipeSpeed;
   int _score = 0;
   int _best = 0;
   int _coinCombo = 0;
@@ -60,18 +63,29 @@ class _SkyHopGameState extends State<SkyHopGame>
       if (s.life <= 0) _bits.removeAt(i);
     }
     if (!_started) return;
+    _pipeSpeed = math.min(0.82, _basePipeSpeed + _score * 0.02);
     _vy += 1.6 * dt; // gravity
     _birdY += _vy * dt;
     _spawnIn -= dt;
+    if (_score >= _goalScore && _status == GameStatus.playing) {
+      _status = GameStatus.won;
+      _banner = 'Sky clear!';
+      _bannerT = 1.4;
+      TonePlayer.instance.playCue(SoundCue.success);
+      emit(ExperienceEvent.gameCompleted);
+      GameScores.instance.submit(_id, _score).then((b) {
+        if (mounted) setState(() => _best = b);
+      });
+      return;
+    }
     if (_spawnIn <= 0) {
-      _spawnIn = 1.6;
-      final gapY = 0.2 + _rnd.nextDouble() * 0.6;
-      // Coin sits off-centre inside the gap, so grabbing it is a small risk.
+      _spawnIn = math.max(1.1, 1.7 - _score * 0.04);
+      final gapY = 0.18 + _rnd.nextDouble() * 0.64;
       final coinY = gapY + (_rnd.nextDouble() - 0.5) * _gap * 0.7;
       _pipes.add(_Pipe(1.1, gapY, coinY));
     }
     for (final p in _pipes) {
-      p.x -= 0.42 * dt;
+      p.x -= _pipeSpeed * dt;
       if (!p.scored && p.x < 0.28) {
         p.scored = true;
         _coinCombo = 0;
@@ -82,8 +96,8 @@ class _SkyHopGameState extends State<SkyHopGame>
         emit(ExperienceEvent.bubblePopped);
       }
       if (!p.coinTaken &&
-          (p.x - 0.3).abs() < 0.06 &&
-          (_birdY - p.coinY).abs() < 0.05) {
+          (p.x - 0.3).abs() < 0.09 &&
+          (_birdY - p.coinY).abs() < 0.06) {
         p.coinTaken = true;
         _coinCombo += 1;
         final bonus = 2 + (_coinCombo - 1);
@@ -111,7 +125,7 @@ class _SkyHopGameState extends State<SkyHopGame>
   void _flap() {
     if (_status != GameStatus.playing) return;
     _started = true;
-    _vy = -0.62;
+    _vy = -0.68;
     for (var k = 0; k < 4; k++) {
       _bits.add(_Shard(0.3, _birdY + 0.03, -0.14 - _rnd.nextDouble() * 0.1,
           0.05 + _rnd.nextDouble() * 0.1, Colors.white));
@@ -141,6 +155,7 @@ class _SkyHopGameState extends State<SkyHopGame>
       _birdY = 0.5;
       _vy = 0;
       _spawnIn = 0;
+      _pipeSpeed = _basePipeSpeed;
       _score = 0;
       _coinCombo = 0;
       _banner = null;
@@ -155,10 +170,11 @@ class _SkyHopGameState extends State<SkyHopGame>
     drain(context);
     return _Shell(
       title: '🐤 Sky Hop',
-      introHow: 'Tap to flap and fly through the gaps. Grab the coins!',
+      introHow: 'Tap to flap through the gaps and collect enough coins to complete the sky run!',
       onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,
+      target: _goalScore,
       status: _status,
       banner: _banner,
       overEmoji: '🐤',
