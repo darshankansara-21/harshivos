@@ -1,6 +1,37 @@
 # WonderPlay — Game Factory State
 
-**Mandatory resume file.** On a new context: READ THIS FIRST, then resume from "NEXT EXACT ACTION". Never restart the sprint.
+**Mandatory resume file.** On a new context: READ `CLAUDE.md` FIRST, then this file, then `git log`/`git status`. Resume from `NEXT_ACTION`. Never restart the sprint. Never rely on conversation history.
+
+<!-- ============================================================ -->
+<!-- FACTORY STATUS — machine-readable. EVERY worker MUST update   -->
+<!-- this block before exiting. scripts/wonderplay_factory.ps1     -->
+<!-- greps the FACTORY_COMPLETE line here to decide whether to stop.-->
+<!-- ============================================================ -->
+## FACTORY STATUS
+
+```
+CURRENT_PHASE:     4 — QUALITY AUDIT & TRANSFORM (catalog expansion FROZEN)
+CURRENT_GAME:      (none — begin with high-risk list: bowling → racing → snake → pinball)
+CURRENT_BATCH:     audit-batch-1 (not yet started)
+COMPLETED_WORK:    78 Play games + 20 sensory toys built (rounds 1-4); arcade_games.dart refactored into per-game part files; self-driving factory infra built (CLAUDE.md + scripts/wonderplay_factory.ps1, Copilot CLI headless verified).
+AUDITED_GAMES:     0 formally scored (prior war-room sprints improved ~28 games; a formal A/B/C/D pass has NOT been recorded yet).
+QUALITY_A:         (none recorded yet)
+QUALITY_B:         (none recorded yet)
+QUALITY_C:         (none recorded yet)
+QUALITY_D:         (none recorded yet)
+KNOWN_DEFECTS:     none open. Real-child testing flagged these as weak/high-risk: bowling, racing, snake, pinball, piano_tiles, star_tap, whack, brick_break, space_dodge, sky_hop, memory_flip, stack, goal_keeper, fruit_catch.
+DEVICE_QA_STATUS:  BLOCKED (Pixel 6a off USB; needs physical replug). Record a device-QA checklist; do not let this block code/quality work.
+AUDIO_QA_STATUS:   NOT_STARTED (Piano = benchmark; verify every game has intentional audio; direct Hari/Pico taps silent).
+LAST_COMMIT:       (set by the commit that lands this status block)
+NEXT_ACTION:       Begin Phase 4 audit. Score the high-risk games first (bowling, racing, snake, pinball), classify A/B/C/D here, then transform the C/D games with REAL gameplay-loop improvements (not gimmicks). Run flutter test --no-pub + analyze --no-pub, commit+push, update this block.
+FACTORY_COMPLETE:  FALSE
+```
+
+> **How to run the factory (human, once):**
+> `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/wonderplay_factory.ps1`
+> It launches a fresh Copilot worker, lets it do a safe batch, then relaunches
+> automatically — forever — until `FACTORY_COMPLETE: TRUE` above. See `CLAUDE.md`
+> for the permanent operating rules and the Phase-11 definition of done.
 
 - **HEAD at last update:** f93e08d == origin/main (clean)
 - **Version:** 1.0.42+43 (HELD — no bump during factory; release builds are LAST)
@@ -135,13 +166,17 @@ All 30 games meet the gameplay quality bar (clear in 5s · satisfying in 30s · 
 5. ~~Balance Ball~~ SHIPPED (balance_ball, ⚖️ — ToyTicker; drag to tilt the beam, keep the ball from rolling off, wobble grows, survive 20s)
 6. ~~Calm Choices~~ SHIPPED (calm_choices, 🌈 — read a big feeling, tap a healthy coping choice, 10 self-reg scenes, 3 lives)
 
-## Next backlog (auto-generated, balanced) — round 5
-1. Archery (sports — time the swaying aim and tap to loose an arrow at the target)
-2. Sound Story (music — tap the instrument that matches the sound you hear)
-3. Pipe Connect (puzzle — rotate pipe tiles to join the water from source to drain)
-4. Subtraction Pop (learning — solve a − b by popping the balloon with the answer)
-5. Laser Maze (motor — drag the mirror-dot to guide a beam to the goal avoiding walls)
-6. Good Manners (communication — pick the polite word: please / thank you / sorry / excuse me)
+## Catalog expansion — FROZEN (2026-10-04)
+The product mission changed from "add more games" to "make WonderPlay excellent".
+**Do NOT build round 5 or chase 100 games.** The round-5 ideas below are PARKED and
+only to be revisited if the Phase-4 audit finds a genuine missing modality a real child
+needs. The authoritative next step is the `NEXT_ACTION` in the FACTORY STATUS block at
+the top of this file + `CLAUDE.md`.
+
+### Parked ideas (NOT scheduled)
+Archery · Sound Story · Pipe Connect · Subtraction Pop · Laser Maze · Good Manners
 
 ## NEXT EXACT ACTION
-Build round 5 in two batches (Archery + Sound Story + Pipe Connect, then Subtraction Pop + Laser Maze + Good Manners), each a NEW part file in `lib/features/play/toys/arcade/` (`part of '../arcade_games.dart';`) with a matching `part` line. UNIQUE painter/helper names (part-scope shared). game_thumb.dart SEPARATE — inline thumbnails, no arcade privates. Only REAL Flutter APIs. Wire all 6 sites each; `flutter test --no-pub` + `flutter analyze --no-pub`; commit; update this file. Then auto-generate round 6 and keep going nonstop.
+See the **FACTORY STATUS → NEXT_ACTION** block at the top of this file (Phase 4 quality
+audit). Read `CLAUDE.md` for the permanent rules and the Phase-11 definition of done.
+Do NOT build new games.
