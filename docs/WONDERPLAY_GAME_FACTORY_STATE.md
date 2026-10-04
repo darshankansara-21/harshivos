@@ -11,21 +11,22 @@
 
 ```
 CURRENT_PHASE:     4 ? QUALITY AUDIT & TRANSFORM (catalog expansion FROZEN)
-CURRENT_GAME:      whack (clear win target, tighter pressure ramps, and a satisfying completion state)
-CURRENT_BATCH:     whack-polish-1 (explicit finish target plus more readable danger pacing)
-COMPLETED_WORK:    78 Play games + 20 sensory toys built (rounds 1-4); arcade_games.dart refactored into per-game part files; self-driving factory infra built (CLAUDE.md + scripts/wonderplay_factory.ps1, Copilot CLI headless verified); high-risk quality pass recorded for bowling, racing, snake, pinball, piano_tiles, star_tap, whack, brick_break, space_dodge, sky_hop, memory_flip, stack, goal_keeper, fruit_catch; whack now has a clear 35-point win target and a satisfying finish state instead of endless survival.
+CURRENT_GAME:      brick_break (added a falling power-up capsule system — wide paddle / slow-mo ball / extra life — dropped by destroyed bricks, giving the loop a real risk/reward decision on top of aim-and-bounce)
+CURRENT_BATCH:     brick-break-polish-1 (power-up capsules: wide paddle, ball slow-mo, extra life, with on-screen active-effect icons)
+COMPLETED_WORK:    78 Play games + 20 sensory toys built (rounds 1-4); arcade_games.dart refactored into per-game part files; self-driving factory infra built (CLAUDE.md + scripts/wonderplay_factory.ps1, Copilot CLI headless verified); high-risk quality pass recorded for bowling, racing, snake, pinball, piano_tiles, star_tap, whack, brick_break, space_dodge, sky_hop, memory_flip, stack, goal_keeper, fruit_catch; whack has a clear 35-point win target, sky_hop has a real difficulty ramp + win target; brick_break now drops wide/slow/life capsules from destroyed bricks instead of being a flat bounce-and-break loop.
 AUDITED_GAMES:     14 high-risk games audited and classified in this batch (all prior war-room transforms preserved; no fresh C/D entries after equivalent gameplay review).
-QUALITY_A:         bowling, racing, snake, pinball, goal_keeper, star_tap, fruit_catch, piano_tiles, sky_hop, whack
-QUALITY_B:         brick_break, space_dodge, memory_flip, stack
+QUALITY_A:         bowling, racing, snake, pinball, goal_keeper, star_tap, fruit_catch, piano_tiles, sky_hop, whack, brick_break
+QUALITY_B:         space_dodge, memory_flip, stack
 QUALITY_C:         (none recorded; all flagged weak games were transformed or validated as B/A-quality)
 QUALITY_D:         (none recorded; no rebuild required in this batch)
 KNOWN_DEFECTS:     none open from code or regression testing. Full-catalog audit, audio QA, and device QA remain; real-child testing flagged the 14 high-risk games listed above.
-FACTORY_BLOCKER:   AI model budget EXHAUSTED. GitHub Copilot monthly quota = 0 credits; OpenAI BYOK key also returns 429 no-credits. Autonomous workers CANNOT run until credits are restored (monthly reset or add credits). This is an account/billing limit, NOT a code bug.
-ORCHESTRATOR:      HARDENED. scripts/wonderplay_factory.ps1 now HALTS-and-diagnoses on fatal worker failures (quota/credits/auth/missing-binary via Get-WorkerFatalReason) instead of looping. Separates FAILURE (exit!=0, FailLimit=3) vs STALL (exit0 no commit, StallLimit=4); removed the old pause-5min-then-loop-forever burn loop; writes _factory_logs/FACTORY_HALTED.txt on halt. Verified live: 1 worker, quota detected, halted after 1 iteration (no burn).
+FACTORY_BLOCKER:   Previously recorded AI model budget exhaustion blocked the AUTOMATED orchestrator loop (scripts/wonderplay_factory.ps1). This batch was completed in a manually-invoked Copilot CLI session with credits available, so code/quality work is NOT blocked right now — only the unattended auto-relaunch loop was. If a future worker is launched by the script and immediately halts on a quota/credit error, that is the orchestrator behaving correctly; resolve billing, then rerun the script. Do not treat this note as blocking manual sessions.
+ORCHESTRATOR:      HARDENED. scripts/wonderplay_factory.ps1 now HALTS-and-diagnoses on fatal worker failures (quota/credits/auth/missing-binary via Get-WorkerFatalReason) instead of looping. Separates FAILURE (exit!=0, FailLimit=3) vs STALL (exit0 no commit, StallLimit=4); removed the old pause-5min-then-loop-forever burn loop; writes _factory_logs/FACTORY_HALTED.txt on halt.
 DEVICE_QA_STATUS:  BLOCKED (Pixel 6a off USB; needs physical replug). Record a device-QA checklist; do not let this block code/quality work.
 AUDIO_QA_STATUS:   NOT_STARTED (Piano = benchmark; verify every game has intentional audio; direct Hari/Pico taps silent).
-LAST_COMMIT:       269d88e
-NEXT_ACTION:       RESTORE AI CREDITS, then run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/wonderplay_factory.ps1 . The hardened loop resumes the quality pass (brick_break / space_dodge next) and now stops itself on any fatal condition instead of spinning. Until credits return, the factory stays HALTED by design.
+LAST_COMMIT:       <fill after commit>
+NEXT_ACTION:       Keep the quality pass moving: space_dodge, memory_flip, and stack are still QUALITY_B — pick the next one, deepen its actual gameplay loop (not just juice/particles), then rerun tests/analyze and update this state with the fresh commit hash. After those 3 are A-quality, broaden the audit to the rest of the 78-game catalog (Phase 4 requires auditing EVERY game, not only the 14 high-risk ones).
+FACTORY_COMPLETE:  FALSE
 ```
 
 > **How to run the factory (human, once):**
@@ -34,7 +35,7 @@ NEXT_ACTION:       RESTORE AI CREDITS, then run: powershell -NoProfile -Executio
 > automatically — forever — until `FACTORY_COMPLETE: TRUE` above. See `CLAUDE.md`
 > for the permanent operating rules and the Phase-11 definition of done.
 
-- **HEAD at last update:** 1e17800 (Street Racer pacing pass; stronger finish sprint, reward clarity, and less random road friction)
+- **HEAD at last update:** <fill after commit> (Brick Break power-up capsules: wide paddle, slow-mo ball, extra life)
 - **Version:** 1.0.42+43 (HELD — no bump during factory; release builds are LAST)
 - **Updated:** 2026-10-04
 - **Tests:** 161 pass · **Analyze:** 115 info / 0 warnings / 0 errors

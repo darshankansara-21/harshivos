@@ -13,6 +13,15 @@ class _Shard {
   double life;
 }
 
+enum _PowerType { wide, slow, life }
+
+class _PowerUp {
+  _PowerUp(this.x, this.y, this.type);
+  double x;
+  double y;
+  final _PowerType type;
+}
+
 class _BrickBreakGameState extends State<BrickBreakGame>
     with TickerProviderStateMixin, ToyTicker, _Emit {
   static const String _id = 'brick_break';
@@ -21,10 +30,13 @@ class _BrickBreakGameState extends State<BrickBreakGame>
   int _rowCount = 4;
   List<int> _bricks = List<int>.filled(_cols * 4, 1);
   final List<_Shard> _shards = <_Shard>[];
+  final List<_PowerUp> _powerUps = <_PowerUp>[];
   double _paddleX = 0.5; // centre, 0..1
   double _bx = 0.5, _by = 0.6; // ball centre
   double _vx = 0.34, _vy = -0.55; // ball velocity (per second)
   double _speedMul = 1;
+  double _wideT = 0; // seconds left of widened paddle
+  double _slowT = 0; // seconds left of slowed ball (time-dilated, not re-scaled)
   bool _started = false;
   int _score = 0;
   int _best = 0;
@@ -37,6 +49,9 @@ class _BrickBreakGameState extends State<BrickBreakGame>
 
   static const double _paddleW = 0.24;
   static const double _ballR = 0.022;
+  static const int _maxLives = 5;
+
+  double get _effectivePaddleW => _wideT > 0 ? _paddleW * 1.45 : _paddleW;
 
   @override
   void initState() {
@@ -110,13 +125,30 @@ class _BrickBreakGameState extends State<BrickBreakGame>
       s.life -= dt;
       if (s.life <= 0) _shards.removeAt(i);
     }
+    if (_wideT > 0) _wideT -= dt;
+    if (_slowT > 0) _slowT -= dt;
+    for (var i = _powerUps.length - 1; i >= 0; i--) {
+      final p = _powerUps[i];
+      p.y += 0.22 * dt;
+      const paddleY = 0.9;
+      if (p.y >= paddleY - 0.02 &&
+          p.y <= paddleY + 0.03 &&
+          (p.x - _paddleX).abs() < _effectivePaddleW / 2 + 0.03) {
+        _collectPowerUp(p.type);
+        _powerUps.removeAt(i);
+      } else if (p.y > 1) {
+        _powerUps.removeAt(i);
+      }
+    }
     if (!_started) return;
     if (_bannerT > 0) {
       _bannerT -= dt;
       if (_bannerT <= 0) _banner = null;
     }
-    _bx += _vx * dt;
-    _by += _vy * dt;
+    // Slow power-up time-dilates the ball only, so paddle/capsule speed stay normal.
+    final ballDt = dt * (_slowT > 0 ? 0.62 : 1.0);
+    _bx += _vx * ballDt;
+    _by += _vy * ballDt;
     if (_bx < _ballR) {
       _bx = _ballR;
       _vx = _vx.abs();
@@ -133,7 +165,7 @@ class _BrickBreakGameState extends State<BrickBreakGame>
     if (_vy > 0 &&
         _by + _ballR >= paddleY &&
         _by < paddleY + 0.03 &&
-        (_bx - _paddleX).abs() < _paddleW / 2 + _ballR) {
+        (_bx - _paddleX).abs() < _effectivePaddleW / 2 + _ballR) {
       _vy = -_vy.abs();
       // Steer based on where it hit the paddle.
       _vx += (_bx - _paddleX) * 1.2;
@@ -173,6 +205,17 @@ class _BrickBreakGameState extends State<BrickBreakGame>
         if (remaining <= 0) {
           _flash(_combo > 1 ? 'Combo x$_combo!' : 'Nice hit!');
           TonePlayer.instance.playCue(SoundCue.brick);
+          // A destroyed brick has a chance to drop a helpful capsule — turns
+          // clearing the field into a real risk/reward decision, not just aim.
+          if (_rnd.nextDouble() < 0.16) {
+            final roll = _rnd.nextDouble();
+            final type = roll < 0.45
+                ? _PowerType.wide
+                : (roll < 0.85 ? _PowerType.slow : _PowerType.life);
+            if (type != _PowerType.life || _lives < _maxLives) {
+              _powerUps.add(_PowerUp(cx, cy, type));
+            }
+          }
         } else {
           _flash('Cracked!');
           TonePlayer.instance.playCue(SoundCue.ball);
@@ -192,10 +235,30 @@ class _BrickBreakGameState extends State<BrickBreakGame>
     }
   }
 
+  void _collectPowerUp(_PowerType type) {
+    switch (type) {
+      case _PowerType.wide:
+        _wideT = 8;
+        _flash('Wide paddle!');
+        break;
+      case _PowerType.slow:
+        _slowT = 6;
+        _flash('Slow-mo ball!');
+        break;
+      case _PowerType.life:
+        _lives = math.min(_maxLives, _lives + 1);
+        _flash('Extra life! ♥');
+        break;
+    }
+    TonePlayer.instance.playCue(SoundCue.success);
+    emit(ExperienceEvent.bubblePopped);
+  }
+
   void _aim(double localX, double width) {
     setState(() {
       _started = true;
-      _paddleX = (localX / width).clamp(_paddleW / 2, 1 - _paddleW / 2);
+      _paddleX =
+          (localX / width).clamp(_effectivePaddleW / 2, 1 - _effectivePaddleW / 2);
     });
   }
 
@@ -206,6 +269,9 @@ class _BrickBreakGameState extends State<BrickBreakGame>
       _speedMul = 1;
       _rowCount = 4;
       _combo = 0;
+      _wideT = 0;
+      _slowT = 0;
+      _powerUps.clear();
       _buildBricks();
       _shards.clear();
       _paddleX = 0.5;
@@ -220,14 +286,20 @@ class _BrickBreakGameState extends State<BrickBreakGame>
   @override
   Widget build(BuildContext context) {
     drain(context);
+    final activeIcons = <String>[
+      if (_wideT > 0) '↔️',
+      if (_slowT > 0) '🐢',
+    ].join(' ');
     return _Shell(
       title: '🧱 Brick Break',
-      introHow: 'Move the paddle to bounce the ball and smash every brick!',
+      introHow: 'Move the paddle to bounce the ball and smash every brick! '
+          'Catch falling capsules for a helpful boost.',
       onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,
       status: _status,
-      banner: _banner ?? '♥ $_lives   ·   Level $_level',
+      banner: _banner ??
+          '♥ $_lives   ·   Level $_level${activeIcons.isEmpty ? '' : '   ·   $activeIcons'}',
       overEmoji: '🧱',
       overText: 'Out of balls!',
       accent: const Color(0xFFFF6B6B),
@@ -239,8 +311,9 @@ class _BrickBreakGameState extends State<BrickBreakGame>
             onPanUpdate: (d) => _aim(d.localPosition.dx, constraints.maxWidth),
             onPanDown: (d) => _aim(d.localPosition.dx, constraints.maxWidth),
             child: CustomPaint(
-              painter: _BrickPainter(_bricks, _cols, _paddleX, _paddleW, _bx,
-                  _by, _ballR, _started, _shards),
+              painter: _BrickPainter(_bricks, _cols, _paddleX,
+                  _effectivePaddleW, _bx, _by, _ballR, _started, _shards,
+                  _powerUps),
               size: Size.infinite,
             ),
           );
@@ -252,7 +325,7 @@ class _BrickBreakGameState extends State<BrickBreakGame>
 
 class _BrickPainter extends CustomPainter {
   _BrickPainter(this.bricks, this.cols, this.paddleX, this.paddleW, this.bx,
-      this.by, this.ballR, this.started, this.shards);
+      this.by, this.ballR, this.started, this.shards, this.powerUps);
   final List<int> bricks;
   final int cols;
   final double paddleX;
@@ -262,6 +335,7 @@ class _BrickPainter extends CustomPainter {
   final double ballR;
   final bool started;
   final List<_Shard> shards;
+  final List<_PowerUp> powerUps;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -305,6 +379,32 @@ class _BrickPainter extends CustomPainter {
         )..layout();
         hpPainter.paint(canvas, Offset(left + brickW / 2 - hpPainter.width / 2, top + brickH / 2 - hpPainter.height / 2));
       }
+    }
+    // Falling power-up capsules.
+    for (final p in powerUps) {
+      final c = Offset(p.x * w, p.y * h);
+      final color = switch (p.type) {
+        _PowerType.wide => const Color(0xFF4CC9F0),
+        _PowerType.slow => const Color(0xFF9B5DE5),
+        _PowerType.life => const Color(0xFFFF6B9D),
+      };
+      final label = switch (p.type) {
+        _PowerType.wide => '↔',
+        _PowerType.slow => '🐢',
+        _PowerType.life => '♥',
+      };
+      canvas.drawRRect(
+          RRect.fromRectAndRadius(
+              Rect.fromCenter(center: c, width: w * 0.052, height: w * 0.052),
+              const Radius.circular(6)),
+          Paint()..color = color);
+      final tp = TextPainter(
+        text: TextSpan(
+            text: label,
+            style: const TextStyle(color: Colors.white, fontSize: 13)),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(canvas, Offset(c.dx - tp.width / 2, c.dy - tp.height / 2));
     }
     // Paddle.
     canvas.drawRRect(
