@@ -68,6 +68,9 @@ part 'arcade/slide_puzzle_game.dart';
 part 'arcade/add_it_up_game.dart';
 part 'arcade/steady_hand_game.dart';
 part 'arcade/kindness_match_game.dart';
+part 'arcade/skee_ball_game.dart';
+part 'arcade/tone_match_game.dart';
+part 'arcade/odd_one_out_game.dart';
 
 
 /// Shared chrome for the arcade games — score + best pill, optional target, a

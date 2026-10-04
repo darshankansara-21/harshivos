@@ -89,6 +89,9 @@ class GameThumb extends StatelessWidget {
     'add_it_up',
     'steady_hand',
     'kindness_match',
+    'skee_ball',
+    'tone_match',
+    'odd_one_out',
   };
 
   @override
@@ -271,6 +274,12 @@ class _ThumbPainter extends CustomPainter {
         _steadyHand(canvas, w, h);
       case 'kindness_match':
         _kindnessMatch(canvas, w, h);
+      case 'skee_ball':
+        _skeeBall(canvas, w, h);
+      case 'tone_match':
+        _toneMatch(canvas, w, h);
+      case 'odd_one_out':
+        _oddOneOut(canvas, w, h);
     }
   }
 
@@ -1680,6 +1689,57 @@ class _ThumbPainter extends CustomPainter {
     heart.cubicTo(c.dx - w * 0.1, c.dy - w * 0.28, c.dx - w * 0.3,
         c.dy - w * 0.08, c.dx, c.dy + w * 0.18);
     canvas.drawPath(heart, Paint()..color = const Color(0xFFFFD166));
+  }
+
+  void _skeeBall(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF2A1E12), Color(0xFF150E08)]);
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(
+            Rect.fromLTWH(w * 0.34, h * 0.1, w * 0.32, h * 0.8),
+            const Radius.circular(12)),
+        Paint()..color = const Color(0xFF6B4A2A));
+    const cols = <Color>[Color(0xFFFF5DA2), Color(0xFFFFD166), Color(0xFF80ED99)];
+    for (var i = 0; i < 3; i++) {
+      canvas.drawCircle(
+          Offset(w * 0.5, h * (0.2 + i * 0.12)),
+          w * (0.08 - i * 0.015),
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 4
+            ..color = cols[i]);
+    }
+    canvas.drawCircle(Offset(w * 0.5, h * 0.78), w * 0.05, Paint()..color = Colors.white);
+  }
+
+  void _toneMatch(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF1E1A2E), Color(0xFF0F0C18)]);
+    var k = 0;
+    const cols = <Color>[
+      Color(0xFFE63946), Color(0xFF48CAE4), Color(0xFFFFD166), Color(0xFF9B5DE5),
+    ];
+    for (var r = 0; r < 2; r++) {
+      for (var c = 0; c < 2; c++) {
+        canvas.drawRRect(
+            RRect.fromRectAndRadius(
+                Rect.fromLTWH(w * (0.28 + c * 0.24), h * (0.28 + r * 0.24),
+                    w * 0.2, h * 0.2),
+                const Radius.circular(10)),
+            Paint()..color = cols[k++].withOpacity(0.8));
+      }
+    }
+  }
+
+  void _oddOneOut(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF141A22), Color(0xFF0B0F15)]);
+    for (var r = 0; r < 2; r++) {
+      for (var c = 0; c < 2; c++) {
+        final odd = r == 1 && c == 1;
+        canvas.drawCircle(
+            Offset(w * (0.33 + c * 0.34), h * (0.33 + r * 0.34)),
+            w * 0.1,
+            Paint()..color = odd ? const Color(0xFFFF8ED8) : const Color(0xFF48CAE4));
+      }
+    }
   }
 
   @override

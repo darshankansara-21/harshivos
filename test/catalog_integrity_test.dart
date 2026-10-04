@@ -58,6 +58,9 @@ void main() {
     'add_it_up',
     'steady_hand',
     'kindness_match',
+    'skee_ball',
+    'tone_match',
+    'odd_one_out',
   ];
 
   test('every registered game is playable, reachable and implemented', () {
