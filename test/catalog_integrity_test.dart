@@ -49,6 +49,9 @@ void main() {
     'penalty_dash',
     'shape_sort_chute',
     'balloon_bounce',
+    'count_pop',
+    'mirror_draw',
+    'calm_breaths',
   ];
 
   test('every registered game is playable, reachable and implemented', () {

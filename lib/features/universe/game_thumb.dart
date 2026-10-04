@@ -80,6 +80,9 @@ class GameThumb extends StatelessWidget {
     'penalty_dash',
     'shape_sort_chute',
     'balloon_bounce',
+    'count_pop',
+    'mirror_draw',
+    'calm_breaths',
   };
 
   @override
@@ -244,6 +247,12 @@ class _ThumbPainter extends CustomPainter {
         _shapeSortChute(canvas, w, h);
       case 'balloon_bounce':
         _balloonBounce(canvas, w, h);
+      case 'count_pop':
+        _countPop(canvas, w, h);
+      case 'mirror_draw':
+        _mirrorDraw(canvas, w, h);
+      case 'calm_breaths':
+        _calmBreaths(canvas, w, h);
     }
   }
 
@@ -1503,6 +1512,55 @@ class _ThumbPainter extends CustomPainter {
         Paint()
           ..color = Colors.white70
           ..strokeWidth = 2);
+  }
+
+  void _countPop(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF123047), Color(0xFF0A1824)]);
+    const cols = <Color>[
+      Color(0xFF4CC9F0), Color(0xFFFF8ED8), Color(0xFF80ED99), Color(0xFFFFD166),
+    ];
+    final pts = <Offset>[
+      Offset(w * 0.3, h * 0.35),
+      Offset(w * 0.62, h * 0.3),
+      Offset(w * 0.45, h * 0.6),
+      Offset(w * 0.7, h * 0.62),
+    ];
+    for (var i = 0; i < pts.length; i++) {
+      canvas.drawCircle(pts[i], w * 0.09, Paint()..color = cols[i].withOpacity(0.5));
+      canvas.drawCircle(
+          pts[i],
+          w * 0.09,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2
+            ..color = Colors.white70);
+    }
+  }
+
+  void _mirrorDraw(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF221A33), Color(0xFF120D1C)]);
+    canvas.drawLine(Offset(w / 2, 0), Offset(w / 2, h),
+        Paint()..color = Colors.white12);
+    final pts = <Offset>[
+      Offset(w * 0.3, h * 0.3),
+      Offset(w * 0.2, h * 0.5),
+      Offset(w * 0.35, h * 0.65),
+    ];
+    for (final p in pts) {
+      canvas.drawCircle(p, w * 0.045, Paint()..color = const Color(0xFFB197FC));
+      canvas.drawCircle(Offset(w - p.dx, p.dy), w * 0.045,
+          Paint()..color = const Color(0xFFB197FC));
+    }
+  }
+
+  void _calmBreaths(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF0E3A4A), Color(0xFF07202A)]);
+    final c = Offset(w * 0.5, h * 0.5);
+    for (var i = 3; i >= 1; i--) {
+      canvas.drawCircle(c, w * (0.18 + i * 0.05),
+          Paint()..color = const Color(0xFF89F7FE).withOpacity(0.08 * i));
+    }
+    canvas.drawCircle(c, w * 0.18, Paint()..color = const Color(0xFF89F7FE));
   }
 
   @override

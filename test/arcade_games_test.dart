@@ -536,6 +536,38 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('Count & Pop builds and pops', (tester) async {
+    await _pump(tester, const CountPopGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('Count & Pop'), findsOneWidget);
+    await tester.tapAt(const Offset(300, 400));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Mirror Draw builds and traces', (tester) async {
+    await _pump(tester, const MirrorDrawGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('Mirror Draw'), findsOneWidget);
+    await tester.drag(find.byType(CustomPaint).last, const Offset(-60, 40));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Calm Breaths builds and breathes', (tester) async {
+    await _pump(tester, const CalmBreathsGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('Calm Breaths'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 90));
+    await tester.pump(const Duration(milliseconds: 90));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Ball Sort builds and accepts taps', (tester) async {
     await _pump(tester, const BallSortGame());
     await tester.tap(find.widgetWithText(FilledButton, 'Play'));
