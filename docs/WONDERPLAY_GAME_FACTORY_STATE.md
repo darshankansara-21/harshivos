@@ -22,7 +22,7 @@ QUALITY_D:         (none recorded; no rebuild required in this batch)
 KNOWN_DEFECTS:     none open. Real-child testing flagged these as weak/high-risk: bowling, racing, snake, pinball, piano_tiles, star_tap, whack, brick_break, space_dodge, sky_hop, memory_flip, stack, goal_keeper, fruit_catch. Remaining work is polish pass + device QA, not a functional rebuild.
 DEVICE_QA_STATUS:  BLOCKED (Pixel 6a off USB; needs physical replug). Record a device-QA checklist; do not let this block code/quality work.
 AUDIO_QA_STATUS:   NOT_STARTED (Piano = benchmark; verify every game has intentional audio; direct Hari/Pico taps silent).
-LAST_COMMIT:       pending
+LAST_COMMIT:       72c844a330775fd08dbb4b9a7331a495bf93be50
 NEXT_ACTION:       Continue the B-game quality pass with the next remaining weak arcade loop (brick_break or space_dodge), rerun flutter test --no-pub + flutter analyze --no-pub, and update the state block with the verified post-pass QA and any remaining device findings.
 FACTORY_COMPLETE:  FALSE
 ```
