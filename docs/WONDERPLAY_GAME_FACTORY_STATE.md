@@ -11,21 +11,21 @@
 
 ```
 CURRENT_PHASE:     4 ? QUALITY AUDIT & TRANSFORM (catalog expansion FROZEN)
-CURRENT_GAME:      stack (deepened the core loop: from level 2 the moving block periodically "dashes" at 1.8x speed for a short burst — a real reflex/timing challenge instead of pure rhythm-tracking — and a true multiplicative perfect-streak scoring system now rewards a 5-in-a-row perfect chain with a full-width "Mastery Reset" rescue block, a genuine skill-based comeback payoff, not a cosmetic bonus)
-CURRENT_BATCH:     stack-polish-1 (dash-speed oscillation gated by level, multiplicative combo scoring up to x5, Mastery Reset rescue on 5-streak, dash telegraphed via distinct gold block color/outline as functional feedback)
-COMPLETED_WORK:    78 Play games + 20 sensory toys built (rounds 1-4); arcade_games.dart refactored into per-game part files; self-driving factory infra built (CLAUDE.md + scripts/wonderplay_factory.ps1, Copilot CLI headless verified); high-risk quality pass recorded for bowling, racing, snake, pinball, piano_tiles, star_tap, whack, brick_break, space_dodge, sky_hop, memory_flip, stack, goal_keeper, fruit_catch; whack has a clear 35-point win target, sky_hop has a real difficulty ramp + win target; brick_break drops wide/slow/life capsules from destroyed bricks; memory_flip has a real think-fast timer with bank-bonus risk/reward; stack now has a dash-speed timing mechanic plus a multiplicative perfect-streak combo with a Mastery Reset rescue reward.
-AUDITED_GAMES:     14 high-risk games audited and classified (all prior war-room transforms preserved; no fresh C/D entries after equivalent gameplay review). stack re-verified after its dash + combo mechanic was added (promoting to QUALITY_A — space_dodge remains QUALITY_B for the next pass).
-QUALITY_A:         bowling, racing, snake, pinball, goal_keeper, star_tap, fruit_catch, piano_tiles, sky_hop, whack, brick_break, memory_flip, stack
-QUALITY_B:         space_dodge (next up — deepen its actual gameplay loop, not just juice/particles)
+CURRENT_GAME:      space_dodge (deepened the core loop: wave 2+ introduces pink "seeker" meteors that steer toward the ship's x position with a capped turn rate — a genuine reactive-dodge threat instead of a straight/bouncing rock — and wave 3+ introduces grey "splitter" meteors that fork into two diverging rocks at mid-screen, forcing players to read the pattern and reposition ahead of time)
+CURRENT_BATCH:     space_dodge-polish-1 (seeker homing meteor gated by wave, splitter fork-in-two meteor gated by wave, both telegraphed once via flash message and given distinct painter treatments for clarity, intro copy updated)
+COMPLETED_WORK:    78 Play games + 20 sensory toys built (rounds 1-4); arcade_games.dart refactored into per-game part files; self-driving factory infra built (CLAUDE.md + scripts/wonderplay_factory.ps1, Copilot CLI headless verified); high-risk quality pass recorded for bowling, racing, snake, pinball, piano_tiles, star_tap, whack, brick_break, space_dodge, sky_hop, memory_flip, stack, goal_keeper, fruit_catch; whack has a clear 35-point win target, sky_hop has a real difficulty ramp + win target; brick_break drops wide/slow/life capsules from destroyed bricks; memory_flip has a real think-fast timer with bank-bonus risk/reward; stack has a dash-speed timing mechanic plus a multiplicative perfect-streak combo with a Mastery Reset rescue reward; space_dodge now has seeker (homing) and splitter (fork-in-two) hazard variety instead of only straight/bouncing rocks.
+AUDITED_GAMES:     14 high-risk games audited and classified (all prior war-room transforms preserved; no fresh C/D entries after equivalent gameplay review). space_dodge re-verified after seeker/splitter hazards were added (promoting to QUALITY_A — this closes out every game in the 14 high-risk list at A-quality).
+QUALITY_A:         bowling, racing, snake, pinball, goal_keeper, star_tap, fruit_catch, piano_tiles, sky_hop, whack, brick_break, memory_flip, stack, space_dodge
+QUALITY_B:         (none remaining from the 14 high-risk list — all promoted to A)
 QUALITY_C:         (none recorded; all flagged weak games were transformed or validated as B/A-quality)
 QUALITY_D:         (none recorded; no rebuild required in this batch)
-KNOWN_DEFECTS:     none open from code or regression testing. Full-catalog audit, audio QA, and device QA remain; real-child testing flagged the 14 high-risk games listed above.
-FACTORY_BLOCKER:   Previously recorded AI model budget exhaustion blocked the AUTOMATED orchestrator loop (scripts/wonderplay_factory.ps1). This batch was completed in a manually-invoked Copilot CLI session with credits available, so code/quality work is NOT blocked right now — only the unattended auto-relaunch loop was. If a future worker is launched by the script and immediately halts on a quota/credit error, that is the orchestrator behaving correctly; resolve billing, then rerun the script. Do not treat this note as blocking manual sessions.
+KNOWN_DEFECTS:     none open from code or regression testing. Full-catalog audit, audio QA, and device QA remain; the 14 high-risk games are now all QUALITY_A — audit of the remaining ~64 games has not started.
+FACTORY_BLOCKER:   none. Previously recorded AI model budget exhaustion was an orchestrator-loop concern, not a code/quality blocker; this batch completed normally with credits available.
 ORCHESTRATOR:      HARDENED. scripts/wonderplay_factory.ps1 now HALTS-and-diagnoses on fatal worker failures (quota/credits/auth/missing-binary via Get-WorkerFatalReason) instead of looping. Separates FAILURE (exit!=0, FailLimit=3) vs STALL (exit0 no commit, StallLimit=4); removed the old pause-5min-then-loop-forever burn loop; writes _factory_logs/FACTORY_HALTED.txt on halt.
 DEVICE_QA_STATUS:  BLOCKED (Pixel 6a off USB; needs physical replug). Record a device-QA checklist; do not let this block code/quality work.
 AUDIO_QA_STATUS:   NOT_STARTED (Piano = benchmark; verify every game has intentional audio; direct Hari/Pico taps silent).
-LAST_COMMIT:       925dc18
-NEXT_ACTION:       space_dodge is the last remaining QUALITY_B from the 14 high-risk list — deepen its actual gameplay loop (e.g. meteor variety/hazard patterns, not just juice/particles), rerun tests/analyze, commit+push, update this state. After that, every high-risk game is A-quality; broaden the audit to the rest of the 78-game catalog (Phase 4 requires auditing EVERY game, not only the 14 high-risk ones) and start recording A/B/C/D verdicts for the remaining ~64 games.
+LAST_COMMIT:       603e401
+NEXT_ACTION:       All 14 high-risk games are now QUALITY_A. Phase 4 requires auditing EVERY game, not only the 14 high-risk ones — broaden the audit to the remaining ~64 games in the catalog (see the game tables in docs/WONDERPLAY_GAME_FACTORY.md / toy_registry.dart for the full list). Pick a handful per batch, evaluate honestly against the Phase-4 criteria in CLAUDE.md (first 3 seconds, clarity, tactile response, scoring, progression, replayability, etc.), record A/B/C/D verdicts here, and transform any C/D found. Do not build new games (catalog expansion is FROZEN).
 FACTORY_COMPLETE:  FALSE
 ```
 
@@ -35,7 +35,7 @@ FACTORY_COMPLETE:  FALSE
 > automatically — forever — until `FACTORY_COMPLETE: TRUE` above. See `CLAUDE.md`
 > for the permanent operating rules and the Phase-11 definition of done.
 
-- **HEAD at last update:** 925dc18 (Stack dash-speed timing + Mastery Reset combo)
+- **HEAD at last update:** 603e401 (Space Dodge seeker + splitter hazard variety)
 - **Version:** 1.0.42+43 (HELD — no bump during factory; release builds are LAST)
 - **Updated:** 2026-10-04
 - **Tests:** 161 pass · **Analyze:** 115 info / 0 warnings / 0 errors
