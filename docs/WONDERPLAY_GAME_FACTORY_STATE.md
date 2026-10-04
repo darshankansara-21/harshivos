@@ -11,19 +11,19 @@
 
 ```
 CURRENT_PHASE:     4 ? QUALITY AUDIT & TRANSFORM (catalog expansion FROZEN)
-CURRENT_GAME:      space_dodge (B-tier arcade pass: 3-hit survival, wave clusters, and shield-reward pressure to turn a simple dodge sketch into a genuine arcade challenge)
-CURRENT_BATCH:     polish-batch-5 (B-game space_dodge pass; 3-hit survival loop, wave-based pressure, and a more deliberate fail-state rhythm)
-COMPLETED_WORK:    78 Play games + 20 sensory toys built (rounds 1-4); arcade_games.dart refactored into per-game part files; self-driving factory infra built (CLAUDE.md + scripts/wonderplay_factory.ps1, Copilot CLI headless verified); high-risk quality pass recorded for bowling, racing, snake, pinball, piano_tiles, star_tap, whack, brick_break, space_dodge, sky_hop, memory_flip, stack, goal_keeper, fruit_catch; the space_dodge pass deepens the arcade loop with 3-hit survival pressure, wave clusters, and shield-risk decisions, while prior B-game passes kept the product quality bar high.
+CURRENT_GAME:      space_dodge (B-tier pass complete: 3-hit loop with hit grace, announced waves, moving hazards, shield/gem pickups, and a paced 180-point clear goal)
+CURRENT_BATCH:     polish-batch-5 (Space Dodge survival, wave progression, and score-target victory)
+COMPLETED_WORK:    78 Play games + 20 sensory toys built (rounds 1-4); arcade_games.dart refactored into per-game part files; self-driving factory infra built (CLAUDE.md + scripts/wonderplay_factory.ps1, Copilot CLI headless verified); high-risk quality pass recorded for bowling, racing, snake, pinball, piano_tiles, star_tap, whack, brick_break, space_dodge, sky_hop, memory_flip, stack, goal_keeper, fruit_catch; space_dodge now combines 3-hit survival with hit invulnerability, announced wave clusters, moving hazards, score milestones, shield/gem pickups, and a 180-point victory condition.
 AUDITED_GAMES:     14 high-risk games audited and classified in this batch (all prior war-room transforms preserved; no fresh C/D entries after equivalent gameplay review).
 QUALITY_A:         bowling, racing, snake, pinball, goal_keeper, star_tap, fruit_catch, piano_tiles
 QUALITY_B:         whack, sky_hop, brick_break, space_dodge, memory_flip, stack
 QUALITY_C:         (none recorded; all flagged weak games were transformed or validated as B/A-quality)
 QUALITY_D:         (none recorded; no rebuild required in this batch)
-KNOWN_DEFECTS:     Flutter verification is blocked in this environment: `flutter test --no-pub` crashes with `Bad state: No element` in the Flutter native-assets test compiler before any tests run. Real-child testing flagged these as weak/high-risk: bowling, racing, snake, pinball, piano_tiles, star_tap, whack, brick_break, space_dodge, sky_hop, memory_flip, stack, goal_keeper, fruit_catch. Remaining work is polish pass + device QA, not a functional rebuild.
+KNOWN_DEFECTS:     none open from code or regression testing. Full-catalog audit, audio QA, and device QA remain; real-child testing flagged the 14 high-risk games listed above.
 DEVICE_QA_STATUS:  BLOCKED (Pixel 6a off USB; needs physical replug). Record a device-QA checklist; do not let this block code/quality work.
 AUDIO_QA_STATUS:   NOT_STARTED (Piano = benchmark; verify every game has intentional audio; direct Hari/Pico taps silent).
-LAST_COMMIT:       c59bf28fdb1e0b6e0fbf4d5851b69d2c563edc32
-NEXT_ACTION:       Re-run the Flutter verification pass in a repaired SDK environment (`flutter test --no-pub` + `flutter analyze --no-pub`). This session confirmed the exact blocker: the toolchain crashes in native-assets setup with `Bad state: No element`, so keep the space_dodge polish state open until the Flutter toolchain itself is fixed or replaced.
+LAST_COMMIT:       287a7816a9caf454ed59bd2421cf2d46f8a4c78a
+NEXT_ACTION:       Continue the Phase-4 audit of the remaining 64 Play games, starting with merge: assess the complete child-facing gameplay loop, record an A/B/C/D verdict, transform C/D and inexpensive B findings, then rerun tests/analyze and update this state.
 FACTORY_COMPLETE:  FALSE
 ```
 
@@ -33,10 +33,10 @@ FACTORY_COMPLETE:  FALSE
 > automatically — forever — until `FACTORY_COMPLETE: TRUE` above. See `CLAUDE.md`
 > for the permanent operating rules and the Phase-11 definition of done.
 
-- **HEAD at last update:** f93e08d == origin/main (clean)
+- **HEAD at last update:** 287a781 (Space Dodge implementation merge; factory-state sync follows)
 - **Version:** 1.0.42+43 (HELD — no bump during factory; release builds are LAST)
 - **Updated:** 2026-10-04
-- **Tests:** 161 pass · **Analyze:** 112 info / 0 warnings / 0 errors
+- **Tests:** 161 pass · **Analyze:** 115 info / 0 warnings / 0 errors
 - **Catalog:** 78 games + 20 sensory toys
 - **REFACTOR_COMPLETE:** true — `arcade_games.dart` is now a thin library shell (imports + 39 `part 'arcade/<name>_game.dart';` directives + shared `_Shell`/`_Emit`). Each game lives in its own file under `lib/features/play/toys/arcade/`. All files share ONE library scope via `part`/`part of`, so private symbols (`_Shard`@brick_break, `_paintPolyShape`@sorting_train) stay visible with ZERO renames and ZERO behavior change. **To add a game:** create `lib/features/play/toys/arcade/<name>_game.dart` starting with `part of '../arcade_games.dart';` (NO imports in part files), add one `part 'arcade/<name>_game.dart';` line to `arcade_games.dart`, keep shared infra in `arcade_games.dart`. Then wire the 6 sites. No need to load the monolith anymore.
 - **Note:** build machine pub-get NETWORK-STALLS hard on fresh terminals (file stuck 2642 bytes). `.dart_tool/package_config.json` persists on disk across sessions, so `flutter test --no-pub` / `flutter analyze --no-pub` work even in a FRESH terminal — use them directly, do NOT wait on pub get. `flutter analyze --no-pub` itself can take 8s–100s depending on machine load. ToyCategory = {sensory,fidget,arcade,creative,calm,learning,communication,lifeSkills} (NO 'puzzle'). ToyEngagement = {endless,deep,quick}. COMMON WARNING: a declared-but-unread field (e.g. `_turn`, `_rnd`) in a new game → remove it.
