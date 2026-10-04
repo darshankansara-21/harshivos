@@ -24,7 +24,7 @@ FACTORY_BLOCKER:   Previously recorded AI model budget exhaustion blocked the AU
 ORCHESTRATOR:      HARDENED. scripts/wonderplay_factory.ps1 now HALTS-and-diagnoses on fatal worker failures (quota/credits/auth/missing-binary via Get-WorkerFatalReason) instead of looping. Separates FAILURE (exit!=0, FailLimit=3) vs STALL (exit0 no commit, StallLimit=4); removed the old pause-5min-then-loop-forever burn loop; writes _factory_logs/FACTORY_HALTED.txt on halt.
 DEVICE_QA_STATUS:  BLOCKED (Pixel 6a off USB; needs physical replug). Record a device-QA checklist; do not let this block code/quality work.
 AUDIO_QA_STATUS:   NOT_STARTED (Piano = benchmark; verify every game has intentional audio; direct Hari/Pico taps silent).
-LAST_COMMIT:       <fill after commit>
+LAST_COMMIT:       579f50e
 NEXT_ACTION:       Keep the quality pass moving: space_dodge, memory_flip, and stack are still QUALITY_B — pick the next one, deepen its actual gameplay loop (not just juice/particles), then rerun tests/analyze and update this state with the fresh commit hash. After those 3 are A-quality, broaden the audit to the rest of the 78-game catalog (Phase 4 requires auditing EVERY game, not only the 14 high-risk ones).
 FACTORY_COMPLETE:  FALSE
 ```
@@ -35,7 +35,7 @@ FACTORY_COMPLETE:  FALSE
 > automatically — forever — until `FACTORY_COMPLETE: TRUE` above. See `CLAUDE.md`
 > for the permanent operating rules and the Phase-11 definition of done.
 
-- **HEAD at last update:** <fill after commit> (Brick Break power-up capsules: wide paddle, slow-mo ball, extra life)
+- **HEAD at last update:** 579f50e (Brick Break power-up capsules: wide paddle, slow-mo ball, extra life)
 - **Version:** 1.0.42+43 (HELD — no bump during factory; release builds are LAST)
 - **Updated:** 2026-10-04
 - **Tests:** 161 pass · **Analyze:** 115 info / 0 warnings / 0 errors
