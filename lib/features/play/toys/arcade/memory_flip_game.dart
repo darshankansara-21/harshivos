@@ -9,7 +9,16 @@ class MemoryFlipGame extends StatefulWidget {
 class _MemoryFlipGameState extends State<MemoryFlipGame> with _Emit {
   static const String _id = 'memory_flip';
   static const List<String> _facePool = <String>[
-    '🍎', '⭐', '🐢', '🎈', '🌸', '🚗', '🐬', '🎵', '🦋', '🍩'
+    '🍎',
+    '⭐',
+    '🐢',
+    '🎈',
+    '🌸',
+    '🚗',
+    '🐬',
+    '🎵',
+    '🦋',
+    '🍩'
   ];
   static const int _maxLevel = 5;
   late List<String> _cards;
@@ -22,6 +31,7 @@ class _MemoryFlipGameState extends State<MemoryFlipGame> with _Emit {
   int _streak = 0;
   int _score = 0;
   int _best = 0;
+  int _lives = 3;
   String? _banner;
   GameStatus _status = GameStatus.ready;
 
@@ -55,7 +65,10 @@ class _MemoryFlipGameState extends State<MemoryFlipGame> with _Emit {
   }
 
   void _tap(int i) {
-    if (_locked || _matched[i] || i == _first || _status != GameStatus.playing) {
+    if (_locked ||
+        _matched[i] ||
+        i == _first ||
+        _status != GameStatus.playing) {
       return;
     }
     TonePlayer.instance.playCue(SoundCue.wood);
@@ -99,7 +112,22 @@ class _MemoryFlipGameState extends State<MemoryFlipGame> with _Emit {
           }
         } else {
           _streak = 0;
+          _lives--;
+          if (_lives <= 0) {
+            _status = GameStatus.over;
+            TonePlayer.instance.playCue(SoundCue.gameOver);
+            final prev = GameScores.instance.best(_id);
+            emit(_score > prev
+                ? ExperienceEvent.gameCompleted
+                : ExperienceEvent.incorrectAnswer);
+            GameScores.instance.submit(_id, _score).then((b) {
+              if (mounted) setState(() => _best = b);
+            });
+            _flash('Game over!');
+            return;
+          }
           _locked = true;
+          _flash('Miss! $_lives left');
           Future<void>.delayed(const Duration(milliseconds: 700), () {
             if (!mounted) return;
             setState(() {
@@ -117,6 +145,7 @@ class _MemoryFlipGameState extends State<MemoryFlipGame> with _Emit {
         _level = 1;
         _streak = 0;
         _score = 0;
+        _lives = 3;
         _banner = null;
         _deal();
         _status = GameStatus.playing;
@@ -133,7 +162,7 @@ class _MemoryFlipGameState extends State<MemoryFlipGame> with _Emit {
       score: _score,
       best: _best,
       status: _status,
-      banner: _banner ?? 'Level $_level',
+      banner: _banner ?? 'Level $_level / $_lives left',
       overEmoji: '🧠',
       overText: 'Great memory!',
       accent: const Color(0xFF06D6A0),
