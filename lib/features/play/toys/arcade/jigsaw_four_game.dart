@@ -30,6 +30,7 @@ class _JigsawFourGameState extends State<JigsawFourGame> with _Emit {
 
   final List<_JigPiece> _pieces = <_JigPiece>[];
   int _level = 0;
+  int _sceneSeed = 0;
   int _score = 0;
   int _best = 0;
   int _cols = 2, _rows = 2;
@@ -51,6 +52,7 @@ class _JigsawFourGameState extends State<JigsawFourGame> with _Emit {
   void _buildBoard() {
     _cols = _grids[_level][0];
     _rows = _grids[_level][1];
+    _sceneSeed = _rnd.nextInt(1 << 30);
     _pieces.clear();
     for (var r = 0; r < _rows; r++) {
       for (var c = 0; c < _cols; c++) {
@@ -168,7 +170,7 @@ class _JigsawFourGameState extends State<JigsawFourGame> with _Emit {
                 rows: _rows,
                 cellW: _cellW,
                 cellH: _cellH,
-                picture: _level,
+                picture: _sceneSeed,
                 dragging: _dragging,
               ),
               size: Size.infinite,
@@ -196,50 +198,73 @@ class _JigsawPainter extends CustomPainter {
   final int picture;
   final int? dragging;
 
-  static const List<List<Color>> _palettes = <List<Color>>[
-    <Color>[Color(0xFF8ECAE6), Color(0xFF219EBC), Color(0xFFFFB703), Color(0xFF52B788)],
-    <Color>[Color(0xFFFFC8DD), Color(0xFFBDE0FE), Color(0xFFFFD166), Color(0xFF80ED99)],
-    <Color>[Color(0xFF3A0CA3), Color(0xFF7209B7), Color(0xFFF72585), Color(0xFF4CC9F0)],
+  static const List<Color> _skyTops = <Color>[
+    Color(0xFF8ECAE6), Color(0xFFFFC8DD), Color(0xFF3A0CA3), Color(0xFFB8E0D2), Color(0xFFFFE5B4),
+  ];
+  static const List<Color> _skyBottoms = <Color>[
+    Color(0xFF219EBC), Color(0xFFBDE0FE), Color(0xFF7209B7), Color(0xFF52B788), Color(0xFFFFB4A2),
+  ];
+  static const List<Color> _suns = <Color>[
+    Color(0xFFFFB703), Color(0xFFFFD166), Color(0xFFF72585), Color(0xFFFFEE32), Color(0xFFFF9F1C),
+  ];
+  static const List<Color> _hills = <Color>[
+    Color(0xFF52B788), Color(0xFF80ED99), Color(0xFF4CC9F0), Color(0xFF6A994E), Color(0xFF99D98C),
+  ];
+  static const List<Color> _walls = <Color>[
+    Color(0xFFFFF1E6), Color(0xFFE9EDC9), Color(0xFFD6E2E9), Color(0xFFFAEDCD), Color(0xFFE8E8E4),
+  ];
+  static const List<Color> _roofs = <Color>[
+    Color(0xFFBC4749), Color(0xFF6D597A), Color(0xFF355070), Color(0xFFB56576), Color(0xFF8B5E3C),
   ];
 
-  void _scene(Canvas canvas, Rect r, int idx) {
-    final pal = _palettes[idx % _palettes.length];
+  void _scene(Canvas canvas, Rect r, int seed) {
+    final rnd = math.Random(seed);
+    final skyTop = _skyTops[rnd.nextInt(_skyTops.length)];
+    final skyBottom = _skyBottoms[rnd.nextInt(_skyBottoms.length)];
+    final sun = _suns[rnd.nextInt(_suns.length)];
+    final hillColor = _hills[rnd.nextInt(_hills.length)];
+    final wall = _walls[rnd.nextInt(_walls.length)];
+    final roofColor = _roofs[rnd.nextInt(_roofs.length)];
+    final sunX = 0.18 + rnd.nextDouble() * 0.2;
+    final sunY = 0.16 + rnd.nextDouble() * 0.16;
+    final sunR = 0.08 + rnd.nextDouble() * 0.06;
+    final hillPeakY = 0.46 + rnd.nextDouble() * 0.14;
+    final hillDipY = 0.6 + rnd.nextDouble() * 0.14;
+    final houseX = 0.58 + rnd.nextDouble() * 0.14;
+    final houseScale = 0.85 + rnd.nextDouble() * 0.3;
     canvas.drawRect(
         r,
         Paint()
           ..shader = LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: <Color>[pal[0], pal[1]],
+            colors: <Color>[skyTop, skyBottom],
           ).createShader(r));
     // Sun.
-    canvas.drawCircle(
-        Offset(r.left + r.width * 0.26, r.top + r.height * 0.26),
-        r.width * 0.11,
-        Paint()..color = pal[2]);
+    canvas.drawCircle(Offset(r.left + r.width * sunX, r.top + r.height * sunY),
+        r.width * sunR, Paint()..color = sun);
     // Rolling hills.
-    final hill = Paint()..color = pal[3];
+    final hill = Paint()..color = hillColor;
     final p1 = Path()
       ..moveTo(r.left, r.bottom)
       ..lineTo(r.left, r.top + r.height * 0.68)
-      ..quadraticBezierTo(r.left + r.width * 0.3, r.top + r.height * 0.52,
+      ..quadraticBezierTo(r.left + r.width * 0.3, r.top + r.height * hillPeakY,
           r.left + r.width * 0.6, r.top + r.height * 0.66)
-      ..quadraticBezierTo(r.left + r.width * 0.82, r.top + r.height * 0.74,
+      ..quadraticBezierTo(r.left + r.width * 0.82, r.top + r.height * hillDipY,
           r.right, r.top + r.height * 0.6)
       ..lineTo(r.right, r.bottom)
       ..close();
     canvas.drawPath(p1, hill);
     // A little house.
-    final hw = r.width * 0.18, hh = r.height * 0.2;
-    final hx = r.left + r.width * 0.64, hy = r.top + r.height * 0.6;
-    canvas.drawRect(Rect.fromLTWH(hx, hy, hw, hh),
-        Paint()..color = const Color(0xFFFFF1E6));
+    final hw = r.width * 0.18 * houseScale, hh = r.height * 0.2 * houseScale;
+    final hx = r.left + r.width * houseX, hy = r.top + r.height * 0.6;
+    canvas.drawRect(Rect.fromLTWH(hx, hy, hw, hh), Paint()..color = wall);
     final roof = Path()
       ..moveTo(hx - hw * 0.1, hy)
       ..lineTo(hx + hw * 0.5, hy - hh * 0.5)
       ..lineTo(hx + hw * 1.1, hy)
       ..close();
-    canvas.drawPath(roof, Paint()..color = const Color(0xFFBC4749));
+    canvas.drawPath(roof, Paint()..color = roofColor);
     canvas.drawRect(
         Rect.fromLTWH(hx + hw * 0.35, hy + hh * 0.4, hw * 0.3, hh * 0.6),
         Paint()..color = const Color(0xFF6D4C41));
