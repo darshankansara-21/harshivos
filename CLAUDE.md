@@ -8,6 +8,11 @@
 > next worker automatically. **Never rely on the human to restart you.**
 
 ## 0. ALWAYS read first (every single launch)
+**SCOPE:** WonderPlay IS this repository — the **harshivos** Flutter app (git root = this
+directory). The Play games live in `lib/features/play/`. Work ONLY inside this repo; the
+sibling folders under the parent (`lifelens_core`, `dk-lifelens-mobile`, `dk-lifelens-web`,
+`my-ai`, `stock-market-assistant`) are UNRELATED — never edit or explore them.
+
 1. This file (`CLAUDE.md`).
 2. `docs/WONDERPLAY_GAME_FACTORY_STATE.md` — the machine-readable status block + `NEXT_ACTION`.
 3. `git log --oneline -15` and `git status`.

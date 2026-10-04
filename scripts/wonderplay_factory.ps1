@@ -45,6 +45,12 @@ New-Item -ItemType Directory -Force -Path $logDir | Out-Null
 # Flutter on PATH so the worker's shell can build/test immediately.
 if (Test-Path 'C:\src\flutter\bin') { $env:Path += ';C:\src\flutter\bin' }
 
+# CRITICAL: the --allow-all-tools FLAG only auto-approves tools, but headless SHELL
+# execution stays blocked until the working directory is TRUSTED. Setting
+# COPILOT_ALLOW_ALL to exactly "true" trusts the working dir and lets the worker run
+# shell commands (flutter/git) without a human to approve them. Verified 2026-10-04.
+$env:COPILOT_ALLOW_ALL = 'true'
+
 function Write-Log($msg) {
   $line = "[{0}] {1}" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $msg
   Write-Host $line
@@ -111,7 +117,7 @@ while ($true) {
 
   $cliArgs = @(
     '-p', $bootstrap,
-    '--allow-all-tools', '--allow-all-paths',
+    '--allow-all-tools',
     '--autopilot', '--max-autopilot-continues', "$MaxAutopilotContinues",
     '-C', $repo,
     '--log-dir', $logDir,

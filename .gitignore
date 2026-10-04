@@ -34,7 +34,7 @@ _logs/
 # Self-driving factory worker logs + Copilot session shares
 _factory_logs/
 copilot-session-*.md
-scripts/_ping_copilot.ps1
+scripts/_*.ps1
 
 # Local release-validation scratch (analyze/test/build capture files)
 analyze_last.txt
