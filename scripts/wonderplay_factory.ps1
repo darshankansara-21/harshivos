@@ -71,11 +71,43 @@ function Get-RepoHead {
   try { (& git -C $repo rev-parse --short HEAD 2>$null) } catch { '' }
 }
 
-function Ensure-Copilot {
-  if (-not (Test-Path $copilot)) {
-    Write-Log "Copilot CLI missing. Installing @github/copilot ..."
-    & 'npm.cmd' install -g '@github/copilot' 2>&1 | Out-Null
+# origin/main after a fetch. Workers push their work, so the remote is the real
+# source of truth for progress even if a worker committed from another checkout.
+function Get-OriginHead {
+  try {
+    & git -C $repo fetch origin -q 2>$null | Out-Null
+    (& git -C $repo rev-parse --short origin/main 2>$null)
+  } catch { '' }
+}
+
+# Keep the real repo current with pushed work so local HEAD advances here too
+# (single source of truth). Fast-forward only -- never creates merge noise.
+function Sync-MainToOrigin {
+  & git -C $repo pull --ff-only origin main -q 2>$null | Out-Null
+}
+
+# Workers must operate ONLY in the repo root. A nested clone (observed as
+# .vscode/tmprepo) causes split-brain: a worker commits there and the
+# orchestrator -- watching the real repo -- never sees progress. Remove any such
+# nested clone when it is clean and fully pushed; refuse to delete unsaved work.
+function Remove-StrayClone {
+  $stray = Join-Path $repo '.vscode\tmprepo'
+  if (-not (Test-Path (Join-Path $stray '.git'))) { return }
+  $dirty    = (& git -C $stray status --porcelain 2>$null | Measure-Object).Count
+  $unpushed = (& git -C $stray log --oneline '@{u}..HEAD' 2>$null | Measure-Object).Count
+  if ($dirty -eq 0 -and $unpushed -eq 0) {
+    Write-Log "Removing stray nested clone .vscode/tmprepo (clean + fully pushed) to prevent split-brain commits."
+    Remove-Item -Recurse -Force $stray -ErrorAction SilentlyContinue
+  } else {
+    Write-Halt "Nested clone .vscode/tmprepo holds $dirty uncommitted / $unpushed unpushed change(s) -- workers committed OUTSIDE the main repo. Reconcile it (push or discard) then rerun; refusing to proceed with a split-brain working copy."
+    exit 4
   }
+}
+
+function Ensure-Copilot {
+  # CLI-missing is decided ONLY by the real executable on disk -- never by
+  # scanning worker output. We do NOT auto-install (an unexpected reinstall can
+  # mask the real problem); we report the exact absolute path we checked.
   return (Test-Path $copilot)
 }
 
@@ -98,11 +130,14 @@ function Get-WorkerFatalReason {
   if (-not (Test-Path $LogPath)) { return $null }
   $t = Get-Content $LogPath -Raw -Encoding Unicode
   if (-not $t) { $t = Get-Content $LogPath -Raw }
+  # Match ONLY the Copilot CLI's own unrecoverable account/billing/auth errors.
+  # NEVER match generic shell phrases (e.g. "is not recognized", "cannot find")
+  # -- ordinary worker shell output contains those and must not halt the factory.
+  # CLI-missing is handled separately via Test-Path on the real executable.
   if ($t -match 'exceeded your monthly quota') { return 'GitHub Copilot monthly quota exceeded (no AI credits). Add credits or wait for the monthly reset.' }
-  if ($t -match 'no credits remaining|insufficient_quota|billing')  { return 'Model provider has no credits remaining (billing). Add credits / configure a funded provider.' }
-  if ($t -match '\b429\b.*(quota|credit|rate)') { return 'Model provider returned 429 (quota/rate/credit limit).' }
-  if ($t -match 'Please run .*login|not logged in|authentication failed|401 Unauthorized') { return 'Copilot CLI is not authenticated. Run: copilot login' }
-  if ($t -match 'Cannot find GitHub Copilot CLI|is not recognized') { return 'Copilot CLI binary missing. Run: npm install -g @github/copilot' }
+  if ($t -match 'no credits remaining|insufficient_quota')  { return 'Model provider has no credits remaining (billing). Add credits / configure a funded provider.' }
+  if ($t -match '\b429\b[^\r\n]{0,40}(quota|credit|rate limit)') { return 'Model provider returned 429 (quota/rate/credit limit).' }
+  if ($t -match 'authentication failed|401 Unauthorized|Please run:?\s*copilot login') { return 'Copilot CLI is not authenticated. Run: copilot login' }
   return $null
 }
 
@@ -121,14 +156,20 @@ Write-Log "repo=$repo"
 Write-Log "copilot=$copilot"
 
 if (-not (Ensure-Copilot)) {
-  Write-Log "FATAL: GitHub Copilot CLI is not installed and could not be installed. Run: npm install -g @github/copilot then: copilot login. Stopping."
+  Write-Log "FATAL: GitHub Copilot CLI not found at '$copilot'. Install with: npm install -g @github/copilot  then: copilot login. Stopping."
   exit 2
 }
+Write-Log "preflight OK: copilot executable present at $copilot"
+
+# One source of truth: drop any stray nested clone and sync the repo to origin.
+Remove-StrayClone
+Sync-MainToOrigin
 
 $iter = 0
 $stall = 0
 $fail = 0
-$lastHead = Get-RepoHead
+$lastHead   = Get-RepoHead
+$lastRemote = Get-OriginHead
 
 while ($true) {
   if (Test-FactoryComplete) {
@@ -139,6 +180,13 @@ while ($true) {
     Write-Log "Reached MaxIterations $MaxIterations. Stopping; rerun to continue."
     break
   }
+  # CLI-missing is checked against the REAL executable right before each launch --
+  # never inferred from a previous worker's text output.
+  if (-not (Test-Path $copilot)) {
+    Write-Halt "Copilot CLI executable vanished from '$copilot'. Reinstall with: npm install -g @github/copilot"
+    break
+  }
+
   $iter++
   $stamp = Get-Date -Format 'yyyyMMdd_HHmmss'
   $wlog  = Join-Path $logDir "worker_$($iter)_$stamp.log"
@@ -174,11 +222,16 @@ while ($true) {
     break
   }
 
-  # 2) Did the repo actually advance?
+  # 2) Did the repo actually advance? Count progress if EITHER the local HEAD
+  #    moved OR origin/main moved (a worker may push from any checkout). Then
+  #    fast-forward the local repo so HEAD here tracks the pushed work.
+  $remote = Get-OriginHead
+  Sync-MainToOrigin
   $head = Get-RepoHead
-  if ($head -and $head -ne $lastHead) {
-    Write-Log "PROGRESS: HEAD $lastHead -> $head"
-    $lastHead = $head
+  if (($head -and $head -ne $lastHead) -or ($remote -and $remote -ne $lastRemote)) {
+    Write-Log "PROGRESS: local $lastHead -> $head ; origin $lastRemote -> $remote"
+    $lastHead   = $head
+    $lastRemote = $remote
     $stall = 0
     $fail = 0
   }
