@@ -6,7 +6,8 @@ class MemoryFlipGame extends StatefulWidget {
   State<MemoryFlipGame> createState() => _MemoryFlipGameState();
 }
 
-class _MemoryFlipGameState extends State<MemoryFlipGame> with _Emit {
+class _MemoryFlipGameState extends State<MemoryFlipGame>
+    with TickerProviderStateMixin, ToyTicker, _Emit {
   static const String _id = 'memory_flip';
   static const List<String> _facePool = <String>[
     '🍎',
@@ -35,7 +36,14 @@ class _MemoryFlipGameState extends State<MemoryFlipGame> with _Emit {
   String? _banner;
   GameStatus _status = GameStatus.ready;
 
+  // Per-level think-fast timer: running out costs a life (same as a wrong
+  // match) but banking leftover time pays out a bonus, so players choose
+  // between careful memorising and a faster, riskier pace.
+  double _timeLimit = 0;
+  double _timeLeft = 0;
+
   int get _pairsThisLevel => (5 + _level).clamp(4, _facePool.length);
+  double get _levelTimeLimit => 16 + _pairsThisLevel * 2.2;
 
   @override
   void initState() {
@@ -44,6 +52,16 @@ class _MemoryFlipGameState extends State<MemoryFlipGame> with _Emit {
     GameScores.instance.ensureLoaded().then((_) {
       if (mounted) setState(() => _best = GameScores.instance.best(_id));
     });
+  }
+
+  @override
+  void onTick(double dt) {
+    if (_status != GameStatus.playing || _locked) return;
+    _timeLeft -= dt;
+    if (_timeLeft <= 0) {
+      _timeLeft = _timeLimit;
+      _loseLife('Too slow! $_lives left');
+    }
   }
 
   void _deal() {
@@ -55,6 +73,40 @@ class _MemoryFlipGameState extends State<MemoryFlipGame> with _Emit {
     _second = -1;
     _locked = false;
     _pairs = 0;
+    _timeLimit = _levelTimeLimit;
+    _timeLeft = _timeLimit;
+  }
+
+  /// Shared penalty path for a wrong match or a timeout: drops a life, ends
+  /// the game if that was the last one, otherwise flashes [missMessage].
+  void _loseLife(String missMessage) {
+    _streak = 0;
+    _lives--;
+    if (_lives <= 0) {
+      _status = GameStatus.over;
+      TonePlayer.instance.playCue(SoundCue.gameOver);
+      final prev = GameScores.instance.best(_id);
+      emit(_score > prev
+          ? ExperienceEvent.gameCompleted
+          : ExperienceEvent.incorrectAnswer);
+      GameScores.instance.submit(_id, _score).then((b) {
+        if (mounted) setState(() => _best = b);
+      });
+      _flash('Game over!');
+      return;
+    }
+    TonePlayer.instance.playCue(SoundCue.gentleRetry);
+    _flash(missMessage);
+  }
+
+  bool get _gameOver => _status == GameStatus.over;
+
+  /// Rewards leftover level time as score, shown appended to [base].
+  String _bankTimeBonus(String base) {
+    final bonus = (_timeLeft * 2).round();
+    if (bonus <= 0) return base;
+    _score += bonus;
+    return '$base (+$bonus time bonus)';
   }
 
   void _flash(String s) {
@@ -89,6 +141,7 @@ class _MemoryFlipGameState extends State<MemoryFlipGame> with _Emit {
           _second = -1;
           if (_pairs >= _pairsThisLevel) {
             if (_level >= _maxLevel) {
+              _flash(_bankTimeBonus('Galaxy cleared!'));
               _status = GameStatus.won;
               TonePlayer.instance.playCue(SoundCue.success);
               emit(ExperienceEvent.gameCompleted);
@@ -96,9 +149,9 @@ class _MemoryFlipGameState extends State<MemoryFlipGame> with _Emit {
                 if (mounted) setState(() => _best = b);
               });
             } else {
+              _flash(_bankTimeBonus('Level $_level!'));
               _level++;
               _score += 20;
-              _flash('Level $_level!');
               TonePlayer.instance.playCue(SoundCue.milestone);
               emit(ExperienceEvent.gameCompleted);
               _locked = true;
@@ -111,23 +164,9 @@ class _MemoryFlipGameState extends State<MemoryFlipGame> with _Emit {
             emit(ExperienceEvent.bubblePopped);
           }
         } else {
-          _streak = 0;
-          _lives--;
-          if (_lives <= 0) {
-            _status = GameStatus.over;
-            TonePlayer.instance.playCue(SoundCue.gameOver);
-            final prev = GameScores.instance.best(_id);
-            emit(_score > prev
-                ? ExperienceEvent.gameCompleted
-                : ExperienceEvent.incorrectAnswer);
-            GameScores.instance.submit(_id, _score).then((b) {
-              if (mounted) setState(() => _best = b);
-            });
-            _flash('Game over!');
-            return;
-          }
+          _loseLife('Miss! $_lives left');
+          if (_gameOver) return;
           _locked = true;
-          _flash('Miss! $_lives left');
           Future<void>.delayed(const Duration(milliseconds: 700), () {
             if (!mounted) return;
             setState(() {
@@ -157,12 +196,14 @@ class _MemoryFlipGameState extends State<MemoryFlipGame> with _Emit {
     final cols = _cards.length <= 12 ? 3 : 4;
     return _Shell(
       title: '🧠 Memory Flip',
-      introHow: 'Flip two cards to find matching pairs. Clear them all!',
+      introHow:
+          'Flip two cards to find matching pairs before the timer runs out. Clear every level, bank leftover time as bonus points!',
       onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,
       status: _status,
-      banner: _banner ?? 'Level $_level / $_lives left',
+      banner: _banner ??
+          'Level $_level · ⏱ ${_timeLeft.ceil()}s · $_lives❤',
       overEmoji: '🧠',
       overText: 'Great memory!',
       accent: const Color(0xFF06D6A0),

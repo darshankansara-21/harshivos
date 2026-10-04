@@ -11,12 +11,12 @@
 
 ```
 CURRENT_PHASE:     4 ? QUALITY AUDIT & TRANSFORM (catalog expansion FROZEN)
-CURRENT_GAME:      brick_break (added a falling power-up capsule system — wide paddle / slow-mo ball / extra life — dropped by destroyed bricks, giving the loop a real risk/reward decision on top of aim-and-bounce)
-CURRENT_BATCH:     brick-break-polish-1 (power-up capsules: wide paddle, ball slow-mo, extra life, with on-screen active-effect icons)
-COMPLETED_WORK:    78 Play games + 20 sensory toys built (rounds 1-4); arcade_games.dart refactored into per-game part files; self-driving factory infra built (CLAUDE.md + scripts/wonderplay_factory.ps1, Copilot CLI headless verified); high-risk quality pass recorded for bowling, racing, snake, pinball, piano_tiles, star_tap, whack, brick_break, space_dodge, sky_hop, memory_flip, stack, goal_keeper, fruit_catch; whack has a clear 35-point win target, sky_hop has a real difficulty ramp + win target; brick_break now drops wide/slow/life capsules from destroyed bricks instead of being a flat bounce-and-break loop.
-AUDITED_GAMES:     14 high-risk games audited and classified in this batch (all prior war-room transforms preserved; no fresh C/D entries after equivalent gameplay review).
+CURRENT_GAME:      memory_flip (added a real per-level think-fast timer — running out costs a life just like a wrong match, but banking leftover time pays a score bonus, so the player now makes a genuine speed-vs-care tradeoff instead of flipping with no time pressure at all)
+CURRENT_BATCH:     memory-flip-polish-1 (ToyTicker-driven countdown per level, shared _loseLife penalty path for both wrong-match and timeout, time-bonus banked on level-clear/win, HUD banner shows live timer + lives)
+COMPLETED_WORK:    78 Play games + 20 sensory toys built (rounds 1-4); arcade_games.dart refactored into per-game part files; self-driving factory infra built (CLAUDE.md + scripts/wonderplay_factory.ps1, Copilot CLI headless verified); high-risk quality pass recorded for bowling, racing, snake, pinball, piano_tiles, star_tap, whack, brick_break, space_dodge, sky_hop, memory_flip, stack, goal_keeper, fruit_catch; whack has a clear 35-point win target, sky_hop has a real difficulty ramp + win target; brick_break drops wide/slow/life capsules from destroyed bricks; memory_flip now has a real think-fast timer with bank-bonus risk/reward instead of being untimed pure recall.
+AUDITED_GAMES:     14 high-risk games audited and classified (all prior war-room transforms preserved; no fresh C/D entries after equivalent gameplay review). memory_flip re-verified after its timer mechanic was added (still QUALITY_B pending the same treatment check on space_dodge/stack, or promotion to A if no further gaps found next pass).
 QUALITY_A:         bowling, racing, snake, pinball, goal_keeper, star_tap, fruit_catch, piano_tiles, sky_hop, whack, brick_break
-QUALITY_B:         space_dodge, memory_flip, stack
+QUALITY_B:         space_dodge, stack, memory_flip (memory_flip just deepened this batch — re-review next pass for A promotion once space_dodge/stack get the same treatment)
 QUALITY_C:         (none recorded; all flagged weak games were transformed or validated as B/A-quality)
 QUALITY_D:         (none recorded; no rebuild required in this batch)
 KNOWN_DEFECTS:     none open from code or regression testing. Full-catalog audit, audio QA, and device QA remain; real-child testing flagged the 14 high-risk games listed above.
@@ -24,8 +24,8 @@ FACTORY_BLOCKER:   Previously recorded AI model budget exhaustion blocked the AU
 ORCHESTRATOR:      HARDENED. scripts/wonderplay_factory.ps1 now HALTS-and-diagnoses on fatal worker failures (quota/credits/auth/missing-binary via Get-WorkerFatalReason) instead of looping. Separates FAILURE (exit!=0, FailLimit=3) vs STALL (exit0 no commit, StallLimit=4); removed the old pause-5min-then-loop-forever burn loop; writes _factory_logs/FACTORY_HALTED.txt on halt.
 DEVICE_QA_STATUS:  BLOCKED (Pixel 6a off USB; needs physical replug). Record a device-QA checklist; do not let this block code/quality work.
 AUDIO_QA_STATUS:   NOT_STARTED (Piano = benchmark; verify every game has intentional audio; direct Hari/Pico taps silent).
-LAST_COMMIT:       579f50e
-NEXT_ACTION:       Keep the quality pass moving: space_dodge, memory_flip, and stack are still QUALITY_B — pick the next one, deepen its actual gameplay loop (not just juice/particles), then rerun tests/analyze and update this state with the fresh commit hash. After those 3 are A-quality, broaden the audit to the rest of the 78-game catalog (Phase 4 requires auditing EVERY game, not only the 14 high-risk ones).
+LAST_COMMIT:       (set after this commit — see git log)
+NEXT_ACTION:       Keep the quality pass moving: space_dodge and stack are still QUALITY_B — pick the next one, deepen its actual gameplay loop (not just juice/particles), then rerun tests/analyze and update this state with the fresh commit hash. After those 2 are A-quality (or deliberately re-confirmed as the right design for their genre), broaden the audit to the rest of the 78-game catalog (Phase 4 requires auditing EVERY game, not only the 14 high-risk ones).
 FACTORY_COMPLETE:  FALSE
 ```
 
@@ -35,7 +35,7 @@ FACTORY_COMPLETE:  FALSE
 > automatically — forever — until `FACTORY_COMPLETE: TRUE` above. See `CLAUDE.md`
 > for the permanent operating rules and the Phase-11 definition of done.
 
-- **HEAD at last update:** 579f50e (Brick Break power-up capsules: wide paddle, slow-mo ball, extra life)
+- **HEAD at last update:** (set after this commit) Memory Flip think-fast timer + bank bonus
 - **Version:** 1.0.42+43 (HELD — no bump during factory; release builds are LAST)
 - **Updated:** 2026-10-04
 - **Tests:** 161 pass · **Analyze:** 115 info / 0 warnings / 0 errors
