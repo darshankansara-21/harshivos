@@ -18,6 +18,9 @@ class _WhackGameState extends State<WhackGame>
   int _score = 0;
   int _combo = 0;
   int _best = 0;
+  int _lives = 3;
+  int _round = 1;
+  int _roundTarget = 10;
   double _bannerT = 0;
   String? _banner;
   GameStatus _status = GameStatus.ready;
@@ -42,16 +45,17 @@ class _WhackGameState extends State<WhackGame>
       if (_mole[i] > 0) {
         _mole[i] -= dt;
         if (_mole[i] <= 0) {
-          // A hamster that ducks away unhit breaks the combo; an avoided bomb
-          // is fine.
-          if (!_isBomb[i]) _combo = 0;
+          if (!_isBomb[i]) {
+            _combo = 0;
+            _loseLife('Missed it!');
+          }
           _isBomb[i] = false;
         }
       }
     }
     _spawnIn -= dt;
     if (_spawnIn <= 0) {
-      _spawnIn = math.max(0.35, 0.8 - _score * 0.01) *
+      _spawnIn = math.max(0.25, 0.75 - _round * 0.05) *
           (0.6 + _rnd.nextDouble() * 0.7);
       final free = <int>[
         for (var i = 0; i < _holes; i++)
@@ -59,11 +63,43 @@ class _WhackGameState extends State<WhackGame>
       ];
       if (free.isNotEmpty) {
         final h = free[_rnd.nextInt(free.length)];
-        // Roughly one in five pop-ups is a bomb to avoid.
         _isBomb[h] = _rnd.nextInt(5) == 0;
-        _mole[h] = math.max(0.6, 1.4 - _score * 0.02);
+        _mole[h] = math.max(0.5, 1.0 - _round * 0.06) +
+            _rnd.nextDouble() * 0.45;
       }
     }
+  }
+
+  void _loseLife(String reason) {
+    if (_status != GameStatus.playing) return;
+    _lives = math.max(0, _lives - 1);
+    _combo = 0;
+    _banner = _lives > 0 ? '$reason ${_lives} left' : 'Game over!';
+    _bannerT = 1.0;
+    TonePlayer.instance.playCue(SoundCue.crash);
+    emit(ExperienceEvent.incorrectAnswer);
+    if (_lives <= 0) {
+      final prev = GameScores.instance.best(_id);
+      _status = GameStatus.over;
+      emit(_score > prev
+          ? ExperienceEvent.gameCompleted
+          : ExperienceEvent.incorrectAnswer);
+      GameScores.instance.submit(_id, _score).then((b) {
+        if (mounted) setState(() => _best = b);
+      });
+    }
+  }
+
+  void _advanceRound() {
+    if (_status != GameStatus.playing) return;
+    if (_score < _roundTarget) return;
+    _round++;
+    _lives = math.min(5, _lives + 1);
+    _roundTarget += 8;
+    _spawnIn = math.max(0.22, 0.6 - (_round * 0.04));
+    _banner = 'Round $_round!';
+    _bannerT = 1.2;
+    TonePlayer.instance.playCue(SoundCue.milestone);
   }
 
   void _hit(int i) {
@@ -73,12 +109,8 @@ class _WhackGameState extends State<WhackGame>
       _mole[i] = 0;
       _isBomb[i] = false;
       if (wasBomb) {
-        _combo = 0;
+        _loseLife('Ouch! Avoid 💣');
         _score = math.max(0, _score - 1);
-        _banner = 'Ouch! Avoid 💣';
-        _bannerT = 1.0;
-        TonePlayer.instance.playCue(SoundCue.crash);
-        emit(ExperienceEvent.incorrectAnswer);
         return;
       }
       _combo++;
@@ -86,8 +118,9 @@ class _WhackGameState extends State<WhackGame>
       _splat[i] = 0.35;
       TonePlayer.instance.playCue(SoundCue.wood);
       emit(ExperienceEvent.bubblePopped);
-      // Milestone cheers give the endless whack a sense of achievement.
-      if (_score == 10 || _score == 25 || (_score >= 50 && _score % 25 == 0)) {
+      if (_score >= _roundTarget) {
+        _advanceRound();
+      } else if (_score == 10 || _score == 25 || (_score >= 50 && _score % 25 == 0)) {
         _banner = '$_score moles! 🎉';
         _bannerT = 1.3;
         TonePlayer.instance.playCue(SoundCue.milestone);
@@ -110,6 +143,9 @@ class _WhackGameState extends State<WhackGame>
       }
       _score = 0;
       _combo = 0;
+      _lives = 3;
+      _round = 1;
+      _roundTarget = 10;
       _banner = null;
       _bannerT = 0;
       _spawnIn = 0.7;
@@ -122,7 +158,7 @@ class _WhackGameState extends State<WhackGame>
     drain(context);
     return _Shell(
       title: '🔨 Whack',
-      introHow: 'Tap the moles as they pop up — but never the bombs!',
+      introHow: 'Tap the moles as they pop up, dodge bombs, and survive 3 lives through the rounds!',
       onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,
