@@ -11,9 +11,9 @@
 
 ```
 CURRENT_PHASE:     4 ? QUALITY AUDIT & TRANSFORM (catalog expansion FROZEN)
-CURRENT_GAME:      brick_break (B-tier arcade pass: multi-hit brick pressure, combo scoring, and stronger level pacing to turn the loop from a simple bounce game into a real arcade challenge)
-CURRENT_BATCH:     polish-batch-4 (B-game brick_break pass; multi-hit brick pacing, combo pressure, and clearer fail-state feedback)
-COMPLETED_WORK:    78 Play games + 20 sensory toys built (rounds 1-4); arcade_games.dart refactored into per-game part files; self-driving factory infra built (CLAUDE.md + scripts/wonderplay_factory.ps1, Copilot CLI headless verified); high-risk quality pass recorded for bowling, racing, snake, pinball, piano_tiles, star_tap, whack, brick_break, space_dodge, sky_hop, memory_flip, stack, goal_keeper, fruit_catch; sky_hop B-pass polished with clearer coin streak feedback, whack was deepened with 3-life pressure, memory_flip adds lives plus a more decisive fail-state loop, stack rewards precise placement with a stronger level ramp, and brick_break now adds multi-hit brick pacing plus combo pressure for a more decisive run.
+CURRENT_GAME:      space_dodge (B-tier arcade pass: 3-hit survival, wave clusters, and shield-reward pressure to turn a simple dodge sketch into a genuine arcade challenge)
+CURRENT_BATCH:     polish-batch-5 (B-game space_dodge pass; 3-hit survival loop, wave-based pressure, and a more deliberate fail-state rhythm)
+COMPLETED_WORK:    78 Play games + 20 sensory toys built (rounds 1-4); arcade_games.dart refactored into per-game part files; self-driving factory infra built (CLAUDE.md + scripts/wonderplay_factory.ps1, Copilot CLI headless verified); high-risk quality pass recorded for bowling, racing, snake, pinball, piano_tiles, star_tap, whack, brick_break, space_dodge, sky_hop, memory_flip, stack, goal_keeper, fruit_catch; the space_dodge pass deepens the arcade loop with 3-hit survival pressure, wave clusters, and shield-risk decisions, while prior B-game passes kept the product quality bar high.
 AUDITED_GAMES:     14 high-risk games audited and classified in this batch (all prior war-room transforms preserved; no fresh C/D entries after equivalent gameplay review).
 QUALITY_A:         bowling, racing, snake, pinball, goal_keeper, star_tap, fruit_catch, piano_tiles
 QUALITY_B:         whack, sky_hop, brick_break, space_dodge, memory_flip, stack
@@ -22,8 +22,8 @@ QUALITY_D:         (none recorded; no rebuild required in this batch)
 KNOWN_DEFECTS:     none open. Real-child testing flagged these as weak/high-risk: bowling, racing, snake, pinball, piano_tiles, star_tap, whack, brick_break, space_dodge, sky_hop, memory_flip, stack, goal_keeper, fruit_catch. Remaining work is polish pass + device QA, not a functional rebuild.
 DEVICE_QA_STATUS:  BLOCKED (Pixel 6a off USB; needs physical replug). Record a device-QA checklist; do not let this block code/quality work.
 AUDIO_QA_STATUS:   NOT_STARTED (Piano = benchmark; verify every game has intentional audio; direct Hari/Pico taps silent).
-LAST_COMMIT:       8afbc763b41b51af7951e6847167481f682e045a
-NEXT_ACTION:       Continue the B-game quality pass with the remaining weak arcade loop (space_dodge), rerun flutter test --no-pub + flutter analyze --no-pub, and update the state block with the verified post-pass QA and any remaining device findings.
+LAST_COMMIT:       f6548d6f4ef5fc3b2819d5b67b860da9fb495781
+NEXT_ACTION:       Try the Flutter verification pass again (flutter test --no-pub + flutter analyze --no-pub) in an environment that allows the Flutter toolchain to run; if the toolchain remains blocked, record the exact blocker and keep the space_dodge polish state as the current batch until verification is available again.
 FACTORY_COMPLETE:  FALSE
 ```
 

@@ -25,7 +25,10 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
   int _score = 0;
   int _best = 0;
   int _bonus = 0;
+  int _lives = 3;
   int _lastMilestone = 0;
+  bool _invulnerable = false;
+  double _hitCooldown = 0;
   bool _shield = false;
   String? _banner;
   double _bannerT = 0;
@@ -48,6 +51,15 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
   void onTick(double dt) {
     if (_status != GameStatus.playing) return;
     _elapsed += dt;
+
+    if (_invulnerable) {
+      _hitCooldown -= dt;
+      if (_hitCooldown <= 0) {
+        _invulnerable = false;
+        _banner = 'Back in the fight!';
+        _bannerT = 0.9;
+      }
+    }
     // Rocket thruster trail.
     if (_rnd.nextDouble() < 0.9) {
       _shards.add(_Shard(
@@ -76,14 +88,22 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
       TonePlayer.instance.playCue(SoundCue.coin);
       emit(ExperienceEvent.bubblePopped);
     }
-    final speed = 0.35 + _elapsed * 0.02;
+    final wave = (_elapsed / 12).floor();
+    final speed = 0.35 + _elapsed * 0.02 + wave * 0.04;
     _spawnIn -= dt;
     if (_spawnIn <= 0) {
-      _spawnIn = math.max(0.28, 0.7 - _elapsed * 0.015);
-      final roll = _rnd.nextDouble();
-      final kind = roll < 0.14 ? 1 : (roll < 0.19 ? 2 : 0);
-      final r = kind == 0 ? 0.03 + _rnd.nextDouble() * 0.05 : 0.032;
-      _meteors.add(_Meteor(_rnd.nextDouble(), -0.1, r, speed, kind: kind));
+      _spawnIn = math.max(0.24, 0.72 - _elapsed * 0.015);
+      final cluster = wave > 1 && _rnd.nextDouble() < 0.18;
+      if (cluster) {
+        final baseX = _rnd.nextDouble();
+        _meteors.add(_Meteor(baseX - 0.08, -0.1, 0.032, speed, kind: 0));
+        _meteors.add(_Meteor(baseX + 0.08, -0.1, 0.032, speed, kind: 0));
+      } else {
+        final roll = _rnd.nextDouble();
+        final kind = roll < 0.14 ? 1 : (roll < 0.19 ? 2 : 0);
+        final r = kind == 0 ? 0.03 + _rnd.nextDouble() * 0.05 : 0.032;
+        _meteors.add(_Meteor(_rnd.nextDouble(), -0.1, r, speed, kind: kind));
+      }
     }
     for (final m in _meteors) {
       m.y += m.vy * dt;
@@ -115,16 +135,32 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
           _flash('Shield saved you!');
           continue;
         }
-        _status = GameStatus.over;
-        TonePlayer.instance.playCue(SoundCue.crash);
-        final prev = GameScores.instance.best(_id);
-        emit(_score > prev
-            ? ExperienceEvent.gameCompleted
-            : ExperienceEvent.incorrectAnswer);
-        GameScores.instance.submit(_id, _score).then((b) {
-          if (mounted) setState(() => _best = b);
-        });
-        return;
+        if (_invulnerable) {
+          m.y = 2;
+          continue;
+        }
+        _lives--;
+        _invulnerable = true;
+        _hitCooldown = 1.1;
+        _burstAt(m.x, m.y, const Color(0xFFFFD166), 14);
+        m.y = 2;
+        if (_lives <= 0) {
+          _status = GameStatus.over;
+          TonePlayer.instance.playCue(SoundCue.crash);
+          final prev = GameScores.instance.best(_id);
+          emit(_score > prev
+              ? ExperienceEvent.gameCompleted
+              : ExperienceEvent.incorrectAnswer);
+          GameScores.instance.submit(_id, _score).then((b) {
+            if (mounted) setState(() => _best = b);
+          });
+          _flash('Final hit!');
+          return;
+        }
+        TonePlayer.instance.playCue(SoundCue.metal);
+        _flash('Hit! ' + _lives.toString() + ' left');
+        emit(ExperienceEvent.incorrectAnswer);
+        continue;
       }
     }
     _meteors.removeWhere((m) => m.y > 1.2);
@@ -156,8 +192,11 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
       _spawnIn = 0.6;
       _score = 0;
       _bonus = 0;
+      _lives = 3;
       _lastMilestone = 0;
       _shield = false;
+      _invulnerable = false;
+      _hitCooldown = 0;
       _banner = null;
       _bannerT = 0;
       _status = GameStatus.playing;
@@ -169,12 +208,12 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
     drain(context);
     return _Shell(
       title: '🚀 Space Dodge',
-      introHow: 'Steer to dodge the meteors. Grab 💎 gems and shields!',
+      introHow: 'Weave through meteor swarms, grab gems, and survive 3 hits.',
       onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,
       status: _status,
-      banner: _shield ? (_banner ?? '🛡 Shielded') : _banner,
+      banner: _banner ?? (_shield ? '🛡 Shielded' : '❤ ' + _lives.toString()),
       overEmoji: '💥',
       overText: 'Boom!',
       accent: const Color(0xFF9B5DE5),
