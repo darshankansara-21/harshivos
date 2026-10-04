@@ -19,8 +19,10 @@ class _BuildSlot {
 class _ShapeBuilderGameState extends State<ShapeBuilderGame> with _Emit {
   static const String _id = 'shape_builder';
   static const int _target = 5;
+  final math.Random _rnd = math.Random();
   List<_BuildSlot> _slots = <_BuildSlot>[];
   List<int> _order = <int>[];
+  final List<int> _figOrder = <int>[0, 1, 2, 3, 4];
   int _placed = 0;
   int _fig = 0;
   int _score = 0;
@@ -70,7 +72,7 @@ class _ShapeBuilderGameState extends State<ShapeBuilderGame> with _Emit {
         _BuildSlot(3, 0.5, 0.45, 0.12, const Color(0xFFFFD166)),
       ],
     ];
-    _slots = figs[_fig % figs.length];
+    _slots = figs[_figOrder[_fig % _figOrder.length]];
     for (final s in _slots) {
       s.filled = false;
     }
@@ -124,6 +126,7 @@ class _ShapeBuilderGameState extends State<ShapeBuilderGame> with _Emit {
     setState(() {
       _score = 0;
       _fig = 0;
+      _figOrder.shuffle(_rnd);
       _banner = null;
       _buildFigure();
       _status = GameStatus.playing;
@@ -139,6 +142,7 @@ class _ShapeBuilderGameState extends State<ShapeBuilderGame> with _Emit {
       introHow:
           'A piece appears at the bottom. Tap the matching empty slot to place it and build the picture!',
       onStart: () => setState(() {
+        _figOrder.shuffle(_rnd);
         _buildFigure();
         _status = GameStatus.playing;
       }),
