@@ -24,7 +24,7 @@ FACTORY_BLOCKER:   Previously recorded AI model budget exhaustion blocked the AU
 ORCHESTRATOR:      HARDENED. scripts/wonderplay_factory.ps1 now HALTS-and-diagnoses on fatal worker failures (quota/credits/auth/missing-binary via Get-WorkerFatalReason) instead of looping. Separates FAILURE (exit!=0, FailLimit=3) vs STALL (exit0 no commit, StallLimit=4); removed the old pause-5min-then-loop-forever burn loop; writes _factory_logs/FACTORY_HALTED.txt on halt.
 DEVICE_QA_STATUS:  BLOCKED (Pixel 6a off USB; needs physical replug). Record a device-QA checklist; do not let this block code/quality work.
 AUDIO_QA_STATUS:   NOT_STARTED (Piano = benchmark; verify every game has intentional audio; direct Hari/Pico taps silent).
-LAST_COMMIT:       PENDING (set by this batch's commit — see git log)
+LAST_COMMIT:       925dc18
 NEXT_ACTION:       space_dodge is the last remaining QUALITY_B from the 14 high-risk list — deepen its actual gameplay loop (e.g. meteor variety/hazard patterns, not just juice/particles), rerun tests/analyze, commit+push, update this state. After that, every high-risk game is A-quality; broaden the audit to the rest of the 78-game catalog (Phase 4 requires auditing EVERY game, not only the 14 high-risk ones) and start recording A/B/C/D verdicts for the remaining ~64 games.
 FACTORY_COMPLETE:  FALSE
 ```
@@ -35,7 +35,7 @@ FACTORY_COMPLETE:  FALSE
 > automatically — forever — until `FACTORY_COMPLETE: TRUE` above. See `CLAUDE.md`
 > for the permanent operating rules and the Phase-11 definition of done.
 
-- **HEAD at last update:** PENDING (Stack dash-speed timing + Mastery Reset combo)
+- **HEAD at last update:** 925dc18 (Stack dash-speed timing + Mastery Reset combo)
 - **Version:** 1.0.42+43 (HELD — no bump during factory; release builds are LAST)
 - **Updated:** 2026-10-04
 - **Tests:** 161 pass · **Analyze:** 115 info / 0 warnings / 0 errors
