@@ -9,7 +9,9 @@ class SpaceDodgeGame extends StatefulWidget {
 class _Meteor {
   _Meteor(this.x, this.y, this.r, this.vy, {this.kind = 0, this.vx = 0.0});
   double x, y, r, vy, vx;
-  final int kind; // 0 = rock (deadly), 1 = gem (+bonus), 2 = shield pickup
+  final int kind; // 0 = rock, 1 = gem (+bonus), 2 = shield pickup,
+  // 3 = seeker (homing, steers toward the ship), 4 = splitter (forks in two)
+  bool split = false; // splitter: already forked
 }
 
 class _SpaceDodgeGameState extends State<SpaceDodgeGame>
@@ -33,6 +35,8 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
   bool _invulnerable = false;
   double _hitCooldown = 0;
   bool _shield = false;
+  bool _seenSeeker = false;
+  bool _seenSplitter = false;
   String? _banner;
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
@@ -122,21 +126,72 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
         }
       } else {
         final roll = _rnd.nextDouble();
-        final kind = roll < 0.12 ? 1 : (roll < 0.18 ? 2 : 0);
-        final r = kind == 0 ? 0.03 + _rnd.nextDouble() * 0.045 : 0.032;
+        final seekerChance = _wave >= 2 ? 0.1 : 0.0;
+        final splitterChance = _wave >= 3 ? 0.1 : 0.0;
+        int kind;
+        if (roll < 0.1) {
+          kind = 1; // gem
+        } else if (roll < 0.16) {
+          kind = 2; // shield
+        } else if (roll < 0.16 + seekerChance) {
+          kind = 3; // seeker
+        } else if (roll < 0.16 + seekerChance + splitterChance) {
+          kind = 4; // splitter
+        } else {
+          kind = 0; // plain rock
+        }
+        final r = kind == 4
+            ? 0.05
+            : kind == 0
+                ? 0.03 + _rnd.nextDouble() * 0.045
+                : 0.032;
         final x = _rnd.nextDouble();
-        final vx =
-            (_rnd.nextBool() ? -1.0 : 1.0) * (0.04 + _rnd.nextDouble() * 0.12);
-        _meteors.add(_Meteor(x, -0.1, r, speed + _rnd.nextDouble() * 0.12,
-            kind: kind, vx: vx));
+        final vx = kind == 3
+            ? 0.0
+            : (_rnd.nextBool() ? -1.0 : 1.0) *
+                (0.04 + _rnd.nextDouble() * 0.12);
+        final vy = kind == 3
+            ? speed * 0.75
+            : kind == 4
+                ? speed * 0.85
+                : speed + _rnd.nextDouble() * 0.12;
+        _meteors.add(_Meteor(x, -0.1, r, vy, kind: kind, vx: vx));
+        if (kind == 3 && !_seenSeeker) {
+          _seenSeeker = true;
+          _flash('Seeker incoming! It tracks you.');
+        }
+        if (kind == 4 && !_seenSplitter) {
+          _seenSplitter = true;
+          _flash('Watch out, it splits in two!');
+        }
       }
     }
 
+    final toSpawn = <_Meteor>[];
     for (var i = _meteors.length - 1; i >= 0; i--) {
       final m = _meteors[i];
+      if (m.kind == 3) {
+        // Seeker: steers toward the ship's x position with a capped turn rate.
+        final dxToShip = _shipX - m.x;
+        final desiredVx = dxToShip.sign * 0.16;
+        m.vx += (desiredVx - m.vx) * dt * 1.4;
+      } else {
+        if (m.x < 0.04 || m.x > 0.96) m.vx *= -1;
+      }
       m.x += m.vx * dt;
-      if (m.x < 0.04 || m.x > 0.96) m.vx *= -1;
       m.y += m.vy * dt;
+
+      if (m.kind == 4 && !m.split && m.y > 0.45) {
+        m.split = true;
+        _burstAt(m.x, m.y, const Color(0xFFB5B5B5), 10);
+        TonePlayer.instance.playCue(SoundCue.metal);
+        toSpawn.add(_Meteor(m.x, m.y, 0.028, m.vy * 1.1,
+            kind: 0, vx: -0.22 - _rnd.nextDouble() * 0.08));
+        toSpawn.add(_Meteor(m.x, m.y, 0.028, m.vy * 1.1,
+            kind: 0, vx: 0.22 + _rnd.nextDouble() * 0.08));
+        _meteors.removeAt(i);
+        continue;
+      }
 
       final dx = (m.x - _shipX);
       final dy = (m.y - 0.85);
@@ -194,6 +249,7 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
         _flash('Ouch! $_lives left');
       }
     }
+    _meteors.addAll(toSpawn);
     _meteors.removeWhere((m) => m.y > 1.2 || m.y < -0.25);
   }
 
@@ -229,6 +285,8 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
       _invulnerable = false;
       _hitCooldown = 0;
       _shield = false;
+      _seenSeeker = false;
+      _seenSplitter = false;
       _banner = null;
       _bannerT = 0;
       _status = GameStatus.playing;
@@ -241,7 +299,7 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
     return _Shell(
       title: '🚀 Space Dodge',
       introHow:
-          'Steer to dodge the meteors. Survive the waves, grab gems, and reach 180 points before all 3 ships are gone.',
+          'Steer to dodge the meteors. Later waves bring pink seekers that track you and grey splitters that fork in two — survive, grab gems, and reach 180 points before all 3 ships are gone.',
       onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,
@@ -328,6 +386,22 @@ class _SpacePainter extends CustomPainter {
               ..style = PaintingStyle.stroke
               ..strokeWidth = 3
               ..color = const Color(0xFF4CC9F0));
+      } else if (m.kind == 3) {
+        // Seeker: pulsing magenta core with a directional glow toward travel.
+        canvas.drawCircle(
+            c, rr * 1.3, Paint()..color = const Color(0xFFFF006E).withOpacity(0.25));
+        canvas.drawCircle(c, rr, Paint()..color = const Color(0xFFFF006E));
+        canvas.drawCircle(
+            c, rr * 0.4, Paint()..color = Colors.white.withOpacity(0.9));
+      } else if (m.kind == 4) {
+        // Splitter: larger rock with a warning seam showing where it forks.
+        canvas.drawCircle(c, rr, Paint()..color = const Color(0xFFB5B5B5));
+        canvas.drawLine(Offset(c.dx - rr, c.dy), Offset(c.dx + rr, c.dy),
+            Paint()
+              ..color = const Color(0xFFFFD60A)
+              ..strokeWidth = 3);
+        canvas.drawCircle(
+            c, rr * 0.5, Paint()..color = const Color(0xFF8D6E63));
       } else {
         canvas.drawCircle(c, rr, rock);
         canvas.drawCircle(
