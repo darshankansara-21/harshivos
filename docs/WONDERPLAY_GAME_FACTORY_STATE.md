@@ -11,9 +11,9 @@
 
 ```
 CURRENT_PHASE:     4 — QUALITY AUDIT & TRANSFORM (catalog expansion FROZEN)
-CURRENT_GAME:      bowling → racing → snake → pinball (high-risk audit pass complete; B/C work preserved for next batch)
-CURRENT_BATCH:     audit-batch-1 (high-risk A/B audit completed; C/D review deferred to next pass)
-COMPLETED_WORK:    78 Play games + 20 sensory toys built (rounds 1-4); arcade_games.dart refactored into per-game part files; self-driving factory infra built (CLAUDE.md + scripts/wonderplay_factory.ps1, Copilot CLI headless verified); high-risk quality pass recorded for bowling, racing, snake, pinball, piano_tiles, star_tap, whack, brick_break, space_dodge, sky_hop, memory_flip, stack, goal_keeper, fruit_catch.
+CURRENT_GAME:      sky_hop polish pass (B-tier arcade loop tightened with clearer coin streak feedback and score progression)
+CURRENT_BATCH:     polish-batch-1 (B-game feedback pass; no new catalog expansion)
+COMPLETED_WORK:    78 Play games + 20 sensory toys built (rounds 1-4); arcade_games.dart refactored into per-game part files; self-driving factory infra built (CLAUDE.md + scripts/wonderplay_factory.ps1, Copilot CLI headless verified); high-risk quality pass recorded for bowling, racing, snake, pinball, piano_tiles, star_tap, whack, brick_break, space_dodge, sky_hop, memory_flip, stack, goal_keeper, fruit_catch; sky_hop B-pass polished with bannered streak feedback and higher-clarity coin scoring.
 AUDITED_GAMES:     14 high-risk games audited and classified in this batch (all prior war-room transforms preserved; no fresh C/D entries after equivalent gameplay review).
 QUALITY_A:         bowling, racing, snake, pinball, goal_keeper, star_tap, fruit_catch, piano_tiles
 QUALITY_B:         whack, sky_hop, stack, brick_break, space_dodge, memory_flip
@@ -23,7 +23,7 @@ KNOWN_DEFECTS:     none open. Real-child testing flagged these as weak/high-risk
 DEVICE_QA_STATUS:  BLOCKED (Pixel 6a off USB; needs physical replug). Record a device-QA checklist; do not let this block code/quality work.
 AUDIO_QA_STATUS:   NOT_STARTED (Piano = benchmark; verify every game has intentional audio; direct Hari/Pico taps silent).
 LAST_COMMIT:       df65cd8
-NEXT_ACTION:       Complete the Phase 4 polish pass from the recorded A/B audit, then run flutter test --no-pub + flutter analyze --no-pub, commit+push, and update the state block with the verified post-pass QA and any remaining device findings.
+NEXT_ACTION:       Continue the B-game polish pass with one more arcade loop, then rerun flutter test --no-pub + flutter analyze --no-pub and update the state block with the verified post-pass QA and any remaining device findings.
 FACTORY_COMPLETE:  FALSE
 ```
 

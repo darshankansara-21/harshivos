@@ -27,7 +27,10 @@ class _SkyHopGameState extends State<SkyHopGame>
   double _spawnIn = 0;
   int _score = 0;
   int _best = 0;
+  int _coinCombo = 0;
   bool _started = false;
+  String? _banner;
+  double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
 
   @override
@@ -41,6 +44,13 @@ class _SkyHopGameState extends State<SkyHopGame>
   @override
   void onTick(double dt) {
     if (_status != GameStatus.playing) return;
+    if (_bannerT > 0) {
+      _bannerT -= dt;
+      if (_bannerT <= 0) {
+        _banner = null;
+        _coinCombo = 0;
+      }
+    }
     for (var i = _bits.length - 1; i >= 0; i--) {
       final s = _bits[i];
       s.x += s.vx * dt;
@@ -64,7 +74,10 @@ class _SkyHopGameState extends State<SkyHopGame>
       p.x -= 0.42 * dt;
       if (!p.scored && p.x < 0.28) {
         p.scored = true;
+        _coinCombo = 0;
         _score++;
+        _banner = 'Nice hop!';
+        _bannerT = 0.8;
         TonePlayer.instance.playCue(SoundCue.coin);
         emit(ExperienceEvent.bubblePopped);
       }
@@ -72,7 +85,11 @@ class _SkyHopGameState extends State<SkyHopGame>
           (p.x - 0.3).abs() < 0.06 &&
           (_birdY - p.coinY).abs() < 0.05) {
         p.coinTaken = true;
-        _score += 2;
+        _coinCombo += 1;
+        final bonus = 2 + (_coinCombo - 1);
+        _score += bonus;
+        _banner = _coinCombo > 1 ? 'Coin streak x$_coinCombo!' : 'Coin grab!';
+        _bannerT = 1.2;
         for (var k = 0; k < 8; k++) {
           final a = _rnd.nextDouble() * math.pi * 2;
           final sp = 0.1 + _rnd.nextDouble() * 0.22;
@@ -104,6 +121,9 @@ class _SkyHopGameState extends State<SkyHopGame>
 
   void _over() {
     final prev = GameScores.instance.best(_id);
+    _coinCombo = 0;
+    _banner = null;
+    _bannerT = 0;
     _status = GameStatus.over;
     TonePlayer.instance.playCue(SoundCue.crash);
     emit(_score > prev
@@ -122,6 +142,9 @@ class _SkyHopGameState extends State<SkyHopGame>
       _vy = 0;
       _spawnIn = 0;
       _score = 0;
+      _coinCombo = 0;
+      _banner = null;
+      _bannerT = 0;
       _started = false;
       _status = GameStatus.playing;
     });
@@ -137,6 +160,7 @@ class _SkyHopGameState extends State<SkyHopGame>
       score: _score,
       best: _best,
       status: _status,
+      banner: _banner,
       overEmoji: '🐤',
       overText: 'Splash!',
       accent: const Color(0xFFFFD166),
