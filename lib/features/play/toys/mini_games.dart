@@ -1970,9 +1970,9 @@ class _RacingGameState extends State<RacingGame>
     final remaining = (_raceLen - _distance).clamp(0.0, _raceLen);
     final mps = _mps;
     final sprintBonus = (1.0 - remaining / _raceLen).clamp(0.0, 1.0) * 18.0;
+    final finishPush = (1.0 - remaining / _raceLen).clamp(0.0, 1.0);
     _distance += (mps + sprintBonus) * dt;
-    _speed =
-        0.5 + (mps + sprintBonus) / 240; // couple the road scroll to our pace
+    _speed = 0.5 + (mps + sprintBonus) / 240;
     for (var i = 0; i < _rivals.length; i++) {
       final leadGap = _distance - _rivals[i];
       final rivalPace = _rivalMps[i] + (leadGap > 0 ? 12 : 8);
@@ -2007,18 +2007,20 @@ class _RacingGameState extends State<RacingGame>
     _cars.removeWhere((c) {
       if (c.y >= 0.78 && c.y <= 0.92 && c.lane == _lane) {
         if (c.boost) {
-          _boostT = 3.5;
-          _score += 12;
+          _boostT = 3.5 + finishPush * 1.5;
+          final pickup = 12 + (finishPush * 10).round();
+          _score += pickup;
           TonePlayer.instance.playCue(SoundCue.success);
           emit(ExperienceEvent.bubblePopped);
-          _flash('⚡ Boost! +12');
+          _flash('⚡ Boost! +$pickup');
           return true;
         }
         if (c.coin) {
-          _score += 10;
+          final pickup = 10 + (finishPush * 12).round();
+          _score += pickup;
           TonePlayer.instance.playCue(SoundCue.coin);
           emit(ExperienceEvent.bubblePopped);
-          _flash('+10 coin!');
+          _flash('💰 +$pickup');
           return true;
         }
         if (_boostT > 0) {
@@ -2028,12 +2030,14 @@ class _RacingGameState extends State<RacingGame>
           _flash('Smash! +5');
           return true;
         }
-        // A knock is not fatal — it costs pace and drops you back in the field.
-        _shuntT = 1.2;
-        _distance = math.max(0, _distance - 35);
+        // A knock is not fatal: near the finish, it hurts more, but momentum is
+        // restored quickly so the child never feels stuck in the middle of a race.
+        _shuntT = 1.1 + finishPush * 0.35;
+        final loss = 30 + (finishPush * 18).round();
+        _distance = math.max(0, _distance - loss);
         TonePlayer.instance.playCue(SoundCue.crash);
         emit(ExperienceEvent.incorrectAnswer);
-        _flash('Shunt! lost pace');
+        _flash('Shunt! -${loss}m');
         return true;
       }
       return c.y > 1.05;
@@ -2093,7 +2097,8 @@ class _RacingGameState extends State<RacingGame>
       accent: const Color(0xFFFF6B6B),
       introHow: 'Reach the 🏁 chequered flag ahead of 3 rivals.\n'
           'Tap left/right to change lanes, grab 🪙 coins and ⚡ boosts, '
-          'dodge traffic — a knock costs pace but never ends the race.',
+          'and dodge traffic — late-race pickups are worth more, while a shunt '
+          'costs pace without ending the race.',
       onStart: () => setState(() => _status = GameStatus.playing),
       onPlayAgain: _reset,
       child: LayoutBuilder(
