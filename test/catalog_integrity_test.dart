@@ -61,6 +61,9 @@ void main() {
     'skee_ball',
     'tone_match',
     'odd_one_out',
+    'bigger_number',
+    'balance_ball',
+    'calm_choices',
   ];
 
   test('every registered game is playable, reachable and implemented', () {

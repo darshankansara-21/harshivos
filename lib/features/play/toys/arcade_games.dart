@@ -71,6 +71,9 @@ part 'arcade/kindness_match_game.dart';
 part 'arcade/skee_ball_game.dart';
 part 'arcade/tone_match_game.dart';
 part 'arcade/odd_one_out_game.dart';
+part 'arcade/bigger_number_game.dart';
+part 'arcade/balance_ball_game.dart';
+part 'arcade/calm_choices_game.dart';
 
 
 /// Shared chrome for the arcade games — score + best pill, optional target, a

@@ -92,6 +92,9 @@ class GameThumb extends StatelessWidget {
     'skee_ball',
     'tone_match',
     'odd_one_out',
+    'bigger_number',
+    'balance_ball',
+    'calm_choices',
   };
 
   @override
@@ -280,6 +283,12 @@ class _ThumbPainter extends CustomPainter {
         _toneMatch(canvas, w, h);
       case 'odd_one_out':
         _oddOneOut(canvas, w, h);
+      case 'bigger_number':
+        _biggerNumber(canvas, w, h);
+      case 'balance_ball':
+        _balanceBall(canvas, w, h);
+      case 'calm_choices':
+        _calmChoices(canvas, w, h);
     }
   }
 
@@ -1739,6 +1748,62 @@ class _ThumbPainter extends CustomPainter {
             w * 0.1,
             Paint()..color = odd ? const Color(0xFFFF8ED8) : const Color(0xFF48CAE4));
       }
+    }
+  }
+
+  void _biggerNumber(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF2A2412), Color(0xFF141006)]);
+    const nums = <String>['3', '7', '5'];
+    for (var i = 0; i < 3; i++) {
+      final big = i == 1;
+      final tp = TextPainter(
+        text: TextSpan(
+            text: nums[i],
+            style: TextStyle(
+                color: big ? const Color(0xFFFFD166) : Colors.white54,
+                fontSize: w * (big ? 0.3 : 0.22),
+                fontWeight: FontWeight.w900)),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(canvas, Offset(w * (0.22 + i * 0.26) - tp.width / 2, h * 0.4));
+    }
+  }
+
+  void _balanceBall(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF12222E), Color(0xFF0A141C)]);
+    canvas.save();
+    canvas.translate(w * 0.5, h * 0.55);
+    canvas.rotate(-0.18);
+    canvas.drawLine(Offset(-w * 0.34, 0), Offset(w * 0.34, 0),
+        Paint()
+          ..color = const Color(0xFF9AB4CC)
+          ..strokeWidth = 10
+          ..strokeCap = StrokeCap.round);
+    canvas.drawCircle(Offset(w * 0.12, -w * 0.07), w * 0.07,
+        Paint()..color = const Color(0xFF48CAE4));
+    canvas.restore();
+    final pivot = Path()
+      ..moveTo(w * 0.5, h * 0.55)
+      ..lineTo(w * 0.42, h * 0.72)
+      ..lineTo(w * 0.58, h * 0.72)
+      ..close();
+    canvas.drawPath(pivot, Paint()..color = const Color(0xFF5C7C9E));
+  }
+
+  void _calmChoices(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF123038), Color(0xFF081418)]);
+    for (var i = 0; i < 5; i++) {
+      final cols = <Color>[
+        const Color(0xFFE63946), const Color(0xFFF4A261), const Color(0xFFFFD166),
+        const Color(0xFF80ED99), const Color(0xFF48CAE4),
+      ];
+      canvas.drawArc(
+          Rect.fromCircle(center: Offset(w * 0.5, h * 0.72), radius: w * (0.34 - i * 0.05)),
+          math.pi, math.pi, false,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = w * 0.04
+            ..color = cols[i]);
     }
   }
 
