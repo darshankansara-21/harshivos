@@ -109,6 +109,8 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Play'));
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Space Dodge'), findsOneWidget);
+    expect(find.textContaining('0 / 180'), findsOneWidget);
+    expect(find.text('Ships: 3'), findsOneWidget);
     await tester.dragFrom(const Offset(400, 1900), const Offset(180, 0));
     await tester.pump(const Duration(milliseconds: 500));
     await tester.pump(const Duration(milliseconds: 500));
