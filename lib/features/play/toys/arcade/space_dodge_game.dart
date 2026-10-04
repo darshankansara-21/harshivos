@@ -30,6 +30,8 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
   int _lives = _startingLives;
   int _lastMilestone = 0;
   int _wave = 1;
+  bool _invulnerable = false;
+  double _hitCooldown = 0;
   bool _shield = false;
   String? _banner;
   double _bannerT = 0;
@@ -57,6 +59,14 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
       _wave = wave;
       TonePlayer.instance.playCue(SoundCue.milestone);
       _flash('Wave $_wave!');
+    }
+    if (_invulnerable) {
+      _hitCooldown -= dt;
+      if (_hitCooldown <= 0) {
+        _invulnerable = false;
+        _banner = 'Back in the fight!';
+        _bannerT = 0.9;
+      }
     }
 
     if (_rnd.nextDouble() < 0.9) {
@@ -101,14 +111,25 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
     _spawnIn -= dt;
     if (_spawnIn <= 0) {
       _spawnIn = math.max(0.25, 0.78 - _elapsed * 0.018);
-      final roll = _rnd.nextDouble();
-      final kind = roll < 0.12 ? 1 : (roll < 0.18 ? 2 : 0);
-      final r = kind == 0 ? 0.03 + _rnd.nextDouble() * 0.045 : 0.032;
-      final x = _rnd.nextDouble();
-      final vx =
-          (_rnd.nextBool() ? -1.0 : 1.0) * (0.04 + _rnd.nextDouble() * 0.12);
-      _meteors.add(_Meteor(x, -0.1, r, speed + _rnd.nextDouble() * 0.12,
-          kind: kind, vx: vx));
+      final cluster = _wave > 1 && _rnd.nextDouble() < 0.18;
+      if (cluster) {
+        final baseX = 0.12 + _rnd.nextDouble() * 0.76;
+        for (final offset in <double>[-0.08, 0.08]) {
+          final vx = (_rnd.nextBool() ? -1.0 : 1.0) *
+              (0.04 + _rnd.nextDouble() * 0.12);
+          _meteors.add(
+              _Meteor(baseX + offset, -0.1, 0.032, speed, kind: 0, vx: vx));
+        }
+      } else {
+        final roll = _rnd.nextDouble();
+        final kind = roll < 0.12 ? 1 : (roll < 0.18 ? 2 : 0);
+        final r = kind == 0 ? 0.03 + _rnd.nextDouble() * 0.045 : 0.032;
+        final x = _rnd.nextDouble();
+        final vx =
+            (_rnd.nextBool() ? -1.0 : 1.0) * (0.04 + _rnd.nextDouble() * 0.12);
+        _meteors.add(_Meteor(x, -0.1, r, speed + _rnd.nextDouble() * 0.12,
+            kind: kind, vx: vx));
+      }
     }
 
     for (var i = _meteors.length - 1; i >= 0; i--) {
@@ -146,12 +167,18 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
           continue;
         }
 
+        if (_invulnerable) {
+          _meteors.removeAt(i);
+          continue;
+        }
         _lives -= 1;
+        _invulnerable = true;
+        _hitCooldown = 1.1;
         _burstAt(m.x, m.y, const Color(0xFFFF6B6B), 18);
         _meteors.removeAt(i);
-        TonePlayer.instance.playCue(SoundCue.crash);
         if (_lives <= 0) {
           _status = GameStatus.over;
+          TonePlayer.instance.playCue(SoundCue.crash);
           final prev = GameScores.instance.best(_id);
           emit(_score > prev
               ? ExperienceEvent.gameCompleted
@@ -162,6 +189,8 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
           _flash('Ship lost');
           return;
         }
+        TonePlayer.instance.playCue(SoundCue.metal);
+        emit(ExperienceEvent.incorrectAnswer);
         _flash('Ouch! $_lives left');
       }
     }
@@ -197,6 +226,8 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
       _lives = _startingLives;
       _lastMilestone = 0;
       _wave = 1;
+      _invulnerable = false;
+      _hitCooldown = 0;
       _shield = false;
       _banner = null;
       _bannerT = 0;
