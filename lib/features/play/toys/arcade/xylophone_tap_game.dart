@@ -35,8 +35,10 @@ class _XylophoneTapGameState extends State<XylophoneTapGame> with _Emit {
     _XyloTune('Up and Down', <int>[0, 1, 2, 3, 4, 5, 6, 7, 6, 5, 4, 3, 2, 1, 0]),
   ];
   static const int _target = 3;
+  final math.Random _rnd = math.Random();
 
-  int _tuneIdx = 0;
+  late List<int> _order; // shuffled tune order for this playthrough
+  int _orderPos = 0;
   int _pos = 0;
   int _score = 0; // tunes completed
   int _best = 0;
@@ -46,17 +48,19 @@ class _XylophoneTapGameState extends State<XylophoneTapGame> with _Emit {
   @override
   void initState() {
     super.initState();
+    _order = List<int>.generate(_tunes.length, (i) => i)..shuffle(_rnd);
     GameScores.instance.ensureLoaded().then((_) {
       if (mounted) setState(() => _best = GameScores.instance.best(_id));
     });
   }
 
-  _XyloTune get _tune => _tunes[_tuneIdx];
+  _XyloTune get _tune => _tunes[_order[_orderPos]];
   int get _nextBar => _tune.bars[_pos];
 
   void _start() {
     setState(() {
-      _tuneIdx = 0;
+      _order = List<int>.generate(_tunes.length, (i) => i)..shuffle(_rnd);
+      _orderPos = 0;
       _pos = 0;
       _score = 0;
       _banner = null;
@@ -81,7 +85,7 @@ class _XylophoneTapGameState extends State<XylophoneTapGame> with _Emit {
           TonePlayer.instance.playCue(SoundCue.gameStart);
           emit(ExperienceEvent.gameCompleted);
         } else {
-          _tuneIdx++;
+          _orderPos++;
           _pos = 0;
           _banner = 'Lovely! Next: ${_tune.name}';
         }

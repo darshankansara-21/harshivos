@@ -27,6 +27,9 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
     <List<double>>[[0.3, 0.75], [0.3, 0.45], [0.5, 0.25], [0.7, 0.45], [0.7, 0.75], [0.3, 0.75]],
   ];
 
+  final math.Random _rnd = math.Random();
+  late List<int> _order; // shuffled shape indices, replayed each pass
+  int _orderPos = 0;
   late List<List<double>> _stars;
   int _shapeIdx = 0;
   int _linked = 1; // stars connected so far (first is the start)
@@ -38,14 +41,34 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
   @override
   void initState() {
     super.initState();
-    _stars = _shapes[0];
+    _order = _shuffledOrder();
+    _shapeIdx = _order[0];
+    _stars = _shapes[_shapeIdx];
     GameScores.instance.ensureLoaded().then((_) {
       if (mounted) setState(() => _best = GameScores.instance.best(_id));
     });
   }
 
+  // A fresh shuffle each call; re-rolls if it would repeat the shape just
+  // shown so two constellations never land back-to-back.
+  List<int> _shuffledOrder() {
+    final order = List<int>.generate(_shapes.length, (i) => i)..shuffle(_rnd);
+    if (order.first == _shapeIdx) {
+      final i = 1 + _rnd.nextInt(order.length - 1);
+      final tmp = order[0];
+      order[0] = order[i];
+      order[i] = tmp;
+    }
+    return order;
+  }
+
   void _newShape() {
-    _shapeIdx = (_shapeIdx + 1) % _shapes.length;
+    _orderPos++;
+    if (_orderPos >= _order.length) {
+      _order = _shuffledOrder();
+      _orderPos = 0;
+    }
+    _shapeIdx = _order[_orderPos];
     _stars = _shapes[_shapeIdx];
     _linked = 1;
   }
@@ -79,8 +102,10 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
   void _reset() {
     setState(() {
       _score = 0;
-      _shapeIdx = 0;
-      _stars = _shapes[0];
+      _order = List<int>.generate(_shapes.length, (i) => i)..shuffle(_rnd);
+      _orderPos = 0;
+      _shapeIdx = _order[0];
+      _stars = _shapes[_shapeIdx];
       _linked = 1;
       _banner = null;
       _status = GameStatus.playing;
