@@ -55,6 +55,9 @@ void main() {
     'hoop_toss',
     'echo_drums',
     'slide_puzzle',
+    'add_it_up',
+    'steady_hand',
+    'kindness_match',
   ];
 
   test('every registered game is playable, reachable and implemented', () {

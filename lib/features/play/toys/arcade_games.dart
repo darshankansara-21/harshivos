@@ -65,6 +65,9 @@ part 'arcade/calm_breaths_game.dart';
 part 'arcade/hoop_toss_game.dart';
 part 'arcade/echo_drums_game.dart';
 part 'arcade/slide_puzzle_game.dart';
+part 'arcade/add_it_up_game.dart';
+part 'arcade/steady_hand_game.dart';
+part 'arcade/kindness_match_game.dart';
 
 
 /// Shared chrome for the arcade games — score + best pill, optional target, a

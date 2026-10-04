@@ -2,11 +2,11 @@
 
 **Mandatory resume file.** On a new context: READ THIS FIRST, then resume from "NEXT EXACT ACTION". Never restart the sprint.
 
-- **HEAD at last update:** (see git — Hoop Toss/Echo Drums/Slide Puzzle batch) == origin/main (clean)
+- **HEAD at last update:** (see git — Add It Up/Steady Hand/Kindness Match batch, round 3 complete) == origin/main (clean)
 - **Version:** 1.0.42+43 (HELD — no bump during factory; release builds are LAST)
 - **Updated:** 2026-10-04
-- **Tests:** 152 pass · **Analyze:** 112 info / 0 warnings / 0 errors
-- **Catalog:** 69 games + 20 sensory toys
+- **Tests:** 155 pass · **Analyze:** 112 info / 0 warnings / 0 errors
+- **Catalog:** 72 games + 20 sensory toys
 - **REFACTOR_COMPLETE:** true — `arcade_games.dart` is now a thin library shell (imports + 39 `part 'arcade/<name>_game.dart';` directives + shared `_Shell`/`_Emit`). Each game lives in its own file under `lib/features/play/toys/arcade/`. All files share ONE library scope via `part`/`part of`, so private symbols (`_Shard`@brick_break, `_paintPolyShape`@sorting_train) stay visible with ZERO renames and ZERO behavior change. **To add a game:** create `lib/features/play/toys/arcade/<name>_game.dart` starting with `part of '../arcade_games.dart';` (NO imports in part files), add one `part 'arcade/<name>_game.dart';` line to `arcade_games.dart`, keep shared infra in `arcade_games.dart`. Then wire the 6 sites. No need to load the monolith anymore.
 - **Note:** build machine pub-get NETWORK-STALLS hard on fresh terminals (file stuck 2642 bytes). `.dart_tool/package_config.json` persists on disk across sessions, so `flutter test --no-pub` / `flutter analyze --no-pub` work even in a FRESH terminal — use them directly, do NOT wait on pub get. `flutter analyze --no-pub` itself can take 8s–100s depending on machine load. ToyCategory = {sensory,fidget,arcade,creative,calm,learning,communication,lifeSkills} (NO 'puzzle'). ToyEngagement = {endless,deep,quick}. COMMON WARNING: a declared-but-unread field (e.g. `_turn`, `_rnd`) in a new game → remove it.
 - **PART-SCOPE GOTCHA (critical):** every part file shares ONE library scope, so ALL top-level private names (classes/mixins) must be UNIQUE across every `arcade/*.dart` file. A new game's painter/helper CANNOT reuse a name already used by another game (e.g. `_BasketPainter` collided between basketball + counting_baskets). get_errors does NOT catch this; `flutter test` fails with "'_X' is already declared in this scope". Name painters distinctly (`_SoccerPainter`, `_FruitBasketPainter`, `_StarPathPainter`, ...).
@@ -123,9 +123,17 @@ All 30 games meet the gameplay quality bar (clear in 5s · satisfying in 30s · 
 1. ~~Hoop Toss~~ SHIPPED (hoop_toss, 🎪 — tap to toss the ring, time the sliding peg under it, 10 ringers / 5 misses)
 2. ~~Echo Drums~~ SHIPPED (echo_drums, 🪘 — Simon memory: watch the drum phrase, tap it back, grows to 8, 3 lives)
 3. ~~Slide Puzzle~~ SHIPPED (slide_puzzle, 🔀 — 3x3 sliding tiles, order 1-8, 3 boards)
-4. Add It Up (learning — tap two number tiles that sum to the target)
-5. Steady Hand (motor — drag a dot along a winding corridor without touching the walls)
-6. Kindness Match (communication — match the situation to a kind response)
+4. ~~Add It Up~~ SHIPPED (add_it_up, ➕ — tap two number tiles that sum to the target, 3 lives, 10 to win)
+5. ~~Steady Hand~~ SHIPPED (steady_hand, 🖐️ — drag a dot along a winding corridor without touching walls, point-to-segment distance, 3 paths)
+6. ~~Kindness Match~~ SHIPPED (kindness_match, 💛 — read a situation, tap the kind response, 10 scenes, 3 lives)
+
+## Next backlog (auto-generated, balanced) — round 4
+1. Skee Ball (sports — flick a ball up a ramp into scoring rings)
+2. Tone Match (music — flip bells, hear the tone, find the matching pair)
+3. Odd One Out (puzzle — tap the shape/colour that does not belong)
+4. Bigger Number (learning — tap the largest number of the choices)
+5. Balance Ball (motor — tilt/drag to keep the ball centred on a wobbling beam)
+6. Calm Choices (communication — pick a healthy way to handle a big feeling)
 
 ## NEXT EXACT ACTION
-Build the rest of round 3 (Add It Up + Steady Hand + Kindness Match), each a NEW part file in `lib/features/play/toys/arcade/` (`part of '../arcade_games.dart';`) with a matching `part` line. UNIQUE painter/helper names (part-scope shared). game_thumb.dart is a SEPARATE library — inline thumbnails, no arcade privates. Watch for non-existent Flutter APIs (e.g. `Rect.fromCenterAndSize` does NOT exist — use `Rect.fromCenter`). Wire all 6 sites each; `flutter test --no-pub` + `flutter analyze --no-pub`; commit; update this file. Then auto-generate round 4 and keep going nonstop.
+Build round 4 in two batches (Skee Ball + Tone Match + Odd One Out, then Bigger Number + Balance Ball + Calm Choices), each a NEW part file in `lib/features/play/toys/arcade/` (`part of '../arcade_games.dart';`) with a matching `part` line. UNIQUE painter/helper names (part-scope shared). game_thumb.dart is SEPARATE — inline thumbnails, no arcade privates. Only use REAL Flutter APIs (no `Rect.fromCenterAndSize`). If the Play `experience_catalog.dart` capacity is ever exceeded again, raise it. Wire all 6 sites each; `flutter test --no-pub` + `flutter analyze --no-pub`; commit; update this file. Then auto-generate round 5 and keep going nonstop.

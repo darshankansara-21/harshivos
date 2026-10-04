@@ -86,6 +86,9 @@ class GameThumb extends StatelessWidget {
     'hoop_toss',
     'echo_drums',
     'slide_puzzle',
+    'add_it_up',
+    'steady_hand',
+    'kindness_match',
   };
 
   @override
@@ -262,6 +265,12 @@ class _ThumbPainter extends CustomPainter {
         _echoDrums(canvas, w, h);
       case 'slide_puzzle':
         _slidePuzzle(canvas, w, h);
+      case 'add_it_up':
+        _addItUp(canvas, w, h);
+      case 'steady_hand':
+        _steadyHand(canvas, w, h);
+      case 'kindness_match':
+        _kindnessMatch(canvas, w, h);
     }
   }
 
@@ -1620,6 +1629,57 @@ class _ThumbPainter extends CustomPainter {
         v++;
       }
     }
+  }
+
+  void _addItUp(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF123524), Color(0xFF0A1A12)]);
+    final tp = TextPainter(
+      text: TextSpan(
+          text: '+',
+          style: TextStyle(
+              color: const Color(0xFF80ED99),
+              fontSize: w * 0.3,
+              fontWeight: FontWeight.w900)),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, Offset(w * 0.5 - tp.width / 2, h * 0.22));
+    for (var i = 0; i < 3; i++) {
+      canvas.drawRRect(
+          RRect.fromRectAndRadius(
+              Rect.fromLTWH(w * (0.2 + i * 0.22), h * 0.62, w * 0.16, h * 0.16),
+              const Radius.circular(6)),
+          Paint()..color = Colors.white10);
+    }
+  }
+
+  void _steadyHand(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF14202B), Color(0xFF0A1118)]);
+    final p = Path()
+      ..moveTo(w * 0.15, h * 0.75)
+      ..lineTo(w * 0.35, h * 0.3)
+      ..lineTo(w * 0.6, h * 0.7)
+      ..lineTo(w * 0.85, h * 0.3);
+    canvas.drawPath(
+        p,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = w * 0.1
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round
+          ..color = const Color(0xFF2A3F52));
+    canvas.drawCircle(Offset(w * 0.15, h * 0.75), w * 0.05,
+        Paint()..color = const Color(0xFF4CC9F0));
+  }
+
+  void _kindnessMatch(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF3A2E12), Color(0xFF1C1608)]);
+    final c = Offset(w * 0.5, h * 0.45);
+    final heart = Path()..moveTo(c.dx, c.dy + w * 0.18);
+    heart.cubicTo(c.dx + w * 0.3, c.dy - w * 0.08, c.dx + w * 0.1,
+        c.dy - w * 0.28, c.dx, c.dy - w * 0.08);
+    heart.cubicTo(c.dx - w * 0.1, c.dy - w * 0.28, c.dx - w * 0.3,
+        c.dy - w * 0.08, c.dx, c.dy + w * 0.18);
+    canvas.drawPath(heart, Paint()..color = const Color(0xFFFFD166));
   }
 
   @override
