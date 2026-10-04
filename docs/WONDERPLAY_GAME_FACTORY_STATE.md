@@ -22,7 +22,7 @@ QUALITY_D:         (none recorded; no rebuild required in this batch)
 KNOWN_DEFECTS:     Flutter verification is blocked in this environment: `flutter test --no-pub` crashes with `Bad state: No element` in the Flutter native-assets test compiler before any tests run. Real-child testing flagged these as weak/high-risk: bowling, racing, snake, pinball, piano_tiles, star_tap, whack, brick_break, space_dodge, sky_hop, memory_flip, stack, goal_keeper, fruit_catch. Remaining work is polish pass + device QA, not a functional rebuild.
 DEVICE_QA_STATUS:  BLOCKED (Pixel 6a off USB; needs physical replug). Record a device-QA checklist; do not let this block code/quality work.
 AUDIO_QA_STATUS:   NOT_STARTED (Piano = benchmark; verify every game has intentional audio; direct Hari/Pico taps silent).
-LAST_COMMIT:       f6548d6f4ef5fc3b2819d5b67b860da9fb495781
+LAST_COMMIT:       c59bf28fdb1e0b6e0fbf4d5851b69d2c563edc32
 NEXT_ACTION:       Re-run the Flutter verification pass in a repaired SDK environment (`flutter test --no-pub` + `flutter analyze --no-pub`). This session confirmed the exact blocker: the toolchain crashes in native-assets setup with `Bad state: No element`, so keep the space_dodge polish state open until the Flutter toolchain itself is fixed or replaced.
 FACTORY_COMPLETE:  FALSE
 ```
