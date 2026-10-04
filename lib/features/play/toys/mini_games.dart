@@ -101,209 +101,211 @@ class _GameShell extends StatelessWidget {
       playing: status == GameStatus.playing,
       bed: WonderMusicBed.playful,
       child: Stack(
-      fit: StackFit.expand,
-      children: <Widget>[
-        child,
-        SafeArea(
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: Padding(
-              padding: const EdgeInsets.only(top: 72),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.4),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      best > 0
-                          ? '$title   $scoreText   ★ $best'
-                          : '$title   $scoreText',
-                      style: TextStyle(
-                        color: accent,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                  if (banner != null) ...<Widget>[
-                    const SizedBox(height: 6),
+        fit: StackFit.expand,
+        children: <Widget>[
+          child,
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 72),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 4),
+                          horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
-                        color: accent.withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(14),
+                        color: Colors.black.withOpacity(0.4),
+                        borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        banner!,
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w900,
+                        best > 0
+                            ? '$title   $scoreText   ★ $best'
+                            : '$title   $scoreText',
+                        style: TextStyle(
+                          color: accent,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                     ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ),
-        if (status == GameStatus.won || status == GameStatus.over)
-          Positioned.fill(
-            child: ColoredBox(
-              color: Colors.black.withOpacity(0.6),
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Text(status == GameStatus.won ? '🎉' : overEmoji,
-                        style: const TextStyle(fontSize: 72)),
-                    const SizedBox(height: 8),
-                    Text(
-                      status == GameStatus.won ? 'You did it!' : overText,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      best > 0 ? 'Score $score   ·   Best $best' : 'Score $score',
-                      style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700),
-                    ),
-                    if (score > 0 && score >= best) ...<Widget>[
-                      const SizedBox(height: 10),
+                    if (banner != null) ...<Widget>[
+                      const SizedBox(height: 6),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 6),
+                            horizontal: 12, vertical: 4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFD166),
+                          color: accent.withOpacity(0.9),
                           borderRadius: BorderRadius.circular(14),
                         ),
-                        child: const Text('🏆 New best!',
-                            style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w900)),
-                      ),
-                    ],
-                    const SizedBox(height: 18),
-                    FilledButton.icon(
-                      onPressed: onPlayAgain,
-                      icon: const Icon(Icons.refresh_rounded),
-                      label: const Text('Play again'),
-                    ),
-                    const SizedBox(height: 8),
-                    Builder(
-                      builder: (context) => TextButton.icon(
-                        onPressed: () => Navigator.of(context).maybePop(),
-                        icon: const Icon(Icons.grid_view_rounded,
-                            color: Colors.white70, size: 20),
-                        label: const Text('Back to games',
-                            style: TextStyle(color: Colors.white70)),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        if (status == GameStatus.ready && onStart != null)
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: <Color>[
-                    Colors.black.withOpacity(0.55),
-                    accent.withOpacity(0.28),
-                  ],
-                ),
-              ),
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Text(overEmoji, style: const TextStyle(fontSize: 76)),
-                    const SizedBox(height: 6),
-                    Text(
-                      title,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 30,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    if (introHow != null) ...<Widget>[
-                      const SizedBox(height: 10),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 32),
                         child: Text(
-                          introHow!,
-                          textAlign: TextAlign.center,
+                          banner!,
                           style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
-                            height: 1.35,
+                            color: Colors.black,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
                           ),
                         ),
                       ),
                     ],
-                    if (best > 0) ...<Widget>[
-                      const SizedBox(height: 12),
-                      Text('Best  ★ $best',
-                          style: TextStyle(
-                              color: accent,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800)),
-                    ],
-                    const SizedBox(height: 22),
-                    FilledButton.icon(
-                      onPressed: onStart == null
-                          ? null
-                          : () {
-                              TonePlayer.instance.playCue(SoundCue.gameStart);
-                              onStart!();
-                            },
-                      style: FilledButton.styleFrom(
-                        backgroundColor: accent,
-                        foregroundColor: Colors.black,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 30, vertical: 14),
-                        textStyle: const TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.w900),
-                      ),
-                      icon: const Icon(Icons.play_arrow_rounded, size: 28),
-                      label: const Text('Play'),
-                    ),
-                    const SizedBox(height: 8),
-                    Builder(
-                      builder: (context) => TextButton(
-                        onPressed: () => Navigator.of(context).maybePop(),
-                        child: const Text('Back to games',
-                            style: TextStyle(color: Colors.white60)),
-                      ),
-                    ),
                   ],
                 ),
               ),
             ),
           ),
-      ],
-    ),
+          if (status == GameStatus.won || status == GameStatus.over)
+            Positioned.fill(
+              child: ColoredBox(
+                color: Colors.black.withOpacity(0.6),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Text(status == GameStatus.won ? '🎉' : overEmoji,
+                          style: const TextStyle(fontSize: 72)),
+                      const SizedBox(height: 8),
+                      Text(
+                        status == GameStatus.won ? 'You did it!' : overText,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        best > 0
+                            ? 'Score $score   ·   Best $best'
+                            : 'Score $score',
+                        style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700),
+                      ),
+                      if (score > 0 && score >= best) ...<Widget>[
+                        const SizedBox(height: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFD166),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Text('🏆 New best!',
+                              style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900)),
+                        ),
+                      ],
+                      const SizedBox(height: 18),
+                      FilledButton.icon(
+                        onPressed: onPlayAgain,
+                        icon: const Icon(Icons.refresh_rounded),
+                        label: const Text('Play again'),
+                      ),
+                      const SizedBox(height: 8),
+                      Builder(
+                        builder: (context) => TextButton.icon(
+                          onPressed: () => Navigator.of(context).maybePop(),
+                          icon: const Icon(Icons.grid_view_rounded,
+                              color: Colors.white70, size: 20),
+                          label: const Text('Back to games',
+                              style: TextStyle(color: Colors.white70)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          if (status == GameStatus.ready && onStart != null)
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: <Color>[
+                      Colors.black.withOpacity(0.55),
+                      accent.withOpacity(0.28),
+                    ],
+                  ),
+                ),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Text(overEmoji, style: const TextStyle(fontSize: 76)),
+                      const SizedBox(height: 6),
+                      Text(
+                        title,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 30,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      if (introHow != null) ...<Widget>[
+                        const SizedBox(height: 10),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 32),
+                          child: Text(
+                            introHow!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w600,
+                              height: 1.35,
+                            ),
+                          ),
+                        ),
+                      ],
+                      if (best > 0) ...<Widget>[
+                        const SizedBox(height: 12),
+                        Text('Best  ★ $best',
+                            style: TextStyle(
+                                color: accent,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800)),
+                      ],
+                      const SizedBox(height: 22),
+                      FilledButton.icon(
+                        onPressed: onStart == null
+                            ? null
+                            : () {
+                                TonePlayer.instance.playCue(SoundCue.gameStart);
+                                onStart!();
+                              },
+                        style: FilledButton.styleFrom(
+                          backgroundColor: accent,
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 30, vertical: 14),
+                          textStyle: const TextStyle(
+                              fontSize: 20, fontWeight: FontWeight.w900),
+                        ),
+                        icon: const Icon(Icons.play_arrow_rounded, size: 28),
+                        label: const Text('Play'),
+                      ),
+                      const SizedBox(height: 8),
+                      Builder(
+                        builder: (context) => TextButton(
+                          onPressed: () => Navigator.of(context).maybePop(),
+                          child: const Text('Back to games',
+                              style: TextStyle(color: Colors.white60)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -326,7 +328,14 @@ class _Faller {
 class _FruitCatchGameState extends State<FruitCatchGame>
     with TickerProviderStateMixin, ToyTicker, _CompanionEmitter {
   static const String _id = 'fruit_catch';
-  static const List<String> _fruits = <String>['🍓', '🍎', '🍌', '🍇', '🍊', '🍑'];
+  static const List<String> _fruits = <String>[
+    '🍓',
+    '🍎',
+    '🍌',
+    '🍇',
+    '🍊',
+    '🍑'
+  ];
   static const int _target = 18;
   final math.Random _rnd = math.Random();
   final List<_Faller> _items = <_Faller>[];
@@ -360,7 +369,8 @@ class _FruitCatchGameState extends State<FruitCatchGame>
         _rnd.nextDouble() * 0.16 +
         _score * 0.006 +
         (kind == 1 ? 0.12 : 0);
-    _items.add(_Faller(0.08 + _rnd.nextDouble() * 0.84, -0.05, speed, emoji, kind));
+    _items.add(
+        _Faller(0.08 + _rnd.nextDouble() * 0.84, -0.05, speed, emoji, kind));
   }
 
   @override
@@ -379,8 +389,8 @@ class _FruitCatchGameState extends State<FruitCatchGame>
     }
     _spawnIn -= dt;
     if (_spawnIn <= 0) {
-      _spawnIn = math.max(0.32, 0.7 - _score * 0.01) *
-          (0.7 + _rnd.nextDouble() * 0.6);
+      _spawnIn =
+          math.max(0.32, 0.7 - _score * 0.01) * (0.7 + _rnd.nextDouble() * 0.6);
       _spawn();
     }
     for (final f in _items) {
@@ -409,7 +419,9 @@ class _FruitCatchGameState extends State<FruitCatchGame>
     _combo++;
     final gain = (f.kind == 1 ? 3 : 1) + (_combo >= 3 ? 1 : 0);
     _score += gain;
-    _splashAt(f.x, f.y,
+    _splashAt(
+        f.x,
+        f.y,
         f.kind == 1 ? const Color(0xFFFFD166) : const Color(0xFF43E97B),
         f.kind == 1 ? 14 : 9);
     TonePlayer.instance.playCue(SoundCue.fruit);
@@ -431,8 +443,10 @@ class _FruitCatchGameState extends State<FruitCatchGame>
     for (var i = 0; i < n; i++) {
       final a = _rnd.nextDouble() * math.pi * 2;
       final sp = 0.3 + _rnd.nextDouble() * 0.5;
-      _splash.add(_Particle(Offset(x, y),
-          Offset(math.cos(a) * sp, math.sin(a) * sp), color,
+      _splash.add(_Particle(
+          Offset(x, y),
+          Offset(math.cos(a) * sp, math.sin(a) * sp),
+          color,
           0.4 + _rnd.nextDouble() * 0.3));
     }
   }
@@ -501,8 +515,8 @@ class _FruitCatchGameState extends State<FruitCatchGame>
                     Positioned(
                       left: f.x * w - 22,
                       top: f.y * h - 22,
-                      child: Text(f.emoji,
-                          style: const TextStyle(fontSize: 40)),
+                      child:
+                          Text(f.emoji, style: const TextStyle(fontSize: 40)),
                     ),
                   Positioned.fill(
                     child: CustomPaint(painter: _SplashPainter(_splash)),
@@ -521,7 +535,6 @@ class _FruitCatchGameState extends State<FruitCatchGame>
     );
   }
 }
-
 
 // ===========================================================================
 // Balloon Pop — balloons drift up; tap them to pop before they float away.
@@ -547,8 +560,11 @@ class _BalloonPopGameState extends State<BalloonPopGame>
     with TickerProviderStateMixin, ToyTicker, _CompanionEmitter {
   static const String _id = 'balloon_pop';
   static const List<Color> _colors = <Color>[
-    Color(0xFFEF476F), Color(0xFFFFD166), Color(0xFF06D6A0),
-    Color(0xFF118AB2), Color(0xFF9B5DE5),
+    Color(0xFFEF476F),
+    Color(0xFFFFD166),
+    Color(0xFF06D6A0),
+    Color(0xFF118AB2),
+    Color(0xFF9B5DE5),
   ];
   static const int _target = 20;
   final math.Random _rnd = math.Random();
@@ -588,8 +604,8 @@ class _BalloonPopGameState extends State<BalloonPopGame>
     }
     _spawnIn -= dt;
     if (_spawnIn <= 0) {
-      _spawnIn = math.max(0.3, 0.6 - _score * 0.008) *
-          (0.7 + _rnd.nextDouble() * 0.6);
+      _spawnIn =
+          math.max(0.3, 0.6 - _score * 0.008) * (0.7 + _rnd.nextDouble() * 0.6);
       final r = _rnd.nextDouble();
       final kind = r < 0.1 ? 2 : (r < 0.22 ? 1 : 0);
       final color = kind == 1
@@ -600,7 +616,10 @@ class _BalloonPopGameState extends State<BalloonPopGame>
       _items.add(_Balloon(
           0.1 + _rnd.nextDouble() * 0.8,
           1.1,
-          0.16 + _rnd.nextDouble() * 0.12 + _score * 0.004 + (kind == 1 ? 0.1 : 0),
+          0.16 +
+              _rnd.nextDouble() * 0.12 +
+              _score * 0.004 +
+              (kind == 1 ? 0.1 : 0),
           _rnd.nextDouble() * 6.28,
           color,
           kind));
@@ -658,8 +677,10 @@ class _BalloonPopGameState extends State<BalloonPopGame>
     for (var i = 0; i < n; i++) {
       final a = _rnd.nextDouble() * math.pi * 2;
       final sp = 0.35 + _rnd.nextDouble() * 0.55;
-      _pop.add(_Particle(Offset(x, y),
-          Offset(math.cos(a) * sp, math.sin(a) * sp), color,
+      _pop.add(_Particle(
+          Offset(x, y),
+          Offset(math.cos(a) * sp, math.sin(a) * sp),
+          color,
           0.35 + _rnd.nextDouble() * 0.3));
     }
   }
@@ -759,7 +780,12 @@ class _BalloonShape extends StatelessWidget {
               BoxShadow(color: color.withOpacity(0.5), blurRadius: 12),
             ],
           ),
-          child: Text(kind == 1 ? '✨' : kind == 2 ? '💣' : '',
+          child: Text(
+              kind == 1
+                  ? '✨'
+                  : kind == 2
+                      ? '💣'
+                      : '',
               style: const TextStyle(fontSize: 22)),
         ),
         Container(width: 2, height: 18, color: Colors.white24),
@@ -776,17 +802,14 @@ class _SplashPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     for (final p in parts) {
       final k = (p.life / p.maxLife).clamp(0.0, 1.0);
-      canvas.drawCircle(
-          Offset(p.pos.dx * size.width, p.pos.dy * size.height),
-          3 + 4 * k,
-          Paint()..color = p.color.withOpacity(k));
+      canvas.drawCircle(Offset(p.pos.dx * size.width, p.pos.dy * size.height),
+          3 + 4 * k, Paint()..color = p.color.withOpacity(k));
     }
   }
 
   @override
   bool shouldRepaint(_SplashPainter oldDelegate) => true;
 }
-
 
 // ===========================================================================
 // Star Catch — a reaction game under a living night sky. One star glows with a
@@ -858,7 +881,8 @@ class _StarTapGameState extends State<StarTapGame>
     _life = _lifeMax;
     // A red decoy appears once a child is doing well; tapping it costs a
     // point, so the game becomes about looking, not just fast tapping.
-    final decoyChance = _score >= 6 ? math.min(0.55, 0.18 + _score * 0.03) : 0.0;
+    final decoyChance =
+        _score >= 6 ? math.min(0.55, 0.18 + _score * 0.03) : 0.0;
     if (decoyChance > 0 && _rnd.nextDouble() < decoyChance) {
       var d = _rnd.nextInt(_cells);
       if (d == _active) d = (d + 1) % _cells;
@@ -1051,7 +1075,9 @@ class _StarCell extends StatelessWidget {
             border: Border.all(
                 color: Colors.white.withOpacity(active ? 0.0 : 0.06)),
             boxShadow: active
-                ? <BoxShadow>[BoxShadow(color: glow.withOpacity(0.55), blurRadius: 26)]
+                ? <BoxShadow>[
+                    BoxShadow(color: glow.withOpacity(0.55), blurRadius: 26)
+                  ]
                 : const <BoxShadow>[],
           ),
         ),
@@ -1063,7 +1089,8 @@ class _StarCell extends StatelessWidget {
                 border: Border.all(
                     color: Colors.redAccent.withOpacity(0.75), width: 2),
                 boxShadow: <BoxShadow>[
-                  BoxShadow(color: Colors.red.withOpacity(0.45), blurRadius: 20),
+                  BoxShadow(
+                      color: Colors.red.withOpacity(0.45), blurRadius: 20),
                 ],
               ),
             ),
@@ -1092,9 +1119,7 @@ class _StarCell extends StatelessWidget {
               opacity: pop!.t.clamp(0.0, 0.7) / 0.7,
               child: Text(pop!.text,
                   style: TextStyle(
-                      color: glow,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900)),
+                      color: glow, fontSize: 22, fontWeight: FontWeight.w900)),
             ),
           ),
       ],
@@ -1121,22 +1146,21 @@ class _NightSkyPainter extends CustomPainter {
           ).createShader(Offset.zero & size));
     // Soft moon glow, upper right.
     final moon = Offset(size.width * 0.82, size.height * 0.12);
-    canvas.drawCircle(moon, 42,
-        Paint()..color = const Color(0xFFFFF3C4).withOpacity(0.16));
+    canvas.drawCircle(
+        moon, 42, Paint()..color = const Color(0xFFFFF3C4).withOpacity(0.16));
     canvas.drawCircle(moon, 22, Paint()..color = const Color(0xFFFDF6D8));
     // Twinkling background stars.
     for (var i = 0; i < stars.length; i++) {
       final s = stars[i];
       final tw = 0.4 + 0.6 * (0.5 + 0.5 * math.sin(t * 2 + i));
-      canvas.drawCircle(
-          Offset(s.dx * size.width, s.dy * size.height),
-          1.4 + tw,
+      canvas.drawCircle(Offset(s.dx * size.width, s.dy * size.height), 1.4 + tw,
           Paint()..color = Colors.white.withOpacity(0.25 + 0.4 * tw));
     }
     // A shooting star streaks across on each new wave.
     if (shootT > 0) {
       final p = (1 - shootT).clamp(0.0, 1.0);
-      final head = Offset(size.width * (0.1 + p * 0.85), size.height * (0.1 + p * 0.5));
+      final head =
+          Offset(size.width * (0.1 + p * 0.85), size.height * (0.1 + p * 0.5));
       final tail = head - const Offset(90, 50);
       canvas.drawLine(
           tail,
@@ -1229,8 +1253,12 @@ class _SnakeGameState extends State<SnakeGame>
   GameStatus _status = GameStatus.ready;
 
   static const List<Color> _orbColors = <Color>[
-    Color(0xFFFF4D6D), Color(0xFFFFD166), Color(0xFF06D6A0),
-    Color(0xFF4CC9F0), Color(0xFF9B5DE5), Color(0xFFFF9E00),
+    Color(0xFFFF4D6D),
+    Color(0xFFFFD166),
+    Color(0xFF06D6A0),
+    Color(0xFF4CC9F0),
+    Color(0xFF9B5DE5),
+    Color(0xFFFF9E00),
   ];
 
   @override
@@ -1289,9 +1317,11 @@ class _SnakeGameState extends State<SnakeGame>
     // Roughly one orb in eleven is a golden orb: rarer, larger, worth more.
     if (_rnd.nextInt(11) == 0) {
       return _Orb(Offset(math.cos(a) * d, math.sin(a) * d),
-          const Color(0xFFFFE066), 7.0 + _rnd.nextDouble() * 2, golden: true);
+          const Color(0xFFFFE066), 7.0 + _rnd.nextDouble() * 2,
+          golden: true);
     }
-    return _Orb(Offset(math.cos(a) * d, math.sin(a) * d),
+    return _Orb(
+        Offset(math.cos(a) * d, math.sin(a) * d),
         _orbColors[_rnd.nextInt(_orbColors.length)],
         3.5 + _rnd.nextDouble() * 3.5);
   }
@@ -1575,10 +1605,8 @@ class _SnakeGameState extends State<SnakeGame>
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white30, width: 2),
                     ),
-                    child: const Icon(
-                        Icons.keyboard_double_arrow_up_rounded,
-                        color: Colors.white,
-                        size: 40),
+                    child: const Icon(Icons.keyboard_double_arrow_up_rounded,
+                        color: Colors.white, size: 40),
                   ),
                 ),
               ),
@@ -1647,20 +1675,19 @@ class _SnakeLeaderboard extends StatelessWidget {
                   color: Colors.white54,
                   fontSize: 10,
                   fontWeight: FontWeight.w900)),
-                Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: Text('You  $playerScore / 30',
-                  style: const TextStyle(
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Text('You  $playerScore / 30',
+                style: const TextStyle(
                     color: Color(0xFFFFD166),
                     fontSize: 12,
                     fontWeight: FontWeight.w900)),
-                ),
-                for (var i = 0; i < rivals.length && i < 3; i++)
+          ),
+          for (var i = 0; i < rivals.length && i < 3; i++)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 1),
-              child: Text(
-                    '${i + 1}  ${rivals[i].key}  ${rivals[i].value}',
-                    style: const TextStyle(
+              child: Text('${i + 1}  ${rivals[i].key}  ${rivals[i].value}',
+                  style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 12,
                       fontWeight: FontWeight.w600)),
@@ -1670,7 +1697,6 @@ class _SnakeLeaderboard extends StatelessWidget {
     );
   }
 }
-
 
 class _SnakePainter extends CustomPainter {
   _SnakePainter(this.head, this.angle, this.path, this.length, this.seg,
@@ -1751,8 +1777,7 @@ class _SnakePainter extends CustomPainter {
           o.r * 2.4,
           Paint()
             ..color = o.color.withOpacity(o.golden ? 0.6 : 0.35)
-            ..maskFilter = MaskFilter.blur(
-                BlurStyle.normal, o.golden ? 8 : 4));
+            ..maskFilter = MaskFilter.blur(BlurStyle.normal, o.golden ? 8 : 4));
       canvas.drawCircle(s, o.r, Paint()..color = o.color);
       if (o.golden) {
         // A bright core + sparkle ring so golden orbs read as special.
@@ -1909,7 +1934,7 @@ class _RacingGameState extends State<RacingGame>
     _cars.clear();
     _rivals
       ..clear()
-      ..addAll(<double>[0, 0, 0]);
+      ..addAll(<double>[40, 100, 170]);
     _rivalMps.clear();
     _rivalLane
       ..clear()
@@ -1942,11 +1967,16 @@ class _RacingGameState extends State<RacingGame>
     if (_shuntT > 0) _shuntT -= dt;
 
     // Advance ourselves and the rival pack down the track.
+    final remaining = (_raceLen - _distance).clamp(0.0, _raceLen);
     final mps = _mps;
-    _distance += mps * dt;
-    _speed = 0.5 + mps / 240; // couple the road scroll to our pace
+    final sprintBonus = (1.0 - remaining / _raceLen).clamp(0.0, 1.0) * 18.0;
+    _distance += (mps + sprintBonus) * dt;
+    _speed =
+        0.5 + (mps + sprintBonus) / 240; // couple the road scroll to our pace
     for (var i = 0; i < _rivals.length; i++) {
-      _rivals[i] += _rivalMps[i] * dt;
+      final leadGap = _distance - _rivals[i];
+      final rivalPace = _rivalMps[i] + (leadGap > 0 ? 12 : 8);
+      _rivals[i] += rivalPace * dt;
     }
     if (_distance >= _raceLen) {
       _finish();
@@ -1960,10 +1990,16 @@ class _RacingGameState extends State<RacingGame>
           (0.7 + _rnd.nextDouble() * 0.6);
       final lane = _rnd.nextInt(3);
       final roll = _rnd.nextDouble();
-      final boost = roll < 0.08;
-      final coin = !boost && roll < 0.36;
-      _cars.add(_Racer(lane, -0.1, coin, boost,
-          boost ? '⚡' : (coin ? '🪙' : _traffic[_rnd.nextInt(_traffic.length)])));
+      final boost = roll < 0.08 && _distance > 120;
+      final coin = !boost && roll < 0.32 + (_distance / _raceLen) * 0.18;
+      _cars.add(_Racer(
+          lane,
+          -0.1,
+          coin,
+          boost,
+          boost
+              ? '⚡'
+              : (coin ? '🪙' : _traffic[_rnd.nextInt(_traffic.length)])));
     }
     for (final c in _cars) {
       c.y += _speed * dt;
@@ -1972,28 +2008,29 @@ class _RacingGameState extends State<RacingGame>
       if (c.y >= 0.78 && c.y <= 0.92 && c.lane == _lane) {
         if (c.boost) {
           _boostT = 3.5;
+          _score += 12;
           TonePlayer.instance.playCue(SoundCue.success);
           emit(ExperienceEvent.bubblePopped);
-          _flash('⚡ Boost!');
+          _flash('⚡ Boost! +12');
           return true;
         }
         if (c.coin) {
-          _score += 5;
+          _score += 10;
           TonePlayer.instance.playCue(SoundCue.coin);
           emit(ExperienceEvent.bubblePopped);
-          _flash('+5 coin!');
+          _flash('+10 coin!');
           return true;
         }
         if (_boostT > 0) {
           // Boosting barges traffic aside instead of losing pace.
-          _score += 2;
+          _score += 5;
           TonePlayer.instance.playCue(SoundCue.crash);
-          _flash('Smash! +2');
+          _flash('Smash! +5');
           return true;
         }
         // A knock is not fatal — it costs pace and drops you back in the field.
         _shuntT = 1.2;
-        _distance = math.max(0, _distance - 25);
+        _distance = math.max(0, _distance - 35);
         TonePlayer.instance.playCue(SoundCue.crash);
         emit(ExperienceEvent.incorrectAnswer);
         _flash('Shunt! lost pace');
@@ -2046,9 +2083,8 @@ class _RacingGameState extends State<RacingGame>
           (_boostT > 0
               ? '⚡ BOOST · P$_place'
               : 'P$_place/$_fieldSize · ${remaining.round()}m to flag'),
-      overEmoji: _status == GameStatus.won
-          ? (_finishPlace == 1 ? '🏆' : '🏁')
-          : '🏁',
+      overEmoji:
+          _status == GameStatus.won ? (_finishPlace == 1 ? '🏆' : '🏁') : '🏁',
       overText: _status == GameStatus.won
           ? (_finishPlace == 1
               ? 'P1 — you won the race!'
@@ -2065,9 +2101,8 @@ class _RacingGameState extends State<RacingGame>
           final w = c.maxWidth;
           final h = c.maxHeight;
           // Finish line rolls into view over the final 150 m.
-          final finishY = remaining <= 150
-              ? 0.08 + (1 - remaining / 150) * 0.72
-              : -1.0;
+          final finishY =
+              remaining <= 150 ? 0.08 + (1 - remaining / 150) * 0.72 : -1.0;
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTapDown: (d) => _move(d.localPosition.dx < w / 2 ? -1 : 1),
@@ -2102,8 +2137,8 @@ class _RacingGameState extends State<RacingGame>
                   Positioned(
                     left: _laneX[car.lane] * w - 24,
                     top: car.y * h - 28,
-                    child: Text(car.emoji,
-                        style: const TextStyle(fontSize: 44)),
+                    child:
+                        Text(car.emoji, style: const TextStyle(fontSize: 44)),
                   ),
                 Positioned(
                   left: _laneX[_lane] * w - 26,
@@ -2170,8 +2205,8 @@ class _RoadPainter extends CustomPainter {
     );
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-          Rect.fromLTWH(barX - 3, barTop + barH * (1 - progress), 6,
-              barH * progress),
+          Rect.fromLTWH(
+              barX - 3, barTop + barH * (1 - progress), 6, barH * progress),
           const Radius.circular(3)),
       Paint()..color = const Color(0xFFFFD166),
     );
@@ -2450,8 +2485,7 @@ class _BowlingGameState extends State<BowlingGame>
           if (box == null) return;
           final nx = (d.localPosition.dx / box.width).clamp(0.0, 1.0);
           final half = _laneHalf(_yFoul);
-          setState(() =>
-              _ballX = nx.clamp(0.5 - half, 0.5 + half).toDouble());
+          setState(() => _ballX = nx.clamp(0.5 - half, 0.5 + half).toDouble());
         },
         onPanEnd: (d) {
           if (_phase != _BowlPhase.aim || _status != GameStatus.playing) return;
@@ -2459,9 +2493,8 @@ class _BowlingGameState extends State<BowlingGame>
           final h = box?.height ?? 600;
           final w = box?.width ?? 400;
           // Convert the flick velocity (px/s) into normalized lane velocity.
-          final vy = -(d.velocity.pixelsPerSecond.dy.abs() / h)
-                  .clamp(0.85, 2.2) -
-              0.2;
+          final vy =
+              -(d.velocity.pixelsPerSecond.dy.abs() / h).clamp(0.85, 2.2) - 0.2;
           final vx = (d.velocity.pixelsPerSecond.dx / w).clamp(-0.6, 0.6);
           _throw(vx, vy.toDouble());
         },
@@ -2599,10 +2632,8 @@ class _BowlPainter extends CustomPainter {
       ..strokeWidth = 1.5;
     for (var i = 1; i < 8; i++) {
       final t = i / 8;
-      canvas.drawLine(
-          Offset(sx(farL + (farR - farL) * t), topY),
-          Offset(sx(nearL + (nearR - nearL) * t), botY),
-          board);
+      canvas.drawLine(Offset(sx(farL + (farR - farL) * t), topY),
+          Offset(sx(nearL + (nearR - nearL) * t), botY), board);
     }
     // Aiming arrows near the foul line.
     final arrow = Paint()..color = const Color(0xFF8A5A24).withOpacity(0.8);
@@ -2620,13 +2651,16 @@ class _BowlPainter extends CustomPainter {
     canvas.restore();
 
     // Foul line.
-    canvas.drawLine(Offset(sx(nearL), sy(yFoul)), Offset(sx(nearR), sy(yFoul)),
+    canvas.drawLine(
+        Offset(sx(nearL), sy(yFoul)),
+        Offset(sx(nearR), sy(yFoul)),
         Paint()
           ..color = const Color(0xFFEF476F)
           ..strokeWidth = 3);
 
     // Pins (painter order: far first so near pins overlap).
-    final sorted = List<_BowlPin>.from(pins)..sort((a, b) => a.y.compareTo(b.y));
+    final sorted = List<_BowlPin>.from(pins)
+      ..sort((a, b) => a.y.compareTo(b.y));
     for (final p in sorted) {
       final c = Offset(sx(p.x), sy(p.y));
       final s = scaleFor(p.y);
@@ -2647,8 +2681,8 @@ class _BowlPainter extends CustomPainter {
     final bs = scaleFor(ballY);
     final bc = Offset(sx(ballX), sy(ballY));
     final br = 22 * bs;
-    canvas.drawCircle(bc.translate(0, br * 0.5),
-        br * 0.9, Paint()..color = Colors.black.withOpacity(0.28));
+    canvas.drawCircle(bc.translate(0, br * 0.5), br * 0.9,
+        Paint()..color = Colors.black.withOpacity(0.28));
     canvas.drawCircle(
         bc,
         br,
@@ -2668,7 +2702,9 @@ class _BowlPainter extends CustomPainter {
     // Shadow.
     canvas.drawOval(
         Rect.fromCenter(
-            center: c.translate(0, ph * 0.5), width: pw * 1.1, height: pw * 0.4),
+            center: c.translate(0, ph * 0.5),
+            width: pw * 1.1,
+            height: pw * 0.4),
         Paint()..color = Colors.black.withOpacity(0.2 * opacity));
     final r = RRect.fromRectAndRadius(
         Rect.fromCenter(center: c, width: pw, height: ph),
@@ -2677,7 +2713,9 @@ class _BowlPainter extends CustomPainter {
     canvas.drawRRect(
         RRect.fromRectAndRadius(
             Rect.fromCenter(
-                center: c.translate(0, -ph * 0.28), width: pw, height: ph * 0.22),
+                center: c.translate(0, -ph * 0.28),
+                width: pw,
+                height: ph * 0.22),
             Radius.circular(pw * 0.3)),
         neck);
   }

@@ -11,9 +11,9 @@
 
 ```
 CURRENT_PHASE:     4 ? QUALITY AUDIT & TRANSFORM (catalog expansion FROZEN)
-CURRENT_GAME:      space_dodge (B-tier pass complete: 3-hit loop with hit grace, announced waves, moving hazards, shield/gem pickups, and a paced 180-point clear goal)
-CURRENT_BATCH:     polish-batch-5 (Space Dodge survival, wave progression, and score-target victory)
-COMPLETED_WORK:    78 Play games + 20 sensory toys built (rounds 1-4); arcade_games.dart refactored into per-game part files; self-driving factory infra built (CLAUDE.md + scripts/wonderplay_factory.ps1, Copilot CLI headless verified); high-risk quality pass recorded for bowling, racing, snake, pinball, piano_tiles, star_tap, whack, brick_break, space_dodge, sky_hop, memory_flip, stack, goal_keeper, fruit_catch; space_dodge now combines 3-hit survival with hit invulnerability, announced wave clusters, moving hazards, score milestones, shield/gem pickups, and a 180-point victory condition.
+CURRENT_GAME:      racing (tuned race pacing: stronger finish-sprint momentum, better pickup timing, and tougher-but-fair traffic collisions)
+CURRENT_BATCH:     racing-polish-1 (Street Racer pace, pickup value, and race-friction tuning)
+COMPLETED_WORK:    78 Play games + 20 sensory toys built (rounds 1-4); arcade_games.dart refactored into per-game part files; self-driving factory infra built (CLAUDE.md + scripts/wonderplay_factory.ps1, Copilot CLI headless verified); high-risk quality pass recorded for bowling, racing, snake, pinball, piano_tiles, star_tap, whack, brick_break, space_dodge, sky_hop, memory_flip, stack, goal_keeper, fruit_catch; Street Racer now ramps more realistically in the final stretch, rewards boost/coin pickups more clearly, and punishes mid-race shunts without killing momentum.
 AUDITED_GAMES:     14 high-risk games audited and classified in this batch (all prior war-room transforms preserved; no fresh C/D entries after equivalent gameplay review).
 QUALITY_A:         bowling, racing, snake, pinball, goal_keeper, star_tap, fruit_catch, piano_tiles
 QUALITY_B:         whack, sky_hop, brick_break, space_dodge, memory_flip, stack
@@ -22,8 +22,8 @@ QUALITY_D:         (none recorded; no rebuild required in this batch)
 KNOWN_DEFECTS:     none open from code or regression testing. Full-catalog audit, audio QA, and device QA remain; real-child testing flagged the 14 high-risk games listed above.
 DEVICE_QA_STATUS:  BLOCKED (Pixel 6a off USB; needs physical replug). Record a device-QA checklist; do not let this block code/quality work.
 AUDIO_QA_STATUS:   NOT_STARTED (Piano = benchmark; verify every game has intentional audio; direct Hari/Pico taps silent).
-LAST_COMMIT:       287a7816a9caf454ed59bd2421cf2d46f8a4c78a
-NEXT_ACTION:       Continue the Phase-4 audit of the remaining 64 Play games, starting with merge: assess the complete child-facing gameplay loop, record an A/B/C/D verdict, transform C/D and inexpensive B findings, then rerun tests/analyze and update this state.
+LAST_COMMIT:       1e178000dc542487b475aa18aca7a57ed5c743f7
+NEXT_ACTION:       Keep the quality pass moving through the remaining Play catalog: audit the next games, tune actual gameplay loops rather than cosmetics, then rerun tests/analyze and update this state with the fresh commit hash.
 FACTORY_COMPLETE:  FALSE
 ```
 
@@ -33,7 +33,7 @@ FACTORY_COMPLETE:  FALSE
 > automatically — forever — until `FACTORY_COMPLETE: TRUE` above. See `CLAUDE.md`
 > for the permanent operating rules and the Phase-11 definition of done.
 
-- **HEAD at last update:** 287a781 (Space Dodge implementation merge; factory-state sync follows)
+- **HEAD at last update:** 1e17800 (Street Racer pacing pass; stronger finish sprint, reward clarity, and less random road friction)
 - **Version:** 1.0.42+43 (HELD — no bump during factory; release builds are LAST)
 - **Updated:** 2026-10-04
 - **Tests:** 161 pass · **Analyze:** 115 info / 0 warnings / 0 errors
