@@ -24,7 +24,7 @@ FACTORY_BLOCKER:   none. Previously recorded AI model budget exhaustion was an o
 ORCHESTRATOR:      HARDENED. scripts/wonderplay_factory.ps1 now HALTS-and-diagnoses on fatal worker failures (quota/credits/auth/missing-binary via Get-WorkerFatalReason) instead of looping. Separates FAILURE (exit!=0, FailLimit=3) vs STALL (exit0 no commit, StallLimit=4); removed the old pause-5min-then-loop-forever burn loop; writes _factory_logs/FACTORY_HALTED.txt on halt.
 DEVICE_QA_STATUS:  BLOCKED (Pixel 6a off USB; needs physical replug). Record a device-QA checklist; do not let this block code/quality work.
 AUDIO_QA_STATUS:   NOT_STARTED (Piano = benchmark; verify every game has intentional audio; direct Hari/Pico taps silent).
-LAST_COMMIT:       (pending — see git log after this batch's commit)
+LAST_COMMIT:       72fe500
 NEXT_ACTION:       24 games now have a recorded Phase-4 verdict (14 high-risk + 10 this batch); path_finder's single-static-maze defect was the only D found so far and is fixed. Continue broadening the audit to the remaining ~54 games (see toy_registry.dart `toyBuilders` for the full id list; skip the 20 sensory/antistress toys which are open-ended and not scored). Good next candidates (not yet audited): color_quest, shape_scout, number_splash, goal-games `_ChoiceGoalGame`-based toys, air_hockey, target_toss, bubble_wrap, drum_garden, color_mixer, fishing, maze_run, beat_builder, catch_beat, firefly_count, sorting_train, shadow_match, pattern_weaver, balloon_math, dot_to_dot, rhythm_clap, shape_builder, memory_deluxe, bug_catch, spot_difference, weather_sort, maze_marble, piano_song, letter_trace, soccer_kick, xylophone_tap, jigsaw_four, counting_baskets, star_path, feelings_match, penalty_dash, shape_sort_chute, balloon_bounce, count_pop, mirror_draw, calm_breaths, hoop_toss, echo_drums, slide_puzzle, add_it_up, steady_hand, kindness_match, skee_ball, tone_match, odd_one_out, bigger_number, balance_ball, calm_choices. Pick a handful per batch, evaluate honestly against the Phase-4 criteria in CLAUDE.md (first 3 seconds, clarity, tactile response, scoring, progression, replayability, etc. — the path_finder bug shows "hardcoded content with no randomisation = zero replayability" is a real recurring risk pattern to check for). Record A/B/C/D verdicts here, and transform any C/D found. Do not build new games (catalog expansion is FROZEN).
 FACTORY_COMPLETE:  FALSE
 ```
@@ -35,7 +35,7 @@ FACTORY_COMPLETE:  FALSE
 > automatically — forever — until `FACTORY_COMPLETE: TRUE` above. See `CLAUDE.md`
 > for the permanent operating rules and the Phase-11 definition of done.
 
-- **HEAD at last update:** (pending — see git log after this batch's commit) (Path Finder randomised-maze fix + catalog audit batch 1)
+- **HEAD at last update:** 72fe500 (Path Finder randomised-maze fix + catalog audit batch 1)
 - **Version:** 1.0.42+43 (HELD — no bump during factory; release builds are LAST)
 - **Updated:** 2026-10-04
 - **Tests:** 161 pass · **Analyze:** 115 info / 0 warnings / 0 errors
