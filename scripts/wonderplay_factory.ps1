@@ -32,6 +32,8 @@ param(
   [int]$StallLimit = 4,           # consecutive exit-0-but-no-commit iterations before stopping
   [int]$FailLimit = 3,            # consecutive worker FAILURES (exit != 0) before stopping
   [int]$CooldownSeconds = 20,     # pause between workers
+  [int]$MaxFilesPerStep = 80,     # per-iteration committed-file budget; above this = investigate, not continue
+  [int]$MaxLinesPerStep = 8000,   # per-iteration committed-line budget (insertions+deletions)
   [string]$Model = ''             # optional: force a model; empty = Copilot default (Claude)
 )
 
@@ -42,6 +44,13 @@ $state   = Join-Path $repo 'docs\WONDERPLAY_GAME_FACTORY_STATE.md'
 $claude  = Join-Path $repo 'CLAUDE.md'
 $logDir  = Join-Path $repo '_factory_logs'
 New-Item -ItemType Directory -Force -Path $logDir | Out-Null
+
+# CRITICAL: the Copilot CLI's shell SANDBOX is scoped to the launching process's
+# working directory (COPILOT_ALLOW_ALL trusts the CWD), NOT the -C flag. If the
+# orchestrator is started from a subfolder (e.g. .vscode) the worker is trapped
+# there, cannot reach the repo root, and either stalls (+0 -0) or wanders into a
+# nested clone. Force CWD to the repo root so the sandbox covers the whole repo.
+Set-Location -LiteralPath $repo
 
 # Flutter on PATH so the worker's shell can build/test immediately.
 if (Test-Path 'C:\src\flutter\bin') { $env:Path += ';C:\src\flutter\bin' }
@@ -84,6 +93,38 @@ function Get-OriginHead {
 # (single source of truth). Fast-forward only -- never creates merge noise.
 function Sync-MainToOrigin {
   & git -C $repo pull --ff-only origin main -q 2>$null | Out-Null
+}
+
+# A leftover uncommitted file (e.g. a worker's post-commit reformat) blocks
+# pull --ff-only and leaves the local repo lagging origin. Park any leftovers in
+# a stash (NEVER discard -- product work is preserved), fast-forward, then restore
+# them for the next worker. Only tracked product files matter; gitignored temp
+# files (_factory_logs, build, .vscode, evidence, _lltest) never appear here.
+function Reconcile-Tree {
+  $porcelain = & git -C $repo status --porcelain
+  if (-not $porcelain) { Sync-MainToOrigin; return }
+  $n = ($porcelain | Measure-Object).Count
+  Write-Log "RECONCILE: $n leftover file(s) before sync -> stashing to fast-forward, then restoring."
+  & git -C $repo stash push -u -m 'factory-autoreconcile' -q 2>$null | Out-Null
+  Sync-MainToOrigin
+  $pop = & git -C $repo stash pop 2>&1
+  if ($LASTEXITCODE -ne 0) {
+    Write-Log "RECONCILE: stash pop conflicted; leftovers kept in stash for manual review (git stash list). $pop"
+  }
+}
+
+# Measure the committed diff a single iteration introduced. Returns a hashtable
+# @{ Files; Lines }. Used to flag an accidental bulk rewrite for investigation
+# instead of blindly continuing.
+function Measure-StepDiff {
+  param([string]$FromHead, [string]$ToHead)
+  if (-not $FromHead -or -not $ToHead -or $FromHead -eq $ToHead) { return @{ Files = 0; Lines = 0 } }
+  $stat = & git -C $repo diff --shortstat "$FromHead..$ToHead" 2>$null
+  $files = 0; $lines = 0
+  if ($stat -match '(\d+)\s+files?\s+changed')      { $files = [int]$Matches[1] }
+  if ($stat -match '(\d+)\s+insertion')             { $lines += [int]$Matches[1] }
+  if ($stat -match '(\d+)\s+deletion')              { $lines += [int]$Matches[1] }
+  return @{ Files = $files; Lines = $lines }
 }
 
 # Workers must operate ONLY in the repo root. A nested clone (observed as
@@ -163,7 +204,7 @@ Write-Log "preflight OK: copilot executable present at $copilot"
 
 # One source of truth: drop any stray nested clone and sync the repo to origin.
 Remove-StrayClone
-Sync-MainToOrigin
+Reconcile-Tree
 
 $iter = 0
 $stall = 0
@@ -222,14 +263,21 @@ while ($true) {
     break
   }
 
-  # 2) Did the repo actually advance? Count progress if EITHER the local HEAD
-  #    moved OR origin/main moved (a worker may push from any checkout). Then
-  #    fast-forward the local repo so HEAD here tracks the pushed work.
+  # 2) Did the repo actually advance? Reconcile any leftover dirty file FIRST so
+  #    the fast-forward is not blocked, then count progress if EITHER the local
+  #    HEAD or origin/main moved (a worker may push from any checkout).
   $remote = Get-OriginHead
-  Sync-MainToOrigin
+  Reconcile-Tree
   $head = Get-RepoHead
   if (($head -and $head -ne $lastHead) -or ($remote -and $remote -ne $lastRemote)) {
-    Write-Log "PROGRESS: local $lastHead -> $head ; origin $lastRemote -> $remote"
+    # Guard against an accidental bulk rewrite: a single step producing a huge
+    # diff is suspicious -- investigate instead of auto-continuing.
+    $d = Measure-StepDiff $lastHead $head
+    if ($d.Files -gt $MaxFilesPerStep -or $d.Lines -gt $MaxLinesPerStep) {
+      Write-Halt "Oversized change this step: $($d.Files) files / $($d.Lines) lines (limits $MaxFilesPerStep / $MaxLinesPerStep) between $lastHead..$head. This looks like a bulk/accidental rewrite, not a bounded product change. Review 'git diff $lastHead..$head' before resuming."
+      break
+    }
+    Write-Log "PROGRESS: local $lastHead -> $head ; origin $lastRemote -> $remote ($($d.Files) files / $($d.Lines) lines)"
     $lastHead   = $head
     $lastRemote = $remote
     $stall = 0
