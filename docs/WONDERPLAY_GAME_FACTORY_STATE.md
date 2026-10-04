@@ -2,7 +2,7 @@
 
 **Mandatory resume file.** On a new context: READ THIS FIRST, then resume from "NEXT EXACT ACTION". Never restart the sprint.
 
-- **HEAD at last update:** (see git — Count&Pop/Mirror Draw/Calm Breaths batch) == origin/main (clean)
+- **HEAD at last update:** 6818912 == origin/main (clean)
 - **Version:** 1.0.42+43 (HELD — no bump during factory; release builds are LAST)
 - **Updated:** 2026-10-04
 - **Tests:** 149 pass · **Analyze:** 112 info / 0 warnings / 0 errors
