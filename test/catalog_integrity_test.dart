@@ -52,6 +52,9 @@ void main() {
     'count_pop',
     'mirror_draw',
     'calm_breaths',
+    'hoop_toss',
+    'echo_drums',
+    'slide_puzzle',
   ];
 
   test('every registered game is playable, reachable and implemented', () {

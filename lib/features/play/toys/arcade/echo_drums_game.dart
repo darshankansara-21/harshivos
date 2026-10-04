@@ -1,0 +1,210 @@
+part of '../arcade_games.dart';
+
+/// Echo Drums — watch the drum phrase light up, then tap it back from memory.
+/// Each round the phrase grows by one. A wrong tap costs a life and replays the
+/// phrase. Echo a phrase of eight to win.
+class EchoDrumsGame extends StatefulWidget {
+  const EchoDrumsGame({super.key});
+  @override
+  State<EchoDrumsGame> createState() => _EchoDrumsGameState();
+}
+
+class _EchoDrumsGameState extends State<EchoDrumsGame>
+    with TickerProviderStateMixin, ToyTicker, _Emit {
+  static const String _id = 'echo_drums';
+  static const int _winLen = 8;
+  static const List<int> _notes = <int>[0, 4, 7, 12];
+  static const List<Color> _colors = <Color>[
+    Color(0xFFE63946), Color(0xFF48CAE4), Color(0xFFFFD166), Color(0xFF80ED99),
+  ];
+  final math.Random _rnd = math.Random();
+
+  final List<int> _seq = <int>[];
+  bool _showing = false;
+  int _showStep = 0;
+  bool _showOn = false;
+  double _timer = 0;
+  int _inputIdx = 0;
+  int _lit = -1;
+  double _flashT = 0;
+  int _lives = 3;
+  int _best = 0;
+  String? _banner;
+  GameStatus _status = GameStatus.ready;
+
+  int get _score => (_seq.length - 1).clamp(0, _winLen);
+
+  @override
+  void initState() {
+    super.initState();
+    GameScores.instance.ensureLoaded().then((_) {
+      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+    });
+  }
+
+  void _begin() {
+    _seq.clear();
+    _lives = 3;
+    _nextRound();
+  }
+
+  void _nextRound() {
+    _seq.add(_rnd.nextInt(4));
+    _startShow();
+  }
+
+  void _startShow() {
+    _showing = true;
+    _showStep = 0;
+    _showOn = true;
+    _lit = _seq[0];
+    _timer = 0.5;
+    TonePlayer.instance.playNote(_notes[_seq[0]], seconds: 0.3);
+  }
+
+  @override
+  void onTick(double dt) {
+    if (_status != GameStatus.playing) return;
+    if (_flashT > 0) {
+      _flashT -= dt;
+      if (_flashT <= 0 && !_showing) _lit = -1;
+    }
+    if (!_showing) {
+      setState(() {});
+      return;
+    }
+    _timer -= dt;
+    if (_timer <= 0) {
+      if (_showOn) {
+        _showOn = false;
+        _lit = -1;
+        _timer = 0.18;
+      } else {
+        _showStep++;
+        if (_showStep >= _seq.length) {
+          _showing = false;
+          _inputIdx = 0;
+          _lit = -1;
+          _banner = 'Your turn — tap it back!';
+        } else {
+          _showOn = true;
+          _lit = _seq[_showStep];
+          _timer = 0.5;
+          TonePlayer.instance.playNote(_notes[_lit], seconds: 0.3);
+        }
+      }
+    }
+    setState(() {});
+  }
+
+  void _tap(int pad) {
+    if (_status != GameStatus.playing || _showing) return;
+    _lit = pad;
+    _flashT = 0.25;
+    TonePlayer.instance.playNote(_notes[pad], seconds: 0.25);
+    if (pad == _seq[_inputIdx]) {
+      _inputIdx++;
+      if (_inputIdx >= _seq.length) {
+        if (_seq.length >= _winLen) {
+          _status = GameStatus.won;
+          TonePlayer.instance.playCue(SoundCue.gameStart);
+          emit(ExperienceEvent.gameCompleted);
+        } else {
+          TonePlayer.instance.playCue(SoundCue.success);
+          emit(ExperienceEvent.bubblePopped);
+          _banner = 'Nice echo!';
+          GameScores.instance.submit(_id, _score).then((b) {
+            if (mounted) setState(() => _best = b);
+          });
+          _nextRound();
+        }
+      }
+    } else {
+      _lives--;
+      TonePlayer.instance.playCue(SoundCue.gentleRetry);
+      _banner = 'Oops — listen again';
+      if (_lives <= 0) {
+        _status = GameStatus.over;
+      } else {
+        _startShow();
+      }
+    }
+    setState(() {});
+  }
+
+  void _reset() {
+    setState(() {
+      _banner = null;
+      _begin();
+      _status = GameStatus.playing;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    drain(context);
+    return _Shell(
+      title: '🪘 Echo Drums',
+      introHow:
+          'Watch the drums light up in order, then tap them back from memory. '
+          'The phrase grows each round — echo eight to win!',
+      onStart: () => setState(() {
+        _begin();
+        _status = GameStatus.playing;
+      }),
+      score: _score,
+      best: _best,
+      target: _winLen,
+      status: _status,
+      banner: _banner ?? 'Phrase of ${_seq.length}  ·  ${'💛' * _lives}',
+      overEmoji: '🪘',
+      overText: 'Good listening!',
+      accent: const Color(0xFFFFD166),
+      onPlayAgain: _reset,
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: <Color>[Color(0xFF241A2E), Color(0xFF130C18)],
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(28, 150, 28, 40),
+            child: GridView.count(
+              crossAxisCount: 2,
+              mainAxisSpacing: 18,
+              crossAxisSpacing: 18,
+              physics: const NeverScrollableScrollPhysics(),
+              children: <Widget>[
+                for (var i = 0; i < 4; i++)
+                  GestureDetector(
+                    onTap: () => _tap(i),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 120),
+                      decoration: BoxDecoration(
+                        color: _lit == i
+                            ? Color.lerp(_colors[i], Colors.white, 0.5)
+                            : _colors[i].withOpacity(0.55),
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: _lit == i
+                            ? <BoxShadow>[
+                                BoxShadow(
+                                    color: _colors[i], blurRadius: 24, spreadRadius: 2)
+                              ]
+                            : const <BoxShadow>[],
+                      ),
+                      child: const Center(
+                        child: Text('🥁', style: TextStyle(fontSize: 40)),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

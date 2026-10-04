@@ -758,6 +758,24 @@ final List<UniverseToy> kToyUniverse = <UniverseToy>[
     category: ToyCategory.calm, inputs: const [ToyInput.tap],
     engagement: ToyEngagement.endless, build: _play('calm_breaths'), isNew: true,
   ),
+  UniverseToy(
+    id: 'hoop_toss', name: 'Hoop Toss', emoji: '🎪',
+    color: const Color(0xFFFFD166),
+    category: ToyCategory.arcade, inputs: const [ToyInput.tap],
+    engagement: ToyEngagement.deep, build: _play('hoop_toss'), isNew: true,
+  ),
+  UniverseToy(
+    id: 'echo_drums', name: 'Echo Drums', emoji: '🪘',
+    color: const Color(0xFFFFD166),
+    category: ToyCategory.arcade, inputs: const [ToyInput.tap],
+    engagement: ToyEngagement.deep, build: _play('echo_drums'), isNew: true,
+  ),
+  UniverseToy(
+    id: 'slide_puzzle', name: 'Slide Puzzle', emoji: '🔀',
+    color: const Color(0xFF4CC9F0),
+    category: ToyCategory.learning, inputs: const [ToyInput.tap],
+    engagement: ToyEngagement.deep, build: _play('slide_puzzle'), isNew: true,
+  ),
 
   // ---- Sensory Lab: premium physics experiences (6) ----
   const UniverseToy(
@@ -987,6 +1005,9 @@ List<UniverseToy> arcadeToys() => _byIds(<String>[
       'count_pop',
       'mirror_draw',
       'calm_breaths',
+      'hoop_toss',
+      'echo_drums',
+      'slide_puzzle',
       'bubble_shooter',
       'sky_hop',
       'block_blast',

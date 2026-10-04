@@ -83,6 +83,9 @@ class GameThumb extends StatelessWidget {
     'count_pop',
     'mirror_draw',
     'calm_breaths',
+    'hoop_toss',
+    'echo_drums',
+    'slide_puzzle',
   };
 
   @override
@@ -253,6 +256,12 @@ class _ThumbPainter extends CustomPainter {
         _mirrorDraw(canvas, w, h);
       case 'calm_breaths':
         _calmBreaths(canvas, w, h);
+      case 'hoop_toss':
+        _hoopToss(canvas, w, h);
+      case 'echo_drums':
+        _echoDrums(canvas, w, h);
+      case 'slide_puzzle':
+        _slidePuzzle(canvas, w, h);
     }
   }
 
@@ -1561,6 +1570,56 @@ class _ThumbPainter extends CustomPainter {
           Paint()..color = const Color(0xFF89F7FE).withOpacity(0.08 * i));
     }
     canvas.drawCircle(c, w * 0.18, Paint()..color = const Color(0xFF89F7FE));
+  }
+
+  void _hoopToss(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF3A2A5E), Color(0xFF1C1430)]);
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(
+            Rect.fromCenter(center: Offset(w * 0.5, h * 0.4), width: w * 0.06, height: h * 0.3),
+            const Radius.circular(4)),
+        Paint()..color = const Color(0xFFBC6C25));
+    canvas.drawCircle(
+        Offset(w * 0.5, h * 0.72),
+        w * 0.12,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 8
+          ..color = const Color(0xFF48CAE4));
+  }
+
+  void _echoDrums(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF241A2E), Color(0xFF130C18)]);
+    const cols = <Color>[
+      Color(0xFFE63946), Color(0xFF48CAE4), Color(0xFFFFD166), Color(0xFF80ED99),
+    ];
+    var k = 0;
+    for (var r = 0; r < 2; r++) {
+      for (var c = 0; c < 2; c++) {
+        canvas.drawRRect(
+            RRect.fromRectAndRadius(
+                Rect.fromLTWH(w * (0.28 + c * 0.24), h * (0.28 + r * 0.24),
+                    w * 0.2, h * 0.2),
+                const Radius.circular(10)),
+            Paint()..color = cols[k++].withOpacity(0.8));
+      }
+    }
+  }
+
+  void _slidePuzzle(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF17202B), Color(0xFF0C1118)]);
+    var v = 1;
+    for (var r = 0; r < 3; r++) {
+      for (var c = 0; c < 3; c++) {
+        if (r == 2 && c == 2) continue;
+        final rect = Rect.fromLTWH(
+            w * (0.26 + c * 0.18), h * (0.26 + r * 0.18), w * 0.16, h * 0.16);
+        canvas.drawRRect(
+            RRect.fromRectAndRadius(rect, const Radius.circular(5)),
+            Paint()..color = HSVColor.fromAHSV(1, (v / 8) * 300, 0.45, 0.95).toColor());
+        v++;
+      }
+    }
   }
 
   @override

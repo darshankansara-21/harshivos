@@ -62,6 +62,9 @@ part 'arcade/balloon_bounce_game.dart';
 part 'arcade/count_pop_game.dart';
 part 'arcade/mirror_draw_game.dart';
 part 'arcade/calm_breaths_game.dart';
+part 'arcade/hoop_toss_game.dart';
+part 'arcade/echo_drums_game.dart';
+part 'arcade/slide_puzzle_game.dart';
 
 
 /// Shared chrome for the arcade games — score + best pill, optional target, a
