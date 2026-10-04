@@ -20,10 +20,12 @@ QUALITY_B:         brick_break, space_dodge, memory_flip, stack
 QUALITY_C:         (none recorded; all flagged weak games were transformed or validated as B/A-quality)
 QUALITY_D:         (none recorded; no rebuild required in this batch)
 KNOWN_DEFECTS:     none open from code or regression testing. Full-catalog audit, audio QA, and device QA remain; real-child testing flagged the 14 high-risk games listed above.
+FACTORY_BLOCKER:   AI model budget EXHAUSTED. GitHub Copilot monthly quota = 0 credits; OpenAI BYOK key also returns 429 no-credits. Autonomous workers CANNOT run until credits are restored (monthly reset or add credits). This is an account/billing limit, NOT a code bug.
+ORCHESTRATOR:      HARDENED. scripts/wonderplay_factory.ps1 now HALTS-and-diagnoses on fatal worker failures (quota/credits/auth/missing-binary via Get-WorkerFatalReason) instead of looping. Separates FAILURE (exit!=0, FailLimit=3) vs STALL (exit0 no commit, StallLimit=4); removed the old pause-5min-then-loop-forever burn loop; writes _factory_logs/FACTORY_HALTED.txt on halt. Verified live: 1 worker, quota detected, halted after 1 iteration (no burn).
 DEVICE_QA_STATUS:  BLOCKED (Pixel 6a off USB; needs physical replug). Record a device-QA checklist; do not let this block code/quality work.
 AUDIO_QA_STATUS:   NOT_STARTED (Piano = benchmark; verify every game has intentional audio; direct Hari/Pico taps silent).
-LAST_COMMIT:       cd10b07
-NEXT_ACTION:       Keep the quality pass moving through the remaining B-tier arcade titles — especially brick_break and space_dodge — then rerun the suite, analyze, and update this state with the fresh commit hash.
+LAST_COMMIT:       269d88e
+NEXT_ACTION:       RESTORE AI CREDITS, then run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/wonderplay_factory.ps1 . The hardened loop resumes the quality pass (brick_break / space_dodge next) and now stops itself on any fatal condition instead of spinning. Until credits return, the factory stays HALTED by design.
 ```
 
 > **How to run the factory (human, once):**
