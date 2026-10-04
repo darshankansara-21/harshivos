@@ -2,13 +2,14 @@
 
 **Mandatory resume file.** On a new context: READ THIS FIRST, then resume from "NEXT EXACT ACTION". Never restart the sprint.
 
-- **HEAD at last update:** (see git — Maze Marble/Piano Song/Letter Trace batch) == origin/main (clean)
+- **HEAD at last update:** (see git — Soccer/Xylophone/Jigsaw + Counting/StarPath/Feelings batch) == origin/main (clean)
 - **Version:** 1.0.42+43 (HELD — no bump during factory; release builds are LAST)
 - **Updated:** 2026-10-04
-- **Tests:** 137 pass · **Analyze:** 112 info / 0 warnings / 0 errors
-- **Catalog:** 54 games + 20 sensory toys
+- **Tests:** 143 pass · **Analyze:** 112 info / 0 warnings / 0 errors
+- **Catalog:** 60 games + 20 sensory toys
 - **REFACTOR_COMPLETE:** true — `arcade_games.dart` is now a thin library shell (imports + 39 `part 'arcade/<name>_game.dart';` directives + shared `_Shell`/`_Emit`). Each game lives in its own file under `lib/features/play/toys/arcade/`. All files share ONE library scope via `part`/`part of`, so private symbols (`_Shard`@brick_break, `_paintPolyShape`@sorting_train) stay visible with ZERO renames and ZERO behavior change. **To add a game:** create `lib/features/play/toys/arcade/<name>_game.dart` starting with `part of '../arcade_games.dart';` (NO imports in part files), add one `part 'arcade/<name>_game.dart';` line to `arcade_games.dart`, keep shared infra in `arcade_games.dart`. Then wire the 6 sites. No need to load the monolith anymore.
 - **Note:** build machine pub-get NETWORK-STALLS hard on fresh terminals (file stuck 2642 bytes). `.dart_tool/package_config.json` persists on disk across sessions, so `flutter test --no-pub` / `flutter analyze --no-pub` work even in a FRESH terminal — use them directly, do NOT wait on pub get. `flutter analyze --no-pub` itself can take 8s–100s depending on machine load. ToyCategory = {sensory,fidget,arcade,creative,calm,learning,communication,lifeSkills} (NO 'puzzle'). ToyEngagement = {endless,deep,quick}. COMMON WARNING: a declared-but-unread field (e.g. `_turn`, `_rnd`) in a new game → remove it.
+- **PART-SCOPE GOTCHA (critical):** every part file shares ONE library scope, so ALL top-level private names (classes/mixins) must be UNIQUE across every `arcade/*.dart` file. A new game's painter/helper CANNOT reuse a name already used by another game (e.g. `_BasketPainter` collided between basketball + counting_baskets). get_errors does NOT catch this; `flutter test` fails with "'_X' is already declared in this scope". Name painters distinctly (`_SoccerPainter`, `_FruitBasketPainter`, `_StarPathPainter`, ...).
 - **Device QA:** BLOCKED (phone off USB since sprint #3; needs physical replug). Not sprint-ending — continue implementation; run accumulated QA when device returns.
 
 ## Build/terminal facts (critical)
@@ -103,12 +104,20 @@ All 30 games meet the gameplay quality bar (clear in 5s · satisfying in 30s · 
 12. ~~Letter Trace~~ SHIPPED (letter_trace, ✍️ — drag along the dotted path to trace a letter/number, 5 glyphs)
 
 ## Next backlog (auto-generated, balanced)
-1. Soccer Kick (sports — aim/power a free kick past a diving keeper)
-2. Xylophone Tap (music — free-play coloured bars + guided tune mode)
-3. Jigsaw Four (puzzle — drag 4–9 pieces into a picture)
-4. Counting Baskets (learning — drag N fruits into the basket to match a number)
-5. Star Path (motor — trace a connect-the-stars constellation)
-6. Feelings Match (communication — match the face to the feeling word/emoji)
+1. ~~Soccer Kick~~ SHIPPED (soccer_kick, ⚽ — drag-back slingshot free kick vs a reading keeper, 10 goals / 5 misses)
+2. ~~Xylophone Tap~~ SHIPPED (xylophone_tap, 🎵 — 8 rainbow bars, guided glowing tune, 3 songs)
+3. ~~Jigsaw Four~~ SHIPPED (jigsaw_four, 🧩 — drag fragments of a procedural scene into slots, 2x2→3x3, 3 pictures)
+4. ~~Counting Baskets~~ SHIPPED (counting_baskets, 🧺 — drag exactly N fruits into the numbered basket, 10 rounds)
+5. ~~Star Path~~ SHIPPED (star_path, ⭐ — drag star-to-star in order to draw constellations, 5 shapes)
+6. ~~Feelings Match~~ SHIPPED (feelings_match, 😊 — tap the face that matches the feeling word, 3 lives, 10 right)
+
+## Next backlog (auto-generated, balanced) — round 2
+1. Penalty Dash (sports — time your tap to kick as a bar swings; power+accuracy meter)
+2. Memory Melody (music — hear a short tune, tap it back on the bars; grows each round)
+3. Shape Sort Chute (puzzle/motor — drag falling shapes into the matching hole)
+4. Count & Pop (learning — pop exactly the asked number of bubbles)
+5. Mirror Draw (creative/motor — trace a symmetric pattern that mirrors as you draw)
+6. Calm Breaths (calm — follow the expanding circle to breathe; no-fail, timed rounds)
 
 ## NEXT EXACT ACTION
-Build the next balanced batch (Soccer Kick + Xylophone Tap + Jigsaw Four, then Counting Baskets + Star Path + Feelings Match), each as a NEW part file in `lib/features/play/toys/arcade/` (`part of '../arcade_games.dart';`) with a matching `part` line in `arcade_games.dart`. Wire all 6 sites each; `flutter test --no-pub` + `flutter analyze --no-pub` (watch for unused-field warnings — remove any field you set but never read); commit; update this file. Keep going nonstop; never ask what to do next.
+Build round-2 backlog in two batches (Penalty Dash + Memory Melody + Shape Sort Chute, then Count & Pop + Mirror Draw + Calm Breaths), each as a NEW part file in `lib/features/play/toys/arcade/` (`part of '../arcade_games.dart';`) with a matching `part` line in `arcade_games.dart`. Give every painter/helper class a UNIQUE name (part-scope is shared — see PART-SCOPE GOTCHA). Wire all 6 sites each; `flutter test --no-pub` + `flutter analyze --no-pub` (fix unused-field warnings + name collisions); commit; update this file. Keep going nonstop; never ask what to do next.

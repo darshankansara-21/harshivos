@@ -71,6 +71,12 @@ class GameThumb extends StatelessWidget {
     'maze_marble',
     'piano_song',
     'letter_trace',
+    'soccer_kick',
+    'xylophone_tap',
+    'jigsaw_four',
+    'counting_baskets',
+    'star_path',
+    'feelings_match',
   };
 
   @override
@@ -217,6 +223,18 @@ class _ThumbPainter extends CustomPainter {
         _pianoSong(canvas, w, h);
       case 'letter_trace':
         _letterTrace(canvas, w, h);
+      case 'soccer_kick':
+        _soccerKick(canvas, w, h);
+      case 'xylophone_tap':
+        _xylophoneTap(canvas, w, h);
+      case 'jigsaw_four':
+        _jigsawFour(canvas, w, h);
+      case 'counting_baskets':
+        _countingBaskets(canvas, w, h);
+      case 'star_path':
+        _starPath(canvas, w, h);
+      case 'feelings_match':
+        _feelingsMatch(canvas, w, h);
     }
   }
 
@@ -1324,6 +1342,110 @@ class _ThumbPainter extends CustomPainter {
         Paint()..color = const Color(0xFF57CC99));
     canvas.drawCircle(Offset(w * 0.6, h * 0.51), w * 0.04,
         Paint()..color = const Color(0xFF57CC99));
+  }
+
+  void _soccerKick(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF2E7D32), Color(0xFF1B5E20)]);
+    final post = Paint()
+      ..color = Colors.white
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(Offset(w * 0.26, h * 0.4), Offset(w * 0.26, h * 0.18), post);
+    canvas.drawLine(Offset(w * 0.74, h * 0.4), Offset(w * 0.74, h * 0.18), post);
+    canvas.drawLine(Offset(w * 0.26, h * 0.18), Offset(w * 0.74, h * 0.18), post);
+    canvas.drawCircle(Offset(w * 0.5, h * 0.36),
+        w * 0.055, Paint()..color = const Color(0xFFFFD166));
+    canvas.drawCircle(Offset(w * 0.5, h * 0.7), w * 0.06, Paint()..color = Colors.white);
+  }
+
+  void _xylophoneTap(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF241A12), Color(0xFF130D08)]);
+    const cols = <Color>[
+      Color(0xFFE63946), Color(0xFFF4A261), Color(0xFFFFD166),
+      Color(0xFF80ED99), Color(0xFF48CAE4), Color(0xFF9B5DE5),
+    ];
+    for (var i = 0; i < 6; i++) {
+      final bw = w * (0.78 - i * 0.06);
+      canvas.drawRRect(
+          RRect.fromRectAndRadius(
+              Rect.fromCenter(
+                  center: Offset(w * 0.5, h * (0.2 + i * 0.12)),
+                  width: bw,
+                  height: h * 0.08),
+              const Radius.circular(5)),
+          Paint()..color = cols[i]);
+    }
+  }
+
+  void _jigsawFour(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF1B2430), Color(0xFF10151C)]);
+    const cols = <Color>[
+      Color(0xFF8ECAE6), Color(0xFFFFB703),
+      Color(0xFF52B788), Color(0xFF219EBC),
+    ];
+    var k = 0;
+    for (var r = 0; r < 2; r++) {
+      for (var c = 0; c < 2; c++) {
+        canvas.drawRRect(
+            RRect.fromRectAndRadius(
+                Rect.fromLTWH(w * (0.28 + c * 0.22), h * (0.28 + r * 0.22),
+                    w * 0.2, h * 0.2),
+                const Radius.circular(5)),
+            Paint()..color = cols[k++]);
+      }
+    }
+  }
+
+  void _countingBaskets(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFFFFF3E0), Color(0xFFFFE0B2)]);
+    final basket = Path()
+      ..moveTo(w * 0.3, h * 0.55)
+      ..lineTo(w * 0.36, h * 0.8)
+      ..lineTo(w * 0.64, h * 0.8)
+      ..lineTo(w * 0.7, h * 0.55)
+      ..close();
+    canvas.drawPath(basket, Paint()..color = const Color(0xFFA9744F));
+    for (var i = 0; i < 3; i++) {
+      canvas.drawCircle(Offset(w * (0.38 + i * 0.12), h * 0.5), w * 0.055,
+          Paint()..color = const Color(0xFFE63946));
+    }
+  }
+
+  void _starPath(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF0B1026), Color(0xFF05070F)]);
+    final pts = <Offset>[
+      Offset(w * 0.3, h * 0.3),
+      Offset(w * 0.6, h * 0.4),
+      Offset(w * 0.5, h * 0.7),
+      Offset(w * 0.25, h * 0.6),
+    ];
+    final line = Paint()
+      ..color = const Color(0xFFFFE066)
+      ..strokeWidth = 2;
+    for (var i = 1; i < pts.length; i++) {
+      canvas.drawLine(pts[i - 1], pts[i], line);
+    }
+    for (final p in pts) {
+      canvas.drawCircle(p, w * 0.03, Paint()..color = const Color(0xFFFFF3B0));
+    }
+  }
+
+  void _feelingsMatch(Canvas canvas, double w, double h) {
+    _bg(canvas, w, h, const [Color(0xFF2A2140), Color(0xFF15111F)]);
+    final face = Paint()..color = const Color(0xFFFFD166);
+    final c = Offset(w * 0.5, h * 0.42);
+    canvas.drawCircle(c, w * 0.2, face);
+    final eye = Paint()..color = const Color(0xFF2A2140);
+    canvas.drawCircle(Offset(c.dx - w * 0.07, c.dy - w * 0.05), w * 0.03, eye);
+    canvas.drawCircle(Offset(c.dx + w * 0.07, c.dy - w * 0.05), w * 0.03, eye);
+    final smile = Paint()
+      ..color = const Color(0xFF2A2140)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round;
+    canvas.drawArc(
+        Rect.fromCircle(center: Offset(c.dx, c.dy + w * 0.02), radius: w * 0.1),
+        0.2, math.pi - 0.4, false, smile);
   }
 
   @override

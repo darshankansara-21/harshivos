@@ -40,6 +40,12 @@ void main() {
     'maze_marble',
     'piano_song',
     'letter_trace',
+    'soccer_kick',
+    'xylophone_tap',
+    'jigsaw_four',
+    'counting_baskets',
+    'star_path',
+    'feelings_match',
   ];
 
   test('every registered game is playable, reachable and implemented', () {

@@ -1,0 +1,224 @@
+part of '../arcade_games.dart';
+
+/// Counting Baskets — read the number, then drag exactly that many fruits into
+/// the basket. The target grows as you go. Ten baskets to win. Gentle counting
+/// practice with no way to fail.
+class CountingBasketsGame extends StatefulWidget {
+  const CountingBasketsGame({super.key});
+  @override
+  State<CountingBasketsGame> createState() => _CountingBasketsGameState();
+}
+
+class _Fruit {
+  _Fruit(this.x, this.y, this.emoji);
+  double x, y; // center, normalized
+  final String emoji;
+  bool collected = false;
+}
+
+class _CountingBasketsGameState extends State<CountingBasketsGame> with _Emit {
+  static const String _id = 'counting_baskets';
+  static const int _target = 10;
+  static const List<String> _emojis = <String>['🍎', '🍊', '🍌', '🍓', '🍇', '🍐'];
+  final math.Random _rnd = math.Random();
+
+  final List<_Fruit> _fruits = <_Fruit>[];
+  int _need = 3;
+  int _inBasket = 0;
+  int _score = 0;
+  int _best = 0;
+  int? _dragging;
+  String? _banner;
+  GameStatus _status = GameStatus.ready;
+
+  @override
+  void initState() {
+    super.initState();
+    GameScores.instance.ensureLoaded().then((_) {
+      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+    });
+  }
+
+  void _newRound() {
+    _need = 2 + _rnd.nextInt(5); // 2..6
+    _inBasket = 0;
+    _fruits.clear();
+    final count = _need + 2;
+    for (var i = 0; i < count; i++) {
+      _fruits.add(_Fruit(
+        0.12 + _rnd.nextDouble() * 0.76,
+        0.16 + _rnd.nextDouble() * 0.34,
+        _emojis[_rnd.nextInt(_emojis.length)],
+      ));
+    }
+  }
+
+  int? _fruitAt(double nx, double ny) {
+    for (var i = _fruits.length - 1; i >= 0; i--) {
+      final f = _fruits[i];
+      if (f.collected) continue;
+      if ((f.x - nx).abs() < 0.06 && (f.y - ny).abs() < 0.06) return i;
+    }
+    return null;
+  }
+
+  void _collect(_Fruit f) {
+    f.collected = true;
+    _inBasket++;
+    TonePlayer.instance.playCue(SoundCue.fruit);
+    if (_inBasket >= _need) {
+      _score++;
+      TonePlayer.instance.playCue(SoundCue.success);
+      emit(ExperienceEvent.bubblePopped);
+      GameScores.instance.submit(_id, _score).then((v) {
+        if (mounted) setState(() => _best = v);
+      });
+      if (_score >= _target) {
+        _status = GameStatus.won;
+        TonePlayer.instance.playCue(SoundCue.gameStart);
+        emit(ExperienceEvent.gameCompleted);
+      } else {
+        _banner = 'Yes! $_need in the basket 🧺';
+        _newRound();
+      }
+    }
+  }
+
+  void _reset() {
+    setState(() {
+      _score = 0;
+      _banner = null;
+      _newRound();
+      _status = GameStatus.playing;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    drain(context);
+    return _Shell(
+      title: '🧺 Counting Baskets',
+      introHow:
+          'Read the number on the basket, then drag exactly that many fruits '
+          'into it. Fill ten baskets to win!',
+      onStart: () => setState(() {
+        _newRound();
+        _status = GameStatus.playing;
+      }),
+      score: _score,
+      best: _best,
+      target: _target,
+      status: _status,
+      banner: _banner ??
+          (_status == GameStatus.playing
+              ? 'Put $_need in the basket  ·  $_inBasket/$_need'
+              : 'Drag fruits to match the number'),
+      overEmoji: '🧺',
+      overText: 'Great counting!',
+      accent: const Color(0xFFF4A261),
+      onPlayAgain: _reset,
+      child: LayoutBuilder(
+        builder: (context, c) {
+          final w = c.maxWidth, h = c.maxHeight;
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onPanStart: (d) {
+              _dragging = _fruitAt(d.localPosition.dx / w, d.localPosition.dy / h);
+            },
+            onPanUpdate: (d) {
+              final i = _dragging;
+              if (i == null) return;
+              setState(() {
+                _fruits[i].x = (d.localPosition.dx / w).clamp(0.0, 1.0);
+                _fruits[i].y = (d.localPosition.dy / h).clamp(0.0, 1.0);
+              });
+            },
+            onPanEnd: (_) {
+              final i = _dragging;
+              _dragging = null;
+              if (i == null) return;
+              final f = _fruits[i];
+              // Basket mouth is the lower-centre area.
+              if (f.y > 0.7 && f.x > 0.28 && f.x < 0.72) {
+                setState(() => _collect(f));
+              }
+            },
+            child: CustomPaint(
+              painter: _FruitBasketPainter(fruits: _fruits, need: _need, inBasket: _inBasket),
+              size: Size.infinite,
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _FruitBasketPainter extends CustomPainter {
+  _FruitBasketPainter({required this.fruits, required this.need, required this.inBasket});
+  final List<_Fruit> fruits;
+  final int need, inBasket;
+
+  void _emoji(Canvas canvas, String s, Offset c, double size) {
+    final tp = TextPainter(
+      text: TextSpan(text: s, style: TextStyle(fontSize: size)),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, c - Offset(tp.width / 2, tp.height / 2));
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    canvas.drawRect(
+        Offset.zero & size,
+        Paint()
+          ..shader = const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: <Color>[Color(0xFFFFF3E0), Color(0xFFFFE0B2)],
+          ).createShader(Offset.zero & size));
+
+    // Basket.
+    final bx = w * 0.5, by = h * 0.86;
+    final bw = w * 0.42, bh = h * 0.2;
+    final basket = Path()
+      ..moveTo(bx - bw / 2, by - bh / 2)
+      ..lineTo(bx - bw / 2 * 0.78, by + bh / 2)
+      ..lineTo(bx + bw / 2 * 0.78, by + bh / 2)
+      ..lineTo(bx + bw / 2, by - bh / 2)
+      ..close();
+    canvas.drawPath(basket, Paint()..color = const Color(0xFFA9744F));
+    canvas.drawPath(
+        basket,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3
+          ..color = const Color(0xFF7A4E33));
+    // Weave lines.
+    final weave = Paint()
+      ..color = const Color(0xFF7A4E33)
+      ..strokeWidth = 2;
+    for (var i = 1; i < 4; i++) {
+      canvas.drawLine(Offset(bx - bw / 2 * (1 - i * 0.05), by - bh / 2 + bh * i / 4),
+          Offset(bx + bw / 2 * (1 - i * 0.05), by - bh / 2 + bh * i / 4), weave);
+    }
+    // Big target number on the basket.
+    _emoji(canvas, '$need', Offset(bx, by), 44);
+
+    // Collected fruits peeking out of the basket.
+    for (var i = 0; i < inBasket; i++) {
+      final a = (i / math.max(1, need)) * 1.4 - 0.7;
+      _emoji(canvas, '🍎', Offset(bx + a * bw * 0.4, by - bh / 2 - 6), 20);
+    }
+
+    // Loose fruits.
+    for (final f in fruits) {
+      if (f.collected) continue;
+      _emoji(canvas, f.emoji, Offset(f.x * w, f.y * h), 38);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_FruitBasketPainter oldDelegate) => true;
+}

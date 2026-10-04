@@ -686,6 +686,42 @@ final List<UniverseToy> kToyUniverse = <UniverseToy>[
     category: ToyCategory.learning, inputs: const [ToyInput.drag],
     engagement: ToyEngagement.deep, build: _play('letter_trace'), isNew: true,
   ),
+  UniverseToy(
+    id: 'soccer_kick', name: 'Soccer Kick', emoji: '⚽',
+    color: const Color(0xFF80ED99),
+    category: ToyCategory.arcade, inputs: const [ToyInput.drag],
+    engagement: ToyEngagement.deep, build: _play('soccer_kick'), isNew: true,
+  ),
+  UniverseToy(
+    id: 'xylophone_tap', name: 'Xylophone Tap', emoji: '🎵',
+    color: const Color(0xFFFFD166),
+    category: ToyCategory.arcade, inputs: const [ToyInput.tap],
+    engagement: ToyEngagement.deep, build: _play('xylophone_tap'), isNew: true,
+  ),
+  UniverseToy(
+    id: 'jigsaw_four', name: 'Jigsaw Four', emoji: '🧩',
+    color: const Color(0xFF48CAE4),
+    category: ToyCategory.arcade, inputs: const [ToyInput.drag],
+    engagement: ToyEngagement.deep, build: _play('jigsaw_four'), isNew: true,
+  ),
+  UniverseToy(
+    id: 'counting_baskets', name: 'Counting Baskets', emoji: '🧺',
+    color: const Color(0xFFF4A261),
+    category: ToyCategory.learning, inputs: const [ToyInput.drag],
+    engagement: ToyEngagement.deep, build: _play('counting_baskets'), isNew: true,
+  ),
+  UniverseToy(
+    id: 'star_path', name: 'Star Path', emoji: '⭐',
+    color: const Color(0xFFFFE066),
+    category: ToyCategory.learning, inputs: const [ToyInput.drag],
+    engagement: ToyEngagement.deep, build: _play('star_path'), isNew: true,
+  ),
+  UniverseToy(
+    id: 'feelings_match', name: 'Feelings Match', emoji: '😊',
+    color: const Color(0xFFFFB5E8),
+    category: ToyCategory.communication, inputs: const [ToyInput.tap],
+    engagement: ToyEngagement.deep, build: _play('feelings_match'), isNew: true,
+  ),
 
   // ---- Sensory Lab: premium physics experiences (6) ----
   const UniverseToy(
@@ -903,6 +939,12 @@ List<UniverseToy> arcadeToys() => _byIds(<String>[
       'maze_marble',
       'piano_song',
       'letter_trace',
+      'soccer_kick',
+      'xylophone_tap',
+      'jigsaw_four',
+      'counting_baskets',
+      'star_path',
+      'feelings_match',
       'bubble_shooter',
       'sky_hop',
       'block_blast',

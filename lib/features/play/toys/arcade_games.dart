@@ -50,6 +50,12 @@ part 'arcade/weather_sort_game.dart';
 part 'arcade/maze_marble_game.dart';
 part 'arcade/piano_song_game.dart';
 part 'arcade/letter_trace_game.dart';
+part 'arcade/soccer_kick_game.dart';
+part 'arcade/xylophone_tap_game.dart';
+part 'arcade/jigsaw_four_game.dart';
+part 'arcade/counting_baskets_game.dart';
+part 'arcade/star_path_game.dart';
+part 'arcade/feelings_match_game.dart';
 
 
 /// Shared chrome for the arcade games — score + best pill, optional target, a
