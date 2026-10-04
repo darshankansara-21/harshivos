@@ -25,6 +25,7 @@ class _StackGameState extends State<StackGame>
   double _speed = 0.55;
   int _score = 0;
   int _best = 0;
+  int _level = 1;
   int _perfectStreak = 0;
   String? _banner;
   double _bannerT = 0;
@@ -64,6 +65,11 @@ class _StackGameState extends State<StackGame>
     }
   }
 
+  void _updateLevel() {
+    _level = 1 + ((_tower.length - 1) ~/ 6);
+    _speed = math.min(1.35, 0.55 + (_level - 1) * 0.05);
+  }
+
   void _drop() {
     if (_status != GameStatus.playing) return;
     final top = _tower.last;
@@ -74,28 +80,33 @@ class _StackGameState extends State<StackGame>
       _over();
       return;
     }
-    // A near-perfect drop keeps the full width and builds a streak bonus.
-    final misalign = (_curLeft - top.left).abs();
-    if (misalign < 0.012) {
+    final targetCenter = top.left + top.width / 2;
+    final movingCenter = _curLeft + _curWidth / 2;
+    final misalign = (movingCenter - targetCenter).abs();
+    final tolerance = math.max(0.02, top.width * 0.12);
+    final perfect = misalign < tolerance;
+    final partialBonus = (1 - (misalign / math.max(top.width, 0.18))).clamp(0.0, 1.0);
+    if (perfect) {
       _perfectStreak++;
       _tower.add(_Block(top.left, top.width));
       _curWidth = top.width;
-      _score += 1 + _perfectStreak.clamp(1, 5);
+      _score += 2 + _perfectStreak.clamp(1, 5) + partialBonus.round();
       _banner = 'Perfect x$_perfectStreak!';
-      _bannerT = 1.0;
+      _bannerT = 1.1;
       TonePlayer.instance.playCue(SoundCue.success);
     } else {
       _perfectStreak = 0;
       _tower.add(_Block(l, overlap));
       _curWidth = overlap;
-      _score++;
+      _score += 1 + partialBonus.round();
+      _banner = partialBonus > 0.75 ? 'Nice save!' : 'Build the stack';
+      _bannerT = 0.9;
       TonePlayer.instance.playCue(SoundCue.stack);
     }
-    _speed = math.min(1.1, _speed + 0.03);
+    _updateLevel();
     _curLeft = _dir > 0 ? 0 : 1 - _curWidth;
     final nb = _tower.last;
-    _impact((nb.left + nb.width / 2) * _view.width, _view.height - 70,
-        misalign < 0.012);
+    _impact((nb.left + nb.width / 2) * _view.width, _view.height - 70, perfect);
     emit(ExperienceEvent.bubblePopped);
     GameScores.instance.submit(_id, _score).then((b) {
       if (mounted && b != _best) setState(() => _best = b);
@@ -135,6 +146,7 @@ class _StackGameState extends State<StackGame>
       _dir = 1;
       _speed = 0.55;
       _score = 0;
+      _level = 1;
       _perfectStreak = 0;
       _banner = null;
       _bannerT = 0;
@@ -147,12 +159,12 @@ class _StackGameState extends State<StackGame>
     drain(context);
     return _Shell(
       title: '🧱 Stack',
-      introHow: 'Tap to drop each block. Stack them as high as you can!',
+      introHow: 'Tap to drop the moving block. Line it up for a perfect stack and build a streak!',
       onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,
       status: _status,
-      banner: _banner,
+      banner: _banner ?? 'Level $_level · streak x$_perfectStreak',
       overEmoji: '🧱',
       overText: 'Toppled!',
       accent: const Color(0xFF4CC9F0),
@@ -195,8 +207,15 @@ class _StackPainter extends CustomPainter {
           ).createShader(Offset.zero & size));
     const blockH = 26.0;
     final baseY = h - 70;
-    // Show the most recent ~14 blocks so the tower appears to descend.
     final visible = tower.length > 14 ? 14 : tower.length;
+    final lastBlock = tower.last;
+    final centerGuide = lastBlock.left + lastBlock.width / 2;
+    final guidePaint = Paint()..color = Colors.white.withOpacity(0.28);
+    canvas.drawLine(
+      Offset(centerGuide * w, baseY - (visible - 1) * blockH - 8),
+      Offset(centerGuide * w, baseY + 20),
+      guidePaint,
+    );
     for (var i = 0; i < visible; i++) {
       final idx = tower.length - visible + i;
       final b = tower[idx];
@@ -209,15 +228,28 @@ class _StackPainter extends CustomPainter {
         Paint()..color = HSVColor.fromAHSV(1, hue.toDouble(), 0.55, 0.95).toColor(),
       );
     }
-    // Moving block above the tower.
     final movingY = baseY - visible * blockH;
+    final movingPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.centerLeft,
+        end: Alignment.centerRight,
+        colors: <Color>[Color(0xFFB8F0FF), Color(0xFFFFFFFF)],
+      ).createShader(Rect.fromLTWH(curLeft * w, movingY, curWidth * w, blockH - 3));
     canvas.drawRRect(
       RRect.fromRectAndRadius(
           Rect.fromLTWH(curLeft * w, movingY, curWidth * w, blockH - 3),
           const Radius.circular(5)),
-      Paint()..color = Colors.white,
+      movingPaint,
     );
-    // Drop-impact sparks.
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+          Rect.fromLTWH(curLeft * w, movingY, curWidth * w, blockH - 3),
+          const Radius.circular(5)),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5
+        ..color = Colors.white.withOpacity(0.7),
+    );
     for (final s in bits) {
       final k = (s.life / 0.5).clamp(0.0, 1.0);
       canvas.drawCircle(Offset(s.x, s.y), 2 + 3 * k,
