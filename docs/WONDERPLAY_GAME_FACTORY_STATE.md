@@ -24,7 +24,7 @@ FACTORY_BLOCKER:   ENVIRONMENT (recurring across sessions — re-check on next w
 ORCHESTRATOR:      HARDENED. scripts/wonderplay_factory.ps1 now HALTS-and-diagnoses on fatal worker failures (quota/credits/auth/missing-binary via Get-WorkerFatalReason) instead of looping. Separates FAILURE (exit!=0, FailLimit=3) vs STALL (exit0 no commit, StallLimit=4); removed the old pause-5min-then-loop-forever burn loop; writes _factory_logs/FACTORY_HALTED.txt on halt. Progress is detected via origin/main + ff-sync, so pushed commits from a tmprepo workaround still count correctly.
 DEVICE_QA_STATUS:  BLOCKED (Pixel 6a off USB; needs physical replug). Record a device-QA checklist; do not let this block code/quality work.
 AUDIO_QA_STATUS:   NOT_STARTED (Piano = benchmark; verify every game has intentional audio; direct Hari/Pico taps silent).
-LAST_COMMIT:       (pending — this batch's docs-only commit; previous commit 30325c5 factory-hardening infra)
+LAST_COMMIT:       1e84809 (docs: sync factory state to catalog-audit batch 5; previous commit 30325c5 factory-hardening infra)
 NEXT_ACTION:       Continue broadening the audit to the last ~7 unaudited games (see toy_registry.dart `toyBuilders` for the full id list; skip the 20 sensory/antistress toys which are open-ended and not scored): kindness_match, skee_ball, tone_match, odd_one_out, bigger_number, balance_ball, calm_choices. Evaluate honestly against the Phase-4 criteria in CLAUDE.md (first 3 seconds, clarity, tactile response, scoring, progression, replayability, etc. — hardcoded content with no randomisation = weak/zero replayability is a real recurring risk pattern to check for, found in jigsaw_four, shape_builder, star_path, and xylophone_tap so far; batch-5's 11 games were all clean). Record A/B/C/D verdicts here, and transform any C/D found. Once ALL games are audited, move to Phase 5 (deep re-verify the high-risk list), then Phase 6 (audio QA pass) per CLAUDE.md. Do not build new games (catalog expansion is FROZEN).
 FACTORY_COMPLETE:  FALSE
 ```
@@ -35,7 +35,7 @@ FACTORY_COMPLETE:  FALSE
 > automatically — forever — until `FACTORY_COMPLETE: TRUE` above. See `CLAUDE.md`
 > for the permanent operating rules and the Phase-11 definition of done.
 
-- **HEAD at last update:** (pending — this batch's docs-only commit on top of 30325c5 factory-hardening infra)
+- **HEAD at last update:** 1e84809 (catalog audit batch 5 — 11 games audited, all QUALITY_A)
 - **Version:** 1.0.42+43 (HELD - no bump during factory; release builds are LAST)
 - **Updated:** 2026-10-04
 - **Tests:** 161 pass - **Analyze:** 112 info / 0 warnings / 0 errors (unchanged baseline, no code changed this batch)
