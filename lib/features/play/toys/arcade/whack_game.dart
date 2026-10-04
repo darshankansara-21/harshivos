@@ -21,6 +21,7 @@ class _WhackGameState extends State<WhackGame>
   int _lives = 3;
   int _round = 1;
   int _roundTarget = 10;
+  int _dangerLevel = 0;
   double _bannerT = 0;
   String? _banner;
   GameStatus _status = GameStatus.ready;
@@ -55,17 +56,18 @@ class _WhackGameState extends State<WhackGame>
     }
     _spawnIn -= dt;
     if (_spawnIn <= 0) {
-      _spawnIn = math.max(0.25, 0.75 - _round * 0.05) *
-          (0.6 + _rnd.nextDouble() * 0.7);
+      _spawnIn = math.max(0.22, 0.75 - _round * 0.05 - _combo * 0.015) *
+          (0.55 + _rnd.nextDouble() * 0.55);
       final free = <int>[
         for (var i = 0; i < _holes; i++)
           if (_mole[i] <= 0) i
       ];
       if (free.isNotEmpty) {
         final h = free[_rnd.nextInt(free.length)];
-        _isBomb[h] = _rnd.nextInt(5) == 0;
-        _mole[h] = math.max(0.5, 1.0 - _round * 0.06) +
-            _rnd.nextDouble() * 0.45;
+        final dangerBias = _dangerLevel + (_combo >= 7 ? 1 : 0);
+        _isBomb[h] = _rnd.nextDouble() < (0.12 + dangerBias * 0.08);
+        _mole[h] = math.max(0.42, 1.05 - _round * 0.06 - dangerBias * 0.04) +
+            _rnd.nextDouble() * 0.35;
       }
     }
   }
@@ -74,6 +76,7 @@ class _WhackGameState extends State<WhackGame>
     if (_status != GameStatus.playing) return;
     _lives = math.max(0, _lives - 1);
     _combo = 0;
+    _dangerLevel = math.max(0, _dangerLevel - 1);
     _banner = _lives > 0 ? '$reason ${_lives} left' : 'Game over!';
     _bannerT = 1.0;
     TonePlayer.instance.playCue(SoundCue.crash);
@@ -96,8 +99,9 @@ class _WhackGameState extends State<WhackGame>
     _round++;
     _lives = math.min(5, _lives + 1);
     _roundTarget += 8;
+    _dangerLevel = math.min(3, _dangerLevel + 1);
     _spawnIn = math.max(0.22, 0.6 - (_round * 0.04));
-    _banner = 'Round $_round!';
+    _banner = _dangerLevel > 1 ? 'Round $_round! Bombs rise!' : 'Round $_round!';
     _bannerT = 1.2;
     TonePlayer.instance.playCue(SoundCue.milestone);
   }
@@ -114,7 +118,8 @@ class _WhackGameState extends State<WhackGame>
         return;
       }
       _combo++;
-      _score += 1 + (_combo >= 5 ? 1 : 0);
+      _dangerLevel = math.max(0, _dangerLevel - (_combo > 7 ? 1 : 0));
+      _score += 1 + (_combo >= 5 ? 1 : 0) + (_combo >= 9 ? 1 : 0);
       _splat[i] = 0.35;
       TonePlayer.instance.playCue(SoundCue.wood);
       emit(ExperienceEvent.bubblePopped);
@@ -146,6 +151,7 @@ class _WhackGameState extends State<WhackGame>
       _lives = 3;
       _round = 1;
       _roundTarget = 10;
+      _dangerLevel = 0;
       _banner = null;
       _bannerT = 0;
       _spawnIn = 0.7;

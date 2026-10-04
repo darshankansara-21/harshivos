@@ -11,9 +11,9 @@
 
 ```
 CURRENT_PHASE:     4 ? QUALITY AUDIT & TRANSFORM (catalog expansion FROZEN)
-CURRENT_GAME:      racing (late-race sprint tuning: stronger finish push, clearer pickup rewards, and shunts that hurt but keep the race alive)
-CURRENT_BATCH:     racing-polish-2 (Street Racer pacing, pickup value, and momentum tuning)
-COMPLETED_WORK:    78 Play games + 20 sensory toys built (rounds 1-4); arcade_games.dart refactored into per-game part files; self-driving factory infra built (CLAUDE.md + scripts/wonderplay_factory.ps1, Copilot CLI headless verified); high-risk quality pass recorded for bowling, racing, snake, pinball, piano_tiles, star_tap, whack, brick_break, space_dodge, sky_hop, memory_flip, stack, goal_keeper, fruit_catch; Street Racer pickup rewards now scale with race pressure, late-race touches cost pace without stalling the run, and the finish sprint feels more like a real road race.
+CURRENT_GAME:      whack (deepened the reaction loop with danger ramps, combo pressure, and faster bomber waves)
+CURRENT_BATCH:     whack-polish-1 (tension ramp, combo bonus scaling, and bomb pressure tuning)
+COMPLETED_WORK:    78 Play games + 20 sensory toys built (rounds 1-4); arcade_games.dart refactored into per-game part files; self-driving factory infra built (CLAUDE.md + scripts/wonderplay_factory.ps1, Copilot CLI headless verified); high-risk quality pass recorded for bowling, racing, snake, pinball, piano_tiles, star_tap, whack, brick_break, space_dodge, sky_hop, memory_flip, stack, goal_keeper, fruit_catch; Whack now ramps tension through danger waves and higher combo rewards instead of staying a flat clicker, while keeping the classic 3-life rhythm intact.
 AUDITED_GAMES:     14 high-risk games audited and classified in this batch (all prior war-room transforms preserved; no fresh C/D entries after equivalent gameplay review).
 QUALITY_A:         bowling, racing, snake, pinball, goal_keeper, star_tap, fruit_catch, piano_tiles
 QUALITY_B:         whack, sky_hop, brick_break, space_dodge, memory_flip, stack
@@ -22,8 +22,8 @@ QUALITY_D:         (none recorded; no rebuild required in this batch)
 KNOWN_DEFECTS:     none open from code or regression testing. Full-catalog audit, audio QA, and device QA remain; real-child testing flagged the 14 high-risk games listed above.
 DEVICE_QA_STATUS:  BLOCKED (Pixel 6a off USB; needs physical replug). Record a device-QA checklist; do not let this block code/quality work.
 AUDIO_QA_STATUS:   NOT_STARTED (Piano = benchmark; verify every game has intentional audio; direct Hari/Pico taps silent).
-LAST_COMMIT:       356dd4b
-NEXT_ACTION:       Keep the quality pass moving through the remaining Play catalog: audit the next games, tune actual gameplay loops rather than cosmetics, then rerun tests/analyze and update this state with the fresh commit hash.
+LAST_COMMIT:       78e55ea
+NEXT_ACTION:       Keep the quality pass moving through the remaining Play catalog: review the next in-progress arcade title, tune one more actual gameplay loop, then rerun tests/analyze and update this state with the fresh commit hash.
 FACTORY_COMPLETE:  FALSE
 ```
 
