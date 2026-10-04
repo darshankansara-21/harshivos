@@ -29,7 +29,8 @@
 param(
   [int]$MaxIterations = 500,
   [int]$MaxAutopilotContinues = 60,
-  [int]$StallLimit = 6,           # consecutive no-progress iterations before pausing hard
+  [int]$StallLimit = 4,           # consecutive exit-0-but-no-commit iterations before stopping
+  [int]$FailLimit = 3,            # consecutive worker FAILURES (exit != 0) before stopping
   [int]$CooldownSeconds = 20,     # pause between workers
   [string]$Model = ''             # optional: force a model; empty = Copilot default (Claude)
 )
@@ -88,6 +89,33 @@ if (-not (Test-Path $promptFile)) {
 }
 $bootstrap = Get-Content $promptFile -Raw
 
+# Scan a finished worker's log for a FATAL, non-recoverable condition. Returns a
+# human-readable reason string, or $null if nothing fatal was found. These are
+# conditions where spawning MORE workers is pointless (they will all fail the
+# same way) -- the orchestrator must STOP and tell the human, not keep looping.
+function Get-WorkerFatalReason {
+  param([string]$LogPath)
+  if (-not (Test-Path $LogPath)) { return $null }
+  $t = Get-Content $LogPath -Raw -Encoding Unicode
+  if (-not $t) { $t = Get-Content $LogPath -Raw }
+  if ($t -match 'exceeded your monthly quota') { return 'GitHub Copilot monthly quota exceeded (no AI credits). Add credits or wait for the monthly reset.' }
+  if ($t -match 'no credits remaining|insufficient_quota|billing')  { return 'Model provider has no credits remaining (billing). Add credits / configure a funded provider.' }
+  if ($t -match '\b429\b.*(quota|credit|rate)') { return 'Model provider returned 429 (quota/rate/credit limit).' }
+  if ($t -match 'Please run .*login|not logged in|authentication failed|401 Unauthorized') { return 'Copilot CLI is not authenticated. Run: copilot login' }
+  if ($t -match 'Cannot find GitHub Copilot CLI|is not recognized') { return 'Copilot CLI binary missing. Run: npm install -g @github/copilot' }
+  return $null
+}
+
+# Record a hard stop so the human knows EXACTLY why and what to do. Writes a
+# marker file and appends to the factory log. Never silently keeps looping.
+function Write-Halt {
+  param([string]$Reason)
+  $msg = "FACTORY HALTED: $Reason"
+  Write-Log $msg
+  $marker = Join-Path $logDir 'FACTORY_HALTED.txt'
+  Set-Content -Path $marker -Value ("[{0}] {1}`r`nCurrent HEAD: {2}`r`nResume after fixing with:`r`n  powershell -NoProfile -ExecutionPolicy Bypass -File scripts/wonderplay_factory.ps1`r`n" -f (Get-Date), $Reason, (Get-RepoHead))
+}
+
 Write-Log "=== WonderPlay self-driving factory starting ==="
 Write-Log "repo=$repo"
 Write-Log "copilot=$copilot"
@@ -99,6 +127,7 @@ if (-not (Ensure-Copilot)) {
 
 $iter = 0
 $stall = 0
+$fail = 0
 $lastHead = Get-RepoHead
 
 while ($true) {
@@ -125,6 +154,7 @@ while ($true) {
   )
   if ($Model) { $cliArgs += @('--model', $Model) }
 
+  $started = Get-Date
   try {
     & $copilot @cliArgs *> $wlog
     $code = $LASTEXITCODE
@@ -132,17 +162,43 @@ while ($true) {
     $code = 999
     Add-Content -Path $wlog -Value "ORCHESTRATOR EXCEPTION: $($_.Exception.Message)"
   }
-  Write-Log "worker #$iter exited code=$code"
+  $elapsed = [int]((Get-Date) - $started).TotalSeconds
+  Write-Log "worker #$iter exited code=$code in ${elapsed}s"
 
-  # Progress / stall detection — did the repo advance?
+  # 1) FATAL check FIRST: if the worker died on a non-recoverable condition
+  #    (quota/credits/auth/missing binary), spawning more workers is useless.
+  #    STOP immediately with a clear diagnosis instead of burning the budget.
+  $fatal = Get-WorkerFatalReason $wlog
+  if ($fatal) {
+    Write-Halt $fatal
+    break
+  }
+
+  # 2) Did the repo actually advance?
   $head = Get-RepoHead
   if ($head -and $head -ne $lastHead) {
-    Write-Log "progress: HEAD $lastHead -> $head"
+    Write-Log "PROGRESS: HEAD $lastHead -> $head"
     $lastHead = $head
     $stall = 0
-  } else {
+    $fail = 0
+  }
+  elseif ($code -ne 0) {
+    # A real failure (non-zero exit) with no progress.
+    $fail++
+    Write-Log "FAILURE: worker exited $code with no commit (consecutive failures=$fail of $FailLimit)"
+    if ($fail -ge $FailLimit) {
+      Write-Halt "$FailLimit consecutive worker FAILURES (exit != 0) with no git progress. Last exit=$code. See the newest worker_*.log in _factory_logs for the error. The loop stopped instead of burning more workers."
+      break
+    }
+  }
+  else {
+    # Worker exited 0 but produced no commit (soft stall: wandered / no-op).
     $stall++
-    Write-Log "no new commit this iteration (stall=$stall of $StallLimit)"
+    Write-Log "STALL: worker exited 0 but made no commit (consecutive stalls=$stall of $StallLimit)"
+    if ($stall -ge $StallLimit) {
+      Write-Halt "$StallLimit consecutive workers exited cleanly but produced NO commit (no measurable progress). The loop stopped instead of spinning. Inspect the worker logs / NEXT_ACTION in the state file."
+      break
+    }
   }
 
   # Safety: warn if the worker left the tree dirty (next worker should reconcile).
@@ -154,13 +210,7 @@ while ($true) {
     break
   }
 
-  if ($stall -ge $StallLimit) {
-    Write-Log "STALL GUARD: $StallLimit consecutive iterations with no git progress. Pausing 5 min then continuing; machine may be overloaded or blocked."
-    Start-Sleep -Seconds 300
-    $stall = 0
-  } else {
-    Start-Sleep -Seconds $CooldownSeconds
-  }
+  Start-Sleep -Seconds $CooldownSeconds
 }
 
 Write-Log "=== factory orchestrator exiting after $iter iteration(s) ==="
