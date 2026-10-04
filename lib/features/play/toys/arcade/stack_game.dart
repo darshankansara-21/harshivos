@@ -27,6 +27,8 @@ class _StackGameState extends State<StackGame>
   int _best = 0;
   int _level = 1;
   int _perfectStreak = 0;
+  double _dashTimer = 2.6;
+  double _dashActive = 0;
   String? _banner;
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
@@ -55,7 +57,20 @@ class _StackGameState extends State<StackGame>
       s.life -= dt;
       if (s.life <= 0) _bits.removeAt(i);
     }
-    _curLeft += _dir * _speed * dt;
+    // From level 2 on, the block periodically "dashes" at 1.8x speed for a
+    // short burst — a real timing/reflex challenge, not just a faster base
+    // speed. Keeps the core loop reactive instead of purely rhythmic.
+    if (_level >= 2) {
+      if (_dashActive > 0) {
+        _dashActive -= dt;
+        if (_dashActive <= 0) _dashTimer = 2.2 - math.min(1.0, _level * 0.12);
+      } else {
+        _dashTimer -= dt;
+        if (_dashTimer <= 0) _dashActive = 0.4;
+      }
+    }
+    final effSpeed = _speed * (_dashActive > 0 ? 1.8 : 1.0);
+    _curLeft += _dir * effSpeed * dt;
     if (_curLeft + _curWidth > 1) {
       _curLeft = 1 - _curWidth;
       _dir = -1;
@@ -90,9 +105,23 @@ class _StackGameState extends State<StackGame>
       _perfectStreak++;
       _tower.add(_Block(top.left, top.width));
       _curWidth = top.width;
-      _score += 2 + _perfectStreak.clamp(1, 5) + partialBonus.round();
-      _banner = 'Perfect x$_perfectStreak!';
-      _bannerT = 1.1;
+      final mult = _perfectStreak.clamp(1, 5);
+      _score += (2 + partialBonus.round()) * mult;
+      if (_perfectStreak > 0 && _perfectStreak % 5 == 0 && _curWidth < 0.4) {
+        // Reward real precision mastery: a 5-in-a-row perfect streak earns a
+        // full-width rescue, a genuine comeback payoff for skilled play
+        // rather than a cosmetic bonus.
+        _curWidth = 0.4;
+        _tower.last.width = 0.4;
+        _tower.last.left =
+            (top.left + top.width / 2 - 0.2).clamp(0.0, 1 - 0.4);
+        _banner = 'Mastery Reset! x$mult';
+        _bannerT = 1.3;
+        TonePlayer.instance.playCue(SoundCue.milestone);
+      } else {
+        _banner = 'Perfect x$mult!';
+        _bannerT = 1.1;
+      }
       TonePlayer.instance.playCue(SoundCue.success);
     } else {
       _perfectStreak = 0;
@@ -148,6 +177,8 @@ class _StackGameState extends State<StackGame>
       _score = 0;
       _level = 1;
       _perfectStreak = 0;
+      _dashTimer = 2.6;
+      _dashActive = 0;
       _banner = null;
       _bannerT = 0;
       _status = GameStatus.playing;
@@ -159,7 +190,7 @@ class _StackGameState extends State<StackGame>
     drain(context);
     return _Shell(
       title: '🧱 Stack',
-      introHow: 'Tap to drop the moving block. Line it up for a perfect stack and build a streak!',
+      introHow: 'Tap to drop the moving block. Line it up for a perfect stack, watch for speed dashes, and chain 5 perfects for a width rescue!',
       onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,
@@ -176,7 +207,8 @@ class _StackGameState extends State<StackGame>
             behavior: HitTestBehavior.opaque,
             onTapDown: (_) => _drop(),
             child: CustomPaint(
-              painter: _StackPainter(_tower, _curLeft, _curWidth, _bits),
+              painter: _StackPainter(
+                  _tower, _curLeft, _curWidth, _bits, _dashActive > 0),
               size: Size.infinite,
             ),
           );
@@ -187,11 +219,12 @@ class _StackGameState extends State<StackGame>
 }
 
 class _StackPainter extends CustomPainter {
-  _StackPainter(this.tower, this.curLeft, this.curWidth, this.bits);
+  _StackPainter(this.tower, this.curLeft, this.curWidth, this.bits, this.dashing);
   final List<_Block> tower;
   final double curLeft;
   final double curWidth;
   final List<_Shard> bits;
+  final bool dashing;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -230,10 +263,12 @@ class _StackPainter extends CustomPainter {
     }
     final movingY = baseY - visible * blockH;
     final movingPaint = Paint()
-      ..shader = const LinearGradient(
+      ..shader = LinearGradient(
         begin: Alignment.centerLeft,
         end: Alignment.centerRight,
-        colors: <Color>[Color(0xFFB8F0FF), Color(0xFFFFFFFF)],
+        colors: dashing
+            ? const <Color>[Color(0xFFFFD166), Color(0xFFFFF3BF)]
+            : const <Color>[Color(0xFFB8F0FF), Color(0xFFFFFFFF)],
       ).createShader(Rect.fromLTWH(curLeft * w, movingY, curWidth * w, blockH - 3));
     canvas.drawRRect(
       RRect.fromRectAndRadius(
@@ -247,8 +282,10 @@ class _StackPainter extends CustomPainter {
           const Radius.circular(5)),
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5
-        ..color = Colors.white.withOpacity(0.7),
+        ..strokeWidth = dashing ? 2.5 : 1.5
+        ..color = dashing
+            ? const Color(0xFFFFD166)
+            : Colors.white.withOpacity(0.7),
     );
     for (final s in bits) {
       final k = (s.life / 0.5).clamp(0.0, 1.0);
