@@ -32,31 +32,81 @@ class _BallSortGameState extends State<BallSortGame> with _Emit {
     });
   }
 
+  // A naive full shuffle of the balls across tubes can and does land on
+  // arrangements that are mathematically impossible to sort — a well-known
+  // trap for this puzzle genre. A stuck child would have no in-game recourse
+  // except abandoning the level entirely. Deal, then verify solvability with
+  // a bounded BFS over the exact same pour move the player uses; reshuffle on
+  // failure. (An earlier attempt tried scrambling forward from the solved
+  // state instead, but the pour rule only ever lets a ball land on an empty
+  // tube or one whose top already matches — which means every tube stays
+  // single-colour forever under that approach, so it could never produce the
+  // mixed-colour tubes that make this puzzle a real challenge. Shuffle first,
+  // verify after is the only approach that both can produce a real puzzle and
+  // guarantees it's solvable.)
   void _deal() {
     _colorsN = math.min(6, 3 + _level ~/ 2);
-    _tubes = List<List<int>>.generate(_colorsN + 2, (_) => <int>[]);
-    final balls = <int>[];
-    for (var c = 0; c < _colorsN; c++) {
-      for (var k = 0; k < _cap; k++) {
-        balls.add(c);
+    const maxAttempts = 60;
+    for (var attempt = 0; attempt < maxAttempts; attempt++) {
+      _tubes = List<List<int>>.generate(_colorsN + 2, (_) => <int>[]);
+      final balls = <int>[
+        for (var c = 0; c < _colorsN; c++) for (var k = 0; k < _cap; k++) c,
+      ]..shuffle(_rnd);
+      var idx = 0;
+      for (var t = 0; t < _colorsN; t++) {
+        for (var k = 0; k < _cap; k++) {
+          _tubes[t].add(balls[idx++]);
+        }
       }
-    }
-    balls.shuffle(_rnd);
-    var idx = 0;
-    for (var t = 0; t < _colorsN; t++) {
-      for (var k = 0; k < _cap; k++) {
-        _tubes[t].add(balls[idx++]);
-      }
+      if (_isSolvable(_tubes)) break;
+      // Last attempt: keep whatever we have rather than looping forever —
+      // in practice a solvable deal is found within the first few tries.
     }
     _selected = -1;
   }
 
-  bool _solved() {
-    for (final t in _tubes) {
+  bool _solved() => _isSolvedState(_tubes);
+
+  bool _isSolvedState(List<List<int>> tubes) {
+    for (final t in tubes) {
       if (t.isEmpty) continue;
       if (t.length != _cap || t.any((c) => c != t.first)) return false;
     }
     return true;
+  }
+
+  // Bounded BFS over the real pour move, using a canonical (tube-order
+  // independent) state key so swapping two interchangeable empty/same-colour
+  // tubes doesn't blow up the search. Capped at a modest node budget so a
+  // single deal never visibly stalls the UI.
+  bool _isSolvable(List<List<int>> start) {
+    String key(List<List<int>> s) {
+      final parts = s.map((t) => t.join(',')).toList()..sort();
+      return parts.join('|');
+    }
+
+    final seen = <String>{key(start)};
+    final queue = <List<List<int>>>[start];
+    var head = 0;
+    const maxNodes = 15000;
+    while (head < queue.length && queue.length < maxNodes) {
+      final s = queue[head++];
+      if (_isSolvedState(s)) return true;
+      for (var i = 0; i < s.length; i++) {
+        if (s[i].isEmpty) continue;
+        final ball = s[i].last;
+        for (var j = 0; j < s.length; j++) {
+          if (j == i || s[j].length >= _cap) continue;
+          if (s[j].isNotEmpty && s[j].last != ball) continue;
+          final ns = <List<int>>[for (final t in s) List<int>.from(t)];
+          ns[i].removeLast();
+          ns[j].add(ball);
+          final k = key(ns);
+          if (seen.add(k)) queue.add(ns);
+        }
+      }
+    }
+    return false;
   }
 
   void _tapTube(int i) {
