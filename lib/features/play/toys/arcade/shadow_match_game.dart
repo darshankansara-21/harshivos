@@ -31,6 +31,14 @@ class _ShadowMatchGameState extends State<ShadowMatchGame> with _Emit {
   String? _banner;
   GameStatus _status = GameStatus.ready;
 
+  // Screen-reader users can't see the bright shape or its black shadows, so
+  // expose the same shape name a sighted child reads visually per option —
+  // never which one is correct — so they compare descriptions themselves,
+  // exactly as a sighted child compares shapes by eye.
+  static const List<String> _shapeNames = <String>[
+    'circle', 'square', 'triangle', 'star', 'heart', 'diamond',
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -134,23 +142,61 @@ class _ShadowMatchGameState extends State<ShadowMatchGame> with _Emit {
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapDown: (d) {
-              if (d.localPosition.dy < h * 0.5) return;
-              final n = _options.length;
-              final i = (d.localPosition.dx / w * n).floor().clamp(0, n - 1);
-              _pick(i);
-            },
-            child: CustomPaint(
-              painter: _ShadowPainter(
-                shape: _shape,
-                shapeColor: _shapeColor,
-                options: _options,
-                wrongFlash: _wrongFlash,
+          final n = _options.length;
+          final lw = w / n;
+          // Screen-reader overlay: the top shape is announced on its own
+          // (informational, matches what a sighted child already sees), and
+          // each bottom shadow gets its own tappable Semantics button naming
+          // only its own shape — never which one matches — so a blind child
+          // must compare announced names the same way a sighted child
+          // compares silhouettes by eye.
+          final overlays = <Widget>[
+            Positioned(
+              left: 0,
+              top: 0,
+              width: w,
+              height: h * 0.5,
+              child: Semantics(
+                label: 'Shape to match: ${_shapeNames[_shape]}',
+                child: const SizedBox.expand(),
               ),
-              size: Size.infinite,
             ),
+          ];
+          for (var i = 0; i < n; i++) {
+            overlays.add(Positioned(
+              left: i * lw,
+              top: h * 0.5,
+              width: lw,
+              height: h * 0.5,
+              child: Semantics(
+                label: 'Shadow ${i + 1}: ${_shapeNames[_options[i]]}',
+                button: true,
+                onTap: () => _pick(i),
+                child: const SizedBox.expand(),
+              ),
+            ));
+          }
+          return Stack(
+            children: <Widget>[
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapDown: (d) {
+                  if (d.localPosition.dy < h * 0.5) return;
+                  final i = (d.localPosition.dx / w * n).floor().clamp(0, n - 1);
+                  _pick(i);
+                },
+                child: CustomPaint(
+                  painter: _ShadowPainter(
+                    shape: _shape,
+                    shapeColor: _shapeColor,
+                    options: _options,
+                    wrongFlash: _wrongFlash,
+                  ),
+                  size: Size.infinite,
+                ),
+              ),
+              ...overlays,
+            ],
           );
         },
       ),
