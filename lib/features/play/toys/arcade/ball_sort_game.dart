@@ -13,6 +13,11 @@ class _BallSortGameState extends State<BallSortGame> with _Emit {
     Color(0xFFEF476F), Color(0xFFFFD166), Color(0xFF06D6A0),
     Color(0xFF4CC9F0), Color(0xFF9B5DE5), Color(0xFFFF9E00),
   ];
+  // Spoken names for the palette above, index-matched, since a screen reader
+  // has no way to announce a raw Color value.
+  static const List<String> _colorNames = <String>[
+    'Red', 'Yellow', 'Green', 'Blue', 'Purple', 'Orange',
+  ];
   final math.Random _rnd = math.Random();
   late List<List<int>> _tubes;
   int _selected = -1;
@@ -194,11 +199,31 @@ class _BallSortGameState extends State<BallSortGame> with _Emit {
     );
   }
 
+  // Describes a tube's contents from the top (pourable) ball down to the
+  // bottom, by colour name, plus how much empty space remains — never which
+  // tube is "correct" to pour into, so the actual sorting puzzle stays
+  // intact for a screen-reader user, exactly as a sighted child must look at
+  // the stack order themselves.
+  String _tubeLabel(int i) {
+    final t = _tubes[i];
+    if (t.isEmpty) return 'Tube ${i + 1}: empty.';
+    final fromTop = t.reversed.map((c) => _colorNames[c]).join(', then ');
+    final space = _cap - t.length;
+    final spaceDesc =
+        space > 0 ? ' Room for $space more ball${space == 1 ? '' : 's'}.' : ' Full.';
+    return 'Tube ${i + 1}: top $fromTop.$spaceDesc';
+  }
+
   Widget _tube(int i) {
     const ball = 34.0;
     final t = _tubes[i];
     final selected = _selected == i;
-    return GestureDetector(
+    return Semantics(
+      button: true,
+      label: selected ? '${_tubeLabel(i)} Selected.' : _tubeLabel(i),
+      onTap: () => _tapTube(i),
+      excludeSemantics: true,
+      child: GestureDetector(
       onTap: () => _tapTube(i),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 120),
@@ -239,6 +264,7 @@ class _BallSortGameState extends State<BallSortGame> with _Emit {
               ),
           ],
         ),
+      ),
       ),
     );
   }
