@@ -262,6 +262,21 @@ class _BugPainter extends CustomPainter {
         canvas.drawLine(c + Offset(r, k * r * 0.5),
             c + Offset(r * 1.8, k * r * 0.7 - wiggle), leg);
       }
+      if (b.colorIndex == targetColor) {
+        // `targetColor` used to be tracked but never actually drawn with —
+        // every bug relied on its own fill hue alone to signal "this is the
+        // one to catch", with zero non-colour cue. A pulsing ring gives a
+        // shape-based tell a colour-blind child can use even if two hues in
+        // `_colors` read similarly to them.
+        final pulse = 0.5 + 0.5 * math.sin(b.phase * 0.6);
+        canvas.drawCircle(
+            c,
+            r * (1.35 + pulse * 0.18),
+            Paint()
+              ..color = Colors.white.withOpacity(0.35 + pulse * 0.35)
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 2.5);
+      }
       canvas.drawCircle(c, r, Paint()..color = colors[b.colorIndex]);
       canvas.drawCircle(c + Offset(0, -r * 0.8), r * 0.5,
           Paint()..color = Colors.black87);
