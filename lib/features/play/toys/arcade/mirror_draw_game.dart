@@ -35,6 +35,12 @@ class _MirrorDrawGameState extends State<MirrorDrawGame> with _Emit {
   ];
 
   final List<_MirrorDot> _dots = <_MirrorDot>[];
+  // Shuffled no-repeat bag of shape indices. With exactly 5 pictures and a
+  // win target of 5, plain Random()-with-replacement risked the same shape
+  // repeating 2-5 times in one playthrough while another never appeared at
+  // all — the same gap class already fixed in dot_to_dot / sorting_train /
+  // kindness_match / weather_sort.
+  final List<int> _bag = <int>[];
   int _shapeIdx = 0;
   int _score = 0;
   int _best = 0;
@@ -49,8 +55,15 @@ class _MirrorDrawGameState extends State<MirrorDrawGame> with _Emit {
     });
   }
 
+  int _drawShape() {
+    if (_bag.isEmpty) {
+      _bag.addAll(List<int>.generate(_half.length, (i) => i)..shuffle(_rnd));
+    }
+    return _bag.removeLast();
+  }
+
   void _newShape() {
-    _shapeIdx = _rnd.nextInt(_half.length);
+    _shapeIdx = _drawShape();
     _dots.clear();
     final poly = _half[_shapeIdx];
     for (var i = 0; i < poly.length - 1; i++) {
@@ -102,6 +115,7 @@ class _MirrorDrawGameState extends State<MirrorDrawGame> with _Emit {
   void _reset() {
     setState(() {
       _score = 0;
+      _bag.clear();
       _banner = null;
       _newShape();
       _status = GameStatus.playing;
