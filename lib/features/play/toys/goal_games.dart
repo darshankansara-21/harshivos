@@ -956,7 +956,11 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
   static const double _goalRight = 0.86;
   static const double _lineY = 0.34; // where the keeper stands
   static const double _spotY = 0.88; // penalty spot
-  static const double _reach = 0.11; // how far the keeper's dive covers
+  // How far the keeper's dive covers. Matches the painter's actual glove
+  // span (armSpan 0.12 + glove radius 0.03 = 0.15 from the keeper's centre)
+  // so a save that visibly shows glove-on-ball always registers as a save
+  // instead of a child seeing contact and still being told "Goal in!".
+  static const double _reach = 0.15;
   double _kMin = _goalLeft + 0.05;
   double _kMax = _goalRight - 0.05;
 
