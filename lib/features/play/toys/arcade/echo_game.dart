@@ -22,6 +22,14 @@ class _EchoGameState extends State<EchoGame>
   int _flash = -1;
   int _tapFlash = -1;
   double _tapFlashT = 0;
+  // Unlike every other tap-the-right-thing game in the catalog
+  // (shadow_match/spot_difference/pattern_weaver/weather_sort all flash red
+  // on a miss), a wrong tap here used the same `_tapFlash` as a correct tap —
+  // the pad lit up exactly the same colour either way, so the ONLY signal a
+  // child got that they made a mistake was the full-screen game-over card a
+  // moment later. Track the wrong pad separately so it can render with the
+  // same distinct red tint used catalog-wide.
+  int _wrongPad = -1;
   int _showAt = 0;
   double _showT = 0;
   bool _showing = false;
@@ -44,6 +52,7 @@ class _EchoGameState extends State<EchoGame>
     _showT = 0;
     _showing = true;
     _flash = -1;
+    _wrongPad = -1;
   }
 
   @override
@@ -104,6 +113,10 @@ class _EchoGameState extends State<EchoGame>
         setState(_nextRound);
       }
     } else {
+      // A distinct red flash on the pad actually touched, not the same
+      // highlight a correct tap gets — see `_wrongPad`'s doc comment.
+      _tapFlash = -1;
+      _wrongPad = pad;
       setState(() => _status = GameStatus.over);
       TonePlayer.instance.playCue(SoundCue.gameOver);
       emit(ExperienceEvent.incorrectAnswer);
@@ -116,6 +129,7 @@ class _EchoGameState extends State<EchoGame>
   void _reset() {
     setState(() {
       _seq.clear();
+      _wrongPad = -1;
       _status = GameStatus.playing;
       _nextRound();
     });
@@ -170,13 +184,21 @@ class _EchoGameState extends State<EchoGame>
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 90),
                             decoration: BoxDecoration(
-                              color: (_flash == i || _tapFlash == i)
-                                  ? _pads[i]
-                                  : _pads[i].withOpacity(0.35),
+                              color: _wrongPad == i
+                                  ? const Color(0xFFE23B3B)
+                                  : (_flash == i || _tapFlash == i)
+                                      ? _pads[i]
+                                      : _pads[i].withOpacity(0.35),
                               borderRadius: BorderRadius.circular(20),
-                              boxShadow: (_flash == i || _tapFlash == i)
+                              boxShadow: (_flash == i ||
+                                      _tapFlash == i ||
+                                      _wrongPad == i)
                                   ? <BoxShadow>[
-                                      BoxShadow(color: _pads[i], blurRadius: 24)
+                                      BoxShadow(
+                                          color: _wrongPad == i
+                                              ? const Color(0xFFE23B3B)
+                                              : _pads[i],
+                                          blurRadius: 24)
                                     ]
                                   : const <BoxShadow>[],
                             ),
