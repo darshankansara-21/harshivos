@@ -32,6 +32,14 @@ class _PianoTilesGameState extends State<PianoTilesGame>
   int _score = 0;
   int _best = 0;
   int _lastCol = -1;
+  // Every other audited game in the catalog flashes a celebratory banner at
+  // score milestones (whack's 'Round N!', star_tap's 'Combo xN!', etc.) —
+  // Piano Tiles, the Phase-5 benchmark game, had none at all: its only
+  // in-run feedback was a 0.26s column-color flash + note sound, so a child
+  // climbing toward a new personal best got zero acknowledgement of it.
+  String? _banner;
+  double _bannerT = 0;
+  int _lastMilestone = 0;
   GameStatus _status = GameStatus.ready;
 
   @override
@@ -62,6 +70,10 @@ class _PianoTilesGameState extends State<PianoTilesGame>
   void onTick(double dt) {
     if (_status != GameStatus.playing) return;
     if (_flashT > 0) _flashT -= dt;
+    if (_bannerT > 0) {
+      _bannerT -= dt;
+      if (_bannerT <= 0) _banner = null;
+    }
     for (final r in _rows) {
       r.y += _speed * dt;
     }
@@ -93,12 +105,24 @@ class _PianoTilesGameState extends State<PianoTilesGame>
       _flashT = 0.26;
       emit(ExperienceEvent.bubblePopped);
       _speed = math.min(0.95, _speed + 0.006);
+      // Milestone banners every 10 tiles, matching the celebratory-progress
+      // pattern every other audited arcade game already uses.
+      if (_score ~/ 10 > _lastMilestone) {
+        _lastMilestone = _score ~/ 10;
+        _flash(_speed >= 0.9 ? '$_score tiles! Presto! 🎹' : '$_score tiles! 🎵');
+        TonePlayer.instance.playCue(SoundCue.milestone);
+      }
       GameScores.instance.submit(_id, _score).then((b) {
         if (mounted && b != _best) setState(() => _best = b);
       });
     } else {
       _gameOver();
     }
+  }
+
+  void _flash(String s) {
+    _banner = s;
+    _bannerT = 1.1;
   }
 
   void _gameOver() {
@@ -123,6 +147,9 @@ class _PianoTilesGameState extends State<PianoTilesGame>
       _mPos = 0;
       _flashCol = -1;
       _flashT = 0;
+      _banner = null;
+      _bannerT = 0;
+      _lastMilestone = 0;
       _status = GameStatus.playing;
       for (var i = 0; i < 4; i++) {
         _rows.add(_spawnRow(-0.05 - i * _gap));
@@ -140,6 +167,7 @@ class _PianoTilesGameState extends State<PianoTilesGame>
       score: _score,
       best: _best,
       status: _status,
+      banner: _banner,
       overEmoji: '🎹',
       overText: 'Missed a tile!',
       accent: const Color(0xFF9B5DE5),
