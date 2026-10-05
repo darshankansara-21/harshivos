@@ -79,6 +79,12 @@ class _ToneMatchGameState extends State<ToneMatchGame>
         }
       } else {
         _hideT = 0.9;
+        // Every other mismatch/no-op interaction across the catalog gives a
+        // distinct sound cue (see memory_flip_game.dart's _loseLife); this
+        // auditory-memory game played each bell's own note on reveal but
+        // stayed completely silent on the mismatch itself, leaving a child
+        // to infer failure from the banner text alone.
+        TonePlayer.instance.playCue(SoundCue.gentleRetry);
         _banner = 'Different notes — listen again';
       }
     }
