@@ -154,19 +154,32 @@ class _RhythmClapGameState extends State<RhythmClapGame>
       onPlayAgain: _reset,
       child: LayoutBuilder(
         builder: (context, c) {
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapDown: (_) => _clap(),
-            child: CustomPaint(
-              painter: _RhythmPainter(
-                markers: _markers,
-                hit: _hit,
-                missed: _missed,
-                head: _head,
-                padFlash: _padFlash,
-                bits: _bits,
+          return Semantics(
+            // This whole-screen pad was tappable only via a bare
+            // GestureDetector with zero Semantics tree, so a screen-reader
+            // user had no focusable element at all to find or double-tap —
+            // not just an unlabeled one, but a game with no accessible
+            // surface whatsoever. The label never reveals *when* the beat
+            // lands (that's the real rhythm challenge every child faces),
+            // only that this pad is what to tap.
+            button: true,
+            label: 'Clap pad. Tap in time with the beat.',
+            onTap: _clap,
+            excludeSemantics: true,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTapDown: (_) => _clap(),
+              child: CustomPaint(
+                painter: _RhythmPainter(
+                  markers: _markers,
+                  hit: _hit,
+                  missed: _missed,
+                  head: _head,
+                  padFlash: _padFlash,
+                  bits: _bits,
+                ),
+                size: Size.infinite,
               ),
-              size: Size.infinite,
             ),
           );
         },
