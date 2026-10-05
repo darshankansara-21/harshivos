@@ -89,8 +89,16 @@ class _ShapeBuilderGameState extends State<ShapeBuilderGame> with _Emit {
     for (var i = 0; i < _slots.length; i++) {
       final s = _slots[i];
       if (s.filled) continue;
-      if ((s.cx - p.dx / w).abs() < s.r + 0.03 &&
-          (s.cy - p.dy / h).abs() < s.r + 0.03) {
+      // Hit-test in pixel space, width-calibrated on BOTH axes: the painter
+      // draws every shape's radius as `s.r * w` (sized off width only), so a
+      // y-tolerance normalized by `h` would desync the vertical hit zone from
+      // the visible shape on any non-square (portrait) screen — the same
+      // aspect-ratio hit-test bug class already fixed in `bug_catch`,
+      // `bigger_number`, `maze_marble`, etc.
+      final dx = p.dx - s.cx * w;
+      final dy = p.dy - s.cy * h;
+      final tol = (s.r + 0.03) * w;
+      if (dx.abs() < tol && dy.abs() < tol) {
         if (s.shape == _currentShape) {
           s.filled = true;
           _placed++;

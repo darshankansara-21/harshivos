@@ -58,11 +58,20 @@ class _CountingBasketsGameState extends State<CountingBasketsGame> with _Emit {
     }
   }
 
-  int? _fruitAt(double nx, double ny) {
+  // Hit-test in pixel space with a single fixed-pixel tolerance: the painter
+  // draws every loose fruit at a constant 38px emoji size regardless of
+  // screen dimensions, so a tolerance normalized separately by width and
+  // height would desync the hit zone from the visible fruit on any
+  // non-square (portrait) screen — the same aspect-ratio hit-test bug class
+  // already fixed in `bug_catch`, `shape_builder`, `bigger_number`, etc.
+  int? _fruitAt(Offset p, double w, double h) {
+    const tol = 26.0;
     for (var i = _fruits.length - 1; i >= 0; i--) {
       final f = _fruits[i];
       if (f.collected) continue;
-      if ((f.x - nx).abs() < 0.06 && (f.y - ny).abs() < 0.06) return i;
+      final dx = p.dx - f.x * w;
+      final dy = p.dy - f.y * h;
+      if (dx.abs() < tol && dy.abs() < tol) return i;
     }
     return null;
   }
@@ -128,7 +137,7 @@ class _CountingBasketsGameState extends State<CountingBasketsGame> with _Emit {
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
             onPanStart: (d) {
-              _dragging = _fruitAt(d.localPosition.dx / w, d.localPosition.dy / h);
+              _dragging = _fruitAt(d.localPosition, w, h);
             },
             onPanUpdate: (d) {
               final i = _dragging;
