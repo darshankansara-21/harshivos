@@ -42,6 +42,7 @@ class _CatchBeatGameState extends State<CatchBeatGame>
   int _best = 0;
   int _laneFlash = -1;
   double _laneFlashT = 0;
+  bool _laneFlashHit = false;
   String? _banner;
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
@@ -129,8 +130,6 @@ class _CatchBeatGameState extends State<CatchBeatGame>
 
   void _tapLane(int lane) {
     if (_status != GameStatus.playing) return;
-    _laneFlash = lane;
-    _laneFlashT = 0.2;
     _Orb? best;
     var bestDist = 999.0;
     for (final o in _orbs) {
@@ -141,7 +140,14 @@ class _CatchBeatGameState extends State<CatchBeatGame>
         best = o;
       }
     }
-    if (best != null && bestDist <= _window) {
+    final bool hit = best != null && bestDist <= _window;
+    // A wrong/empty tap must look visibly different from a real catch, not
+    // just flash the lane's own colour — otherwise a child gets zero signal
+    // that the tap didn't count beyond the combo silently resetting later.
+    _laneFlash = lane;
+    _laneFlashT = 0.2;
+    _laneFlashHit = hit;
+    if (hit) {
       best.dead = true;
       _score++;
       _combo++;
@@ -229,6 +235,7 @@ class _CatchBeatGameState extends State<CatchBeatGame>
                 colors: _laneColors,
                 laneFlash: _laneFlash,
                 laneFlashT: _laneFlashT,
+                laneFlashHit: _laneFlashHit,
                 bits: _bits,
               ),
               size: Size.infinite,
@@ -248,6 +255,7 @@ class _CatchPainter extends CustomPainter {
     required this.colors,
     required this.laneFlash,
     required this.laneFlashT,
+    required this.laneFlashHit,
     required this.bits,
   });
   final int lanes;
@@ -256,6 +264,7 @@ class _CatchPainter extends CustomPainter {
   final List<Color> colors;
   final int laneFlash;
   final double laneFlashT;
+  final bool laneFlashHit;
   final List<_Shard> bits;
 
   @override
@@ -270,8 +279,12 @@ class _CatchPainter extends CustomPainter {
             Paint()..color = Colors.white.withOpacity(0.03));
       }
       if (laneFlash == i) {
+        // A wrong/empty tap flashes red — a hit flashes its own lane colour —
+        // so a miss is never visually confused with a real catch.
+        final Color flashColor =
+            laneFlashHit ? colors[i] : const Color(0xFFE23B3B);
         canvas.drawRect(Rect.fromLTWH(i * lw, 0, lw, h),
-            Paint()..color = colors[i].withOpacity(laneFlashT / 0.2 * 0.25));
+            Paint()..color = flashColor.withOpacity(laneFlashT / 0.2 * 0.3));
       }
     }
     // Hit line.
