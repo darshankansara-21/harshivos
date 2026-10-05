@@ -33,6 +33,8 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
   int _score = 0;
   int _best = 0;
   int _lives = 3;
+  bool _previewing = false;
+  double _previewLeft = 0;
   String? _banner;
   GameStatus _status = GameStatus.ready;
 
@@ -56,7 +58,13 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
 
   @override
   void onTick(double dt) {
-    if (_status != GameStatus.playing || _locked) return;
+    if (_status != GameStatus.playing) return;
+    if (_previewing) {
+      _previewLeft -= dt;
+      if (_previewLeft <= 0) _previewing = false;
+      return;
+    }
+    if (_locked) return;
     _timeLeft -= dt;
     if (_timeLeft <= 0) {
       _timeLeft = _timeLimit;
@@ -75,6 +83,13 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
     _pairs = 0;
     _timeLimit = _levelTimeLimit;
     _timeLeft = _timeLimit;
+  }
+
+  void _startPreview() {
+    setState(() {
+      _previewing = true;
+      _previewLeft = 1.4;
+    });
   }
 
   /// Shared penalty path for a wrong match or a timeout: drops a life, ends
@@ -117,7 +132,8 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
   }
 
   void _tap(int i) {
-    if (_locked ||
+    if (_previewing ||
+        _locked ||
         _matched[i] ||
         i == _first ||
         _status != GameStatus.playing) {
@@ -164,6 +180,7 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
               Future<void>.delayed(const Duration(milliseconds: 650), () {
                 if (!mounted) return;
                 setState(_deal);
+                _startPreview();
               });
             }
           } else {
@@ -186,15 +203,20 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
     });
   }
 
-  void _reset() => setState(() {
-        _level = 1;
-        _streak = 0;
-        _score = 0;
-        _lives = 3;
-        _banner = null;
-        _deal();
-        _status = GameStatus.playing;
-      });
+  void _reset() {
+    setState(() {
+      _level = 1;
+      _streak = 0;
+      _score = 0;
+      _lives = 3;
+      _banner = null;
+      _previewing = false;
+      _previewLeft = 0;
+      _deal();
+      _status = GameStatus.playing;
+    });
+    _startPreview();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -204,12 +226,21 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
       title: '🧠 Memory Flip',
       introHow:
           'Flip two cards to find matching pairs before the timer runs out. Clear every level, bank leftover time as bonus points!',
-      onStart: () => setState(() => _status = GameStatus.playing),
+      onStart: () {
+        setState(() {
+          _status = GameStatus.playing;
+          _previewing = false;
+          _previewLeft = 0;
+        });
+        _startPreview();
+      },
       score: _score,
       best: _best,
       status: _status,
       banner: _banner ??
-          'Level $_level · ⏱ ${_timeLeft.ceil()}s · $_lives❤',
+          (_previewing
+              ? 'Memorize the pairs!'
+              : 'Level $_level · ⏱ ${_timeLeft.ceil()}s · $_lives❤'),
       overEmoji: '💔',
       overText: 'Out of lives — nice try!',
       winEmoji: '🧠',
@@ -234,53 +265,57 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
               physics: const NeverScrollableScrollPhysics(),
               children: <Widget>[
                 for (var i = 0; i < _cards.length; i++)
-                  GestureDetector(
-                    onTapDown: (_) => _tap(i),
-                    child: TweenAnimationBuilder<double>(
-                      // Re-keys when a card becomes matched, firing a pop.
-                      key: ValueKey('mem-$i-${_matched[i]}'),
-                      tween: Tween<double>(
-                          begin: _matched[i] ? 1.35 : 1.0, end: 1.0),
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeOutBack,
-                      builder: (context, scale, child) =>
-                          Transform.scale(scale: scale, child: child),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: _matched[i]
-                              ? const Color(0xFF06D6A0).withOpacity(0.35)
-                              : (i == _first || i == _second)
-                                  ? Colors.white
-                                  : const Color(0xFF1E3A5F),
-                          borderRadius: BorderRadius.circular(14),
-                          border: _matched[i]
-                              ? Border.all(
-                                  color: const Color(0xFFFFD166), width: 2)
-                              : null,
-                          boxShadow: _matched[i]
-                              ? <BoxShadow>[
-                                  BoxShadow(
-                                      color: const Color(0xFF06D6A0)
-                                          .withOpacity(0.5),
-                                      blurRadius: 14)
-                                ]
-                              : const <BoxShadow>[],
-                        ),
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            (_matched[i] || i == _first || i == _second)
-                                ? _cards[i]
-                                : '',
-                            maxLines: 1,
-                            style: TextStyle(fontSize: cols == 3 ? 40 : 30),
+                  Builder(builder: (context) {
+                    final faceUp = _previewing ||
+                        _matched[i] ||
+                        i == _first ||
+                        i == _second;
+                    return GestureDetector(
+                      onTapDown: (_) => _tap(i),
+                      child: TweenAnimationBuilder<double>(
+                        // Re-keys when a card becomes matched, firing a pop.
+                        key: ValueKey('mem-$i-${_matched[i]}'),
+                        tween: Tween<double>(
+                            begin: _matched[i] ? 1.35 : 1.0, end: 1.0),
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOutBack,
+                        builder: (context, scale, child) =>
+                            Transform.scale(scale: scale, child: child),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: _matched[i]
+                                ? const Color(0xFF06D6A0).withOpacity(0.35)
+                                : faceUp
+                                    ? Colors.white
+                                    : const Color(0xFF1E3A5F),
+                            borderRadius: BorderRadius.circular(14),
+                            border: _matched[i]
+                                ? Border.all(
+                                    color: const Color(0xFFFFD166), width: 2)
+                                : null,
+                            boxShadow: _matched[i]
+                                ? <BoxShadow>[
+                                    BoxShadow(
+                                        color: const Color(0xFF06D6A0)
+                                            .withOpacity(0.5),
+                                        blurRadius: 14)
+                                  ]
+                                : const <BoxShadow>[],
+                          ),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              faceUp ? _cards[i] : '',
+                              maxLines: 1,
+                              style: TextStyle(fontSize: cols == 3 ? 40 : 30),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ),
+                    );
+                  }),
               ],
             ),
           ),
