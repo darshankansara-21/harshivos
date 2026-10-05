@@ -162,7 +162,8 @@ class _PianoTilesGameState extends State<PianoTilesGame>
     drain(context);
     return _Shell(
       title: '🎹 Piano Tiles',
-      introHow: 'Tap the black tiles in time — don’t miss one!',
+      introHow:
+          'Tap the glowing tile sliding down each lane — it plays the tune as you go. Don’t miss one!',
       onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,
