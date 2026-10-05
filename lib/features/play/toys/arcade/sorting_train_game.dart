@@ -20,6 +20,24 @@ class _SortingTrainGameState extends State<SortingTrainGame>
   ];
   final math.Random _rnd = math.Random();
   final List<_Shard> _bits = <_Shard>[];
+  // Screen-reader users can't see the parcel/wagon colours, so describe each
+  // by its paired colour+shape (matching _shapeForColor in the painter,
+  // where colour index == shape index) — same convention as
+  // pattern_weaver/odd_one_out/shadow_match — so a blind child can still
+  // find the matching wagon without colour vision.
+  static const List<String> _colorNames = <String>[
+    'red',
+    'yellow',
+    'teal',
+    'sky blue'
+  ];
+  static const List<String> _shapeNames = <String>[
+    'circle',
+    'square',
+    'triangle',
+    'diamond'
+  ];
+  String _parcelName(int c) => '${_colorNames[c]} ${_shapeNames[c]}';
   // Shuffled bag of colour indices so the 12-parcel win draws each colour an
   // even number of times with no repeat, instead of plain Random-with-
   // replacement risking the same colour several times in a row while the
@@ -143,25 +161,57 @@ class _SortingTrainGameState extends State<SortingTrainGame>
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapDown: (d) {
-              if (d.localPosition.dy < h * 0.62) return;
-              final i = (d.localPosition.dx / w * _colors.length)
-                  .floor()
-                  .clamp(0, _colors.length - 1);
-              _drop(i);
-            },
-            child: CustomPaint(
-              painter: _TrainPainter(
-                colors: _colors,
-                item: _item,
-                bob: _bob,
-                wrongFlash: _wrongFlash,
-                bits: _bits,
+          final overlays = <Widget>[
+            Positioned(
+              left: 0,
+              top: 0,
+              width: w,
+              height: h * 0.62,
+              child: Semantics(
+                label: 'Parcel to load: ${_parcelName(_item)}',
+                child: const SizedBox.expand(),
               ),
-              size: Size.infinite,
             ),
+          ];
+          final lw = w / _colors.length;
+          for (var i = 0; i < _colors.length; i++) {
+            overlays.add(Positioned(
+              left: i * lw,
+              top: h * 0.62,
+              width: lw,
+              height: h * 0.38,
+              child: Semantics(
+                label: 'Wagon ${i + 1}: ${_parcelName(i)}',
+                button: true,
+                onTap: () => _drop(i),
+                child: const SizedBox.expand(),
+              ),
+            ));
+          }
+          return Stack(
+            children: <Widget>[
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapDown: (d) {
+                  if (d.localPosition.dy < h * 0.62) return;
+                  final i = (d.localPosition.dx / w * _colors.length)
+                      .floor()
+                      .clamp(0, _colors.length - 1);
+                  _drop(i);
+                },
+                child: CustomPaint(
+                  painter: _TrainPainter(
+                    colors: _colors,
+                    item: _item,
+                    bob: _bob,
+                    wrongFlash: _wrongFlash,
+                    bits: _bits,
+                  ),
+                  size: Size.infinite,
+                ),
+              ),
+              ...overlays,
+            ],
           );
         },
       ),
