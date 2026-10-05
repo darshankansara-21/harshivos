@@ -214,6 +214,14 @@ class _PatternPainter extends CustomPainter {
   final double pop;
   final List<_Shard> bits;
 
+  // One fixed shape per colour (circle/square/triangle/star) so a
+  // colour-blind child can read the pattern by silhouette alone — this was
+  // the one remaining matching game drawing both its beads and its answer
+  // pads as flat colour-only swatches, the same gap already fixed for
+  // sorting_train/odd_one_out/shadow_match via the shared _paintPolyShape
+  // helper.
+  static const List<int> _shapeForColor = <int>[0, 1, 2, 3];
+
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width, h = size.height;
@@ -238,10 +246,10 @@ class _PatternPainter extends CustomPainter {
     for (var i = 0; i < n; i++) {
       final cx = slot * (i + 1);
       if (i < visible) {
-        canvas.drawCircle(Offset(cx, y), r,
-            Paint()..color = palette[pattern[i % period]]);
-        canvas.drawCircle(Offset(cx, y), r * 0.4,
-            Paint()..color = Colors.white.withOpacity(0.25));
+        final colIdx = pattern[i % period];
+        canvas.drawCircle(Offset(cx, y), r, Paint()..color = palette[colIdx]);
+        _paintPolyShape(canvas, Offset(cx, y), r * 0.45, _shapeForColor[colIdx],
+            Paint()..color = Colors.white.withOpacity(0.85));
       } else {
         // The missing bead.
         final pr = r * (1 + pop * 0.6);
@@ -271,6 +279,10 @@ class _PatternPainter extends CustomPainter {
             ..color = wrongFlash == i
                 ? const Color(0xFFE23B3B)
                 : palette[i]);
+      if (wrongFlash != i) {
+        _paintPolyShape(canvas, rect.center, math.min(rect.width, rect.height) * 0.22,
+            _shapeForColor[i], Paint()..color = Colors.white.withOpacity(0.85));
+      }
     }
     for (final s in bits) {
       final k = (s.life / 0.5).clamp(0.0, 1.0);
