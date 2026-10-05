@@ -2159,7 +2159,9 @@ class _RacingGameState extends State<RacingGame>
     _score += <int>[60, 30, 15, 5][(_finishPlace - 1).clamp(0, 3)];
     TonePlayer.instance
         .playCue(_finishPlace == 1 ? SoundCue.success : SoundCue.gameOver);
-    emit(ExperienceEvent.gameCompleted);
+    emit(_finishPlace == 1
+        ? ExperienceEvent.gameCompleted
+        : ExperienceEvent.incorrectAnswer);
     GameScores.instance.submit(_id, _score).then((b) {
       if (mounted) setState(() => _best = b);
     });
