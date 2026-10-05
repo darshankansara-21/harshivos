@@ -15,6 +15,7 @@ class _RhythmClapGameState extends State<RhythmClapGame>
   static const double _window = 0.06;
   final math.Random _rnd = math.Random();
   final List<_Shard> _bits = <_Shard>[];
+  bool _reduceMotion = false;
   List<double> _markers = <double>[0.2, 0.4, 0.6, 0.8];
   List<bool> _hit = <bool>[false, false, false, false];
   double _head = 0;
@@ -89,7 +90,8 @@ class _RhythmClapGameState extends State<RhythmClapGame>
       if (!_hit[i] && (_head - _markers[i]).abs() <= _window) {
         _hit[i] = true;
         _score++;
-        for (var j = 0; j < 8; j++) {
+        final bitCount = _reduceMotion ? 3 : 8;
+        for (var j = 0; j < bitCount; j++) {
           final a = _rnd.nextDouble() * math.pi * 2;
           final sp = 0.15 + _rnd.nextDouble() * 0.3;
           _bits.add(_Shard(_markers[i], 0.4, math.cos(a) * sp, math.sin(a) * sp,
@@ -126,6 +128,7 @@ class _RhythmClapGameState extends State<RhythmClapGame>
   @override
   Widget build(BuildContext context) {
     drain(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _Shell(
       title: '👏 Rhythm Clap',
       introHow:

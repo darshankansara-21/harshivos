@@ -22,6 +22,7 @@ class _FishingGameState extends State<FishingGame>
   final math.Random _rnd = math.Random();
   final List<_Fish> _fish = <_Fish>[];
   final List<_Shard> _bits = <_Shard>[];
+  bool _reduceMotion = false;
   double _hookX = 0.5;
   final double _hookY = 0.6;
   double _biteT = 0; // >0 while a fish nibbles (tap window)
@@ -105,7 +106,8 @@ class _FishingGameState extends State<FishingGame>
     if (_biteT > 0) {
       final pts = _biteGold ? 3 : 1;
       _score += pts;
-      for (var i = 0; i < 14; i++) {
+      final bitCount = _reduceMotion ? 4 : 14;
+      for (var i = 0; i < bitCount; i++) {
         final a = _rnd.nextDouble() * math.pi * 2;
         final sp = 0.15 + _rnd.nextDouble() * 0.3;
         _bits.add(_Shard(_hookX, _hookY, math.cos(a) * sp, math.sin(a) * sp,
@@ -145,6 +147,7 @@ class _FishingGameState extends State<FishingGame>
   @override
   Widget build(BuildContext context) {
     drain(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _Shell(
       title: '🎣 Fishing',
       introHow:

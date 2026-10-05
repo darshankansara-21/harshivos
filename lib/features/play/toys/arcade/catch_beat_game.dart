@@ -32,6 +32,7 @@ class _CatchBeatGameState extends State<CatchBeatGame>
   final math.Random _rnd = math.Random();
   final List<_Orb> _orbs = <_Orb>[];
   final List<_Shard> _bits = <_Shard>[];
+  bool _reduceMotion = false;
   double _spawnT = 0;
   double _fall = 0.55;
   int _score = 0;
@@ -146,7 +147,8 @@ class _CatchBeatGameState extends State<CatchBeatGame>
       _combo++;
       if (_combo > _bestCombo) _bestCombo = _combo;
       _fall = _fallSpeed(_score);
-      for (var i = 0; i < 10; i++) {
+      final bitCount = _reduceMotion ? 4 : 10;
+      for (var i = 0; i < bitCount; i++) {
         final a = _rnd.nextDouble() * math.pi * 2;
         final sp = 0.15 + _rnd.nextDouble() * 0.3;
         _bits.add(_Shard((lane + 0.5) / _lanes, _hitY, math.cos(a) * sp,
@@ -188,6 +190,7 @@ class _CatchBeatGameState extends State<CatchBeatGame>
   @override
   Widget build(BuildContext context) {
     drain(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _Shell(
       title: '🎶 Catch the Beat',
       introHow:

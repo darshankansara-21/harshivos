@@ -15,6 +15,7 @@ class _BasketballGameState extends State<BasketballGame>
   static const double _rimHalf = 0.075;
   final math.Random _rnd = math.Random();
   final List<_Shard> _bits = <_Shard>[];
+  bool _reduceMotion = false;
   double _bx = 0.5, _by = 0.82;
   double _vx = 0, _vy = 0;
   double _spin = 0;
@@ -176,7 +177,8 @@ class _BasketballGameState extends State<BasketballGame>
     _streak++;
     _netT = 0.5;
     final swish = !_touchedBoard;
-    for (var i = 0; i < 16; i++) {
+    final bitCount = _reduceMotion ? 5 : 16;
+    for (var i = 0; i < bitCount; i++) {
       final a = _rnd.nextDouble() * math.pi * 2;
       final sp = 0.2 + _rnd.nextDouble() * 0.4;
       _bits.add(_Shard(_hoopX, _hoopY + 0.03, math.cos(a) * sp,
@@ -242,6 +244,7 @@ class _BasketballGameState extends State<BasketballGame>
   @override
   Widget build(BuildContext context) {
     drain(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _Shell(
       title: '🏀 Basketball',
       introHow:

@@ -20,6 +20,7 @@ class _PatternWeaverGameState extends State<PatternWeaverGame>
   ];
   final math.Random _rnd = math.Random();
   final List<_Shard> _bits = <_Shard>[];
+  bool _reduceMotion = false;
   List<int> _pattern = <int>[0, 1];
   int _visible = 4;
   int _answer = 0;
@@ -91,7 +92,8 @@ class _PatternWeaverGameState extends State<PatternWeaverGame>
     if (color == _answer) {
       _score++;
       _pop = 0.4;
-      for (var i = 0; i < 12; i++) {
+      final bitCount = _reduceMotion ? 4 : 12;
+      for (var i = 0; i < bitCount; i++) {
         final a = _rnd.nextDouble() * math.pi * 2;
         final sp = 0.15 + _rnd.nextDouble() * 0.3;
         _bits.add(_Shard(0.5, 0.32, math.cos(a) * sp, math.sin(a) * sp,
@@ -146,6 +148,7 @@ class _PatternWeaverGameState extends State<PatternWeaverGame>
   @override
   Widget build(BuildContext context) {
     drain(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _Shell(
       title: '🧶 Pattern Weaver',
       introHow:

@@ -966,6 +966,7 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
 
   final math.Random _random = math.Random();
   final List<_Spark> _sparks = <_Spark>[];
+  bool _reduceMotion = false;
 
   double _keeperX = 0.5;
   double _keeperTargetX = 0.5;
@@ -1035,7 +1036,8 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
   }
 
   void _burst(double x, double y, Color color, int n, double speed) {
-    for (var i = 0; i < n; i++) {
+    final count = _reduceMotion ? math.max(3, n ~/ 3) : n;
+    for (var i = 0; i < count; i++) {
       final a = _random.nextDouble() * math.pi * 2;
       final sp = speed * (0.4 + _random.nextDouble());
       _sparks.add(_Spark(
@@ -1146,6 +1148,7 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
   @override
   Widget build(BuildContext context) {
     drainCompanion(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _GoalShell(
       title: '🥅 Goal Keeper',
       goal: 'Read the shot, slide and dive · Make 10 saves',

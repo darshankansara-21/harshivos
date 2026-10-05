@@ -26,6 +26,7 @@ class _SortingTrainGameState extends State<SortingTrainGame>
   // child never sees another one — same gap class as kindness_match /
   // calm_choices / weather_sort.
   final List<int> _bag = <int>[];
+  bool _reduceMotion = false;
   int _item = 0;
   double _bob = 0;
   int _score = 0;
@@ -78,7 +79,8 @@ class _SortingTrainGameState extends State<SortingTrainGame>
     if (_status != GameStatus.playing) return;
     if (wagon == _item) {
       _score++;
-      for (var i = 0; i < 12; i++) {
+      final bitCount = _reduceMotion ? 4 : 12;
+      for (var i = 0; i < bitCount; i++) {
         final a = _rnd.nextDouble() * math.pi * 2;
         final sp = 0.15 + _rnd.nextDouble() * 0.3;
         _bits.add(_Shard((wagon + 0.5) / _colors.length, 0.8, math.cos(a) * sp,
@@ -123,6 +125,7 @@ class _SortingTrainGameState extends State<SortingTrainGame>
   @override
   Widget build(BuildContext context) {
     drain(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _Shell(
       title: '🚂 Sorting Train',
       introHow:

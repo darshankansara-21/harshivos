@@ -18,6 +18,7 @@ class _AirHockeyGameState extends State<AirHockeyGame>
   static const double _goalR = 0.67;
   final math.Random _rnd = math.Random();
   final List<_Shard> _bits = <_Shard>[];
+  bool _reduceMotion = false;
   double _px = 0.5, _py = 0.5, _pvx = 0, _pvy = 0;
   double _ppx = 0.5, _ppy = 0.84; // player mallet (bottom half)
   double _prevPpx = 0.5, _prevPpy = 0.84;
@@ -176,7 +177,8 @@ class _AirHockeyGameState extends State<AirHockeyGame>
       _goalGlow = -0.8;
     }
     final gy = player ? 0.0 : 1.0;
-    for (var i = 0; i < 16; i++) {
+    final bitCount = _reduceMotion ? 5 : 16;
+    for (var i = 0; i < bitCount; i++) {
       final a = _rnd.nextDouble() * math.pi * 2;
       final sp = 0.2 + _rnd.nextDouble() * 0.4;
       _bits.add(_Shard(_px, gy, math.cos(a) * sp, math.sin(a) * sp,
@@ -245,6 +247,7 @@ class _AirHockeyGameState extends State<AirHockeyGame>
   @override
   Widget build(BuildContext context) {
     drain(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _Shell(
       title: '🏒 Air Hockey',
       introHow:

@@ -28,6 +28,7 @@ class _BugCatchGameState extends State<BugCatchGame>
   final math.Random _rnd = math.Random();
   final List<_Bug> _bugs = <_Bug>[];
   final List<_Shard> _bits = <_Shard>[];
+  bool _reduceMotion = false;
   int _targetColor = 0;
   int _score = 0;
   int _lives = 3;
@@ -114,7 +115,8 @@ class _BugCatchGameState extends State<BugCatchGame>
       if ((b.x - p.dx / w).abs() < 0.07 && (b.y - p.dy / h).abs() < 0.07) {
         if (b.colorIndex == _targetColor) {
           _score++;
-          for (var j = 0; j < 10; j++) {
+          final bitCount = _reduceMotion ? 4 : 10;
+          for (var j = 0; j < bitCount; j++) {
             final a = _rnd.nextDouble() * math.pi * 2;
             final sp = 0.15 + _rnd.nextDouble() * 0.3;
             _bits.add(_Shard(b.x, b.y, math.cos(a) * sp, math.sin(a) * sp,
@@ -171,6 +173,7 @@ class _BugCatchGameState extends State<BugCatchGame>
   @override
   Widget build(BuildContext context) {
     drain(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _Shell(
       title: '🐞 Bug Catch',
       introHow:

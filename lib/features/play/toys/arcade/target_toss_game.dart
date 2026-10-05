@@ -16,6 +16,7 @@ class _TargetTossGameState extends State<TargetTossGame>
   static const double _targetY = 0.22;
   final math.Random _rnd = math.Random();
   final List<_Shard> _bits = <_Shard>[];
+  bool _reduceMotion = false;
   double _bx = 0.5, _by = 0.86, _vx = 0, _vy = 0;
   bool _flying = false;
   double _tx = 0.5; // target centre x
@@ -130,7 +131,8 @@ class _TargetTossGameState extends State<TargetTossGame>
     }
     _score += pts;
     _hitPulse = 0.5;
-    for (var i = 0; i < 14; i++) {
+    final bitCount = _reduceMotion ? 4 : 14;
+    for (var i = 0; i < bitCount; i++) {
       final a = _rnd.nextDouble() * math.pi * 2;
       final sp = 0.15 + _rnd.nextDouble() * 0.35;
       _bits.add(_Shard(_tx, _targetY, math.cos(a) * sp, math.sin(a) * sp,
@@ -189,6 +191,7 @@ class _TargetTossGameState extends State<TargetTossGame>
   @override
   Widget build(BuildContext context) {
     drain(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _Shell(
       title: '🎯 Target Toss',
       introHow:

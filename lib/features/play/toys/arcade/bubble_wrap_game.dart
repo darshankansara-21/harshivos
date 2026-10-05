@@ -16,6 +16,7 @@ class _BubbleWrapGameState extends State<BubbleWrapGame>
   static const int _sheet = _cols * _rows;
   final math.Random _rnd = math.Random();
   final List<_Shard> _bits = <_Shard>[];
+  bool _reduceMotion = false;
   late List<bool> _popped;
   int _sheetPopped = 0;
   int _total = 0;
@@ -76,7 +77,8 @@ class _BubbleWrapGameState extends State<BubbleWrapGame>
       _total++;
     });
     final cx = (col + 0.5) / _cols, cy = (row + 0.5) / _rows;
-    for (var i = 0; i < 6; i++) {
+    final bitCount = _reduceMotion ? 3 : 6;
+    for (var i = 0; i < bitCount; i++) {
       final a = _rnd.nextDouble() * math.pi * 2;
       final sp = 0.1 + _rnd.nextDouble() * 0.25;
       _bits.add(_Shard(cx, cy, math.cos(a) * sp, math.sin(a) * sp,
@@ -110,6 +112,7 @@ class _BubbleWrapGameState extends State<BubbleWrapGame>
   @override
   Widget build(BuildContext context) {
     drain(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _Shell(
       title: '🫧 Bubble Wrap',
       introHow:

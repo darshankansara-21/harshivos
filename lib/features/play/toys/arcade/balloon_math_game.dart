@@ -30,6 +30,7 @@ class _BalloonMathGameState extends State<BalloonMathGame>
   final math.Random _rnd = math.Random();
   final List<_Balloon> _balloons = <_Balloon>[];
   final List<_Shard> _bits = <_Shard>[];
+  bool _reduceMotion = false;
   int _a = 1, _b = 1;
   bool _sub = false;
   int _answer = 2;
@@ -108,7 +109,8 @@ class _BalloonMathGameState extends State<BalloonMathGame>
       if (dx.abs() < w * 0.1 && dy.abs() < w * 0.12) {
         if (b.value == _answer) {
           _score++;
-          for (var i = 0; i < 14; i++) {
+          final bitCount = _reduceMotion ? 4 : 14;
+          for (var i = 0; i < bitCount; i++) {
             final a = _rnd.nextDouble() * math.pi * 2;
             final sp = 0.15 + _rnd.nextDouble() * 0.35;
             _bits.add(_Shard(b.x, b.y, math.cos(a) * sp, math.sin(a) * sp, b.color));
@@ -164,6 +166,7 @@ class _BalloonMathGameState extends State<BalloonMathGame>
   @override
   Widget build(BuildContext context) {
     drain(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _Shell(
       title: '🎈 Balloon Math',
       introHow:

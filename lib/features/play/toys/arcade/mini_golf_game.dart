@@ -17,6 +17,7 @@ class _MiniGolfGameState extends State<MiniGolfGame>
   static const double _margin = 0.05;
   final math.Random _rnd = math.Random();
   final List<_Shard> _bits = <_Shard>[];
+  bool _reduceMotion = false;
   double _bx = 0.5, _by = 0.86;
   double _vx = 0, _vy = 0;
   double _cupX = 0.5, _cupY = 0.2;
@@ -208,7 +209,8 @@ class _MiniGolfGameState extends State<MiniGolfGame>
     _moving = false;
     _score++;
     _cupPulse = 0.6;
-    for (var i = 0; i < 16; i++) {
+    final bitCount = _reduceMotion ? 5 : 16;
+    for (var i = 0; i < bitCount; i++) {
       final a = _rnd.nextDouble() * math.pi * 2;
       final sp = 0.15 + _rnd.nextDouble() * 0.35;
       _bits.add(_Shard(_cupX, _cupY, math.cos(a) * sp, math.sin(a) * sp,
@@ -272,6 +274,7 @@ class _MiniGolfGameState extends State<MiniGolfGame>
   @override
   Widget build(BuildContext context) {
     drain(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _Shell(
       title: '⛳ Mini Golf',
       introHow:

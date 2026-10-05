@@ -14,6 +14,7 @@ class _DotToDotGameState extends State<DotToDotGame>
   static const int _target = 5;
   final math.Random _rnd = math.Random();
   final List<_Shard> _bits = <_Shard>[];
+  bool _reduceMotion = false;
   List<Offset> _dots = <Offset>[];
   int _next = 0;
   int _fig = 0;
@@ -88,7 +89,8 @@ class _DotToDotGameState extends State<DotToDotGame>
       TonePlayer.instance.playNote(2 + _next, seconds: 0.14);
       if (_next >= _dots.length) {
         _score++;
-        for (var i = 0; i < 18; i++) {
+        final bitCount = _reduceMotion ? 5 : 18;
+        for (var i = 0; i < bitCount; i++) {
           final a = _rnd.nextDouble() * math.pi * 2;
           final sp = 0.15 + _rnd.nextDouble() * 0.4;
           _bits.add(_Shard(0.5, 0.42, math.cos(a) * sp, math.sin(a) * sp,
@@ -146,6 +148,7 @@ class _DotToDotGameState extends State<DotToDotGame>
   @override
   Widget build(BuildContext context) {
     drain(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     if (_dots.isEmpty) _buildFigure();
     return _Shell(
       title: '🔢 Dot-to-Dot',

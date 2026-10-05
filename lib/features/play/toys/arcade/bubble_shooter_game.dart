@@ -20,6 +20,7 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
   final math.Random _rnd = math.Random();
   late List<List<Color?>> _grid;
   final List<_Shard> _pops = <_Shard>[]; // pixel-space pop particles
+  bool _reduceMotion = false;
   int _rows = 0;
   double _w = 0;
   double _h = 0;
@@ -141,7 +142,8 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
     if (group.length >= 3) {
       for (final cell in group) {
         final ctr = _center(cell.x, cell.y);
-        for (var s = 0; s < 5; s++) {
+        final shardCount = _reduceMotion ? 2 : 5;
+        for (var s = 0; s < shardCount; s++) {
           final a = _rnd.nextDouble() * math.pi * 2;
           final sp = 60 + _rnd.nextDouble() * 150;
           _pops.add(_Shard(
@@ -255,6 +257,7 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
   @override
   Widget build(BuildContext context) {
     drain(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _Shell(
       title: '🫧 Bubble Shooter',
       introHow: 'Aim and shoot to match 3 bubbles of the same colour. '
