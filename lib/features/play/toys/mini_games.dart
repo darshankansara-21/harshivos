@@ -1127,7 +1127,10 @@ class _StarCell extends StatelessWidget {
               ),
             ),
           ),
-          const Text('\u{1F534}', style: TextStyle(fontSize: 36)),
+          const FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text('\u{1F534}', maxLines: 1, style: TextStyle(fontSize: 36)),
+          ),
         ],
         if (active) ...<Widget>[
           Positioned.fill(
@@ -1141,8 +1144,11 @@ class _StarCell extends StatelessWidget {
               ),
             ),
           ),
-          Text(kind == 2 ? '💫' : (gold ? '🌟' : '⭐'),
-              style: const TextStyle(fontSize: 42)),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(kind == 2 ? '💫' : (gold ? '🌟' : '⭐'),
+                maxLines: 1, style: const TextStyle(fontSize: 42)),
+          ),
         ],
         if (pop != null)
           Transform.translate(

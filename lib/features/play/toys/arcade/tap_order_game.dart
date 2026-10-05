@@ -130,12 +130,16 @@ class _TapOrderGameState extends State<TapOrderGame> with _Emit {
                                       : Colors.white.withOpacity(0.08),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Text(
-                              _cells[i] < _next ? '' : '${_cells[i]}',
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w800),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                _cells[i] < _next ? '' : '${_cells[i]}',
+                                maxLines: 1,
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w800),
+                              ),
                             ),
                           ),
                         ),

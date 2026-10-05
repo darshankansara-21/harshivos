@@ -260,11 +260,15 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
                                 ]
                               : const <BoxShadow>[],
                         ),
-                        child: Text(
-                          (_matched[i] || i == _first || i == _second)
-                              ? _cards[i]
-                              : '',
-                          style: TextStyle(fontSize: cols == 3 ? 40 : 30),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            (_matched[i] || i == _first || i == _second)
+                                ? _cards[i]
+                                : '',
+                            maxLines: 1,
+                            style: TextStyle(fontSize: cols == 3 ? 40 : 30),
+                          ),
                         ),
                       ),
                     ),

@@ -206,12 +206,16 @@ class _MergeGameState extends State<MergeGame> with _Emit {
                               color: _tileColor(_g[r][c]),
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: Text(
-                              _g[r][c] == 0 ? '' : '${_g[r][c]}',
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.w900),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                _g[r][c] == 0 ? '' : '${_g[r][c]}',
+                                maxLines: 1,
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.w900),
+                              ),
                             ),
                           ),
                         ),

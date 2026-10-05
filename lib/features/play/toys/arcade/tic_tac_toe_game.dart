@@ -182,9 +182,13 @@ class _TicTacToeGameState extends State<TicTacToeGame> with _Emit {
                           curve: Curves.easeOutBack,
                           builder: (c, s, child) =>
                               Transform.scale(scale: s, child: child),
-                          child: Text(
-                            _b[i] == 1 ? '⭐' : _b[i] == 2 ? '🐾' : '',
-                            style: const TextStyle(fontSize: 52),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              _b[i] == 1 ? '⭐' : _b[i] == 2 ? '🐾' : '',
+                              maxLines: 1,
+                              style: const TextStyle(fontSize: 52),
+                            ),
                           ),
                         ),
                       ),

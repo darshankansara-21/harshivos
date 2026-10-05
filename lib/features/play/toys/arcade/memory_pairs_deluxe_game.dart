@@ -182,9 +182,13 @@ class _MemoryPairsDeluxeGameState extends State<MemoryPairsDeluxeGame>
                         color: Colors.white.withOpacity(0.2), width: 2),
                   ),
                   alignment: Alignment.center,
-                  child: Text(
-                    _cards[i].up || _cards[i].matched ? _cards[i].emoji : '',
-                    style: const TextStyle(fontSize: 30),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      _cards[i].up || _cards[i].matched ? _cards[i].emoji : '',
+                      maxLines: 1,
+                      style: const TextStyle(fontSize: 30),
+                    ),
                   ),
                 ),
               ),

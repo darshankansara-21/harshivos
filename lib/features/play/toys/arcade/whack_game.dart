@@ -224,16 +224,24 @@ class _WhackGameState extends State<WhackGame>
                         AnimatedScale(
                           scale: _mole[i] > 0 ? 1 : 0,
                           duration: const Duration(milliseconds: 120),
-                          child: Text(_isBomb[i] ? '💣' : '🐹',
-                              style: const TextStyle(fontSize: 46)),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(_isBomb[i] ? '💣' : '🐹',
+                                maxLines: 1,
+                                style: const TextStyle(fontSize: 46)),
+                          ),
                         ),
                         if (_splat[i] > 0)
                           Opacity(
                             opacity: (_splat[i] / 0.35).clamp(0.0, 1.0),
                             child: Transform.scale(
                               scale: 1 + (1 - _splat[i] / 0.35) * 1.5,
-                              child: const Text('💥',
-                                  style: TextStyle(fontSize: 44)),
+                              child: const FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text('💥',
+                                    maxLines: 1,
+                                    style: TextStyle(fontSize: 44)),
+                              ),
                             ),
                           ),
                       ],
