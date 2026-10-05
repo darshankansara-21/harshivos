@@ -48,6 +48,14 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
   int get _pairsThisLevel => (5 + _level).clamp(4, _facePool.length);
   double get _levelTimeLimit => 16 + _pairsThisLevel * 2.2;
 
+  // The memorize-the-board preview used to be a flat 1.4s no matter how many
+  // cards were on it: fine for level 1's 12 cards, but level 5 deals all 20
+  // cards (10 pairs) and flashed them for the exact same 1.4s — nowhere near
+  // enough time to actually memorize a board that size, so later levels
+  // weren't "harder", they were just unwinnable-by-design. Scale the preview
+  // with the real card count so the training-wheels grow with the board.
+  double get _previewDuration => 0.8 + _pairsThisLevel * 0.25;
+
   @override
   void initState() {
     super.initState();
@@ -94,7 +102,7 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
   void _startPreview() {
     setState(() {
       _previewing = true;
-      _previewLeft = 1.4;
+      _previewLeft = _previewDuration;
     });
   }
 
