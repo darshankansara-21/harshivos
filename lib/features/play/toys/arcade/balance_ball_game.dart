@@ -20,6 +20,10 @@ class _BalanceBallGameState extends State<BalanceBallGame>
   double _s = 0; // ball position along beam (-1..1)
   double _v = 0;
   bool _dragging = false;
+  // Tracks whether the near-edge warning cue has already fired for the
+  // current excursion toward an end, so it plays once per approach instead
+  // of spamming every frame while the ball lingers out there.
+  bool _edgeWarned = false;
   int _score = 0, _best = 0;
   GameStatus _status = GameStatus.ready;
 
@@ -50,6 +54,20 @@ class _BalanceBallGameState extends State<BalanceBallGame>
       setState(() {});
       return;
     }
+    // A sighted child can see the ball sliding toward an end and correct in
+    // time; a blind/low-vision child had zero signal of that until the
+    // sudden, unavoidable game-over cue. Fire a one-shot creak as the ball
+    // crosses into the danger zone (well before the 1.0 loss edge) so there
+    // is real time to react, then re-arm once it drifts back to safety so a
+    // later excursion warns again too.
+    if (_s.abs() > 0.72) {
+      if (!_edgeWarned) {
+        _edgeWarned = true;
+        TonePlayer.instance.playCue(SoundCue.wood);
+      }
+    } else if (_s.abs() < 0.5) {
+      _edgeWarned = false;
+    }
     final sec = _t.floor();
     if (sec > _score) {
       _score = sec.clamp(0, _target);
@@ -74,6 +92,7 @@ class _BalanceBallGameState extends State<BalanceBallGame>
       _s = 0;
       _v = 0;
       _score = 0;
+      _edgeWarned = false;
       _status = GameStatus.playing;
     });
   }
@@ -92,6 +111,7 @@ class _BalanceBallGameState extends State<BalanceBallGame>
         _v = 0;
         _beam = 0;
         _tilt = 0;
+        _edgeWarned = false;
         _status = GameStatus.playing;
       }),
       score: _score,
