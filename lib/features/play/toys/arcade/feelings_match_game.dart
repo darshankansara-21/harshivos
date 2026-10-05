@@ -29,6 +29,7 @@ class _FeelingsMatchGameState extends State<FeelingsMatchGame> with _Emit {
     _Feeling('Loving', '🥰'),
   ];
   final math.Random _rnd = math.Random();
+  final List<int> _bag = <int>[];
 
   _Feeling _prompt = _feelings.first;
   List<_Feeling> _options = <_Feeling>[];
@@ -47,11 +48,30 @@ class _FeelingsMatchGameState extends State<FeelingsMatchGame> with _Emit {
     });
   }
 
+  int _drawPrompt() {
+    // Shuffled bag with no immediate repeat: every round across the whole
+    // catalog of prompt-and-pick games draws from a bag (kindness_match,
+    // weather_sort) rather than a raw random pick, which can otherwise hand
+    // a child the exact same feeling two or three rounds in a row.
+    if (_bag.isEmpty) {
+      _bag.addAll(List<int>.generate(_feelings.length, (i) => i)..shuffle(_rnd));
+    }
+    return _bag.removeLast();
+  }
+
+  // Unlike every other sort/match game in the catalog (odd_one_out's grid,
+  // shadow_match's option count), this one was a flat 3-face choice every
+  // single round for all ten rounds with zero escalation. Widen the choice
+  // set as the child progresses — up to all 8 faces by the final rounds —
+  // so round 10 is a genuinely harder scan than round 1, not identical to it.
+  int get _optionCount => (3 + _score ~/ 3).clamp(3, _feelings.length);
+
   void _newRound() {
     _wrong = -1;
-    _prompt = _feelings[_rnd.nextInt(_feelings.length)];
+    _prompt = _feelings[_drawPrompt()];
+    final count = _optionCount;
     final set = <_Feeling>{_prompt};
-    while (set.length < 3) {
+    while (set.length < count) {
       set.add(_feelings[_rnd.nextInt(_feelings.length)]);
     }
     _options = set.toList()..shuffle(_rnd);
@@ -103,6 +123,7 @@ class _FeelingsMatchGameState extends State<FeelingsMatchGame> with _Emit {
       _score = 0;
       _lives = 3;
       _banner = null;
+      _bag.clear();
       _newRound();
       _status = GameStatus.playing;
     });
@@ -117,6 +138,7 @@ class _FeelingsMatchGameState extends State<FeelingsMatchGame> with _Emit {
           'Read the feeling word, then tap the face that shows it. Learn your '
           'feelings — ten right to win!',
       onStart: () => setState(() {
+        _bag.clear();
         _newRound();
         _status = GameStatus.playing;
       }),
@@ -157,8 +179,13 @@ class _FeelingsMatchGameState extends State<FeelingsMatchGame> with _Emit {
               const Spacer(),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                // A Wrap (not a fixed-width Row) so the growing option count
+                // (up to 6 by the later rounds) never overflows a narrow
+                // phone screen — it simply wraps to a second line instead.
+                child: Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 14,
+                  runSpacing: 14,
                   children: <Widget>[
                     for (var i = 0; i < _options.length; i++)
                       _FaceOption(
