@@ -54,13 +54,32 @@ class _RainbowRainToyState extends State<RainbowRainToy>
     }
   }
 
+  // A tap previously only buzzed the haptic — the drops kept falling from
+  // the ambient top-of-screen rain regardless of where a child touched, so
+  // the toy's own promise ("touch summons falling rainbow drops") wasn't
+  // actually true: nothing visible was caused by the tap itself. Summon a
+  // small burst of drops right at the tap point, with a water-drop sound,
+  // so every touch has an immediate, locally-attributable effect.
+  void _summon(Offset p) {
+    for (var i = 0; i < 6; i++) {
+      _drops.add(_Drop(
+        x: (p.dx + (_r.nextDouble() - 0.5) * 36).clamp(0, double.infinity),
+        y: p.dy,
+        vy: 180 + _r.nextDouble() * 160,
+        hue: _r.nextDouble(),
+      ));
+    }
+    HapticFeedback.selectionClick();
+    TonePlayer.instance.playCue(SoundCue.water);
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onVerticalDragUpdate: (e) {
         setState(() => _intensity = (_intensity - e.delta.dy / 300).clamp(0.0, 1.0));
       },
-      onTapDown: (_) => HapticFeedback.selectionClick(),
+      onTapDown: (e) => _summon(e.localPosition),
       child: CustomPaint(
         painter: _RainPainter(_drops, _splashes, _intensity),
         size: Size.infinite,
