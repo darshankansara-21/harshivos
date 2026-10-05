@@ -136,8 +136,15 @@ class _WhackGameState extends State<WhackGame>
       _mole[i] = 0;
       _isBomb[i] = false;
       if (wasBomb) {
-        _loseLife('Ouch! Avoid 💣');
+        // Apply the bomb's score penalty BEFORE ending the run: _loseLife
+        // reads `_score` directly to decide the final-run emit (gameCompleted
+        // vs incorrectAnswer) and to submit the leaderboard entry when this
+        // is the life-ending hit. With the decrement after the call (the old
+        // order), a bomb that costs the last life submitted/compared the
+        // pre-penalty score — one point higher than what the child actually
+        // ends up seeing on the game-over screen.
         _score = math.max(0, _score - 1);
+        _loseLife('Ouch! Avoid 💣');
         return;
       }
       _combo++;
