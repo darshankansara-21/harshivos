@@ -21,6 +21,22 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
     '🦋',
     '🍩'
   ];
+  // Spoken names for the face pool above — a screen reader can't rely on the
+  // raw emoji glyph alone (it reads inconsistently/ambiguously across
+  // TalkBack/VoiceOver), so a flipped card needs a reliable human-readable
+  // label, same pattern as `feelings_match`/`weather_sort`.
+  static const Map<String, String> _faceNames = <String, String>{
+    '🍎': 'apple',
+    '⭐': 'star',
+    '🐢': 'turtle',
+    '🎈': 'balloon',
+    '🌸': 'flower',
+    '🚗': 'car',
+    '🐬': 'dolphin',
+    '🎵': 'music note',
+    '🦋': 'butterfly',
+    '🍩': 'donut',
+  };
   static const int _maxLevel = 5;
   final math.Random _rnd = math.Random();
   late List<String> _cards;
@@ -328,51 +344,68 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
                         _matched[i] ||
                         i == _first ||
                         i == _second;
-                    return GestureDetector(
-                      onTapDown: (_) => _tap(i),
-                      child: TweenAnimationBuilder<double>(
-                        // Re-keys when a card becomes matched, firing a pop.
-                        key: ValueKey('mem-$i-${_matched[i]}'),
-                        tween: Tween<double>(
-                            begin: _matched[i] ? 1.35 : 1.0, end: 1.0),
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeOutBack,
-                        builder: (context, scale, child) =>
-                            Transform.scale(scale: scale, child: child),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 150),
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: _matched[i]
-                                ? const Color(0xFF06D6A0).withOpacity(0.35)
-                                : faceUp
-                                    ? Colors.white
-                                    : const Color(0xFF1E3A5F),
-                            borderRadius: BorderRadius.circular(14),
-                            border: _matched[i]
-                                ? Border.all(
-                                    color: const Color(0xFFFFD166), width: 2)
-                                : null,
-                            boxShadow: _matched[i]
-                                ? <BoxShadow>[
-                                    BoxShadow(
-                                        color: const Color(0xFF06D6A0)
-                                            .withOpacity(0.5),
-                                        blurRadius: 14)
-                                  ]
-                                : const <BoxShadow>[],
-                          ),
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              faceUp ? _cards[i] : '',
-                              maxLines: 1,
-                              style: TextStyle(
-                                  fontSize: cols <= 3
-                                      ? 40
-                                      : cols == 4
-                                          ? 30
-                                          : 24),
+                    // Only describe what is CURRENTLY visible on this exact
+                    // card — never the hidden identity of a face-down card —
+                    // so a screen-reader user faces the same memory
+                    // challenge (remember what you've already seen flipped)
+                    // as a sighted child, not an easier one.
+                    final name = _faceNames[_cards[i]] ?? 'card';
+                    final label = _matched[i]
+                        ? 'Matched $name card'
+                        : faceUp
+                            ? '$name card'
+                            : 'Hidden card';
+                    return Semantics(
+                      button: true,
+                      label: label,
+                      onTap: () => _tap(i),
+                      excludeSemantics: true,
+                      child: GestureDetector(
+                        onTapDown: (_) => _tap(i),
+                        child: TweenAnimationBuilder<double>(
+                          // Re-keys when a card becomes matched, firing a pop.
+                          key: ValueKey('mem-$i-${_matched[i]}'),
+                          tween: Tween<double>(
+                              begin: _matched[i] ? 1.35 : 1.0, end: 1.0),
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeOutBack,
+                          builder: (context, scale, child) =>
+                              Transform.scale(scale: scale, child: child),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: _matched[i]
+                                  ? const Color(0xFF06D6A0).withOpacity(0.35)
+                                  : faceUp
+                                      ? Colors.white
+                                      : const Color(0xFF1E3A5F),
+                              borderRadius: BorderRadius.circular(14),
+                              border: _matched[i]
+                                  ? Border.all(
+                                      color: const Color(0xFFFFD166), width: 2)
+                                  : null,
+                              boxShadow: _matched[i]
+                                  ? <BoxShadow>[
+                                      BoxShadow(
+                                          color: const Color(0xFF06D6A0)
+                                              .withOpacity(0.5),
+                                          blurRadius: 14)
+                                    ]
+                                  : const <BoxShadow>[],
+                            ),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                faceUp ? _cards[i] : '',
+                                maxLines: 1,
+                                style: TextStyle(
+                                    fontSize: cols <= 3
+                                        ? 40
+                                        : cols == 4
+                                            ? 30
+                                            : 24),
+                              ),
                             ),
                           ),
                         ),
