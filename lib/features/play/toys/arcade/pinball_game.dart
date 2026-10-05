@@ -38,6 +38,13 @@ class _PinballGameState extends State<PinballGame>
   int _balls = 3;
   double _leftT = 0; // 0 down .. 1 fully flipped
   double _rightT = 0;
+  // Real pinball flippers stay raised as long as the button is held, not
+  // just for a fixed flash. Track which finger(s) are currently holding each
+  // side independently so two-finger simultaneous flips both register (a
+  // single GestureDetector tap recognizer only tracks one primary pointer
+  // at a time and would silently drop a genuinely simultaneous second flip).
+  final Set<int> _leftHeldPointers = <int>{};
+  final Set<int> _rightHeldPointers = <int>{};
   double _flashT = 0;
   int _flashBumper = -1;
   String? _banner;
@@ -78,10 +85,20 @@ class _PinballGameState extends State<PinballGame>
       _comboT -= dt;
       if (_comboT <= 0) _combo = 0;
     }
-    // Decay rate tuned to a forgiving ~0.3s catch window now that a flip
-    // actually has to land the save (see onTick's flipper-ramp check below).
-    if (_leftT > 0) _leftT = math.max(0, _leftT - dt * 3.3);
-    if (_rightT > 0) _rightT = math.max(0, _rightT - dt * 3.3);
+    // While a side is actually held, snap its flipper fully up and keep it
+    // there — a real flipper stays raised the whole time the button is down,
+    // so a child can hold it to catch/trap a rolling ball, not just tap it.
+    // Only decay back down once every finger on that side has lifted.
+    if (_leftHeldPointers.isNotEmpty) {
+      _leftT = 1;
+    } else if (_leftT > 0) {
+      _leftT = math.max(0, _leftT - dt * 3.3);
+    }
+    if (_rightHeldPointers.isNotEmpty) {
+      _rightT = 1;
+    } else if (_rightT > 0) {
+      _rightT = math.max(0, _rightT - dt * 3.3);
+    }
     for (var i = _sparks.length - 1; i >= 0; i--) {
       final s = _sparks[i];
       s.x += s.vx * dt;
@@ -219,6 +236,23 @@ class _PinballGameState extends State<PinballGame>
     }
   }
 
+  // Each finger is tracked independently by pointer id so two simultaneous
+  // flips (one per hand) both register, and a side only drops once every
+  // finger that raised it has actually lifted.
+  void _pointerDown(int pointerId, bool left) {
+    if (left) {
+      _leftHeldPointers.add(pointerId);
+    } else {
+      _rightHeldPointers.add(pointerId);
+    }
+    _flip(left);
+  }
+
+  void _pointerUp(int pointerId) {
+    _leftHeldPointers.remove(pointerId);
+    _rightHeldPointers.remove(pointerId);
+  }
+
   void _reset() {
     setState(() {
       _score = 0;
@@ -229,6 +263,10 @@ class _PinballGameState extends State<PinballGame>
       _bannerT = 0;
       _status = GameStatus.playing;
       _sparks.clear();
+      _leftHeldPointers.clear();
+      _rightHeldPointers.clear();
+      _leftT = 0;
+      _rightT = 0;
       _launch();
     });
   }
@@ -246,15 +284,17 @@ class _PinballGameState extends State<PinballGame>
       overText: 'Table over!',
       accent: const Color(0xFFFFC857),
       introHow:
-          'Tap the left or right side to flip. Bounce the bumpers and keep the ball alive!',
+          'Hold the left or right side to flip — keep holding to catch the ball. Bounce the bumpers and keep the ball alive!',
       onStart: () => setState(() => _status = GameStatus.playing),
       onPlayAgain: _reset,
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth;
-          return GestureDetector(
+          return Listener(
             behavior: HitTestBehavior.opaque,
-            onTapDown: (d) => _flip(d.localPosition.dx < w / 2),
+            onPointerDown: (e) => _pointerDown(e.pointer, e.localPosition.dx < w / 2),
+            onPointerUp: (e) => _pointerUp(e.pointer),
+            onPointerCancel: (e) => _pointerUp(e.pointer),
             child: CustomPaint(
               painter: _PinballPainter(
                 bx: _bx,
