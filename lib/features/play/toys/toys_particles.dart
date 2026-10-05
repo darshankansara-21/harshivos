@@ -36,6 +36,11 @@ class _ParticleGalaxyToyState extends State<ParticleGalaxyToy>
 
   void _burst(Offset p) {
     HapticFeedback.lightImpact();
+    // Every burst gets a soft, randomised pentatonic twinkle so the galaxy has
+    // its own audio identity instead of staying silent (haptic-only) like
+    // before — matching the sibling Fireworks toy's audio feedback.
+    TonePlayer.instance.playNote(_r.nextInt(TonePlayer.pentatonic.length) + 4,
+        seconds: 0.16);
     for (var i = 0; i < 40; i++) {
       final a = _r.nextDouble() * math.pi * 2;
       final speed = 60 + _r.nextDouble() * 220;
