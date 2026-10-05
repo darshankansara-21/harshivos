@@ -22,6 +22,23 @@ class _MemoryPairsDeluxeGameState extends State<MemoryPairsDeluxeGame>
   static const List<String> _pool = <String>[
     '🐶', '🐱', '🦊', '🐻', '🐼', '🐸', '🐵', '🦁', '🐯', '🦄', '🐙', '🦉'
   ];
+  // Spoken names for the pool above — a screen reader can't rely on the raw
+  // emoji glyph alone (it reads inconsistently/ambiguously across
+  // TalkBack/VoiceOver), same pattern established in `memory_flip_game.dart`.
+  static const Map<String, String> _faceNames = <String, String>{
+    '🐶': 'dog',
+    '🐱': 'cat',
+    '🦊': 'fox',
+    '🐻': 'bear',
+    '🐼': 'panda',
+    '🐸': 'frog',
+    '🐵': 'monkey',
+    '🦁': 'lion',
+    '🐯': 'tiger',
+    '🦄': 'unicorn',
+    '🐙': 'octopus',
+    '🦉': 'owl',
+  };
   final math.Random _rnd = math.Random();
   List<_MCard> _cards = <_MCard>[];
   int _first = -1;
@@ -176,30 +193,48 @@ class _MemoryPairsDeluxeGameState extends State<MemoryPairsDeluxeGame>
           physics: const NeverScrollableScrollPhysics(),
           children: <Widget>[
             for (var i = 0; i < _cards.length; i++)
-              GestureDetector(
-                onTap: () => _flip(i),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: _cards[i].matched
-                        ? const Color(0xFF3A5A4A)
-                        : (_cards[i].up
-                            ? Colors.white
-                            : const Color(0xFF4A3A6E)),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                        color: Colors.white.withOpacity(0.2), width: 2),
-                  ),
-                  alignment: Alignment.center,
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      _cards[i].up || _cards[i].matched ? _cards[i].emoji : '',
-                      maxLines: 1,
-                      style: const TextStyle(fontSize: 30),
+              Builder(builder: (context) {
+                final c = _cards[i];
+                // Only describe what is CURRENTLY visible on this exact
+                // card — never the hidden identity of a face-down card —
+                // so a screen-reader user faces the same memory challenge
+                // (remember what you've already seen flipped) as a
+                // sighted child, not an easier one.
+                final name = _faceNames[c.emoji] ?? 'card';
+                final label = c.matched
+                    ? 'Matched $name card'
+                    : c.up
+                        ? '$name card'
+                        : 'Hidden card';
+                return Semantics(
+                  button: true,
+                  label: label,
+                  onTap: () => _flip(i),
+                  excludeSemantics: true,
+                  child: GestureDetector(
+                    onTap: () => _flip(i),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: c.matched
+                            ? const Color(0xFF3A5A4A)
+                            : (c.up ? Colors.white : const Color(0xFF4A3A6E)),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                            color: Colors.white.withOpacity(0.2), width: 2),
+                      ),
+                      alignment: Alignment.center,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          c.up || c.matched ? c.emoji : '',
+                          maxLines: 1,
+                          style: const TextStyle(fontSize: 30),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
+                );
+              }),
           ],
         ),
       ),
