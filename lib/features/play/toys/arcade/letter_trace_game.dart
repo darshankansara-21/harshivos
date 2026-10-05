@@ -124,25 +124,30 @@ class _LetterTraceGameState extends State<LetterTraceGame> with _Emit {
     }
   }
 
+  // Index of the one dot the child must trace to next, in path order. `_dots`
+  // is built stroke-by-stroke, in-order along each stroke, so "first unlit
+  // dot in list order" is exactly "next point on the path".
+  int get _nextDotIdx => _dots.indexWhere((d) => !d.lit);
+
   void _touch(double nx, double ny) {
     if (_status != GameStatus.playing) return;
-    _TraceDot? best;
-    double bestD = 0.065;
-    for (final d in _dots) {
-      if (d.lit) continue;
-      // Scale the y-delta by aspect so this compares real pixel distance —
-      // nx/ny are width/height-normalized respectively, so a plain isotropic
-      // sqrt here would make the vertical catch radius wider or narrower
-      // than the horizontal one depending on device aspect ratio.
-      final dist = math.sqrt(
-          math.pow(d.x - nx, 2) + math.pow((d.y - ny) * _aspect, 2));
-      if (dist < bestD) {
-        bestD = dist;
-        best = d;
-      }
-    }
-    if (best == null) return;
-    _lightDot(best);
+    final idx = _nextDotIdx;
+    if (idx < 0) return;
+    final next = _dots[idx];
+    // Only the next dot on the path can be lit — the whole point of
+    // "follow the dotted path" is tracing the shape in order. Matching
+    // against the globally-nearest unlit dot (the prior behaviour) let a
+    // quick diagonal swipe light far-apart dots out of sequence, skipping
+    // the actual stroke and defeating the fine-motor tracing this game
+    // promises in its own intro text.
+    const bestD = 0.09;
+    // Scale the y-delta by aspect so this compares real pixel distance —
+    // nx/ny are width/height-normalized respectively, so a plain isotropic
+    // sqrt here would make the vertical catch radius wider or narrower
+    // than the horizontal one depending on device aspect ratio.
+    final dist = math.sqrt(
+        math.pow(next.x - nx, 2) + math.pow((next.y - ny) * _aspect, 2));
+    if (dist < bestD) _lightDot(next);
   }
 
   // Shared "a dot just got lit" logic, used both by the drag/tap hit-test in
@@ -222,30 +227,34 @@ class _LetterTraceGameState extends State<LetterTraceGame> with _Emit {
                 onPanUpdate: (d) => handle(d.localPosition),
                 onTapDown: (d) => handle(d.localPosition),
                 child: CustomPaint(
-                  painter: _LetterTracePainter(dots: _dots, glyph: _glyph),
+                  painter: _LetterTracePainter(
+                      dots: _dots, glyph: _glyph, nextIdx: _nextDotIdx),
                   size: Size.infinite,
                 ),
               ),
               // Dots are re-rolled only on `_newGlyph` (a fresh letter), so
               // their positions are static for the current round — same
               // static-zone overlay pattern as `shape_builder_game.dart`'s
-              // slots, but one overlay per still-unlit dot instead of per
-              // unfilled slot, letting a screen-reader user trace the whole
-              // letter one dot at a time without needing continuous drag.
-              for (var i = 0; i < _dots.length; i++)
-                if (!_dots[i].lit)
-                  Positioned(
-                    left: _dots[i].x * w - 0.035 * w,
-                    top: _dots[i].y * h - 0.035 * w,
+              // slots. Only the one next dot on the path is exposed, matching
+              // the sequential-tracing rule now enforced in `_touch`: a
+              // screen-reader user should be guided along the stroke order
+              // too, not offered every remaining dot to activate at once.
+              if (_nextDotIdx >= 0)
+                Builder(builder: (context) {
+                  final d = _dots[_nextDotIdx];
+                  return Positioned(
+                    left: d.x * w - 0.035 * w,
+                    top: d.y * h - 0.035 * w,
                     width: 0.07 * w,
                     height: 0.07 * w,
                     child: Semantics(
-                      label: 'Trace dot, stroke ${_dots[i].strokeIdx + 1}',
+                      label: 'Next trace dot, stroke ${d.strokeIdx + 1}',
                       button: true,
-                      onTap: () => _lightDot(_dots[i]),
+                      onTap: () => _lightDot(d),
                       child: const SizedBox.expand(),
                     ),
-                  ),
+                  );
+                }),
             ],
           );
         },
@@ -255,9 +264,10 @@ class _LetterTraceGameState extends State<LetterTraceGame> with _Emit {
 }
 
 class _LetterTracePainter extends CustomPainter {
-  _LetterTracePainter({required this.dots, required this.glyph});
+  _LetterTracePainter({required this.dots, required this.glyph, required this.nextIdx});
   final List<_TraceDot> dots;
   final String glyph;
+  final int nextIdx;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -298,12 +308,27 @@ class _LetterTracePainter extends CustomPainter {
       }
     }
 
-    for (final d in dots) {
+    for (var i = 0; i < dots.length; i++) {
+      final d = dots[i];
       final c = Offset(d.x * w, d.y * h);
       if (d.lit) {
         canvas.drawCircle(
             c, 13, Paint()..color = const Color(0xFF80ED99).withOpacity(0.3));
         canvas.drawCircle(c, 8, Paint()..color = const Color(0xFF57CC99));
+      } else if (i == nextIdx) {
+        // Tracing is now enforced in path order, so the one dot a tap will
+        // actually light needs to read as visibly "next" — a plain identical
+        // white ring for every remaining dot gave no clue which one the
+        // enforced order wants, undercutting the whole fix.
+        canvas.drawCircle(
+            c, 14, Paint()..color = Colors.white.withOpacity(0.25));
+        canvas.drawCircle(
+            c,
+            9,
+            Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 3
+              ..color = Colors.white);
       } else {
         canvas.drawCircle(
             c,
