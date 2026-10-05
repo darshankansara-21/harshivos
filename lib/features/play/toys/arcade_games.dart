@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show HapticFeedback;
 
 import '../../../core/toy/toy_ticker.dart';
 import '../../../services/audio/game_music_host.dart';
@@ -140,6 +141,19 @@ class _ShellState extends State<_Shell> {
     if (oldWidget.status != GameStatus.playing &&
         widget.status == GameStatus.playing) {
       _runStartBest = oldWidget.best;
+    }
+    // Tactile feedback at the one moment every game shares: the run ending.
+    // A single discrete pulse (not per-tap spam, which would be a gimmick)
+    // gives a real physical sense of "it's over" alongside the sound/visual
+    // cue, matching CLAUDE.md's "tactile response" audit criterion that no
+    // Play game previously answered at all.
+    if (oldWidget.status == GameStatus.playing &&
+        widget.status != GameStatus.playing) {
+      if (widget.status == GameStatus.won) {
+        HapticFeedback.mediumImpact();
+      } else {
+        HapticFeedback.lightImpact();
+      }
     }
   }
 

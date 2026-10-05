@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/toy/toy_ticker.dart';
@@ -120,6 +121,16 @@ class _GameShellState extends State<_GameShell> {
     if (oldWidget.status != GameStatus.playing &&
         widget.status == GameStatus.playing) {
       _runStartBest = oldWidget.best;
+    }
+    // See _Shell's matching comment in arcade_games.dart: one discrete
+    // haptic pulse when a run ends, not on every tap.
+    if (oldWidget.status == GameStatus.playing &&
+        widget.status != GameStatus.playing) {
+      if (widget.status == GameStatus.won) {
+        HapticFeedback.mediumImpact();
+      } else {
+        HapticFeedback.lightImpact();
+      }
     }
   }
 
