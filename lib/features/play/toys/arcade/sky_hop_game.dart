@@ -188,7 +188,7 @@ class _SkyHopGameState extends State<SkyHopGame>
         behavior: HitTestBehavior.opaque,
         onTapDown: (_) => _flap(),
         child: CustomPaint(
-          painter: _SkyHopPainter(_pipes, _birdY, _gap, _started, _bits),
+          painter: _SkyHopPainter(_pipes, _birdY, _gap, _started, _bits, _vy),
           size: Size.infinite,
         ),
       ),
@@ -197,12 +197,13 @@ class _SkyHopGameState extends State<SkyHopGame>
 }
 
 class _SkyHopPainter extends CustomPainter {
-  _SkyHopPainter(this.pipes, this.birdY, this.gap, this.started, this.bits);
+  _SkyHopPainter(this.pipes, this.birdY, this.gap, this.started, this.bits, this.vy);
   final List<_Pipe> pipes;
   final double birdY;
   final double gap;
   final bool started;
   final List<_Shard> bits;
+  final double vy;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -245,9 +246,17 @@ class _SkyHopPainter extends CustomPainter {
       canvas.drawCircle(Offset(s.x * w, s.y * h), w * 0.012 * k + 1.5,
           Paint()..color = s.color.withOpacity(k));
     }
-    canvas.drawCircle(Offset(bx, by), w * 0.05, Paint()..color = const Color(0xFFFFD166));
+    // Tilt the bird with its actual vertical velocity — nose up on a flap,
+    // nosing down the longer it falls — so the player can read their own
+    // momentum at a glance instead of the bird looking frozen mid-flight.
+    final angle = (vy * 0.9).clamp(-0.7, 1.0);
+    canvas.save();
+    canvas.translate(bx, by);
+    canvas.rotate(angle);
+    canvas.drawCircle(Offset.zero, w * 0.05, Paint()..color = const Color(0xFFFFD166));
     canvas.drawCircle(
-        Offset(bx + w * 0.02, by - w * 0.015), 3, Paint()..color = Colors.black);
+        Offset(w * 0.02, -w * 0.015), 3, Paint()..color = Colors.black);
+    canvas.restore();
     if (!started) {
       final tp = TextPainter(
         text: const TextSpan(
