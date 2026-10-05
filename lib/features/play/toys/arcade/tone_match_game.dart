@@ -149,17 +149,30 @@ class _ToneMatchGameState extends State<ToneMatchGame>
 
   Widget _buildBell(int i) {
     final shown = _matched.contains(i) || _revealed.contains(i);
-    return GestureDetector(
+    // The game is auditory-memory by design — every bell looks (and sounds,
+    // until tapped) identical, so the Semantics label must never reveal a
+    // bell's tone ahead of a tap; it only states the same visible state a
+    // sighted child sees (hidden / matched), matching information parity.
+    final label = _matched.contains(i)
+        ? 'Bell ${i + 1}, matched'
+        : 'Bell ${i + 1}, hidden, tap to hear its note';
+    return Semantics(
+      button: true,
+      label: label,
       onTap: () => _tap(i),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 140),
-        decoration: BoxDecoration(
-          color: shown ? _toneColors[_tones[i]] : Colors.white12,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-              color: _matched.contains(i) ? Colors.white : Colors.white24, width: 2),
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: () => _tap(i),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          decoration: BoxDecoration(
+            color: shown ? _toneColors[_tones[i]] : Colors.white12,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+                color: _matched.contains(i) ? Colors.white : Colors.white24, width: 2),
+          ),
+          child: const Center(child: Text('🔔', style: TextStyle(fontSize: 30))),
         ),
-        child: const Center(child: Text('🔔', style: TextStyle(fontSize: 30))),
       ),
     );
   }
