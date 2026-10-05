@@ -30,6 +30,15 @@ class _DrumGardenGameState extends State<DrumGardenGame>
   int _showIdx = 0;
   double _showT = 0;
   double _nextT = 0;
+  // Both the file's own doc comment and the in-game intro text promise "tap
+  // freely to make music" before the Simon tune begins, but _startRound()
+  // used to be called synchronously from onStart(), flipping straight to
+  // phase 1 (showing) in the very same frame — so phase 0 (free play) was
+  // dead code, never actually reachable during real gameplay. A child's
+  // first few taps, the ones the intro text explicitly invites, did nothing
+  // but wait in silence for the tune to start. Give phase 0 a real few
+  // seconds of genuine free tapping before the first round begins.
+  double _freeT = 0;
   int _flashPad = -1;
   double _flashT = 0;
   int _lives = 3;
@@ -77,7 +86,10 @@ class _DrumGardenGameState extends State<DrumGardenGame>
       _flashT -= dt;
       if (_flashT <= 0) _flashPad = -1;
     }
-    if (_phase == 1) {
+    if (_phase == 0) {
+      _freeT -= dt;
+      if (_freeT <= 0) _startRound();
+    } else if (_phase == 1) {
       _showT -= dt;
       if (_showT <= 0) {
         if (_showIdx < _seq.length) {
@@ -150,6 +162,7 @@ class _DrumGardenGameState extends State<DrumGardenGame>
       _seq.clear();
       _inputIdx = 0;
       _phase = 0;
+      _freeT = 2.6;
       _flashPad = -1;
       _flashT = 0;
       _lives = 3;
@@ -157,25 +170,27 @@ class _DrumGardenGameState extends State<DrumGardenGame>
       _bannerT = 0;
       _nextT = 0;
       _status = GameStatus.playing;
-      _startRound();
     });
   }
 
   @override
   Widget build(BuildContext context) {
     drain(context);
-    final phaseLabel = _phase == 1
-        ? 'Listen… 🎵'
-        : _phase == 2
-            ? 'Your turn! ${_inputIdx}/${_seq.length}'
-            : 'Tap the pads';
+    final phaseLabel = _phase == 0
+        ? 'Tap around! 🎶'
+        : _phase == 1
+            ? 'Listen… 🎵'
+            : _phase == 2
+                ? 'Your turn! ${_inputIdx}/${_seq.length}'
+                : 'Tap the pads';
     return _Shell(
       title: '🥁 Drum Garden',
       introHow:
           'Tap the singing pads to make music, then repeat the tune you hear. It grows each round!',
       onStart: () => setState(() {
         _status = GameStatus.playing;
-        _startRound();
+        _phase = 0;
+        _freeT = 2.6;
       }),
       score: _seq.isEmpty ? 0 : _seq.length,
       best: _best,
