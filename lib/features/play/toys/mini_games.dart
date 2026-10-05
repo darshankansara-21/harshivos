@@ -2128,13 +2128,14 @@ class _RacingGameState extends State<RacingGame>
           (_boostT > 0
               ? '⚡ BOOST · P$_place'
               : 'P$_place/$_fieldSize · ${remaining.round()}m to flag'),
-      overEmoji:
-          _status == GameStatus.won ? (_finishPlace == 1 ? '🏆' : '🏁') : '🏁',
-      overText: _status == GameStatus.won
-          ? (_finishPlace == 1
-              ? 'P1 — you won the race!'
-              : 'Finished P$_finishPlace')
-          : 'Race on!',
+      // A finish is recorded as GameStatus.won only for an outright P1; P2-P4
+      // finish as GameStatus.over, but both are a completed race, not a
+      // "didn't finish" — show the real placing in both cases rather than
+      // falling back to the generic over-screen text.
+      overEmoji: _finishPlace == 1 ? '🏆' : '🏁',
+      overText: _finishPlace == 1
+          ? 'P1 — you won the race!'
+          : (_finishPlace > 0 ? 'Finished P$_finishPlace' : 'Race on!'),
       accent: const Color(0xFFFF6B6B),
       introHow: 'Reach the 🏁 chequered flag ahead of 3 rivals.\n'
           'Tap left/right to change lanes, grab 🪙 coins and ⚡ boosts, '
