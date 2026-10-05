@@ -78,8 +78,10 @@ class _PinballGameState extends State<PinballGame>
       _comboT -= dt;
       if (_comboT <= 0) _combo = 0;
     }
-    if (_leftT > 0) _leftT = math.max(0, _leftT - dt * 5);
-    if (_rightT > 0) _rightT = math.max(0, _rightT - dt * 5);
+    // Decay rate tuned to a forgiving ~0.3s catch window now that a flip
+    // actually has to land the save (see onTick's flipper-ramp check below).
+    if (_leftT > 0) _leftT = math.max(0, _leftT - dt * 3.3);
+    if (_rightT > 0) _rightT = math.max(0, _rightT - dt * 3.3);
     for (var i = _sparks.length - 1; i >= 0; i--) {
       final s = _sparks[i];
       s.x += s.vx * dt;
@@ -143,16 +145,25 @@ class _PinballGameState extends State<PinballGame>
       }
     }
 
-    // Flipper ramps + centre drain.
+    // Flipper ramps + centre drain. A resting flipper still blocks a gentle
+    // roll (slowRoll), but a ball falling with real speed only bounces back
+    // if that side's flipper was actually flipped recently (kick > 0) —
+    // otherwise it drains past, same as a missed real-table flip. Without
+    // this check tapping was purely cosmetic: the ball auto-bounced off
+    // either side regardless of timing, so flipping never mattered outside
+    // the narrow centre gap.
     if (_by > 0.86 && _vy > 0) {
       final centreGap = _bx > 0.44 && _bx < 0.56;
       if (!centreGap && _bx > _left && _bx < _right) {
         final leftSide = _bx < 0.5;
         final kick = leftSide ? _leftT : _rightT;
-        _by = 0.86;
-        _vy = -(0.52 + kick * 0.55);
-        _vx += leftSide ? 0.12 : -0.12;
-        TonePlayer.instance.playCue(SoundCue.wood);
+        final slowRoll = _vy < 0.55;
+        if (kick > 0 || slowRoll) {
+          _by = 0.86;
+          _vy = -(0.52 + kick * 0.55);
+          _vx += leftSide ? 0.12 : -0.12;
+          TonePlayer.instance.playCue(SoundCue.wood);
+        }
       }
     }
 
