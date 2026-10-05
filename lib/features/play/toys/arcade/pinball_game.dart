@@ -247,6 +247,13 @@ class _PinballGameState extends State<PinballGame>
         if (mounted) setState(() => _best = b);
       });
     } else {
+      // The ball draining past the flippers is a real miss — every sibling
+      // physics game (brick_break's _loseLife, space_dodge's hit path) pairs
+      // that moment with an audible cue, not just a visual flash. Without
+      // this a blind child got silent feedback on every drain except the
+      // very last one (which only plays gameOver), the same audio-parity
+      // gap just fixed in fruit_catch/balloon_pop.
+      TonePlayer.instance.playCue(SoundCue.crash);
       _flash('Ball ${4 - _balls}');
       _launch();
     }
