@@ -263,32 +263,43 @@ class _CarTrackBuilderToyState extends State<CarTrackBuilderToy>
 
   @override
   Widget build(BuildContext context) {
-    return Listener(
-      onPointerDown: (e) {
-        setState(() {
-          _track
-            ..clear()
-            ..add(e.localPosition);
-          _drawing = true;
-          _dist = 0;
-        });
-        HapticFeedback.selectionClick();
-      },
-      onPointerMove: (e) {
-        if (_track.isEmpty || (_track.last - e.localPosition).distance > 10) {
-          _track.add(e.localPosition);
-        }
-      },
-      onPointerUp: (_) {
-        _drawing = false;
-        HapticFeedback.lightImpact();
-      },
-      // Without this, a cancelled draw gesture left `_drawing` stuck true
-      // forever — `onTick` only advances the car's position when
-      // `!_drawing`, so the car would freeze at the start of the track
-      // permanently instead of ever driving.
-      onPointerCancel: (_) => _drawing = false,
-      child: CustomPaint(painter: _TrackPainter(_track, _dist), size: Size.infinite),
+    return Stack(
+      children: <Widget>[
+        Listener(
+          onPointerDown: (e) {
+            setState(() {
+              _track
+                ..clear()
+                ..add(e.localPosition);
+              _drawing = true;
+              _dist = 0;
+            });
+            HapticFeedback.selectionClick();
+          },
+          onPointerMove: (e) {
+            if (_track.isEmpty || (_track.last - e.localPosition).distance > 10) {
+              _track.add(e.localPosition);
+            }
+          },
+          onPointerUp: (_) {
+            _drawing = false;
+            HapticFeedback.lightImpact();
+          },
+          // Without this, a cancelled draw gesture left `_drawing` stuck true
+          // forever — `onTick` only advances the car's position when
+          // `!_drawing`, so the car would freeze at the start of the track
+          // permanently instead of ever driving.
+          onPointerCancel: (_) => _drawing = false,
+          child: CustomPaint(painter: _TrackPainter(_track, _dist), size: Size.infinite),
+        ),
+        // The onboarding hint is drawn only onto the canvas (invisible to
+        // screen readers); IgnorePointer keeps it from stealing touches.
+        Positioned.fill(
+          child: IgnorePointer(
+            child: Semantics(label: 'Draw a road with your finger'),
+          ),
+        ),
+      ],
     );
   }
 }

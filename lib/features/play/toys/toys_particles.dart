@@ -218,12 +218,23 @@ class _FireworksToyState extends State<FireworksToy>
   @override
   Widget build(BuildContext context) {
     _reduceMotion = MediaQuery.disableAnimationsOf(context);
-    return GestureDetector(
-      onTapDown: (e) => _launch(e.localPosition),
-      child: CustomPaint(
-        painter: _FireworksPainter(_sparks, _shells),
-        size: Size.infinite,
-      ),
+    return Stack(
+      children: <Widget>[
+        GestureDetector(
+          onTapDown: (e) => _launch(e.localPosition),
+          child: CustomPaint(
+            painter: _FireworksPainter(_sparks, _shells),
+            size: Size.infinite,
+          ),
+        ),
+        // The onboarding hint is drawn only onto the canvas (invisible to
+        // screen readers); IgnorePointer keeps it from stealing taps.
+        Positioned.fill(
+          child: IgnorePointer(
+            child: Semantics(label: 'Tap to launch a firework'),
+          ),
+        ),
+      ],
     );
   }
 }

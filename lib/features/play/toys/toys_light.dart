@@ -36,13 +36,24 @@ class _PaintWithLightToyState extends State<PaintWithLightToy>
 
   @override
   Widget build(BuildContext context) {
-    return Listener(
-      onPointerDown: (e) {
-        HapticFeedback.selectionClick();
-        _add(e.localPosition);
-      },
-      onPointerMove: (e) => _add(e.localPosition),
-      child: CustomPaint(painter: _LightPainter(_dots), size: Size.infinite),
+    return Stack(
+      children: <Widget>[
+        Listener(
+          onPointerDown: (e) {
+            HapticFeedback.selectionClick();
+            _add(e.localPosition);
+          },
+          onPointerMove: (e) => _add(e.localPosition),
+          child: CustomPaint(painter: _LightPainter(_dots), size: Size.infinite),
+        ),
+        // The onboarding hint is drawn only onto the canvas (invisible to
+        // screen readers); IgnorePointer keeps it from stealing touches.
+        Positioned.fill(
+          child: IgnorePointer(
+            child: Semantics(label: 'Draw with your finger'),
+          ),
+        ),
+      ],
     );
   }
 }

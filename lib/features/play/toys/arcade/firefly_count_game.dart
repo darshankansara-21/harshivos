@@ -150,21 +150,44 @@ class _FireflyCountGameState extends State<FireflyCountGame>
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapDown: (d) {
-              if (d.localPosition.dy < h * 0.68) return;
-              final i = (d.localPosition.dx / w * 3).floor().clamp(0, 2);
-              _pick(_options[i], i);
-            },
-            child: CustomPaint(
-              painter: _FireflyPainter(
-                flies: _flies,
-                options: _options,
-                wrongFlash: _wrongFlash,
+          final padTop = h * 0.7;
+          return Stack(
+            children: <Widget>[
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapDown: (d) {
+                  if (d.localPosition.dy < h * 0.68) return;
+                  final i = (d.localPosition.dx / w * 3).floor().clamp(0, 2);
+                  _pick(_options[i], i);
+                },
+                child: CustomPaint(
+                  painter: _FireflyPainter(
+                    flies: _flies,
+                    options: _options,
+                    wrongFlash: _wrongFlash,
+                  ),
+                  size: Size.infinite,
+                ),
               ),
-              size: Size.infinite,
-            ),
+              // The tappable answer numbers are drawn only onto the canvas,
+              // so a screen-reader user couldn't even discover what the
+              // choices were. These invisible Semantics overlays mirror the
+              // painter's pad rects so TalkBack/VoiceOver can announce and
+              // activate each number choice.
+              for (var i = 0; i < _options.length; i++)
+                Positioned(
+                  left: w * (i / 3) + 10,
+                  top: padTop,
+                  width: w / 3 - 20,
+                  height: h * 0.26,
+                  child: Semantics(
+                    label: 'Answer ${_options[i]}',
+                    button: true,
+                    onTap: () => _pick(_options[i], i),
+                    child: const SizedBox.expand(),
+                  ),
+                ),
+            ],
           );
         },
       ),
