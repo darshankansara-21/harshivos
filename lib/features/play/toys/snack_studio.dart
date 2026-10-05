@@ -51,8 +51,16 @@ class _SnackStudioToyState extends State<SnackStudioToy> {
 
   void _feed() {
     HapticFeedback.heavyImpact();
-    TonePlayer.instance.playCue(SoundCue.completion);
-    const CompanionEventNotification(ExperienceEvent.gameCompleted).dispatch(context);
+    TonePlayer.instance.playCue(SoundCue.success);
+    // Pocket Picnic is an open-ended creative free-play toy — there is no
+    // win/end state, a child can serve and feed snacks indefinitely. Firing
+    // the full "You did it!" gameCompleted celebration on every single feed
+    // (as opposed to a genuine once-per-run milestone like other games use
+    // it for) would spam the loud celebration tier for a routine repeatable
+    // action. Use the same debounced in-run-positive-moment tier every
+    // other repeatable-action toy/game uses instead (see fishing_game's
+    // per-catch bubblePopped vs its one-time target-reached gameCompleted).
+    const CompanionEventNotification(ExperienceEvent.bubblePopped).dispatch(context);
     setState(() {
       _snacksMade++;
       _base = null;
