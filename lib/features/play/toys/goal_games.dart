@@ -167,20 +167,28 @@ class _GoalShellState extends State<_GoalShell> {
                   ),
                   if (message != null) ...<Widget>[
                     const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: accent.withOpacity(0.92),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Text(
-                        message,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w900,
+                    // See _Shell's matching comment in arcade_games.dart:
+                    // this pill carries live status (e.g. GoalKeeper's
+                    // "Lives 🧤🧤·" readout after each shot) via setState,
+                    // previously silent to assistive tech on change.
+                    Semantics(
+                      container: true,
+                      liveRegion: true,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: accent.withOpacity(0.92),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Text(
+                          message,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                       ),
                     ),

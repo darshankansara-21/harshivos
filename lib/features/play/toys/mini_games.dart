@@ -183,19 +183,27 @@ class _GameShellState extends State<_GameShell> {
                     ),
                     if (banner != null) ...<Widget>[
                       const SizedBox(height: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: accent.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Text(
-                          banner,
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w900,
+                      // See _Shell's matching comment in arcade_games.dart:
+                      // this pill is also reused for live status (lives,
+                      // round progress, "out of lives!") via setState, which
+                      // was previously silent to assistive tech on change.
+                      Semantics(
+                        container: true,
+                        liveRegion: true,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: accent.withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Text(
+                            banner,
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w900,
+                            ),
                           ),
                         ),
                       ),

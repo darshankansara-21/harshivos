@@ -207,18 +207,28 @@ class _ShellState extends State<_Shell> {
                   ),
                   if (banner != null) ...<Widget>[
                     const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: accent.withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(14),
+                    // Many games repurpose this pill for live status (lives
+                    // remaining, round/level progress, "out of lives!" etc.)
+                    // via setState — previously a screen-reader user had no
+                    // way to know it had changed short of re-focusing it
+                    // manually. `liveRegion: true` mirrors the score pill
+                    // above so TalkBack/VoiceOver re-announces it on change.
+                    Semantics(
+                      container: true,
+                      liveRegion: true,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: accent.withOpacity(0.9),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Text(banner,
+                            style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w900)),
                       ),
-                      child: Text(banner,
-                          style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w900)),
                     ),
                   ],
                 ],
