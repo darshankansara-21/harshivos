@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -240,6 +241,7 @@ class TonePlayer {
     };
     if (last != null && now.difference(last).inMilliseconds < cooldown) return;
     _lastCueAt[cue] = now;
+    _triggerHaptic(cue);
 
     _kindScale = WonderAudioPolicy.scale(_kindForCue(cue));
     try {
@@ -352,6 +354,62 @@ class TonePlayer {
       }
     } finally {
       _kindScale = 1;
+    }
+  }
+
+  /// Dispatches a tactile pulse alongside [cue]'s sound — the "tactile
+  /// response" every sensory toy already has (see pop_it/counting_game) but
+  /// that every one of the 78 Play games was missing entirely, since they all
+  /// route their audio exclusively through this one [playCue] call site.
+  /// Kept deliberately tiered so frequent gameplay taps stay a light, calm
+  /// click rather than a buzzy spam of strong impacts: only rare resolution
+  /// moments (a win, game over, a milestone) earn a stronger pulse. Retry/
+  /// wrong-tap and ambient/navigation cues stay haptic-free on purpose — a
+  /// buzz on a wrong answer would read as punishing, not helpful.
+  void _triggerHaptic(SoundCue cue) {
+    try {
+      switch (cue) {
+        case SoundCue.success:
+        case SoundCue.gameStart:
+        case SoundCue.milestone:
+        case SoundCue.completion:
+        case SoundCue.bowling:
+        case SoundCue.gameOver:
+          HapticFeedback.heavyImpact();
+        case SoundCue.crash:
+          HapticFeedback.mediumImpact();
+        case SoundCue.tap:
+        case SoundCue.selection:
+        case SoundCue.correct:
+        case SoundCue.sand:
+        case SoundCue.water:
+        case SoundCue.bubble:
+        case SoundCue.balloon:
+        case SoundCue.ball:
+        case SoundCue.wood:
+        case SoundCue.metal:
+        case SoundCue.coin:
+        case SoundCue.marble:
+        case SoundCue.stack:
+        case SoundCue.engine:
+        case SoundCue.laser:
+        case SoundCue.brick:
+        case SoundCue.snakeEat:
+        case SoundCue.paint:
+        case SoundCue.paper:
+        case SoundCue.fruit:
+        case SoundCue.learnGood:
+        case SoundCue.talkAck:
+        case SoundCue.routineDone:
+          HapticFeedback.selectionClick();
+        case SoundCue.gentleRetry:
+        case SoundCue.navigation:
+        case SoundCue.calm:
+        case SoundCue.ripple:
+          break;
+      }
+    } catch (_) {
+      // Best-effort: never let haptics crash a toy.
     }
   }
 
