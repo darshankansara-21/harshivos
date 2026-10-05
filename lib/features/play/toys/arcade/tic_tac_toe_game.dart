@@ -33,9 +33,14 @@ class _TicTacToeGameState extends State<TicTacToeGame> with _Emit {
   }
 
   static const List<List<int>> _lines = <List<int>>[
-    [0, 1, 2], [3, 4, 5], [6, 7, 8],
-    [0, 3, 6], [1, 4, 7], [2, 5, 8],
-    [0, 4, 8], [2, 4, 6],
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6],
   ];
 
   List<int> _winLineFor(List<int> b) {
@@ -63,7 +68,10 @@ class _TicTacToeGameState extends State<TicTacToeGame> with _Emit {
     if (move == null && _rnd.nextDouble() < 0.65) move = _findMove(1);
     if (move == null) {
       const prefs = <int>[4, 0, 2, 6, 8, 1, 3, 5, 7];
-      final avail = <int>[for (final p in prefs) if (_b[p] == 0) p];
+      final avail = <int>[
+        for (final p in prefs)
+          if (_b[p] == 0) p
+      ];
       if (avail.isNotEmpty) {
         // Favour good squares but mix in some chance so it's beatable.
         move = _rnd.nextDouble() < 0.6
@@ -162,34 +170,47 @@ class _TicTacToeGameState extends State<TicTacToeGame> with _Emit {
                 physics: const NeverScrollableScrollPhysics(),
                 children: <Widget>[
                   for (var i = 0; i < 9; i++)
-                    GestureDetector(
-                      onTapDown: (_) => _tap(i),
-                      child: Container(
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: _winLine.contains(i)
-                              ? const Color(0xFFFFD166).withOpacity(0.35)
-                              : Colors.white.withOpacity(0.06),
-                          borderRadius: BorderRadius.circular(16),
-                          border: _winLine.contains(i)
-                              ? Border.all(
-                                  color: const Color(0xFFFFD166), width: 3)
-                              : null,
-                        ),
-                        child: TweenAnimationBuilder<double>(
-                          key: ValueKey('ttt-$i-${_b[i]}'),
-                          tween: Tween<double>(
-                              begin: _b[i] != 0 ? 1.4 : 1.0, end: 1.0),
-                          duration: const Duration(milliseconds: 260),
-                          curve: Curves.easeOutBack,
-                          builder: (c, s, child) =>
-                              Transform.scale(scale: s, child: child),
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              _b[i] == 1 ? '⭐' : _b[i] == 2 ? '🐾' : '',
-                              maxLines: 1,
-                              style: const TextStyle(fontSize: 52),
+                    // Semantics label: a blind child needs row/column plus
+                    // the cell's own mark (star/paw/empty) announced, since
+                    // the raw GestureDetector grid otherwise exposes no
+                    // screen-reader information about the board at all.
+                    Semantics(
+                      label: 'Row ${i ~/ 3 + 1} column ${i % 3 + 1}: '
+                          '${_b[i] == 1 ? 'star, taken by you' : _b[i] == 2 ? 'paw, taken by Pico' : 'empty'}',
+                      button: _b[i] == 0,
+                      child: GestureDetector(
+                        onTapDown: (_) => _tap(i),
+                        child: Container(
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: _winLine.contains(i)
+                                ? const Color(0xFFFFD166).withOpacity(0.35)
+                                : Colors.white.withOpacity(0.06),
+                            borderRadius: BorderRadius.circular(16),
+                            border: _winLine.contains(i)
+                                ? Border.all(
+                                    color: const Color(0xFFFFD166), width: 3)
+                                : null,
+                          ),
+                          child: TweenAnimationBuilder<double>(
+                            key: ValueKey('ttt-$i-${_b[i]}'),
+                            tween: Tween<double>(
+                                begin: _b[i] != 0 ? 1.4 : 1.0, end: 1.0),
+                            duration: const Duration(milliseconds: 260),
+                            curve: Curves.easeOutBack,
+                            builder: (c, s, child) =>
+                                Transform.scale(scale: s, child: child),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                _b[i] == 1
+                                    ? '⭐'
+                                    : _b[i] == 2
+                                        ? '🐾'
+                                        : '',
+                                maxLines: 1,
+                                style: const TextStyle(fontSize: 52),
+                              ),
                             ),
                           ),
                         ),
