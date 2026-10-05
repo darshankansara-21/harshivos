@@ -47,22 +47,33 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
     _holding = false;
   }
 
-  double _distToPath(double x, double y) {
+  // The corridor the painter draws is a stroked path with strokeWidth
+  // `halfW * 2 * w` — a true-pixel band, isotropic in real screen pixels.
+  // But the path's own vertices (and this distance check) live in
+  // mixed-normalized space (x as a fraction of width, y as a fraction of
+  // height). On a typical taller-than-wide phone, a plain isotropic
+  // sqrt(dx*dx+dy*dy) here would under/over-tolerate drift depending on a
+  // segment's direction. Scale the y-axis by `aspect` (height/width) before
+  // measuring, so the comparison against the width-calibrated `_halfW`
+  // matches what is actually drawn in every direction.
+  double _distToPath(double x, double y, double aspect) {
     var best = double.infinity;
     for (var i = 0; i < _path.length - 1; i++) {
-      best = math.min(best, _distToSeg(x, y, _path[i], _path[i + 1]));
+      best = math.min(best, _distToSeg(x, y, _path[i], _path[i + 1], aspect));
     }
     return best;
   }
 
-  double _distToSeg(double px, double py, List<double> a, List<double> b) {
-    final ax = a[0], ay = a[1], bx = b[0], by = b[1];
+  double _distToSeg(
+      double px, double py, List<double> a, List<double> b, double aspect) {
+    final ax = a[0], ay = a[1] * aspect, bx = b[0], by = b[1] * aspect;
+    final pys = py * aspect;
     final dx = bx - ax, dy = by - ay;
     final len2 = dx * dx + dy * dy;
-    var t = len2 == 0 ? 0.0 : ((px - ax) * dx + (py - ay) * dy) / len2;
+    var t = len2 == 0 ? 0.0 : ((px - ax) * dx + (pys - ay) * dy) / len2;
     t = t.clamp(0.0, 1.0);
     final cx = ax + t * dx, cy = ay + t * dy;
-    return math.sqrt(math.pow(px - cx, 2) + math.pow(py - cy, 2)).toDouble();
+    return math.sqrt(math.pow(px - cx, 2) + math.pow(pys - cy, 2)).toDouble();
   }
 
   void _fail() {
@@ -140,12 +151,16 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
+          final aspect = h / w;
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
             onPanStart: (d) {
               final nx = d.localPosition.dx / w, ny = d.localPosition.dy / h;
+              // Both axes of this grab box are width-calibrated (matching the
+              // drawn start marker's pixel radius), so the y-threshold must be
+              // divided by aspect to mean the same real pixel distance as x.
               if ((nx - _path.first[0]).abs() < _halfW * 1.6 &&
-                  (ny - _path.first[1]).abs() < _halfW * 1.6) {
+                  (ny - _path.first[1]).abs() < _halfW * 1.6 / aspect) {
                 setState(() {
                   _holding = true;
                   _dotX = nx;
@@ -156,7 +171,7 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
             onPanUpdate: (d) {
               if (!_holding || _status != GameStatus.playing) return;
               final nx = d.localPosition.dx / w, ny = d.localPosition.dy / h;
-              if (_distToPath(nx, ny) > _halfW) {
+              if (_distToPath(nx, ny, aspect) > _halfW) {
                 _fail();
                 return;
               }
@@ -165,7 +180,8 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
                 _dotY = ny;
               });
               final end = _path.last;
-              if ((nx - end[0]).abs() < _halfW && (ny - end[1]).abs() < _halfW) {
+              if ((nx - end[0]).abs() < _halfW &&
+                  (ny - end[1]).abs() < _halfW / aspect) {
                 _levelDone();
               }
             },
