@@ -36,6 +36,15 @@ class _PinballGameState extends State<PinballGame>
   int _score = 0;
   int _best = 0;
   int _balls = 3;
+  // Real pinball tables award an extra ball at a score milestone — one of
+  // the genre's signature "you earned more play" rewards. Without it this
+  // table only ever loses balls, never grants one back, which is the one
+  // authentic-pinball-feel gap CLAUDE.md's "must feel like real pinball"
+  // directive calls out. Capped so a long combo streak can't snowball into
+  // an effectively infinite game.
+  static const int _extraBallScore = 400;
+  static const int _maxBalls = 6;
+  int _nextExtraBallAt = _extraBallScore;
   double _leftT = 0; // 0 down .. 1 fully flipped
   double _rightT = 0;
   // Real pinball flippers stay raised as long as the button is held, not
@@ -172,7 +181,14 @@ class _PinballGameState extends State<PinballGame>
         }
         TonePlayer.instance.playCue(SoundCue.ball);
         emit(ExperienceEvent.bubblePopped);
-        _flash(_combo >= 2 ? 'Combo x$_combo! +$gain' : '+$gain');
+        if (_score >= _nextExtraBallAt && _balls < _maxBalls) {
+          _balls++;
+          _nextExtraBallAt += _extraBallScore;
+          TonePlayer.instance.playCue(SoundCue.milestone);
+          _flash('Extra ball! 🎉');
+        } else {
+          _flash(_combo >= 2 ? 'Combo x$_combo! +$gain' : '+$gain');
+        }
       }
     }
 
@@ -271,6 +287,7 @@ class _PinballGameState extends State<PinballGame>
     setState(() {
       _score = 0;
       _balls = 3;
+      _nextExtraBallAt = _extraBallScore;
       _combo = 0;
       _comboT = 0;
       _banner = null;
