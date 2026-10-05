@@ -511,8 +511,33 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> with _GoalEmit {
                                       : null),
                             ),
                             alignment: Alignment.center,
+                            // A pure color swatch with no label is unplayable
+                            // for a colorblind child (or any child who simply
+                            // can't yet reliably tell e.g. green from orange
+                            // apart) even though the prompt above names the
+                            // target color in text — the tile itself gave no
+                            // text/pattern backup to colour. Always show the
+                            // name, with a dark shadow so it stays readable
+                            // over every swatch, including the pale yellow.
                             child: swatch != null
-                                ? const SizedBox.shrink()
+                                ? Text(_round.options[index],
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 1,
+                                      shadows: <Shadow>[
+                                        Shadow(
+                                          color: Colors.black54,
+                                          blurRadius: 6,
+                                        ),
+                                        Shadow(
+                                          color: Colors.black54,
+                                          offset: Offset(1, 1),
+                                        ),
+                                      ],
+                                    ))
                                 : Text(_round.options[index],
                                     textAlign: TextAlign.center,
                                     style: const TextStyle(
