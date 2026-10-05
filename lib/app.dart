@@ -27,7 +27,22 @@ class HarshivApp extends ConsumerWidget {
       builder: (context, child) {
         final media = MediaQuery.of(context);
         return MediaQuery(
-          data: media.copyWith(disableAnimations: sensory.reduceMotion),
+          data: media.copyWith(
+            disableAnimations: sensory.reduceMotion,
+            // Every Play game is hand-tuned with fixed-pixel containers,
+            // headers, and swatches around deliberately oversized, friendly
+            // fonts. With no clamp, a parent's system accessibility text
+            // scale (common, and plausible for parents of autistic/low-vision
+            // children) is applied uncapped on top of those already-large
+            // fonts, overflowing hardcoded-height banners/tiles across all
+            // 78 games. Clamp instead of ignoring the setting outright: text
+            // can still grow up to 1.3x for genuine accessibility need, and
+            // never shrinks below the app's own baseline size.
+            textScaler: media.textScaler.clamp(
+              minScaleFactor: 1.0,
+              maxScaleFactor: 1.3,
+            ),
+          ),
           child: child!,
         );
       },
