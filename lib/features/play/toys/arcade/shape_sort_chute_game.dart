@@ -83,11 +83,17 @@ class _ShapeSortChuteGameState extends State<ShapeSortChuteGame>
       _flashGood = false;
       _flashT = 0.4;
       _lives--;
-      TonePlayer.instance.playCue(SoundCue.gentleRetry);
-      _banner = 'Wrong hole!';
       if (_lives <= 0) {
+        // The life-ending miss must sound distinct from a routine miss,
+        // never just the same gentle-retry cue as every other wrong drop.
         _status = GameStatus.over;
+        _banner = 'Out of lives!';
+        TonePlayer.instance.playCue(SoundCue.gameOver);
+        emit(ExperienceEvent.incorrectAnswer);
         return;
+      } else {
+        TonePlayer.instance.playCue(SoundCue.gentleRetry);
+        _banner = 'Wrong hole!';
       }
     }
     _arrange();
