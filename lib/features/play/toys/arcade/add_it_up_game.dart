@@ -23,6 +23,12 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
   String? _banner;
   GameStatus _status = GameStatus.ready;
 
+  // Difficulty escalates with score: tiles start small (1-5) and six wide,
+  // growing to bigger numbers (up to 1-15) and an extra tile by round 10 —
+  // round 1 should feel noticeably easier than round 10, not identical.
+  int get _maxVal => (5 + _score * 2).clamp(5, 15);
+  int get _tileCount => _score >= 5 ? 7 : 6;
+
   @override
   void initState() {
     super.initState();
@@ -32,7 +38,7 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
   }
 
   void _deal() {
-    _tiles = List<int>.generate(6, (_) => 1 + _rnd.nextInt(9));
+    _tiles = List<int>.generate(_tileCount, (_) => 1 + _rnd.nextInt(_maxVal));
     _selected = -1;
     _wrong = -1;
     _newTarget();
@@ -40,10 +46,10 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
 
   void _newTarget() {
     // Pick two distinct tiles so a solution always exists.
-    final i = _rnd.nextInt(6);
-    var j = _rnd.nextInt(6);
+    final i = _rnd.nextInt(_tiles.length);
+    var j = _rnd.nextInt(_tiles.length);
     while (j == i) {
-      j = _rnd.nextInt(6);
+      j = _rnd.nextInt(_tiles.length);
     }
     _sum = _tiles[i] + _tiles[j];
   }
@@ -57,10 +63,13 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
       _selected = -1;
     } else {
       if (_tiles[_selected] + _tiles[k] == _sum) {
-        _tiles[_selected] = 1 + _rnd.nextInt(9);
-        _tiles[k] = 1 + _rnd.nextInt(9);
-        _selected = -1;
         _score++;
+        _tiles[_selected] = 1 + _rnd.nextInt(_maxVal);
+        _tiles[k] = 1 + _rnd.nextInt(_maxVal);
+        if (_tiles.length < _tileCount) {
+          _tiles.add(1 + _rnd.nextInt(_maxVal));
+        }
+        _selected = -1;
         TonePlayer.instance.playCue(SoundCue.correct);
         emit(ExperienceEvent.bubblePopped);
         _banner = 'Correct!';
