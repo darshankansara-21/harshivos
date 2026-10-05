@@ -40,7 +40,12 @@ class _CountingBasketsGameState extends State<CountingBasketsGame> with _Emit {
   }
 
   void _newRound() {
-    _need = 2 + _rnd.nextInt(5); // 2..6
+    // Target genuinely grows across the ten baskets (matching the file's own
+    // "the target grows as you go" claim) instead of being flat random noise:
+    // a steady base trend from 2 up toward 8 by the final round, plus a
+    // small +0/+1 wobble so it still feels alive round to round.
+    final base = 2 + (_score * 6 / 9).round();
+    _need = (base + _rnd.nextInt(2)).clamp(2, 8);
     _inBasket = 0;
     _fruits.clear();
     final count = _need + 2;
