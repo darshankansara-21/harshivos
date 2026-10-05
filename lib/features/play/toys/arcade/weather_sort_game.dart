@@ -90,6 +90,14 @@ class _WeatherSortGameState extends State<WeatherSortGame> with _Emit {
         emit(ExperienceEvent.incorrectAnswer);
       } else {
         TonePlayer.instance.playCue(SoundCue.gentleRetry);
+        // The red flash is a momentary "that's wrong" cue, not a permanent
+        // state — clear it shortly after so a miss doesn't leave the bin
+        // stuck red until the next correct answer (matches the
+        // catalog-standard auto-clear pattern used by shape_builder/
+        // sorting_train's wrong-flash feedback).
+        Future.delayed(const Duration(milliseconds: 350), () {
+          if (mounted && _wrongFlash == bin) setState(() => _wrongFlash = -1);
+        });
       }
       _banner = 'Which weather fits?';
     }
