@@ -18,7 +18,26 @@ class _SkeeBallGameState extends State<SkeeBallGame>
   // scoring thresholds used by `_resolve()`. Each entry is the upper y-bound
   // (ball-travel fraction, 0 = top of ramp) and the points it awards.
   static const List<double> _bandUpperY = <double>[0.2, 0.33, 0.46, 0.72];
+  // Unlike every other game reaching 100 (target_toss speeds its target up,
+  // soccer_kick sharpens the keeper's read), skee_ball's bands never moved —
+  // round 1 and round-nearly-won required the exact same drag precision, so
+  // the back half of a 100-point run felt identical to the front half. These
+  // are the fully-escalated bands a perfect run eventually reaches: every
+  // zone narrower than its start value, so landing a 50 or 30 late in the
+  // game genuinely demands a steadier drag than it did early on.
+  static const List<double> _bandUpperYHard = <double>[0.1, 0.19, 0.3, 0.58];
   static const List<int> _bandPts = <int>[50, 30, 20, 10];
+
+  // Interpolates from the easy opening bands to the hard late-game bands as
+  // score climbs toward target, giving the run a real difficulty curve while
+  // keeping the point values themselves unchanged.
+  List<double> get _liveBandUpperY {
+    final t = (_score / _target).clamp(0.0, 1.0);
+    return <double>[
+      for (var i = 0; i < _bandUpperY.length; i++)
+        _bandUpperY[i] + (_bandUpperYHard[i] - _bandUpperY[i]) * t,
+    ];
+  }
 
   double _ballY = 0.86;
   double _targetY = 0.86;
@@ -61,8 +80,9 @@ class _SkeeBallGameState extends State<SkeeBallGame>
     _rolling = false;
     int pts = 0;
     String label = 'Gutter!';
-    for (var i = 0; i < _bandUpperY.length; i++) {
-      if (_targetY < _bandUpperY[i]) {
+    final bands = _liveBandUpperY;
+    for (var i = 0; i < bands.length; i++) {
+      if (_targetY < bands[i]) {
         pts = _bandPts[i];
         label = i == 0 ? 'Bullseye! +50' : '+$pts';
         break;
@@ -165,7 +185,9 @@ class _SkeeBallGameState extends State<SkeeBallGame>
             },
             child: CustomPaint(
               painter: _SkeeBallPainter(
-                  ballY: _ballY, power: _dragging ? _power : 0),
+                  ballY: _ballY,
+                  power: _dragging ? _power : 0,
+                  bandUpperY: _liveBandUpperY),
               size: Size.infinite,
             ),
           );
@@ -176,8 +198,10 @@ class _SkeeBallGameState extends State<SkeeBallGame>
 }
 
 class _SkeeBallPainter extends CustomPainter {
-  _SkeeBallPainter({required this.ballY, required this.power});
+  _SkeeBallPainter(
+      {required this.ballY, required this.power, required this.bandUpperY});
   final double ballY, power;
+  final List<double> bandUpperY;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -199,17 +223,18 @@ class _SkeeBallPainter extends CustomPainter {
         Paint()..color = const Color(0xFF6B4A2A));
 
     // Scoring bands — drawn to EXACTLY match `_SkeeBallGameState`'s real
-    // y-threshold boundaries (shared constants), so what a child sees is
-    // always what actually scores. Each band is a horizontal ring-hole
+    // live y-threshold boundaries (passed in, not the static base values),
+    // so what a child sees always matches what actually scores, even as the
+    // bands narrow with difficulty. Each band is a horizontal ring-hole
     // spanning its real vertical extent, narrower (harder) the higher it is.
     const cols = <Color>[
       Color(0xFFFF5DA2), Color(0xFFFFD166), Color(0xFF80ED99), Color(0xFF48CAE4),
     ];
     const widthFrac = <double>[0.16, 0.20, 0.24, 0.28];
     double prevY = 0.0;
-    for (var i = 0; i < _SkeeBallGameState._bandUpperY.length; i++) {
+    for (var i = 0; i < bandUpperY.length; i++) {
       final topY = prevY;
-      final bottomY = _SkeeBallGameState._bandUpperY[i];
+      final bottomY = bandUpperY[i];
       final midY = (topY + bottomY) / 2 * h;
       final halfH = (bottomY - topY) / 2 * h;
       canvas.drawOval(
