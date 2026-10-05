@@ -682,7 +682,14 @@ class _BalloonPopGameState extends State<BalloonPopGame>
     }
     _items.removeWhere((b) {
       if (b.y < -0.1) {
-        if (b.kind != 2) _combo = 0;
+        // A balloon floating off the top with no feedback silently killed a
+        // child's combo for a reason they never saw happen (unlike bombs,
+        // which already flash "Oops!" on a bad tap) — flash the same kind of
+        // setback message here so a reset streak is never a mystery.
+        if (b.kind != 2) {
+          if (_combo > 0) _flash('Floated away! Combo reset');
+          _combo = 0;
+        }
         return true;
       }
       return false;
