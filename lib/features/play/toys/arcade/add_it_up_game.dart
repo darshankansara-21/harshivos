@@ -198,23 +198,29 @@ class _NumberTile extends StatelessWidget {
         : selected
             ? const Color(0xFF80ED99)
             : Colors.white10;
-    return GestureDetector(
+    return Semantics(
+      button: true,
+      label: selected ? 'Number $value. Selected.' : 'Number $value',
       onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 140),
-        width: 86,
-        height: 86,
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.white24, width: 2),
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          width: 86,
+          height: 86,
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.white24, width: 2),
+          ),
+          alignment: Alignment.center,
+          child: Text('$value',
+              style: TextStyle(
+                  color: selected ? Colors.black : Colors.white,
+                  fontSize: 34,
+                  fontWeight: FontWeight.w900)),
         ),
-        alignment: Alignment.center,
-        child: Text('$value',
-            style: TextStyle(
-                color: selected ? Colors.black : Colors.white,
-                fontSize: 34,
-                fontWeight: FontWeight.w900)),
       ),
     );
   }
