@@ -64,9 +64,16 @@ class _WeatherSortGameState extends State<WeatherSortGame> with _Emit {
     } else {
       _wrongFlash = bin;
       _lives--;
-      TonePlayer.instance.playCue(SoundCue.gentleRetry);
+      if (_lives <= 0) {
+        // Final miss ends the round — give it its own distinct cue instead
+        // of reusing the routine gentle-retry miss sound.
+        _status = GameStatus.over;
+        TonePlayer.instance.playCue(SoundCue.gameOver);
+        emit(ExperienceEvent.incorrectAnswer);
+      } else {
+        TonePlayer.instance.playCue(SoundCue.gentleRetry);
+      }
       _banner = 'Which weather fits?';
-      if (_lives <= 0) _status = GameStatus.over;
     }
     setState(() {});
   }

@@ -122,10 +122,19 @@ class _BalloonMathGameState extends State<BalloonMathGame>
           }
         } else {
           _lives--;
-          TonePlayer.instance.playCue(SoundCue.gentleRetry);
-          _banner = 'Try again…';
-          _bannerT = 1.0;
-          if (_lives <= 0) _status = GameStatus.over;
+          if (_lives <= 0) {
+            // The life-ending miss must sound distinct from a routine miss,
+            // never just the same gentle-retry cue as every other pop.
+            _status = GameStatus.over;
+            _banner = 'Out of lives!';
+            _bannerT = 1.2;
+            TonePlayer.instance.playCue(SoundCue.gameOver);
+            emit(ExperienceEvent.incorrectAnswer);
+          } else {
+            TonePlayer.instance.playCue(SoundCue.gentleRetry);
+            _banner = 'Try again…';
+            _bannerT = 1.0;
+          }
         }
         setState(() {});
         return;

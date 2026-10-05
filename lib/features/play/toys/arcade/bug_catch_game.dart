@@ -133,10 +133,16 @@ class _BugCatchGameState extends State<BugCatchGame>
           }
         } else {
           _lives--;
-          TonePlayer.instance.playCue(SoundCue.gentleRetry);
+          if (_lives <= 0) {
+            // Distinct terminal cue — the catching run really ends here.
+            _status = GameStatus.over;
+            TonePlayer.instance.playCue(SoundCue.gameOver);
+            emit(ExperienceEvent.incorrectAnswer);
+          } else {
+            TonePlayer.instance.playCue(SoundCue.gentleRetry);
+          }
           _banner = 'Only ${_names[_targetColor]} bugs!';
           _bannerT = 1.2;
-          if (_lives <= 0) _status = GameStatus.over;
         }
         setState(() {});
         return;

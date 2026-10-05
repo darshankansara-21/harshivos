@@ -68,8 +68,15 @@ class _RhythmClapGameState extends State<RhythmClapGame>
       if (!_hit[i] && prev < _markers[i] && _head >= _markers[i] + _window) {
         _hit[i] = true; // count as resolved (missed)
         _lives--;
-        TonePlayer.instance.playCue(SoundCue.gentleRetry);
-        if (_lives <= 0) _status = GameStatus.over;
+        if (_lives <= 0) {
+          // The run-ending miss needs its own distinct cue, not the routine
+          // gentle-retry sound used for every other missed beat.
+          _status = GameStatus.over;
+          TonePlayer.instance.playCue(SoundCue.gameOver);
+          emit(ExperienceEvent.incorrectAnswer);
+        } else {
+          TonePlayer.instance.playCue(SoundCue.gentleRetry);
+        }
       }
     }
     if (_head >= 1) _newBar();
