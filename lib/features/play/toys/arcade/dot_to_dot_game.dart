@@ -36,14 +36,24 @@ class _DotToDotGameState extends State<DotToDotGame>
 
   void _buildFigure() {
     // Points around a circle; star alternates radius. More points each figure.
+    // The point count/star-or-not progression stays a deterministic function
+    // of _fig (that's the intended difficulty curve), but every other visual
+    // parameter is randomized per figure so repeat sessions — and even the
+    // five pictures within one session — never trace the exact same shape
+    // twice: a fresh rotation, outer/inner radius, and center jitter each time.
     final count = 3 + _fig; // 3,4,5,6,7
     final star = _fig >= 2;
     _dots = <Offset>[];
     final pts = star ? count * 2 : count;
+    final rotation = _rnd.nextDouble() * math.pi * 2;
+    final outerR = 0.29 + _rnd.nextDouble() * 0.06;
+    final innerR = 0.13 + _rnd.nextDouble() * 0.05;
+    final cx = 0.5 + (_rnd.nextDouble() - 0.5) * 0.06;
+    final cy = 0.42 + (_rnd.nextDouble() - 0.5) * 0.06;
     for (var i = 0; i < pts; i++) {
-      final a = -math.pi / 2 + i * math.pi * 2 / pts;
-      final rr = star && i.isOdd ? 0.16 : 0.32;
-      _dots.add(Offset(0.5 + math.cos(a) * rr, 0.42 + math.sin(a) * rr * 1.1));
+      final a = rotation + i * math.pi * 2 / pts;
+      final rr = star && i.isOdd ? innerR : outerR;
+      _dots.add(Offset(cx + math.cos(a) * rr, cy + math.sin(a) * rr * 1.1));
     }
     _next = 0;
   }
