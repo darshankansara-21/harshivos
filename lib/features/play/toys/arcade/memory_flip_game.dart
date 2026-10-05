@@ -22,6 +22,7 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
     '🍩'
   ];
   static const int _maxLevel = 5;
+  final math.Random _rnd = math.Random();
   late List<String> _cards;
   late List<bool> _matched;
   int _first = -1;
@@ -73,7 +74,12 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
   }
 
   void _deal() {
-    final faces = _facePool.take(_pairsThisLevel).toList();
+    // Pick which icons appear this round from a shuffled copy of the pool
+    // instead of always slicing the front of `_facePool` — otherwise every
+    // level 1 deal is always the exact same first N icons, forever, on
+    // every playthrough (only card *position* varied, never *content*).
+    final pool = List<String>.of(_facePool)..shuffle(_rnd);
+    final faces = pool.take(_pairsThisLevel).toList();
     _cards = <String>[...faces, ...faces];
     _cards.shuffle();
     _matched = List<bool>.filled(_cards.length, false);
