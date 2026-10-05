@@ -133,6 +133,14 @@ class _ShapeBuilderGameState extends State<ShapeBuilderGame> with _Emit {
         } else {
           setState(() => _wrongFlash = i);
           TonePlayer.instance.playCue(SoundCue.gentleRetry);
+          // This game has no lives system — every wrong tap is the only
+          // negative feedback a child gets, so (unlike lives-based games
+          // that reserve the companion emit for the terminal mistake) it
+          // must pair the sound with emit() every time, matching the
+          // no-lives convention already used by _ChoiceGoalGame and
+          // _PathFinderGameState. Was previously sound-only, leaving
+          // Hari/Pico silent on every single mistake in this game.
+          emit(ExperienceEvent.incorrectAnswer);
           Future.delayed(const Duration(milliseconds: 350), () {
             if (mounted && _wrongFlash == i) setState(() => _wrongFlash = -1);
           });
