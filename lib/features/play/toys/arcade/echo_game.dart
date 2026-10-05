@@ -88,7 +88,13 @@ class _EchoGameState extends State<EchoGame>
           setState(() => _status = GameStatus.won);
           TonePlayer.instance.playCue(SoundCue.success);
           emit(ExperienceEvent.gameCompleted);
-          GameScores.instance.submit(_id, _seq.length);
+          // Fire-and-forget here (unlike the other submit() calls below) left
+          // the win screen's "best" stat stale if this run was itself the new
+          // best, since the Future resolves after this frame's own setState
+          // has already run.
+          GameScores.instance.submit(_id, _seq.length).then((b) {
+            if (mounted) setState(() => _best = b);
+          });
           return;
         }
         GameScores.instance.submit(_id, _seq.length).then((b) {
