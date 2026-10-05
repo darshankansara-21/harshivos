@@ -62,6 +62,11 @@ class _BeatBuilderGameState extends State<BeatBuilderGame>
     final col = (p.dx / w * _steps).floor();
     final row = (p.dy / h * _rowsN).floor();
     if (col < 0 || col >= _steps || row < 0 || row >= _rowsN) return;
+    _toggleCell(row, col);
+  }
+
+  void _toggleCell(int row, int col) {
+    if (_status != GameStatus.playing) return;
     final idx = row * _steps + col;
     setState(() {
       _grid[idx] = !_grid[idx];
@@ -120,19 +125,46 @@ class _BeatBuilderGameState extends State<BeatBuilderGame>
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapDown: (d) => _toggle(d.localPosition, w, h),
-            child: CustomPaint(
-              painter: _BeatPainter(
-                grid: _grid,
-                rows: _rowsN,
-                steps: _steps,
-                step: _step,
-                colors: _rowColors,
+          final cw = w / _steps, ch = h / _rowsN;
+          return Stack(
+            children: <Widget>[
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapDown: (d) => _toggle(d.localPosition, w, h),
+                child: CustomPaint(
+                  painter: _BeatPainter(
+                    grid: _grid,
+                    rows: _rowsN,
+                    steps: _steps,
+                    step: _step,
+                    colors: _rowColors,
+                  ),
+                  size: Size.infinite,
+                ),
               ),
-              size: Size.infinite,
-            ),
+              // Each grid cell is painted only onto the canvas with no
+              // widget-tree counterpart, so a screen-reader user had no way
+              // to discover or toggle any drum step. These invisible
+              // Semantics overlays sit at each cell's fixed position and
+              // announce its drum row, step number and on/off state,
+              // mirroring the fix already applied to
+              // dot_to_dot/firefly_count/balloon_math's tap targets.
+              for (var r = 0; r < _rowsN; r++)
+                for (var s = 0; s < _steps; s++)
+                  Positioned(
+                    left: s * cw,
+                    top: r * ch,
+                    width: cw,
+                    height: ch,
+                    child: Semantics(
+                      label: 'Drum ${r + 1}, step ${s + 1}, '
+                          '${_grid[r * _steps + s] ? 'on' : 'off'}',
+                      button: true,
+                      onTap: () => _toggleCell(r, s),
+                      child: const SizedBox.expand(),
+                    ),
+                  ),
+            ],
           );
         },
       ),
