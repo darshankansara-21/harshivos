@@ -22,6 +22,9 @@ class _MiniGolfGameState extends State<MiniGolfGame>
   double _cupX = 0.5, _cupY = 0.2;
   double _cupPulse = 0;
   Rect? _wall;
+  // A second obstacle joins from hole 6 onward so the back half of the round
+  // keeps getting harder instead of plateauing at the hole-3 difficulty.
+  Rect? _wall2;
   bool _moving = false;
   double _nextT = 0;
   int _hole = 1;
@@ -65,6 +68,28 @@ class _MiniGolfGameState extends State<MiniGolfGame>
     } else {
       _wall = null;
     }
+    // A second rail joins from hole 6 onward, placed on the opposite side of
+    // the green from the first so late holes genuinely need two bank shots
+    // instead of the same single-obstacle puzzle repeated for 7 holes.
+    if (_hole >= 6) {
+      final ww2 = 0.14 + _rnd.nextDouble() * 0.16;
+      final wx2 = (0.5 - ww2 / 2 + (_rnd.nextDouble() - 0.5) * 0.3)
+          .clamp(_margin, 1 - _margin - ww2);
+      final wy2 = 0.64 + (_rnd.nextDouble() - 0.5) * 0.1;
+      _wall2 = Rect.fromLTWH(wx2, wy2, ww2, 0.045);
+    } else {
+      _wall2 = null;
+    }
+  }
+
+  // Sinking requires a steadier, slower-rolling putt on later holes — holes
+  // 1-5 keep the original forgiving threshold; holes 6-9 tighten it down to
+  // a true plateau-free ramp so the last third of the round is noticeably
+  // less forgiving of a hard putt than the first third.
+  double get _sinkSpeedLimit {
+    if (_hole <= 5) return 0.5;
+    final t = ((_hole - 5) / 4).clamp(0.0, 1.0);
+    return 0.5 - t * 0.18;
   }
 
   // Shared by the putt and the aim preview so they always match.
@@ -124,9 +149,9 @@ class _MiniGolfGameState extends State<MiniGolfGame>
       TonePlayer.instance.playCue(SoundCue.wood);
     }
 
-    // Rail obstacle — reflect off the shallower-penetration axis.
-    final wall = _wall;
-    if (wall != null) {
+    // Rail obstacles — reflect off the shallower-penetration axis.
+    for (final wall in <Rect?>[_wall, _wall2]) {
+      if (wall == null) continue;
       final ex = wall.inflate(_ballR);
       if (_bx > ex.left && _bx < ex.right && _by > ex.top && _by < ex.bottom) {
         final penL = _bx - ex.left, penR = ex.right - _bx;
@@ -147,7 +172,7 @@ class _MiniGolfGameState extends State<MiniGolfGame>
     final d = math.sqrt(dx * dx + dy * dy);
     final speed = math.sqrt(_vx * _vx + _vy * _vy);
     if (d < _cupR) {
-      if (speed < 0.5) {
+      if (speed < _sinkSpeedLimit) {
         _sink();
         return;
       } else {
@@ -267,6 +292,7 @@ class _MiniGolfGameState extends State<MiniGolfGame>
                 cupPulse: _cupPulse,
                 margin: _margin,
                 wall: _wall,
+                wall2: _wall2,
                 bits: _bits,
                 aim: _moving ? null : _aim,
                 launch: _aim == null ? Offset.zero : _puttVel(_aim!),
@@ -291,12 +317,14 @@ class _GolfPainter extends CustomPainter {
     required this.cupPulse,
     required this.margin,
     required this.wall,
+    required this.wall2,
     required this.bits,
     required this.aim,
     required this.launch,
   });
   final double bx, by, ballR, cupX, cupY, cupR, cupPulse, margin;
   final Rect? wall;
+  final Rect? wall2;
   final List<_Shard> bits;
   final Offset? aim;
   final Offset launch;
@@ -343,6 +371,15 @@ class _GolfPainter extends CustomPainter {
       canvas.drawRRect(
           RRect.fromRectAndRadius(
               Rect.fromLTWH(sx(wl.left), sy(wl.top), sx(wl.width), sy(wl.height)),
+              const Radius.circular(6)),
+          Paint()..color = const Color(0xFF8A5A2B));
+    }
+    final wl2 = wall2;
+    if (wl2 != null) {
+      canvas.drawRRect(
+          RRect.fromRectAndRadius(
+              Rect.fromLTWH(
+                  sx(wl2.left), sy(wl2.top), sx(wl2.width), sy(wl2.height)),
               const Radius.circular(6)),
           Paint()..color = const Color(0xFF8A5A2B));
     }
