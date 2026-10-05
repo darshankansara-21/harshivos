@@ -244,7 +244,7 @@ final List<UniverseToy> kToyUniverse = <UniverseToy>[
   ),
   const UniverseToy(
     id: 'as_lava_blobs', name: 'Lava Blobs', emoji: '🫠', color: Color(0xFFF15BB5),
-    category: ToyCategory.sensory, inputs: [ToyInput.drag, ToyInput.tilt],
+    category: ToyCategory.sensory, inputs: [ToyInput.drag],
     engagement: ToyEngagement.endless, build: LavaBlobsToy.new,
   ),
   const UniverseToy(
