@@ -10,8 +10,9 @@ class LetterTraceGame extends StatefulWidget {
 }
 
 class _TraceDot {
-  _TraceDot(this.x, this.y);
+  _TraceDot(this.x, this.y, this.strokeIdx);
   final double x, y; // screen-normalized [0,1]
+  final int strokeIdx; // which stroke this dot belongs to, in glyph order
   bool lit = false;
 }
 
@@ -97,7 +98,9 @@ class _LetterTraceGameState extends State<LetterTraceGame> with _Emit {
     _dots.clear();
     // Map glyph box into a centred region of the screen.
     const ox = 0.3, oy = 0.28, sw = 0.4, sh = 0.5;
-    for (final stroke in _glyphs[_glyph]!) {
+    final strokes = _glyphs[_glyph]!;
+    for (var si = 0; si < strokes.length; si++) {
+      final stroke = strokes[si];
       final a = stroke.first, b = stroke.last;
       final len = math.sqrt(
           math.pow(b[0] - a[0], 2) + math.pow(b[1] - a[1], 2)).toDouble();
@@ -112,7 +115,7 @@ class _LetterTraceGameState extends State<LetterTraceGame> with _Emit {
             (d.x - sx).abs() < 0.015 && (d.y - sy).abs() < 0.015)) {
           continue;
         }
-        _dots.add(_TraceDot(sx, sy));
+        _dots.add(_TraceDot(sx, sy, si));
       }
     }
   }
@@ -236,6 +239,21 @@ class _LetterTracePainter extends CustomPainter {
       textDirection: TextDirection.ltr,
     )..layout();
     ghost.paint(canvas, Offset(w / 2 - ghost.width / 2, h * 0.24));
+
+    // Ink trail: connect consecutive lit dots within the same stroke so the
+    // letter visibly gets "written" rather than just lighting up disjoint dots.
+    final inkPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 9
+      ..strokeCap = StrokeCap.round
+      ..color = const Color(0xFF57CC99).withOpacity(0.85);
+    for (var i = 1; i < dots.length; i++) {
+      final prev = dots[i - 1], cur = dots[i];
+      if (prev.strokeIdx == cur.strokeIdx && prev.lit && cur.lit) {
+        canvas.drawLine(Offset(prev.x * w, prev.y * h),
+            Offset(cur.x * w, cur.y * h), inkPaint);
+      }
+    }
 
     for (final d in dots) {
       final c = Offset(d.x * w, d.y * h);
