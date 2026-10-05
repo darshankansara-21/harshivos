@@ -152,16 +152,30 @@ class _AirHockeyGameState extends State<AirHockeyGame>
     }
   }
 
+  // Unlike every sibling physics game (basketball's hoop speed, mini_golf's
+  // sink-speed/obstacles, skee_ball's narrowing bands, target_toss's target
+  // speed), the AI mallet's reaction speed never moved: it chased the puck
+  // at the exact same rate in the opening rally as it did on match point.
+  // Ramp it from a forgiving 3.2 up to a snappy 6.0 as the player closes in
+  // on winning, so the back half of a 7-point match is a genuinely tougher
+  // defender than the front half — not just the same AI stalling the player
+  // out with no growing tension.
+  double get _aiEase => 3.2 + (_playerScore / _target).clamp(0.0, 1.0) * 2.8;
+
   void _updateAi(double dt) {
     double targetX, targetY;
     if (_py < 0.52) {
       targetX = _px;
-      targetY = (_py - 0.09).clamp(0.06, 0.44);
+      // A harder AI also leads the puck's travel slightly instead of only
+      // tracking where it already is, so it can actually close off a fast
+      // shot rather than always arriving a beat late.
+      final lead = (_playerScore / _target).clamp(0.0, 1.0) * 0.12;
+      targetY = (_py - 0.09 - _pvy * lead).clamp(0.06, 0.44);
     } else {
       targetX = 0.5;
       targetY = 0.14;
     }
-    final ease = (3.2 * dt).clamp(0.0, 1.0);
+    final ease = (_aiEase * dt).clamp(0.0, 1.0);
     _aix += (targetX - _aix) * ease;
     _aiy += (targetY - _aiy) * ease;
     _aix = _aix.clamp(_paddleR, 1 - _paddleR);
