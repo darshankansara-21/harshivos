@@ -70,9 +70,21 @@ class SensorySettingsScreen extends ConsumerWidget {
               value: preferences.musicEnabled,
               onChanged: notifier.setMusicEnabled,
             ),
+            const SizedBox(height: 4),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Haptic feedback',
+                  style: TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.w800)),
+              subtitle: const Text(
+                  'Gentle vibration on taps, wins and misses during games',
+                  style: TextStyle(color: Colors.white70)),
+              value: preferences.hapticsEnabled,
+              onChanged: notifier.setHapticsEnabled,
+            ),
             const SizedBox(height: 12),
             const Text(
-              'These choices stay on this device. Haptic feedback is not yet controlled here.',
+              'These choices stay on this device.',
               style: TextStyle(color: Colors.white70, fontSize: 14),
             ),
           ],

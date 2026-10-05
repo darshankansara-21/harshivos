@@ -125,6 +125,12 @@ class TonePlayer {
   /// Opt-in soft background music. Default off (many children are
   /// sound-sensitive). Driven from `SensoryPreferences.musicEnabled`.
   bool musicEnabled = false;
+
+  /// Tactile vibration on taps/wins/misses. On by default, but some children
+  /// find vibration itself sensory-aversive — driven from
+  /// `SensoryPreferences.hapticsEnabled` so it's a real, reachable opt-out
+  /// rather than the previously-uncontrollable always-on haptic pulse.
+  bool hapticsEnabled = true;
   AudioPlayer? _musicPlayer;
   WonderMusicBed? _musicBed;
 
@@ -373,6 +379,7 @@ class TonePlayer {
   /// wrong-tap and ambient/navigation cues stay haptic-free on purpose — a
   /// buzz on a wrong answer would read as punishing, not helpful.
   void _triggerHaptic(SoundCue cue) {
+    if (!hapticsEnabled) return;
     try {
       switch (cue) {
         case SoundCue.success:
@@ -747,10 +754,12 @@ class TonePlayer {
   // --- Background music -------------------------------------------------------
 
   /// Applies a live audio change (from `SensoryPreferences`): updates the
-  /// master volume and the music opt-in, stopping or re-leveling any bed.
-  void applyAudio(double scale, bool musicOn) {
+  /// master volume, the music opt-in and the haptics opt-out, stopping or
+  /// re-leveling any music bed.
+  void applyAudio(double scale, bool musicOn, {bool haptics = true}) {
     volumeScale = scale;
     musicEnabled = musicOn;
+    hapticsEnabled = haptics;
     if (scale <= 0 || !musicOn) {
       stopMusic();
     } else {

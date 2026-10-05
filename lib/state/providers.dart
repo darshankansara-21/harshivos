@@ -123,6 +123,7 @@ class SensoryPreferences {
     this.reduceMotion = false,
     this.muted = false,
     this.musicEnabled = false,
+    this.hapticsEnabled = true,
   });
 
   final AudioLevel audioLevel;
@@ -138,6 +139,13 @@ class SensoryPreferences {
   /// into, and it still obeys the global mute.
   final bool musicEnabled;
 
+  /// Tactile vibration on taps/wins/misses across every Play game. On by
+  /// default (matches the existing sensory-toy haptic vocabulary), but some
+  /// children find vibration itself sensory-aversive, so this is a real
+  /// opt-out, not just the sound-driven haptic pulses that used to be
+  /// uncontrollable from settings.
+  final bool hapticsEnabled;
+
   double get volumeScale => muted
       ? 0
       : switch (audioLevel) {
@@ -151,12 +159,14 @@ class SensoryPreferences {
     bool? reduceMotion,
     bool? muted,
     bool? musicEnabled,
+    bool? hapticsEnabled,
   }) =>
       SensoryPreferences(
         audioLevel: audioLevel ?? this.audioLevel,
         reduceMotion: reduceMotion ?? this.reduceMotion,
         muted: muted ?? this.muted,
         musicEnabled: musicEnabled ?? this.musicEnabled,
+        hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
       );
 }
 
@@ -175,6 +185,7 @@ class SensoryPreferencesNotifier extends StateNotifier<SensoryPreferences> {
           reduceMotion: _storage.readBool('reduce_motion'),
           muted: _storage.readBool('audio_muted'),
           musicEnabled: _storage.readBool('music_enabled'),
+          hapticsEnabled: _storage.readBool('haptics_enabled', fallback: true),
         ));
 
   final LocalStorage _storage;
@@ -199,6 +210,11 @@ class SensoryPreferencesNotifier extends StateNotifier<SensoryPreferences> {
   Future<void> setMusicEnabled(bool value) async {
     state = state.copyWith(musicEnabled: value);
     await _storage.writeBool('music_enabled', value);
+  }
+
+  Future<void> setHapticsEnabled(bool value) async {
+    state = state.copyWith(hapticsEnabled: value);
+    await _storage.writeBool('haptics_enabled', value);
   }
 }
 
