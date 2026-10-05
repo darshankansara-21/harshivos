@@ -149,15 +149,36 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
             _aspect = h / w;
             _touch((p.dx / w).clamp(0.0, 1.0), (p.dy / h).clamp(0.0, 1.0));
           }
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onPanStart: (d) => handle(d.localPosition),
-            onPanUpdate: (d) => handle(d.localPosition),
-            onTapDown: (d) => handle(d.localPosition),
-            child: CustomPaint(
-              painter: _StarPathPainter(stars: _stars, linked: _linked),
-              size: Size.infinite,
-            ),
+          Widget? nextStarOverlay;
+          if (_status == GameStatus.playing && _linked < _stars.length) {
+            final s = _stars[_linked];
+            const r = 24.0;
+            nextStarOverlay = Positioned(
+              left: s[0] * w - r,
+              top: s[1] * h - r,
+              width: r * 2,
+              height: r * 2,
+              child: Semantics(
+                label: 'Next star, ${_linked + 1} of ${_stars.length}',
+                onTap: () => _touch(s[0], s[1]),
+                child: const SizedBox.expand(),
+              ),
+            );
+          }
+          return Stack(
+            children: <Widget>[
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onPanStart: (d) => handle(d.localPosition),
+                onPanUpdate: (d) => handle(d.localPosition),
+                onTapDown: (d) => handle(d.localPosition),
+                child: CustomPaint(
+                  painter: _StarPathPainter(stars: _stars, linked: _linked),
+                  size: Size.infinite,
+                ),
+              ),
+              if (nextStarOverlay != null) nextStarOverlay,
+            ],
           );
         },
       ),
