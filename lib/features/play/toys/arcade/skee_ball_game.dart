@@ -147,6 +147,16 @@ class _SkeeBallGameState extends State<SkeeBallGame>
               _dragging = false;
               if (_power > 0.05) _launch();
             },
+            // A cancelled drag (onPanEnd never fires) would otherwise leave
+            // the "Power: X%" banner and ramp indicator frozen on screen
+            // forever. Drop back to idle instead.
+            onPanCancel: () {
+              if (_rolling || !_dragging) return;
+              setState(() {
+                _dragging = false;
+                _power = 0;
+              });
+            },
             child: CustomPaint(
               painter: _SkeeBallPainter(
                   ballY: _ballY, power: _dragging ? _power : 0),

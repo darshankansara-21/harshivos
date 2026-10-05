@@ -298,6 +298,10 @@ class _MiniGolfGameState extends State<MiniGolfGame>
             onPanStart: (d) => _aimAt(d.localPosition, w, h),
             onPanUpdate: (d) => _aimAt(d.localPosition, w, h),
             onPanEnd: (_) => _putt(),
+            // See basketball_game.dart: a cancelled drag never reaches
+            // onPanEnd, so clear the aim here too instead of leaving a
+            // stuck putt line hanging over the green.
+            onPanCancel: () => _aim = null,
             child: CustomPaint(
               painter: _GolfPainter(
                 bx: _bx,

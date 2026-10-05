@@ -211,6 +211,10 @@ class _TargetTossGameState extends State<TargetTossGame>
             onPanStart: (d) => _aimAt(d.localPosition, w, h),
             onPanUpdate: (d) => _aimAt(d.localPosition, w, h),
             onPanEnd: (_) => _toss(),
+            // See basketball_game.dart: a cancelled drag never reaches
+            // onPanEnd, so clear the aim here too instead of leaving a
+            // stuck throw line hanging over the bean bag.
+            onPanCancel: () => _aim = null,
             child: CustomPaint(
               painter: _TargetPainter(
                 bx: _bx,

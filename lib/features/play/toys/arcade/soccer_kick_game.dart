@@ -196,6 +196,13 @@ class _SoccerKickGameState extends State<SoccerKickGame>
               _dragging = false;
               _launch();
             },
+            // If the drag is cancelled mid-gesture (onPanEnd never fires),
+            // the reticle would otherwise stay frozen in "actively
+            // dragging" position forever. Drop back to idle.
+            onPanCancel: () {
+              if (_flying) return;
+              setState(() => _dragging = false);
+            },
             child: CustomPaint(
               painter: _SoccerPainter(
                 bx: _bx,

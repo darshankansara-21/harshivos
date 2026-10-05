@@ -263,6 +263,11 @@ class _BasketballGameState extends State<BasketballGame>
             onPanStart: (d) => _aimAt(d.localPosition, w, h),
             onPanUpdate: (d) => _aimAt(d.localPosition, w, h),
             onPanEnd: (_) => _shoot(),
+            // If the system cancels the drag mid-gesture (e.g. an
+            // interruption steals the pointer), onPanEnd never fires and the
+            // aim arrow would otherwise hang on screen forever. Drop it back
+            // to idle instead of leaving a stuck, un-shootable aim line.
+            onPanCancel: () => _aim = null,
             child: CustomPaint(
               painter: _BasketPainter(
                 bx: _bx,
