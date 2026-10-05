@@ -87,6 +87,12 @@ class _FeelingsMatchGameState extends State<FeelingsMatchGame> with _Emit {
       } else {
         TonePlayer.instance.playCue(SoundCue.gentleRetry);
         _banner = 'That one is ${f.name}. Try again!';
+        // Momentary mistake cue, not a sticky state: auto-clear the red
+        // highlight so a face doesn't stay flagged wrong indefinitely while
+        // the child keeps trying this same round.
+        Future.delayed(const Duration(milliseconds: 400), () {
+          if (mounted && _wrong == idx) setState(() => _wrong = -1);
+        });
       }
     }
     setState(() {});

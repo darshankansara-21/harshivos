@@ -97,6 +97,12 @@ class _KindnessMatchGameState extends State<KindnessMatchGame> with _Emit {
       } else {
         TonePlayer.instance.playCue(SoundCue.gentleRetry);
         _banner = 'That might hurt feelings. Try a kind one.';
+        // Momentary mistake cue, not a sticky state: auto-clear the red
+        // highlight so a tile doesn't stay flagged wrong indefinitely while
+        // the child keeps trying this same round.
+        Future.delayed(const Duration(milliseconds: 400), () {
+          if (mounted && _wrong == idx) setState(() => _wrong = -1);
+        });
       }
     }
     setState(() {});
