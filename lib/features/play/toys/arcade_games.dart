@@ -79,7 +79,7 @@ part 'arcade/calm_choices_game.dart';
 /// Shared chrome for the arcade games — score + best pill, optional target, a
 /// transient combo banner, and win / game-over overlays with instant replay.
 /// Mirrors the Play game shell so every game feels part of one world.
-class _Shell extends StatelessWidget {
+class _Shell extends StatefulWidget {
   const _Shell({
     required this.title,
     required this.score,
@@ -113,7 +113,44 @@ class _Shell extends StatelessWidget {
   final VoidCallback? onStart;
 
   @override
+  State<_Shell> createState() => _ShellState();
+}
+
+class _ShellState extends State<_Shell> {
+  // Many games submit their running score to GameScores mid-run, which
+  // ratchets `best` upward as soon as the score first ties/beats the old
+  // record — well before the run actually ends. That means comparing the
+  // final score against the (already-updated) `best` at game-over time
+  // would call an exact *tie* with a pre-existing record a "new best" too.
+  // Instead we freeze the best as it stood the moment this run started, and
+  // require the score to strictly beat that frozen value to earn the badge.
+  late int _runStartBest = widget.best;
+
+  @override
+  void didUpdateWidget(covariant _Shell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.status != GameStatus.playing &&
+        widget.status == GameStatus.playing) {
+      _runStartBest = oldWidget.best;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final title = widget.title;
+    final score = widget.score;
+    final best = widget.best;
+    final target = widget.target;
+    final status = widget.status;
+    final banner = widget.banner;
+    final overEmoji = widget.overEmoji;
+    final overText = widget.overText;
+    final onPlayAgain = widget.onPlayAgain;
+    final child = widget.child;
+    final accent = widget.accent;
+    final rankByScore = widget.rankByScore;
+    final introHow = widget.introHow;
+    final onStart = widget.onStart;
     final scoreText = target != null ? '$score / $target' : '$score';
     return GameMusicHost(
       playing: status == GameStatus.playing,
@@ -157,7 +194,7 @@ class _Shell extends StatelessWidget {
                         color: accent.withOpacity(0.9),
                         borderRadius: BorderRadius.circular(14),
                       ),
-                      child: Text(banner!,
+                      child: Text(banner,
                           style: const TextStyle(
                               color: Colors.black,
                               fontSize: 14,
@@ -191,7 +228,7 @@ class _Shell extends StatelessWidget {
                             color: Colors.white70,
                             fontSize: 16,
                             fontWeight: FontWeight.w700)),
-                    if (rankByScore && score > 0 && score >= best) ...<Widget>[
+                    if (rankByScore && score > 0 && score > _runStartBest) ...<Widget>[
                       const SizedBox(height: 10),
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -257,7 +294,7 @@ class _Shell extends StatelessWidget {
                       const SizedBox(height: 10),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 32),
-                        child: Text(introHow!,
+                        child: Text(introHow,
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                                 color: Colors.white70,
@@ -278,7 +315,7 @@ class _Shell extends StatelessWidget {
                     FilledButton.icon(
                       onPressed: () {
                         TonePlayer.instance.playCue(SoundCue.gameStart);
-                        onStart!();
+                        onStart();
                       },
                       style: FilledButton.styleFrom(
                         backgroundColor: accent,

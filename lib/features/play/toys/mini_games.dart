@@ -58,7 +58,7 @@ enum GameStatus { ready, playing, won, over }
 /// optional target, a transient combo banner, and win / game-over overlays
 /// with an instant "Play again". Games fill the immersive toy canvas; the
 /// companion sits in the corner (added by the host).
-class _GameShell extends StatelessWidget {
+class _GameShell extends StatefulWidget {
   const _GameShell({
     required this.title,
     required this.score,
@@ -95,7 +95,41 @@ class _GameShell extends StatelessWidget {
   final VoidCallback? onStart;
 
   @override
+  State<_GameShell> createState() => _GameShellState();
+}
+
+class _GameShellState extends State<_GameShell> {
+  // See _ShellState's comment in arcade_games.dart: many games submit their
+  // running score mid-run, which ratchets `best` up as soon as the score
+  // first ties/beats the old record — well before the run ends. Freeze the
+  // best as it stood when this run started so an exact tie with a
+  // pre-existing record doesn't get falsely celebrated as a new best.
+  late int _runStartBest = widget.best;
+
+  @override
+  void didUpdateWidget(covariant _GameShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.status != GameStatus.playing &&
+        widget.status == GameStatus.playing) {
+      _runStartBest = oldWidget.best;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final title = widget.title;
+    final score = widget.score;
+    final best = widget.best;
+    final target = widget.target;
+    final status = widget.status;
+    final banner = widget.banner;
+    final overEmoji = widget.overEmoji;
+    final overText = widget.overText;
+    final onPlayAgain = widget.onPlayAgain;
+    final child = widget.child;
+    final accent = widget.accent;
+    final introHow = widget.introHow;
+    final onStart = widget.onStart;
     final scoreText = target != null ? '$score / $target' : '$score';
     return GameMusicHost(
       playing: status == GameStatus.playing,
@@ -140,7 +174,7 @@ class _GameShell extends StatelessWidget {
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Text(
-                          banner!,
+                          banner,
                           style: const TextStyle(
                             color: Colors.black,
                             fontSize: 14,
@@ -183,7 +217,7 @@ class _GameShell extends StatelessWidget {
                             fontSize: 16,
                             fontWeight: FontWeight.w700),
                       ),
-                      if (score > 0 && score >= best) ...<Widget>[
+                      if (score > 0 && score > _runStartBest) ...<Widget>[
                         const SizedBox(height: 10),
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -253,7 +287,7 @@ class _GameShell extends StatelessWidget {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 32),
                           child: Text(
-                            introHow!,
+                            introHow,
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                               color: Colors.white70,
@@ -274,12 +308,10 @@ class _GameShell extends StatelessWidget {
                       ],
                       const SizedBox(height: 22),
                       FilledButton.icon(
-                        onPressed: onStart == null
-                            ? null
-                            : () {
-                                TonePlayer.instance.playCue(SoundCue.gameStart);
-                                onStart!();
-                              },
+                        onPressed: () {
+                          TonePlayer.instance.playCue(SoundCue.gameStart);
+                          onStart();
+                        },
                         style: FilledButton.styleFrom(
                           backgroundColor: accent,
                           foregroundColor: Colors.black,
