@@ -169,19 +169,31 @@ class _TraceGameState extends State<TraceGame> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.4),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '✏️ Trace   $_score / $_shapeCount${_best > 0 ? '   ★ $_best' : ''}',
-                      style: const TextStyle(
-                          color: Color(0xFF7DD3FC),
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800),
+                  // Catalog-wide pattern (see _Shell/_GameShell/_GoalShell):
+                  // wrap a live-changing score/progress readout in a
+                  // liveRegion so a screen-reader user hears each dot lit and
+                  // shape completed instead of total silence — this standalone
+                  // widget (it doesn't use any of those shared shells) had
+                  // never been given the same accessibility treatment.
+                  Semantics(
+                    container: true,
+                    liveRegion: true,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.4),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '✏️ Trace   $_score / $_shapeCount   '
+                        '${_lit.where((e) => e).length}/${_pts.length}'
+                        '${_best > 0 ? '   ★ $_best' : ''}',
+                        style: const TextStyle(
+                            color: Color(0xFF7DD3FC),
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 6),
