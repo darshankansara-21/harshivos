@@ -13,6 +13,13 @@ class _SkeeBallGameState extends State<SkeeBallGame>
   static const String _id = 'skee_ball';
   static const int _target = 100;
 
+  // Single source of truth for the scoring bands, shared with the painter so
+  // the decorative rings can never visually drift out of sync with the real
+  // scoring thresholds used by `_resolve()`. Each entry is the upper y-bound
+  // (ball-travel fraction, 0 = top of ramp) and the points it awards.
+  static const List<double> _bandUpperY = <double>[0.2, 0.33, 0.46, 0.72];
+  static const List<int> _bandPts = <int>[50, 30, 20, 10];
+
   double _ballY = 0.86;
   double _targetY = 0.86;
   bool _rolling = false;
@@ -52,23 +59,14 @@ class _SkeeBallGameState extends State<SkeeBallGame>
 
   void _resolve() {
     _rolling = false;
-    int pts;
-    String label;
-    if (_targetY < 0.2) {
-      pts = 50;
-      label = 'Bullseye! +50';
-    } else if (_targetY < 0.33) {
-      pts = 30;
-      label = '+30';
-    } else if (_targetY < 0.46) {
-      pts = 20;
-      label = '+20';
-    } else if (_targetY < 0.72) {
-      pts = 10;
-      label = '+10';
-    } else {
-      pts = 0;
-      label = 'Gutter!';
+    int pts = 0;
+    String label = 'Gutter!';
+    for (var i = 0; i < _bandUpperY.length; i++) {
+      if (_targetY < _bandUpperY[i]) {
+        pts = _bandPts[i];
+        label = i == 0 ? 'Bullseye! +50' : '+$pts';
+        break;
+      }
     }
     if (pts > 0) {
       _score += pts;
@@ -192,24 +190,30 @@ class _SkeeBallPainter extends CustomPainter {
             const Radius.circular(20)),
         Paint()..color = const Color(0xFF6B4A2A));
 
-    // Scoring rings.
-    final rings = <List<double>>[
-      <double>[0.14, 0.09, 50],
-      <double>[0.26, 0.12, 30],
-      <double>[0.39, 0.14, 20],
-      <double>[0.58, 0.16, 10],
-    ];
+    // Scoring bands — drawn to EXACTLY match `_SkeeBallGameState`'s real
+    // y-threshold boundaries (shared constants), so what a child sees is
+    // always what actually scores. Each band is a horizontal ring-hole
+    // spanning its real vertical extent, narrower (harder) the higher it is.
     const cols = <Color>[
       Color(0xFFFF5DA2), Color(0xFFFFD166), Color(0xFF80ED99), Color(0xFF48CAE4),
     ];
-    for (var i = 0; i < rings.length; i++) {
-      canvas.drawCircle(
-          Offset(w * 0.5, h * rings[i][0]),
-          w * rings[i][1],
+    const widthFrac = <double>[0.16, 0.20, 0.24, 0.28];
+    double prevY = 0.0;
+    for (var i = 0; i < _SkeeBallGameState._bandUpperY.length; i++) {
+      final topY = prevY;
+      final bottomY = _SkeeBallGameState._bandUpperY[i];
+      final midY = (topY + bottomY) / 2 * h;
+      final halfH = (bottomY - topY) / 2 * h;
+      canvas.drawOval(
+          Rect.fromCenter(
+              center: Offset(w * 0.5, midY),
+              width: w * widthFrac[i],
+              height: halfH * 2),
           Paint()
             ..style = PaintingStyle.stroke
             ..strokeWidth = 6
             ..color = cols[i]);
+      prevY = bottomY;
     }
 
     // Power meter at the left.
