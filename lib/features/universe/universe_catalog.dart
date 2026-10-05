@@ -417,7 +417,7 @@ final List<UniverseToy> kToyUniverse = <UniverseToy>[
   UniverseToy(
     id: 'stack', name: 'Stack', emoji: '🧱', color: const Color(0xFF4CC9F0),
     category: ToyCategory.arcade, inputs: const [ToyInput.tap],
-    engagement: ToyEngagement.deep, build: _play('stack'), isNew: true,
+    engagement: ToyEngagement.endless, build: _play('stack'), isNew: true,
   ),
   UniverseToy(
     id: 'merge', name: 'Merge', emoji: '🔢', color: const Color(0xFFF7B801),
@@ -438,7 +438,7 @@ final List<UniverseToy> kToyUniverse = <UniverseToy>[
     id: 'brick_break', name: 'Brick Break', emoji: '🧱',
     color: const Color(0xFFFF6B6B),
     category: ToyCategory.arcade, inputs: const [ToyInput.drag],
-    engagement: ToyEngagement.deep, build: _play('brick_break'), isNew: true,
+    engagement: ToyEngagement.endless, build: _play('brick_break'), isNew: true,
   ),
   UniverseToy(
     id: 'space_dodge', name: 'Space Dodge', emoji: '🚀',
@@ -456,7 +456,7 @@ final List<UniverseToy> kToyUniverse = <UniverseToy>[
     id: 'ball_sort', name: 'Ball Sort', emoji: '🧪',
     color: const Color(0xFF4CC9F0),
     category: ToyCategory.arcade, inputs: const [ToyInput.tap],
-    engagement: ToyEngagement.deep, build: _play('ball_sort'), isNew: true,
+    engagement: ToyEngagement.endless, build: _play('ball_sort'), isNew: true,
   ),
   UniverseToy(
     id: 'tap_order', name: 'Tap Order', emoji: '🔢',
@@ -468,13 +468,13 @@ final List<UniverseToy> kToyUniverse = <UniverseToy>[
     id: 'piano_tiles', name: 'Piano Tiles', emoji: '🎹',
     color: const Color(0xFF9B5DE5),
     category: ToyCategory.arcade, inputs: const [ToyInput.tap],
-    engagement: ToyEngagement.deep, build: _play('piano_tiles'), isNew: true,
+    engagement: ToyEngagement.endless, build: _play('piano_tiles'), isNew: true,
   ),
   UniverseToy(
     id: 'block_blast', name: 'Block Blast', emoji: '🟦',
     color: const Color(0xFF4CC9F0),
     category: ToyCategory.arcade, inputs: const [ToyInput.tap],
-    engagement: ToyEngagement.deep, build: _play('block_blast'), isNew: true,
+    engagement: ToyEngagement.endless, build: _play('block_blast'), isNew: true,
   ),
   UniverseToy(
     id: 'bubble_shooter', name: 'Bubble Shooter', emoji: '🫧',
@@ -757,7 +757,7 @@ final List<UniverseToy> kToyUniverse = <UniverseToy>[
     id: 'calm_breaths', name: 'Calm Breaths', emoji: '🫧',
     color: const Color(0xFF89F7FE),
     category: ToyCategory.calm, inputs: const [ToyInput.tap],
-    engagement: ToyEngagement.endless, build: _play('calm_breaths'), isNew: true,
+    engagement: ToyEngagement.deep, build: _play('calm_breaths'), isNew: true,
   ),
   UniverseToy(
     id: 'hoop_toss', name: 'Hoop Toss', emoji: '🎪',
