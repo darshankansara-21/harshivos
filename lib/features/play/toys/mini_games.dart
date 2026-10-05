@@ -1150,14 +1150,33 @@ class _StarTapGameState extends State<StarTapGame>
               physics: const NeverScrollableScrollPhysics(),
               children: <Widget>[
                 for (var i = 0; i < _cells; i++)
-                  GestureDetector(
-                    onTapDown: (_) => _tapCell(i),
-                    child: _StarCell(
-                      active: i == _active,
-                      decoy: i == _decoy,
-                      kind: _kind,
-                      lifeFraction: _lifeMax > 0 ? (_life / _lifeMax) : 0,
-                      pop: _popFor(i),
+                  Semantics(
+                    button: true,
+                    // States only what a sighted child already sees in this
+                    // cell this frame (empty / the lit star's own kind / the
+                    // red decoy) — never which cell will light up next —
+                    // preserving the real reaction-speed challenge for
+                    // screen-reader users.
+                    label: i == _active
+                        ? (_kind == 2
+                            ? 'Rainbow star, worth 5. Tap to catch!'
+                            : _kind == 1
+                                ? 'Shooting star, worth 3. Tap to catch!'
+                                : 'Star. Tap to catch!')
+                        : i == _decoy
+                            ? 'Red decoy. Do not tap.'
+                            : 'Empty.',
+                    onTap: () => _tapCell(i),
+                    excludeSemantics: true,
+                    child: GestureDetector(
+                      onTapDown: (_) => _tapCell(i),
+                      child: _StarCell(
+                        active: i == _active,
+                        decoy: i == _decoy,
+                        kind: _kind,
+                        lifeFraction: _lifeMax > 0 ? (_life / _lifeMax) : 0,
+                        pop: _popFor(i),
+                      ),
                     ),
                   ),
               ],
