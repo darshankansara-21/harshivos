@@ -470,9 +470,16 @@ class _FruitCatchGameState extends State<FruitCatchGame>
 
   void _onCatch(_Faller f) {
     if (f.kind == 2) {
+      // A caught bomb must cost something, or "dodge the bombs" is an empty
+      // instruction — previously it only reset the combo, the exact same
+      // cost as simply letting a fruit fall past, so there was zero real
+      // incentive to actually dodge rather than scoop up everything. A
+      // small (non-punishing, clamped-at-zero) score deduction gives the
+      // bomb genuine stakes without ever setting progress back below zero.
       _combo = 0;
+      _score = math.max(0, _score - 2);
       TonePlayer.instance.playCue(SoundCue.gentleRetry);
-      _flash('Oops! Dodge bombs');
+      _flash('Oops! -2 — dodge bombs');
       return;
     }
     _combo++;
