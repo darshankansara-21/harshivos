@@ -2513,13 +2513,19 @@ class _BowlingGameState extends State<BowlingGame>
   }
 
   // A toppling pin knocks over close standing neighbours — how strikes happen.
+  // The rack's row spacing (see rowsY in _rack) is exactly 0.05, so a strict
+  // `< 0.05` cutoff here lands right on a floating-point coin-flip: some row
+  // pairs round down (propagate fine) and others round up (never propagate),
+  // silently breaking the front-to-back chain reaction for roughly half the
+  // pins. Use a visibly looser 0.052 so every genuine row-to-row neighbour
+  // reliably topples regardless of rounding direction.
   void _propagateTopple() {
     for (var pass = 0; pass < 2; pass++) {
       for (final f in _pins) {
         if (!f.down) continue;
         for (final s in _pins) {
           if (s.down) continue;
-          if ((s.x - f.x).abs() < 0.055 && (s.y - f.y).abs() < 0.05) {
+          if ((s.x - f.x).abs() < 0.055 && (s.y - f.y).abs() < 0.052) {
             s.down = true;
             s.fallDir = (s.x >= f.x) ? 1 : -1;
             TonePlayer.instance.playThock();
