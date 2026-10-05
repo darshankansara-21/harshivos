@@ -175,7 +175,17 @@ class _PianoKey extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    // The key's own letter is already the visible label, so announcing it
+    // leaks no more information than a sighted child already sees — but the
+    // bare GestureDetector exposed zero Semantics tree, making "tap the lit
+    // key" silently unplayable by a blind child despite the song itself
+    // being audio-complete (every key plays its own note on tap).
+    return Semantics(
+      button: true,
+      label: 'Key $letter',
+      onTap: onTap,
+      excludeSemantics: true,
+      child: GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
@@ -217,6 +227,7 @@ class _PianoKey extends StatelessWidget {
             fontWeight: FontWeight.w900,
           ),
         ),
+      ),
       ),
     );
   }

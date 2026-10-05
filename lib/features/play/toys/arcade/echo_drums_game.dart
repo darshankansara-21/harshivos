@@ -213,24 +213,39 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
               physics: const NeverScrollableScrollPhysics(),
               children: <Widget>[
                 for (var i = 0; i < 4; i++)
-                  GestureDetector(
+                  // Pads were tappable only via a bare GestureDetector with
+                  // zero Semantics tree, so the "watch the phrase light up,
+                  // then tap it back" premise was silently unplayable by a
+                  // blind child — the note each pad plays already makes the
+                  // memory challenge audio-complete, this was purely the
+                  // missing tap affordance. Label states only the pad's own
+                  // number, never the sequence, matching tone_match's
+                  // convention of describing visible/audible state, not the
+                  // answer.
+                  Semantics(
+                    button: true,
+                    label: 'Pad ${i + 1}',
                     onTap: () => _tap(i),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 120),
-                      decoration: BoxDecoration(
-                        color: _lit == i
-                            ? Color.lerp(_colors[i], Colors.white, 0.5)
-                            : _colors[i].withOpacity(0.55),
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: _lit == i
-                            ? <BoxShadow>[
-                                BoxShadow(
-                                    color: _colors[i], blurRadius: 24, spreadRadius: 2)
-                              ]
-                            : const <BoxShadow>[],
-                      ),
-                      child: const Center(
-                        child: Text('🥁', style: TextStyle(fontSize: 40)),
+                    excludeSemantics: true,
+                    child: GestureDetector(
+                      onTap: () => _tap(i),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 120),
+                        decoration: BoxDecoration(
+                          color: _lit == i
+                              ? Color.lerp(_colors[i], Colors.white, 0.5)
+                              : _colors[i].withOpacity(0.55),
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: _lit == i
+                              ? <BoxShadow>[
+                                  BoxShadow(
+                                      color: _colors[i], blurRadius: 24, spreadRadius: 2)
+                                ]
+                              : const <BoxShadow>[],
+                        ),
+                        child: const Center(
+                          child: Text('🥁', style: TextStyle(fontSize: 40)),
+                        ),
                       ),
                     ),
                   ),

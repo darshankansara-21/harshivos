@@ -216,24 +216,54 @@ class _DrumGardenGameState extends State<DrumGardenGame>
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapDown: (d) {
-              final col = (d.localPosition.dx / w * _cols).floor();
-              final row = (d.localPosition.dy / h * 2).floor();
-              final idx = row * _cols + col;
-              if (idx >= 0 && idx < _pads) _tapPad(idx);
-            },
-            child: CustomPaint(
-              painter: _DrumPainter(
-                cols: _cols,
-                pads: _pads,
-                colors: _colors,
-                flashPad: _flashPad,
-                flashT: _flashT,
+          final rows = (_pads / _cols).ceil();
+          final cw = w / _cols, ch = h / rows;
+          // Every pad plays its own distinct note on tap, so this Simon-style
+          // tune game is already audio-complete — the only missing piece for
+          // a blind child was the tap affordance itself, since the bare
+          // GestureDetector below exposes no Semantics tree. The label never
+          // names a pad's note/colour (that's exactly what the ear-memory
+          // challenge asks the player to discover), matching the
+          // tone_match/ball_sort convention of describing only visible
+          // state, not the answer.
+          final overlays = <Widget>[
+            for (var i = 0; i < _pads; i++)
+              Positioned(
+                left: (i % _cols) * cw,
+                top: (i ~/ _cols) * ch,
+                width: cw,
+                height: ch,
+                child: Semantics(
+                  button: true,
+                  label: 'Pad ${i + 1}',
+                  onTap: () => _tapPad(i),
+                  child: const SizedBox.expand(),
+                ),
               ),
-              size: Size.infinite,
-            ),
+          ];
+          return Stack(
+            children: <Widget>[
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapDown: (d) {
+                  final col = (d.localPosition.dx / w * _cols).floor();
+                  final row = (d.localPosition.dy / h * 2).floor();
+                  final idx = row * _cols + col;
+                  if (idx >= 0 && idx < _pads) _tapPad(idx);
+                },
+                child: CustomPaint(
+                  painter: _DrumPainter(
+                    cols: _cols,
+                    pads: _pads,
+                    colors: _colors,
+                    flashPad: _flashPad,
+                    flashT: _flashT,
+                  ),
+                  size: Size.infinite,
+                ),
+              ),
+              ...overlays,
+            ],
           );
         },
       ),

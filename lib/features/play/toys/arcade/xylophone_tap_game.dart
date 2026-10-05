@@ -151,6 +151,7 @@ class _XylophoneTapGameState extends State<XylophoneTapGame> with _Emit {
                           // Bars shorten as the pitch rises, like a real toy.
                           widthFactor: 1.0 - b * 0.055,
                           child: _XyloBar(
+                            index: b,
                             color: _colors[b],
                             lit: _status == GameStatus.playing && _nextBar == b,
                             wrong: _wrongBar == b,
@@ -174,18 +175,31 @@ class _XyloBar extends StatelessWidget {
     required this.color,
     required this.lit,
     required this.onTap,
+    required this.index,
     this.wrong = false,
   });
   final Color color;
   final bool lit;
   final bool wrong;
+  final int index;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    // Bars are tappable only via a bare GestureDetector with zero Semantics
+    // tree, making this "free-play + follow the glowing bar" premise
+    // silently unplayable by a blind child. The label states only the bar's
+    // own number, never which bar is currently lit, so a screen-reader user
+    // must still track the tune's progress announcement exactly as a
+    // sighted child watches the glow.
+    return Semantics(
+      button: true,
+      label: 'Bar ${index + 1}',
       onTap: onTap,
-      child: AnimatedContainer(
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
@@ -229,6 +243,7 @@ class _XyloBar extends StatelessWidget {
         child: const Center(
           child: SizedBox(width: 10, height: 10),
         ),
+      ),
       ),
     );
   }

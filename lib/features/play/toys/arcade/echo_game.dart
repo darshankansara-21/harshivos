@@ -179,28 +179,42 @@ class _EchoGameState extends State<EchoGame>
                     physics: const NeverScrollableScrollPhysics(),
                     children: <Widget>[
                       for (var i = 0; i < 4; i++)
-                        GestureDetector(
-                          onTapDown: (_) => _tap(i),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 90),
-                            decoration: BoxDecoration(
-                              color: _wrongPad == i
-                                  ? const Color(0xFFE23B3B)
-                                  : (_flash == i || _tapFlash == i)
-                                      ? _pads[i]
-                                      : _pads[i].withOpacity(0.35),
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: (_flash == i ||
-                                      _tapFlash == i ||
-                                      _wrongPad == i)
-                                  ? <BoxShadow>[
-                                      BoxShadow(
-                                          color: _wrongPad == i
-                                              ? const Color(0xFFE23B3B)
-                                              : _pads[i],
-                                          blurRadius: 24)
-                                    ]
-                                  : const <BoxShadow>[],
+                        // Pads were tappable only via a bare GestureDetector
+                        // with zero Semantics tree, making the "watch the
+                        // colours light up, then tap them back" premise
+                        // silently unplayable by a blind child, even though
+                        // each pad already plays its own distinct note on
+                        // tap/flash. Label states only the pad's own number,
+                        // never the sequence, matching rhythm_clap/
+                        // echo_drums' convention of not revealing the answer.
+                        Semantics(
+                          button: true,
+                          label: 'Pad ${i + 1}',
+                          onTap: () => _tap(i),
+                          excludeSemantics: true,
+                          child: GestureDetector(
+                            onTapDown: (_) => _tap(i),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 90),
+                              decoration: BoxDecoration(
+                                color: _wrongPad == i
+                                    ? const Color(0xFFE23B3B)
+                                    : (_flash == i || _tapFlash == i)
+                                        ? _pads[i]
+                                        : _pads[i].withOpacity(0.35),
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: (_flash == i ||
+                                        _tapFlash == i ||
+                                        _wrongPad == i)
+                                    ? <BoxShadow>[
+                                        BoxShadow(
+                                            color: _wrongPad == i
+                                                ? const Color(0xFFE23B3B)
+                                                : _pads[i],
+                                            blurRadius: 24)
+                                      ]
+                                    : const <BoxShadow>[],
+                              ),
                             ),
                           ),
                         ),
