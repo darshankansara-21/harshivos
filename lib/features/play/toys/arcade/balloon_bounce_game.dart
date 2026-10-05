@@ -130,15 +130,33 @@ class _BalloonBounceGameState extends State<BalloonBounceGame>
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapDown: (d) =>
-                _tapAt(d.localPosition.dx / w, d.localPosition.dy / h),
-            child: CustomPaint(
-              painter: _BalloonBouncePainter(
-                  x: _x, y: _y, r: _r, squash: _squash.clamp(0.0, 1.0), color: _color),
-              size: Size.infinite,
-            ),
+          return Stack(
+            children: <Widget>[
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapDown: (d) =>
+                    _tapAt(d.localPosition.dx / w, d.localPosition.dy / h),
+                child: CustomPaint(
+                  painter: _BalloonBouncePainter(
+                      x: _x, y: _y, r: _r, squash: _squash.clamp(0.0, 1.0), color: _color),
+                  size: Size.infinite,
+                ),
+              ),
+              // Screen-reader overlay tracking the balloon's live position
+              // (it drifts/bounces continuously), like bug_catch/count_pop.
+              Positioned(
+                left: (_x - _r * 1.4) * w,
+                top: (_y - _r * 1.4) * h,
+                width: _r * 2.8 * w,
+                height: _r * 2.8 * h,
+                child: Semantics(
+                  label: 'Balloon',
+                  button: true,
+                  onTap: () => _tapAt(_x, _y),
+                  child: const SizedBox.expand(),
+                ),
+              ),
+            ],
           );
         },
       ),
