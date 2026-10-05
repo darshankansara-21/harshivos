@@ -217,12 +217,20 @@ class _CountPopPainter extends CustomPainter {
             ..strokeWidth = 3
             ..color = Colors.white.withOpacity(pop));
     }
-    // Big target number.
+    // Big target number — a counting-literacy aid, not pure decoration, so it
+    // must stay legible against the dark gradient instead of the previous
+    // near-invisible white24 (a child learning to count needs to actually
+    // read it, not squint for a watermark).
     final tp = TextPainter(
       text: TextSpan(
           text: '$popped / $need',
           style: const TextStyle(
-              color: Colors.white24, fontSize: 60, fontWeight: FontWeight.w900)),
+              color: Colors.white,
+              fontSize: 60,
+              fontWeight: FontWeight.w900,
+              shadows: <Shadow>[
+                Shadow(color: Colors.black54, blurRadius: 10, offset: Offset(0, 3)),
+              ])),
       textDirection: TextDirection.ltr,
     )..layout();
     tp.paint(canvas, Offset(w / 2 - tp.width / 2, h * 0.86));
