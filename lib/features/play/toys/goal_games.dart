@@ -7,7 +7,7 @@ import '../../../services/audio/game_music_host.dart';
 import '../../../services/audio/tone_player.dart';
 import 'mini_games.dart' show GameScores, GameStatus;
 
-class _GoalShell extends StatelessWidget {
+class _GoalShell extends StatefulWidget {
   const _GoalShell({
     required this.title,
     required this.goal,
@@ -39,7 +39,40 @@ class _GoalShell extends StatelessWidget {
   final VoidCallback? onStart;
 
   @override
+  State<_GoalShell> createState() => _GoalShellState();
+}
+
+class _GoalShellState extends State<_GoalShell> {
+  // Same freeze-at-run-start pattern as _Shell/_GameShell: `best` ratchets
+  // upward mid-run as soon as the score ties/beats the prior record, so
+  // comparing the final score against the live `best` would wrongly call an
+  // exact tie with a pre-existing record a "new best". Freeze it instead.
+  late int _runStartBest = widget.best;
+
+  @override
+  void didUpdateWidget(covariant _GoalShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.status != GameStatus.playing &&
+        widget.status == GameStatus.playing) {
+      _runStartBest = oldWidget.best;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final title = widget.title;
+    final goal = widget.goal;
+    final score = widget.score;
+    final target = widget.target;
+    final best = widget.best;
+    final stars = widget.stars;
+    final status = widget.status;
+    final accent = widget.accent;
+    final onReset = widget.onReset;
+    final child = widget.child;
+    final message = widget.message;
+    final introHow = widget.introHow;
+    final onStart = widget.onStart;
     return GameMusicHost(
       playing: status == GameStatus.playing,
       bed: WonderMusicBed.puzzle,
@@ -99,7 +132,7 @@ class _GoalShell extends StatelessWidget {
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: Text(
-                        message!,
+                        message,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           color: Colors.black,
@@ -156,6 +189,22 @@ class _GoalShell extends StatelessWidget {
                             color: Colors.white70,
                             fontSize: 13,
                             fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                    if (score > 0 && score > _runStartBest) ...<Widget>[
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFD166),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Text('🏆 New best!',
+                            style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w900)),
                       ),
                     ],
                     const SizedBox(height: 18),
@@ -220,7 +269,7 @@ class _GoalShell extends StatelessWidget {
                     FilledButton.icon(
                       onPressed: () {
                         TonePlayer.instance.playCue(SoundCue.gameStart);
-                        onStart!();
+                        onStart();
                       },
                       style: FilledButton.styleFrom(
                         backgroundColor: accent,
