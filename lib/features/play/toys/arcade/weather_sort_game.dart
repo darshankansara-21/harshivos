@@ -18,6 +18,31 @@ class _WeatherSortGameState extends State<WeatherSortGame> with _Emit {
     <String>['☂️', '🥾', '🐸', '🌂', '💧', '🦆'],
     <String>['🧤', '⛄', '🧣', '⛷️', '🎿', '🧊'],
   ];
+  // Human-readable names for the Semantics labels below — raw emoji glyphs
+  // don't always read sensibly through a screen reader, so every item and
+  // bin gets an explicit spoken name instead (same convention as the
+  // _shapeNames/_colorName helpers used by odd_one_out/shadow_match).
+  static const Map<String, String> _itemNames = <String, String>{
+    '🕶️': 'sunglasses',
+    '🍦': 'ice cream',
+    '🏖️': 'beach umbrella',
+    '🌻': 'sunflower',
+    '🩳': 'shorts',
+    '🏄': 'surfing',
+    '☂️': 'open umbrella',
+    '🥾': 'rain boot',
+    '🐸': 'frog',
+    '🌂': 'folded umbrella',
+    '💧': 'water droplet',
+    '🦆': 'duck',
+    '🧤': 'mittens',
+    '⛄': 'snowman',
+    '🧣': 'scarf',
+    '⛷️': 'skier',
+    '🎿': 'skis',
+    '🧊': 'ice cube',
+  };
+  static const List<String> _binNames = <String>['sunny', 'rainy', 'snowy'];
   final math.Random _rnd = math.Random();
   // Flattened (bin, item) draw order — shuffled bag with no repeat so a
   // full 12-item win sees real variety across all 18 items instead of
@@ -143,35 +168,44 @@ class _WeatherSortGameState extends State<WeatherSortGame> with _Emit {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: <Widget>[
-            Container(
-              width: 110,
-              height: 110,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.9),
-                shape: BoxShape.circle,
+            Semantics(
+              label: 'Item to sort: ${_itemNames[_item] ?? _item}',
+              child: Container(
+                width: 110,
+                height: 110,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.9),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Text(_item, style: const TextStyle(fontSize: 56)),
               ),
-              alignment: Alignment.center,
-              child: Text(_item, style: const TextStyle(fontSize: 56)),
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: <Widget>[
                 for (var i = 0; i < _bins.length; i++)
-                  GestureDetector(
+                  Semantics(
+                    button: true,
+                    label: '${_binNames[i]} weather bin',
                     onTap: () => _pick(i),
-                    child: Container(
-                      width: 86,
-                      height: 86,
-                      decoration: BoxDecoration(
-                        color: _wrongFlash == i
-                            ? const Color(0xFFE23B3B)
-                            : Colors.white.withOpacity(0.14),
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(
-                            color: Colors.white.withOpacity(0.3), width: 2),
+                    child: GestureDetector(
+                      onTap: () => _pick(i),
+                      child: Container(
+                        width: 86,
+                        height: 86,
+                        decoration: BoxDecoration(
+                          color: _wrongFlash == i
+                              ? const Color(0xFFE23B3B)
+                              : Colors.white.withOpacity(0.14),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                              color: Colors.white.withOpacity(0.3), width: 2),
+                        ),
+                        alignment: Alignment.center,
+                        child:
+                            Text(_bins[i], style: const TextStyle(fontSize: 44)),
                       ),
-                      alignment: Alignment.center,
-                      child: Text(_bins[i], style: const TextStyle(fontSize: 44)),
                     ),
                   ),
               ],
