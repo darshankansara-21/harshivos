@@ -90,40 +90,49 @@ class _ToyPlayerScreenState extends ConsumerState<ToyPlayerScreen> {
           AnimatedOpacity(
             opacity: _chromeVisible ? 1 : 0,
             duration: const Duration(milliseconds: 250),
-            child: SafeArea(
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: <Widget>[
-                      _RoundButton(
-                        icon: Icons.arrow_back_rounded,
-                        onTap: () => Navigator.of(context).pop(),
-                      ),
-                      const SizedBox(width: 12),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.35),
-                          borderRadius: BorderRadius.circular(20),
+            // Opacity alone never disables hit-testing: with the chrome
+            // faded out, the back/mute/hide buttons would otherwise stay
+            // silently tappable in their old screen positions, so a child
+            // tapping that area for gameplay could get yanked out of the
+            // game (back button) or lose sound (mute) with zero visible
+            // feedback. IgnorePointer makes the hidden chrome truly inert.
+            child: IgnorePointer(
+              ignoring: !_chromeVisible,
+              child: SafeArea(
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: <Widget>[
+                        _RoundButton(
+                          icon: Icons.arrow_back_rounded,
+                          onTap: () => Navigator.of(context).pop(),
                         ),
-                        child: Text(
-                          '${widget.toy.emoji}  ${widget.toy.title}',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                        const SizedBox(width: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.35),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '${widget.toy.emoji}  ${widget.toy.title}',
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                          ),
                         ),
-                      ),
-                      const Spacer(),
-                      const MuteButton(),
-                      const SizedBox(width: 12),
-                      _RoundButton(
-                        icon: Icons.visibility_off_rounded,
-                        onTap: () {
-                          HapticFeedback.selectionClick();
-                          setState(() => _chromeVisible = false);
-                        },
-                      ),
-                    ],
+                        const Spacer(),
+                        const MuteButton(),
+                        const SizedBox(width: 12),
+                        _RoundButton(
+                          icon: Icons.visibility_off_rounded,
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            setState(() => _chromeVisible = false);
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
