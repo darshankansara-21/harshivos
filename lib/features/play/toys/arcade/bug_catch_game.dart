@@ -206,18 +206,42 @@ class _BugCatchGameState extends State<BugCatchGame>
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapDown: (d) => _tap(d.localPosition, w, h),
-            child: CustomPaint(
-              painter: _BugPainter(
-                bugs: _bugs,
-                colors: _colors,
-                targetColor: _targetColor,
-                bits: _bits,
+          return Stack(
+            children: <Widget>[
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapDown: (d) => _tap(d.localPosition, w, h),
+                child: CustomPaint(
+                  painter: _BugPainter(
+                    bugs: _bugs,
+                    colors: _colors,
+                    targetColor: _targetColor,
+                    bits: _bits,
+                  ),
+                  size: Size.infinite,
+                ),
               ),
-              size: Size.infinite,
-            ),
+              // Every bug is painted only onto the canvas and keeps
+              // scurrying, so a screen-reader user had no way to discover or
+              // catch any of them. These invisible Semantics overlays track
+              // each bug's live position every tick (the widget already
+              // rebuilds each frame via ToyTicker) and announce its colour,
+              // routed through the existing `_tap()` hit-test — same
+              // live-tracked pattern as balloon_math's drifting balloons.
+              for (final bug in _bugs)
+                Positioned(
+                  left: bug.x * w - w * 0.09,
+                  top: bug.y * h - w * 0.09,
+                  width: w * 0.18,
+                  height: w * 0.18,
+                  child: Semantics(
+                    label: '${_names[bug.colorIndex]} bug',
+                    button: true,
+                    onTap: () => _tap(Offset(bug.x * w, bug.y * h), w, h),
+                    child: const SizedBox.expand(),
+                  ),
+                ),
+            ],
           );
         },
       ),
