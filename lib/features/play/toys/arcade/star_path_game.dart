@@ -73,10 +73,16 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
     _linked = 1;
   }
 
+  // height/width of the drawing canvas, refreshed on every touch so the
+  // hit-test below can compare real pixel distance instead of a mismatched
+  // mix of width- and height-normalized units (the stars are drawn as true
+  // isotropic circles, same radius on both axes).
+  double _aspect = 1;
+
   void _touch(double nx, double ny) {
     if (_status != GameStatus.playing || _linked >= _stars.length) return;
     final s = _stars[_linked];
-    if ((s[0] - nx).abs() < 0.07 && (s[1] - ny).abs() < 0.07) {
+    if ((s[0] - nx).abs() < 0.07 && ((s[1] - ny) * _aspect).abs() < 0.07) {
       _linked++;
       TonePlayer.instance.playNote((_linked * 2) % 12, seconds: 0.2);
       if (_linked >= _stars.length) {
@@ -139,8 +145,10 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
-          void handle(Offset p) =>
-              _touch((p.dx / w).clamp(0.0, 1.0), (p.dy / h).clamp(0.0, 1.0));
+          void handle(Offset p) {
+            _aspect = h / w;
+            _touch((p.dx / w).clamp(0.0, 1.0), (p.dy / h).clamp(0.0, 1.0));
+          }
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
             onPanStart: (d) => handle(d.localPosition),
