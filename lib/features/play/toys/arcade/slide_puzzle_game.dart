@@ -185,11 +185,15 @@ class _SlidePuzzlePainter extends CustomPainter {
       canvas.drawRRect(
           RRect.fromRectAndRadius(rect, const Radius.circular(12)),
           Paint()..color = HSVColor.fromAHSV(1, hue, 0.45, 0.95).toColor());
+      // Tile fill is a very light pastel (HSV value 0.95) at every hue, so
+      // white digits were near-invisible — the one thing a child must read
+      // to solve the puzzle. A dark, high-contrast ink reads clearly against
+      // every hue in this pastel range instead.
       final tp = TextPainter(
         text: TextSpan(
             text: '$v',
             style: TextStyle(
-                color: Colors.white,
+                color: const Color(0xFF2B2140),
                 fontSize: cell * 0.4,
                 fontWeight: FontWeight.w900)),
         textDirection: TextDirection.ltr,
