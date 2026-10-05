@@ -189,19 +189,44 @@ class _BalloonMathGameState extends State<BalloonMathGame>
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapDown: (d) => _tap(d.localPosition, w, h),
-            child: CustomPaint(
-              painter: _BalloonMathPainter(
-                a: _a,
-                b: _b,
-                sub: _sub,
-                balloons: _balloons,
-                bits: _bits,
+          return Stack(
+            children: <Widget>[
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapDown: (d) => _tap(d.localPosition, w, h),
+                child: CustomPaint(
+                  painter: _BalloonMathPainter(
+                    a: _a,
+                    b: _b,
+                    sub: _sub,
+                    balloons: _balloons,
+                    bits: _bits,
+                  ),
+                  size: Size.infinite,
+                ),
               ),
-              size: Size.infinite,
-            ),
+              // Each balloon's number is painted only onto the canvas and
+              // keeps drifting upward, so a screen-reader user had no way to
+              // discover the answer choices at all. These invisible
+              // Semantics overlays track the balloons' live positions every
+              // tick (the widget already rebuilds each frame via ToyTicker)
+              // so TalkBack/VoiceOver can find and activate the correct
+              // floating number, mirroring the fix already applied to
+              // dot_to_dot/firefly_count's fixed-position choices.
+              for (final bln in _balloons)
+                Positioned(
+                  left: bln.x * w - w * 0.1,
+                  top: bln.y * h - w * 0.12,
+                  width: w * 0.2,
+                  height: w * 0.24,
+                  child: Semantics(
+                    label: 'Balloon ${bln.value}',
+                    button: true,
+                    onTap: () => _tap(Offset(bln.x * w, bln.y * h), w, h),
+                    child: const SizedBox.expand(),
+                  ),
+                ),
+            ],
           );
         },
       ),
