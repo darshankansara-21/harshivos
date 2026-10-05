@@ -44,6 +44,11 @@ class _BugCatchGameState extends State<BugCatchGame>
     });
   }
 
+  // Scurry gets busier and faster as you go: more bugs on screen and a
+  // quicker wander speed, so round 12 is a genuinely harder hunt than round 1.
+  int get _maxBugs => math.min(6 + _score ~/ 4, 10);
+  double get _speedBoost => 1 + _score * 0.035;
+
   void _spawn() {
     final edge = _rnd.nextInt(4);
     double x, y;
@@ -62,7 +67,7 @@ class _BugCatchGameState extends State<BugCatchGame>
         y = _rnd.nextDouble();
     }
     final a = _rnd.nextDouble() * math.pi * 2;
-    final sp = 0.08 + _rnd.nextDouble() * 0.1;
+    final sp = (0.08 + _rnd.nextDouble() * 0.1) * _speedBoost;
     _bugs.add(_Bug(x, y, math.cos(a) * sp, math.sin(a) * sp,
         _rnd.nextInt(_colors.length), _rnd.nextDouble() * math.pi * 2));
   }
@@ -74,7 +79,7 @@ class _BugCatchGameState extends State<BugCatchGame>
       _bannerT -= dt;
       if (_bannerT <= 0) _banner = null;
     }
-    while (_bugs.length < 6) {
+    while (_bugs.length < _maxBugs) {
       _spawn();
     }
     for (var i = _bugs.length - 1; i >= 0; i--) {
@@ -83,7 +88,7 @@ class _BugCatchGameState extends State<BugCatchGame>
       // gentle wander
       if (_rnd.nextDouble() < dt * 2) {
         final a = _rnd.nextDouble() * math.pi * 2;
-        final sp = 0.08 + _rnd.nextDouble() * 0.1;
+        final sp = (0.08 + _rnd.nextDouble() * 0.1) * _speedBoost;
         b.vx = math.cos(a) * sp;
         b.vy = math.sin(a) * sp;
       }
