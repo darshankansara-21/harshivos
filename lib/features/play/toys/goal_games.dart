@@ -467,13 +467,22 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> with _GoalEmit {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                Text(_round.prompt,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 42,
-                      fontWeight: FontWeight.w900,
-                    )),
+                // Same scaleDown guard as the tiles below: the prompt is the
+                // single largest font in the scene, so without it a raised
+                // accessibility text-scale setting could push the grid below
+                // the fold on a short/small device (this Column is never
+                // scrollable).
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(_round.prompt,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 42,
+                        fontWeight: FontWeight.w900,
+                      )),
+                ),
                 const SizedBox(height: 34),
                 GridView.builder(
                   shrinkWrap: true,
@@ -519,32 +528,52 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> with _GoalEmit {
                             // text/pattern backup to colour. Always show the
                             // name, with a dark shadow so it stays readable
                             // over every swatch, including the pale yellow.
+                            // FittedBox/scaleDown keeps the longest option
+                            // words (e.g. "ORANGE"/"PURPLE") on one line and
+                            // inside the tile's fixed-aspect-ratio bounds even
+                            // when the OS accessibility text-scale setting is
+                            // raised (clamped to 1.3x app-wide in app.dart) —
+                            // it only ever shrinks, never grows past the
+                            // author-intended size, so normal-scale play is
+                            // pixel-identical to before this change.
                             child: swatch != null
-                                ? Text(_round.options[index],
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w900,
-                                      letterSpacing: 1,
-                                      shadows: <Shadow>[
-                                        Shadow(
-                                          color: Colors.black54,
-                                          blurRadius: 6,
-                                        ),
-                                        Shadow(
-                                          color: Colors.black54,
-                                          offset: Offset(1, 1),
-                                        ),
-                                      ],
-                                    ))
-                                : Text(_round.options[index],
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 30,
-                                      fontWeight: FontWeight.w900,
-                                    )),
+                                ? FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6),
+                                      child: Text(_round.options[index],
+                                          textAlign: TextAlign.center,
+                                          maxLines: 1,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w900,
+                                            letterSpacing: 1,
+                                            shadows: <Shadow>[
+                                              Shadow(
+                                                color: Colors.black54,
+                                                blurRadius: 6,
+                                              ),
+                                              Shadow(
+                                                color: Colors.black54,
+                                                offset: Offset(1, 1),
+                                              ),
+                                            ],
+                                          )),
+                                    ),
+                                  )
+                                : FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(_round.options[index],
+                                        textAlign: TextAlign.center,
+                                        maxLines: 1,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 30,
+                                          fontWeight: FontWeight.w900,
+                                        )),
+                                  ),
                           ),
                         ),
                       ),
