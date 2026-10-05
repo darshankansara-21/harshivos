@@ -24,6 +24,7 @@ class _SkyHopGameState extends State<SkyHopGame>
   final math.Random _rnd = math.Random();
   final List<_Pipe> _pipes = <_Pipe>[];
   final List<_Shard> _bits = <_Shard>[];
+  bool _reduceMotion = false;
   double _birdY = 0.5;
   double _vy = 0;
   double _spawnIn = 0;
@@ -109,7 +110,8 @@ class _SkyHopGameState extends State<SkyHopGame>
         _score += bonus;
         _banner = _coinCombo > 1 ? 'Coin streak x$_coinCombo!' : 'Coin grab!';
         _bannerT = 1.2;
-        for (var k = 0; k < 8; k++) {
+        final coinBitCount = _reduceMotion ? 3 : 8;
+        for (var k = 0; k < coinBitCount; k++) {
           final a = _rnd.nextDouble() * math.pi * 2;
           final sp = 0.1 + _rnd.nextDouble() * 0.22;
           _bits.add(_Shard(p.x, p.coinY, math.cos(a) * sp, math.sin(a) * sp,
@@ -174,6 +176,7 @@ class _SkyHopGameState extends State<SkyHopGame>
   @override
   Widget build(BuildContext context) {
     drain(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _Shell(
       title: '🐤 Sky Hop',
       introHow: 'Tap to flap through the gaps and collect enough coins to complete the sky run!',

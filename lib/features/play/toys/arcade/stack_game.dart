@@ -18,6 +18,7 @@ class _StackGameState extends State<StackGame>
   final math.Random _rnd = math.Random();
   final List<_Block> _tower = <_Block>[];
   final List<_Shard> _bits = <_Shard>[];
+  bool _reduceMotion = false;
   Size _view = const Size(360, 640);
   double _curLeft = 0.1;
   double _curWidth = 0.44;
@@ -165,7 +166,10 @@ class _StackGameState extends State<StackGame>
   void _impact(double x, double y, bool perfect) {
     final color =
         perfect ? const Color(0xFFFFD166) : const Color(0xFF9EE7FF);
-    for (var i = 0; i < (perfect ? 12 : 7); i++) {
+    final bitCount = perfect ? 12 : 7;
+    final effectiveBitCount =
+        _reduceMotion ? math.max(3, (bitCount / 3).round()) : bitCount;
+    for (var i = 0; i < effectiveBitCount; i++) {
       final a = -math.pi / 2 + (_rnd.nextDouble() - 0.5) * 2.4;
       final sp = 80 + _rnd.nextDouble() * 170;
       _bits.add(_Shard(x, y, math.cos(a) * sp, math.sin(a) * sp, color));
@@ -197,6 +201,7 @@ class _StackGameState extends State<StackGame>
   @override
   Widget build(BuildContext context) {
     drain(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _Shell(
       title: '🧱 Stack',
       introHow: 'Tap to drop the moving block and stack it as high as you can.',

@@ -29,6 +29,7 @@ class _PinballGameState extends State<PinballGame>
   ];
   final math.Random _rnd = math.Random();
   final List<_Shard> _sparks = <_Shard>[];
+  bool _reduceMotion = false;
   double _bx = 0.86;
   double _by = 0.86;
   double _vx = 0;
@@ -177,7 +178,9 @@ class _PinballGameState extends State<PinballGame>
         _flashT = 0.25 + (_combo >= 3 ? 0.15 : 0);
         _flashBumper = i;
         final sparkCount = _combo >= 3 ? 14 : 9;
-        for (var k = 0; k < sparkCount; k++) {
+        final effectiveSparkCount =
+            _reduceMotion ? math.max(3, (sparkCount / 3).round()) : sparkCount;
+        for (var k = 0; k < effectiveSparkCount; k++) {
           final a = _rnd.nextDouble() * math.pi * 2;
           final sp = 0.15 + _rnd.nextDouble() * 0.28;
           _sparks.add(_Shard(_bx, _by, math.cos(a) * sp, math.sin(a) * sp,
@@ -311,6 +314,7 @@ class _PinballGameState extends State<PinballGame>
   @override
   Widget build(BuildContext context) {
     drain(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _Shell(
       title: '🎱 Pinball',
       score: _score,

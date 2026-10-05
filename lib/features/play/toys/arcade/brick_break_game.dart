@@ -30,6 +30,7 @@ class _BrickBreakGameState extends State<BrickBreakGame>
   int _rowCount = 4;
   List<int> _bricks = List<int>.filled(_cols * 4, 1);
   final List<_Shard> _shards = <_Shard>[];
+  bool _reduceMotion = false;
   final List<_PowerUp> _powerUps = <_PowerUp>[];
   double _paddleX = 0.5; // centre, 0..1
   double _bx = 0.5, _by = 0.6; // ball centre
@@ -215,7 +216,10 @@ class _BrickBreakGameState extends State<BrickBreakGame>
         final cy = 0.1 + r * 0.05 + 0.021;
         final col =
             HSVColor.fromAHSV(1, (r * 55).toDouble(), 0.6, 0.95).toColor();
-        for (var s = 0; s < (remaining <= 0 ? 9 : 6); s++) {
+        final shardCount = remaining <= 0 ? 9 : 6;
+        final effectiveShardCount =
+            _reduceMotion ? math.max(3, (shardCount / 3).round()) : shardCount;
+        for (var s = 0; s < effectiveShardCount; s++) {
           final a = _rnd.nextDouble() * math.pi * 2;
           final sp = 0.25 + _rnd.nextDouble() * 0.35;
           _shards.add(_Shard(
@@ -305,6 +309,7 @@ class _BrickBreakGameState extends State<BrickBreakGame>
   @override
   Widget build(BuildContext context) {
     drain(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     final activeIcons = <String>[
       if (_wideT > 0) '↔️',
       if (_slowT > 0) '🐢',
