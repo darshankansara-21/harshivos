@@ -245,7 +245,7 @@ class _BasketballGameState extends State<BasketballGame>
     return _Shell(
       title: '🏀 Basketball',
       introHow:
-          'Drag from the ball toward the hoop to aim, then let go to shoot. Swish it for 2 points!',
+          'Drag from the ball toward the hoop to aim, then let go to shoot. Make 12 baskets to win!',
       onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,

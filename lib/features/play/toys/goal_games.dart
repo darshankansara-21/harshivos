@@ -1146,7 +1146,7 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
       title: '🥅 Goal Keeper',
       goal: 'Read the shot, slide and dive · Make 10 saves',
       introHow:
-          'A ball is kicked at your goal — slide left/right to get your gloves in its path and save it!',
+          'A ball is kicked at your goal — slide left/right to get your gloves in its path and save it! You have 5 lives, so don\u2019t let too many past.',
       onStart: () => setState(() {
         _status = GameStatus.playing;
         _begin();

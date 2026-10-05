@@ -231,7 +231,7 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
     return _Shell(
       title: '🧠 Memory Flip',
       introHow:
-          'Flip two cards to find matching pairs before the timer runs out. Clear every level, bank leftover time as bonus points!',
+          'Flip two cards to find matching pairs before the timer runs out. You have 3 lives — wrong matches and timeouts cost one. Clear every level, bank leftover time as bonus points!',
       onStart: () {
         setState(() {
           _status = GameStatus.playing;
