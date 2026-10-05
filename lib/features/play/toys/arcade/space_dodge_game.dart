@@ -229,6 +229,11 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
           _meteors.removeAt(i);
           TonePlayer.instance.playCue(SoundCue.success);
           _flash('Shield up!');
+          // Same positive-pickup class as the gem above (which already
+          // emits), but the shield pickup left the companion silent on an
+          // identical "good grab" moment — Hari/Pico had nothing to react
+          // to here.
+          emit(ExperienceEvent.bubblePopped);
           continue;
         }
         if (_shield) {
