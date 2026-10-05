@@ -2263,7 +2263,10 @@ class _BowlingGameState extends State<BowlingGame>
   double _settleT = 0;
 
   int _frame = 1;
-  int _ballInFrame = 1; // 1 or 2
+  int _ballInFrame = 1; // 1, 2, or (frame 10 only) 3
+  // Real ten-pin rule: a strike or spare in the 10th frame earns bonus
+  // ball(s) on a freshly-racked set of pins instead of ending the game early.
+  bool _f10Bonus = false;
   int _pinsBeforeBall = 0; // standing pins when the current ball was thrown
   int _score = 0;
   int _best = 0;
@@ -2402,29 +2405,61 @@ class _BowlingGameState extends State<BowlingGame>
   void _endBall() {
     final knockedThisBall = _pinsBeforeBall - _standing;
     _score += knockedThisBall;
-
     final knockedAll = _standing == 0;
-    if (_ballInFrame == 1 && knockedAll) {
-      // Strike.
-      _score += 5;
-      _flash('STRIKE! 🎳');
-      emit(ExperienceEvent.gameCompleted);
-      TonePlayer.instance.playCue(SoundCue.completion);
-      _nextFrame();
+    final isFinalFrame = _frame == 10;
+
+    if (_ballInFrame == 1) {
+      if (knockedAll) {
+        // Strike.
+        _score += 5;
+        _flash('STRIKE! 🎳');
+        emit(ExperienceEvent.gameCompleted);
+        TonePlayer.instance.playCue(SoundCue.completion);
+        if (isFinalFrame) {
+          // Earns two bonus balls on a fresh rack instead of ending the game.
+          _f10Bonus = true;
+          _ballInFrame = 2;
+          _rack();
+        } else {
+          _nextFrame();
+        }
+      } else {
+        // Second ball at the standing pins.
+        _flash(knockedThisBall > 0 ? '$knockedThisBall down!' : 'Roll again');
+        if (knockedThisBall > 0) emit(ExperienceEvent.correctAnswer);
+        _ballInFrame = 2;
+        _resetBall();
+      }
+    } else if (_ballInFrame == 2 && isFinalFrame && _f10Bonus) {
+      // Bonus ball 2 after a 10th-frame strike: a 3rd ball always follows,
+      // on a fresh rack if this one clears the lane too.
+      if (knockedAll) {
+        _score += 5;
+        _flash('STRIKE! 🎳');
+        TonePlayer.instance.playCue(SoundCue.completion);
+        _rack();
+      } else {
+        _flash(knockedThisBall > 0 ? '$knockedThisBall down!' : 'Roll again');
+        _resetBall();
+      }
+      _ballInFrame = 3;
     } else if (_ballInFrame == 2 && knockedAll) {
       // Spare.
       _score += 3;
       _flash('SPARE! ✨');
       emit(ExperienceEvent.gameCompleted);
       TonePlayer.instance.playCue(SoundCue.completion);
-      _nextFrame();
-    } else if (_ballInFrame == 1) {
-      // Second ball at the standing pins.
-      _flash(knockedThisBall > 0 ? '$knockedThisBall down!' : 'Roll again');
-      if (knockedThisBall > 0) emit(ExperienceEvent.correctAnswer);
-      _ballInFrame = 2;
-      _resetBall();
+      if (isFinalFrame) {
+        // Earns one bonus ball on a fresh rack instead of ending the game.
+        _f10Bonus = true;
+        _ballInFrame = 3;
+        _rack();
+      } else {
+        _nextFrame();
+      }
     } else {
+      // Ordinary closing ball: frame 10's non-bonus 2nd ball, or any bonus
+      // ball 3 — both always end the game.
       _flash(knockedThisBall > 0 ? '$knockedThisBall down!' : 'Good try');
       _nextFrame();
     }
@@ -2441,6 +2476,7 @@ class _BowlingGameState extends State<BowlingGame>
     }
     _frame++;
     _ballInFrame = 1;
+    _f10Bonus = false;
     _rack();
   }
 
@@ -2458,6 +2494,7 @@ class _BowlingGameState extends State<BowlingGame>
       _score = 0;
       _frame = 1;
       _ballInFrame = 1;
+      _f10Bonus = false;
       _banner = null;
       _bannerT = 0;
       _status = GameStatus.playing;
@@ -2538,7 +2575,9 @@ class _BowlingGameState extends State<BowlingGame>
                   ),
                   child: Text(
                     _phase == _BowlPhase.aim
-                        ? 'Frame $_frame/10  ·  Flick the ball up ⬆'
+                        ? (_frame == 10 && _f10Bonus
+                            ? 'Bonus ball!  ·  Flick the ball up ⬆'
+                            : 'Frame $_frame/10  ·  Flick the ball up ⬆')
                         : 'Frame $_frame/10  ·  Rolling…',
                     style: const TextStyle(
                         color: Colors.white,
