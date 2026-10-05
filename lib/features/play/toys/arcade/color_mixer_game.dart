@@ -126,6 +126,7 @@ class _ColorMixerGameState extends State<ColorMixerGame> with _Emit {
         } else if (dist > prevDist + 0.01) {
           _banner = 'Getting colder — try Empty the bowl';
           TonePlayer.instance.playCue(SoundCue.gentleRetry);
+          emit(ExperienceEvent.incorrectAnswer);
         }
       }
     });
