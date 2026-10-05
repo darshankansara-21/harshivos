@@ -240,7 +240,21 @@ class _BlockBlastGameState extends State<BlockBlastGame> with _Emit {
                   children: <Widget>[
                     for (var r = 0; r < _n; r++)
                       for (var c = 0; c < _n; c++)
-                        GestureDetector(
+                        Semantics(
+                          button: true,
+                          // Only the cell's own current state is spoken
+                          // (empty vs filled) plus whether a piece is ready to
+                          // place there — never whether this is a *valid*
+                          // fit for the selected piece, so the real spatial
+                          // planning challenge (does this shape fit here?)
+                          // stays intact for screen-reader users exactly as a
+                          // sighted child must work it out visually.
+                          label: 'Row ${r + 1}, column ${c + 1}, '
+                              '${_grid[r][c] != null ? 'filled' : 'empty'}.'
+                              '${_sel >= 0 ? ' Tap to place the selected block here.' : ''}',
+                          onTap: () => _place(r, c),
+                          excludeSemantics: true,
+                          child: GestureDetector(
                           onTapDown: (_) => _place(r, c),
                           child: TweenAnimationBuilder<double>(
                             key: ValueKey(
@@ -263,6 +277,7 @@ class _BlockBlastGameState extends State<BlockBlastGame> with _Emit {
                               ),
                             ),
                           ),
+                          ),
                         ),
                   ],
                 ),
@@ -282,20 +297,35 @@ class _BlockBlastGameState extends State<BlockBlastGame> with _Emit {
 
   Widget _handSlot(int i) {
     final p = _hand[i];
-    return GestureDetector(
+    // Only the piece's own size (cell count) is spoken, never its shape or
+    // where it fits — the real "which shape goes where" planning challenge
+    // stays exactly as hard for screen-reader users as it is for sighted
+    // children reading the shape by eye.
+    final label = p == null
+        ? 'Empty block slot.'
+        : 'Block piece, ${p.cells.length} cell${p.cells.length == 1 ? '' : 's'}.'
+            '${_sel == i ? ' Selected.' : ''}';
+    return Semantics(
+      button: true,
+      label: label,
       onTap: () => setState(() => _sel = p == null ? -1 : i),
-      child: Container(
-        width: 90,
-        height: 70,
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(_sel == i ? 0.18 : 0.06),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-              color: _sel == i ? Colors.white : Colors.white24,
-              width: _sel == i ? 2 : 1),
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: () => setState(() => _sel = p == null ? -1 : i),
+        child: Container(
+          width: 90,
+          height: 70,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(_sel == i ? 0.18 : 0.06),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+                color: _sel == i ? Colors.white : Colors.white24,
+                width: _sel == i ? 2 : 1),
+          ),
+          child: p == null
+              ? const SizedBox.shrink()
+              : CustomPaint(painter: _PiecePainter(p)),
         ),
-        child:
-            p == null ? const SizedBox.shrink() : CustomPaint(painter: _PiecePainter(p)),
       ),
     );
   }
