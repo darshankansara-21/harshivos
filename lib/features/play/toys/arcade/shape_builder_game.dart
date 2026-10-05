@@ -84,6 +84,15 @@ class _ShapeBuilderGameState extends State<ShapeBuilderGame> with _Emit {
   int get _currentShape =>
       _placed < _order.length ? _slots[_order[_placed]].shape : -1;
 
+  static const List<String> _shapeNames = <String>[
+    'circle',
+    'square',
+    'triangle',
+    'star',
+    'heart',
+    'diamond',
+  ];
+
   void _tap(Offset p, double w, double h) {
     if (_status != GameStatus.playing || _placed >= _slots.length) return;
     for (var i = 0; i < _slots.length; i++) {
@@ -169,17 +178,43 @@ class _ShapeBuilderGameState extends State<ShapeBuilderGame> with _Emit {
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapDown: (d) => _tap(d.localPosition, w, h),
-            child: CustomPaint(
-              painter: _BuilderPainter(
-                slots: _slots,
-                currentShape: _currentShape,
-                wrongFlash: _wrongFlash,
+          return Stack(
+            children: <Widget>[
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapDown: (d) => _tap(d.localPosition, w, h),
+                child: CustomPaint(
+                  painter: _BuilderPainter(
+                    slots: _slots,
+                    currentShape: _currentShape,
+                    wrongFlash: _wrongFlash,
+                  ),
+                  size: Size.infinite,
+                ),
               ),
-              size: Size.infinite,
-            ),
+              // Static per-round slot positions (`_buildFigure` sets fixed
+              // `cx`/`cy` for the current figure and they don't move), so a
+              // screen-reader-accessible overlay per empty slot — the same
+              // static-zone pattern as `bubble_shooter_game.dart`'s aim
+              // columns — lets a child using assistive tech find and tap the
+              // matching shape outline directly.
+              for (var i = 0; i < _slots.length; i++)
+                if (!_slots[i].filled)
+                  Positioned(
+                    left: _slots[i].cx * w - (_slots[i].r + 0.03) * w,
+                    top: _slots[i].cy * h - (_slots[i].r + 0.03) * w,
+                    width: (_slots[i].r + 0.03) * w * 2,
+                    height: (_slots[i].r + 0.03) * w * 2,
+                    child: Semantics(
+                      label:
+                          '${_shapeNames[_slots[i].shape]} slot${_slots[i].shape == _currentShape ? ', current piece' : ''}',
+                      button: true,
+                      onTap: () => _tap(
+                          Offset(_slots[i].cx * w, _slots[i].cy * h), w, h),
+                      child: const SizedBox.expand(),
+                    ),
+                  ),
+            ],
           );
         },
       ),
