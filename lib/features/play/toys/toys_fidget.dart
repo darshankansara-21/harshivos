@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/toy/toy_ticker.dart';
+import '../../../services/audio/tone_player.dart';
 
 /// Fidget Cube Digital — a panel of tactile gadgets: clicky buttons, a flickable
 /// spinner, toggle switches, and a glide pad. Every interaction gives haptic
@@ -101,7 +102,13 @@ class _ClickyButtonsState extends State<_ClickyButtons> {
         physics: const NeverScrollableScrollPhysics(),
         children: List<Widget>.generate(6, (i) {
           return GestureDetector(
-            onTapDown: (_) { setState(() => _pressed[i] = true); HapticFeedback.lightImpact(); },
+            onTapDown: (_) {
+              setState(() => _pressed[i] = true);
+              HapticFeedback.lightImpact();
+              // A discrete tap deserves a one-shot click, same as every other
+              // tactile gadget in the app — this panel was silent before.
+              TonePlayer.instance.playCue(SoundCue.tap);
+            },
             onTapUp: (_) => setState(() => _pressed[i] = false),
             onTapCancel: () => setState(() => _pressed[i] = false),
             child: AnimatedContainer(
@@ -207,7 +214,13 @@ class _ToggleSwitchesState extends State<_ToggleSwitches> {
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 6),
             child: GestureDetector(
-              onTap: () { setState(() => _on[i] = !_on[i]); HapticFeedback.mediumImpact(); },
+              onTap: () {
+                setState(() => _on[i] = !_on[i]);
+                HapticFeedback.mediumImpact();
+                // Discrete flip, same bug class as the clicky buttons above —
+                // give it its own cue so it reads differently from a click.
+                TonePlayer.instance.playCue(SoundCue.selection);
+              },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 160),
                 width: 84,
