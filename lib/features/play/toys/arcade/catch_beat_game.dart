@@ -182,12 +182,13 @@ class _CatchBeatGameState extends State<CatchBeatGame>
       status: _status,
       banner: _banner ?? 'Caught $_score/$_target · ${'💛' * _lives}',
       overEmoji: '🎶',
-      overText: 'Nice rhythm!',
+      // _bestCombo is tracked all run but, until now, was only ever surfaced
+      // on the win screen — a run that ends in a miss (the more common
+      // outcome for a new player) silently threw the same stat away.
+      overText: _bestCombo >= 2
+          ? 'Nice rhythm! Best combo x$_bestCombo 🔥'
+          : 'Nice rhythm!',
       winEmoji: '🎶',
-      // _bestCombo is tracked all run but was never shown anywhere — the win
-      // screen is the natural place to report the stat the child was
-      // actually building toward, giving "beat your own combo" a reason to
-      // replay beyond the raw catch count.
       winText: _bestCombo >= 2
           ? 'Rhythm star! Best combo x$_bestCombo 🔥'
           : 'Rhythm star!',

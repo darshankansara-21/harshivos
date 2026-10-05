@@ -259,7 +259,7 @@ class _AirHockeyGameState extends State<AirHockeyGame>
       status: _status,
       banner: _banner ?? 'You $_playerScore  ·  AI $_aiScore',
       overEmoji: '🏒',
-      overText: 'Good game!',
+      overText: 'Good game! Lost $_playerScore–$_aiScore',
       winEmoji: '🏆',
       winText: 'You win the match!',
       accent: const Color(0xFF28C2D1),

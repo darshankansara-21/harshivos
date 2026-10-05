@@ -163,7 +163,12 @@ class _MergeGameState extends State<MergeGame> with _Emit {
       status: _status,
       banner: _banner,
       overEmoji: '🔢',
-      overText: 'Board full!',
+      // _maxTile (the highest tile actually merged) was only ever flashed as
+      // a transient 'New best: N!' in-play banner — the exact "stat lost the
+      // instant the game-over overlay covers the board" gap already found
+      // and fixed across the Phase-5 list (stack's tower height, sky_hop's
+      // coin combo, etc). Fold it into the permanent overText instead.
+      overText: 'Board full! Highest tile: $_maxTile',
       winEmoji: '🏆',
       winText: 'Merge master!',
       accent: const Color(0xFFF7B801),
