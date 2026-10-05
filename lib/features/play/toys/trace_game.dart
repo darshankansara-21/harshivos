@@ -24,6 +24,9 @@ class _TraceGameState extends State<TraceGame> {
   GameStatus _status = GameStatus.playing;
   late List<Offset> _pts;
   late List<bool> _lit;
+  // Shuffled once per playthrough so the shape order isn't the exact same
+  // circle->square->triangle->wave->star sequence every single game.
+  List<int> _order = List<int>.generate(_shapeCount, (i) => i)..shuffle();
 
   @override
   void initState() {
@@ -35,7 +38,7 @@ class _TraceGameState extends State<TraceGame> {
   }
 
   void _load(int level) {
-    _pts = _shape(level % _shapeCount);
+    _pts = _shape(_order[level % _shapeCount]);
     _lit = List<bool>.filled(_pts.length, false);
   }
 
@@ -111,6 +114,7 @@ class _TraceGameState extends State<TraceGame> {
     setState(() {
       _score = 0;
       _status = GameStatus.playing;
+      _order = List<int>.generate(_shapeCount, (i) => i)..shuffle();
       _load(0);
     });
   }
