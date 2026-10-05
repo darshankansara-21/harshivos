@@ -112,12 +112,28 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
     setState(() {});
   }
 
+  // Every other physics-bounce game in the catalog (air_hockey, mini_golf,
+  // pinball, toys_light's ball pit) plays a tactile cue on impact, and
+  // `SoundCue.marble` exists specifically for this sound identity — yet this
+  // game, literally named Maze Marble, never once called it: every wall and
+  // edge bounce was completely silent. Gate on incoming speed (not just
+  // "touching a wall") so a marble resting/sliding gently along a wall after
+  // it has mostly stopped doesn't buzz every frame; a real bounce clears it
+  // easily, matching the threshold style used by `toys_light.dart`.
+  static const double _bounceSpeed = 0.18;
+
   void _resolveEdges() {
     if (_mx < _r) {
       _mx = _r;
+      if (_vx.abs() > _bounceSpeed) {
+        TonePlayer.instance.playCue(SoundCue.marble);
+      }
       _vx = -_vx * 0.4;
     } else if (_mx > 1 - _r) {
       _mx = 1 - _r;
+      if (_vx.abs() > _bounceSpeed) {
+        TonePlayer.instance.playCue(SoundCue.marble);
+      }
       _vx = -_vx * 0.4;
     }
     // The vertical margin must shrink by the aspect ratio so the real pixel
@@ -126,9 +142,15 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
     final ry = _r / _aspect;
     if (_my < ry) {
       _my = ry;
+      if (_vy.abs() > _bounceSpeed) {
+        TonePlayer.instance.playCue(SoundCue.marble);
+      }
       _vy = -_vy * 0.4;
     } else if (_my > 1 - ry) {
       _my = 1 - ry;
+      if (_vy.abs() > _bounceSpeed) {
+        TonePlayer.instance.playCue(SoundCue.marble);
+      }
       _vy = -_vy * 0.4;
     }
   }
@@ -158,6 +180,9 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
       final vyScaled = _vy * _aspect;
       final vn = _vx * nx + vyScaled * ny;
       if (vn < 0) {
+        if (-vn > _bounceSpeed) {
+          TonePlayer.instance.playCue(SoundCue.marble);
+        }
         _vx -= vn * nx * 1.3;
         _vy -= vn * ny * 1.3 / _aspect;
       }
