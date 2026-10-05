@@ -75,6 +75,19 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with _Emit {
       } else {
         TonePlayer.instance.playCue(SoundCue.gentleRetry);
         _banner = 'Look closely…';
+        // Same stuck-wrong-flash bug class fixed catalog-wide (weather_sort,
+        // bigger_number, odd_one_out, _ChoiceGoalGame, etc.): `_wrongFlash`
+        // was previously only cleared by the NEXT correct tap's `_newRound`,
+        // so a child who missed then kept scanning the grid saw the wrong
+        // tile stay red-bordered the whole search instead of a brief, honest
+        // mistake flash. Auto-clear after a short delay, gated on `mounted
+        // && _wrongFlash == idx` so a later miss on a different tile can't
+        // be stomped by a stale timer.
+        Future.delayed(const Duration(milliseconds: 450), () {
+          if (mounted && _wrongFlash == idx) {
+            setState(() => _wrongFlash = -1);
+          }
+        });
       }
     }
     setState(() {});

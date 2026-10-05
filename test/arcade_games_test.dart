@@ -391,7 +391,9 @@ void main() {
     expect(find.textContaining('Spot the Difference'), findsOneWidget);
     await tester.tapAt(const Offset(200, 400));
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.pump(const Duration(milliseconds: 300));
+    // A tapped-wrong-tile auto-clears its flash via a 450ms timer; pump past
+    // it so the timer fires and is flushed before teardown.
+    await tester.pump(const Duration(milliseconds: 500));
     expect(tester.takeException(), isNull);
   });
 
@@ -786,6 +788,10 @@ void main() {
     expect(find.textContaining('8 correct answers wins'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('color_quest-option-0')));
     await tester.pump(const Duration(milliseconds: 100));
+    // The tapped option is randomly the wrong one depending on round setup,
+    // in which case it auto-clears its red flash via a 450ms timer; pump
+    // past it so the timer always fires and is flushed before teardown.
+    await tester.pump(const Duration(milliseconds: 500));
     expect(tester.takeException(), isNull);
   });
 
@@ -796,6 +802,9 @@ void main() {
     expect(find.textContaining('8 matches wins'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('shape_scout-option-0')));
     await tester.pump(const Duration(milliseconds: 100));
+    // A wrong choice auto-clears its red flash via a 450ms timer; pump past
+    // it so the timer fires and is flushed before teardown.
+    await tester.pump(const Duration(milliseconds: 500));
     expect(tester.takeException(), isNull);
   });
 
@@ -806,6 +815,9 @@ void main() {
     expect(find.textContaining('8 correct answers wins'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('number_splash-option-0')));
     await tester.pump(const Duration(milliseconds: 100));
+    // A wrong choice auto-clears its red flash via a 450ms timer; pump past
+    // it so the timer fires and is flushed before teardown.
+    await tester.pump(const Duration(milliseconds: 500));
     expect(tester.takeException(), isNull);
   });
 
