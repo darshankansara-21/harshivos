@@ -40,11 +40,18 @@ class _ShadowMatchGameState extends State<ShadowMatchGame> with _Emit {
     });
   }
 
+  // More shadows to scan gets genuinely harder: 4 options at the start,
+  // climbing to all 6 possible shapes by the final rounds, so the last
+  // stretch before winning is a real step up from round 1 (was previously a
+  // flat 4-option round every time despite the game claiming "gets trickier").
+  int get _optionCount => (4 + _score ~/ 4).clamp(4, 6);
+
   void _newRound() {
     _shape = _rnd.nextInt(6);
     _shapeColor = _tint[_rnd.nextInt(_tint.length)];
+    final count = _optionCount;
     final opts = <int>{_shape};
-    while (opts.length < 4) {
+    while (opts.length < count) {
       opts.add(_rnd.nextInt(6));
     }
     _options = opts.toList()..shuffle(_rnd);
@@ -126,7 +133,8 @@ class _ShadowMatchGameState extends State<ShadowMatchGame> with _Emit {
             behavior: HitTestBehavior.opaque,
             onTapDown: (d) {
               if (d.localPosition.dy < h * 0.5) return;
-              final i = (d.localPosition.dx / w * 4).floor().clamp(0, 3);
+              final n = _options.length;
+              final i = (d.localPosition.dx / w * n).floor().clamp(0, n - 1);
               _pick(i);
             },
             child: CustomPaint(
@@ -172,14 +180,16 @@ class _ShadowPainter extends CustomPainter {
     _paintPolyShape(canvas, Offset(w * 0.5, h * 0.26), w * 0.12, shape,
         Paint()..color = shapeColor);
     // Shadow options along the bottom.
-    final lw = w / 4;
-    for (var i = 0; i < 4; i++) {
+    final n = options.length;
+    final lw = w / n;
+    final r = math.min(w * 0.1, lw * 0.4);
+    for (var i = 0; i < n; i++) {
       final c = Offset((i + 0.5) * lw, h * 0.72);
       if (wrongFlash == i) {
-        canvas.drawCircle(c, w * 0.13,
+        canvas.drawCircle(c, r * 1.3,
             Paint()..color = const Color(0xFFE23B3B).withOpacity(0.4));
       }
-      _paintPolyShape(canvas, c, w * 0.1, options[i],
+      _paintPolyShape(canvas, c, r, options[i],
           Paint()..color = Colors.black.withOpacity(0.72));
     }
   }
