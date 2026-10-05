@@ -71,7 +71,9 @@ class _Panel extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       child: Column(
         children: <Widget>[
-          Text(label, style: const TextStyle(color: Colors.white60, fontSize: 12, letterSpacing: 1.2)),
+          Text(label,
+              style: const TextStyle(
+                  color: Colors.white60, fontSize: 12, letterSpacing: 1.2)),
           const SizedBox(height: 8),
           Expanded(child: Center(child: child)),
         ],
@@ -101,30 +103,61 @@ class _ClickyButtonsState extends State<_ClickyButtons> {
         crossAxisSpacing: 10,
         physics: const NeverScrollableScrollPhysics(),
         children: List<Widget>.generate(6, (i) {
-          return GestureDetector(
-            onTapDown: (_) {
+          // Six identical-looking clicky buttons had zero Semantics tree, so
+          // a blind child had no way to even discover this panel has six
+          // independently-tappable buttons, let alone press one — the same
+          // bug class already fixed across the scored games (block_blast,
+          // whack, color_mixer). Each button's own press state is announced
+          // so a screen-reader user gets the same instant feedback a
+          // sighted child sees in the button's squeeze animation.
+          return Semantics(
+            button: true,
+            label: 'Click button ${i + 1}${_pressed[i] ? ', pressed' : ''}',
+            onTap: () {
               setState(() => _pressed[i] = true);
               HapticFeedback.lightImpact();
-              // A discrete tap deserves a one-shot click, same as every other
-              // tactile gadget in the app — this panel was silent before.
               TonePlayer.instance.playCue(SoundCue.tap);
+              Future<void>.delayed(const Duration(milliseconds: 90), () {
+                if (mounted) setState(() => _pressed[i] = false);
+              });
             },
-            onTapUp: (_) => setState(() => _pressed[i] = false),
-            onTapCancel: () => setState(() => _pressed[i] = false),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 80),
-              transform: Matrix4.identity()..scale(_pressed[i] ? 0.88 : 1.0),
-              transformAlignment: Alignment.center,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: _pressed[i]
-                      ? <Color>[const Color(0xFF1B98E0), const Color(0xFF0B5394)]
-                      : <Color>[const Color(0xFF6DD5FA), const Color(0xFF2980B9)],
+            excludeSemantics: true,
+            child: GestureDetector(
+              onTapDown: (_) {
+                setState(() => _pressed[i] = true);
+                HapticFeedback.lightImpact();
+                // A discrete tap deserves a one-shot click, same as every other
+                // tactile gadget in the app — this panel was silent before.
+                TonePlayer.instance.playCue(SoundCue.tap);
+              },
+              onTapUp: (_) => setState(() => _pressed[i] = false),
+              onTapCancel: () => setState(() => _pressed[i] = false),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 80),
+                transform: Matrix4.identity()..scale(_pressed[i] ? 0.88 : 1.0),
+                transformAlignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: _pressed[i]
+                        ? <Color>[
+                            const Color(0xFF1B98E0),
+                            const Color(0xFF0B5394)
+                          ]
+                        : <Color>[
+                            const Color(0xFF6DD5FA),
+                            const Color(0xFF2980B9)
+                          ],
+                  ),
+                  boxShadow: _pressed[i]
+                      ? const <BoxShadow>[]
+                      : const <BoxShadow>[
+                          BoxShadow(
+                              color: Colors.black38,
+                              blurRadius: 6,
+                              offset: Offset(0, 3))
+                        ],
                 ),
-                boxShadow: _pressed[i]
-                    ? const <BoxShadow>[]
-                    : const <BoxShadow>[BoxShadow(color: Colors.black38, blurRadius: 6, offset: Offset(0, 3))],
               ),
             ),
           );
@@ -173,7 +206,8 @@ class _SpinnerState extends State<_Spinner>
         onTap: () => _vel += 6,
         child: Transform.rotate(
           angle: _angle,
-          child: CustomPaint(size: const Size(140, 140), painter: _SpinnerPainter()),
+          child: CustomPaint(
+              size: const Size(140, 140), painter: _SpinnerPainter()),
         ),
       ),
     );
@@ -189,8 +223,13 @@ class _SpinnerPainter extends CustomPainter {
     for (var i = 0; i < 3; i++) {
       final a = i * 2 * math.pi / 3;
       final arm = c + Offset(math.cos(a), math.sin(a)) * r * 0.78;
-      canvas.drawCircle(arm, r * 0.22,
-          Paint()..shader = const RadialGradient(colors: <Color>[Color(0xFF00F2FE), Color(0xFF4FACFE)]).createShader(Rect.fromCircle(center: arm, radius: r * 0.22)));
+      canvas.drawCircle(
+          arm,
+          r * 0.22,
+          Paint()
+            ..shader = const RadialGradient(
+                    colors: <Color>[Color(0xFF00F2FE), Color(0xFF4FACFE)])
+                .createShader(Rect.fromCircle(center: arm, radius: r * 0.22)));
     }
     canvas.drawCircle(c, r * 0.18, Paint()..color = const Color(0xFFB0BEC5));
   }
@@ -216,30 +255,47 @@ class _ToggleSwitchesState extends State<_ToggleSwitches> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: List<Widget>.generate(_on.length, (i) {
+          void flip() {
+            setState(() => _on[i] = !_on[i]);
+            HapticFeedback.mediumImpact();
+            // Discrete flip, same bug class as the clicky buttons above —
+            // give it its own cue so it reads differently from a click.
+            TonePlayer.instance.playCue(SoundCue.selection);
+          }
+
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 6),
-            child: GestureDetector(
-              onTap: () {
-                setState(() => _on[i] = !_on[i]);
-                HapticFeedback.mediumImpact();
-                // Discrete flip, same bug class as the clicky buttons above —
-                // give it its own cue so it reads differently from a click.
-                TonePlayer.instance.playCue(SoundCue.selection);
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 160),
-                width: 84,
-                height: 40,
-                padding: const EdgeInsets.all(4),
-                alignment: _on[i] ? Alignment.centerRight : Alignment.centerLeft,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  color: _on[i] ? const Color(0xFF26DE81) : const Color(0xFF555E6E),
-                ),
-                child: Container(
-                  width: 30,
-                  height: 30,
-                  decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
+            // Three identical-looking toggles had zero Semantics tree —
+            // a blind child couldn't discover or flip any of them. The
+            // `toggled` state and on/off label mirror exactly what a
+            // sighted child sees from the switch's own position/colour.
+            child: Semantics(
+              button: true,
+              toggled: _on[i],
+              label: 'Switch ${i + 1}, ${_on[i] ? 'on' : 'off'}',
+              onTap: flip,
+              excludeSemantics: true,
+              child: GestureDetector(
+                onTap: flip,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 160),
+                  width: 84,
+                  height: 40,
+                  padding: const EdgeInsets.all(4),
+                  alignment:
+                      _on[i] ? Alignment.centerRight : Alignment.centerLeft,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    color: _on[i]
+                        ? const Color(0xFF26DE81)
+                        : const Color(0xFF555E6E),
+                  ),
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: const BoxDecoration(
+                        shape: BoxShape.circle, color: Colors.white),
+                  ),
                 ),
               ),
             ),
@@ -267,8 +323,10 @@ class _GlideRollerState extends State<_GlideRoller> {
       child: LayoutBuilder(builder: (context, c) {
         return GestureDetector(
           onPanUpdate: (e) {
-            setState(() => _value = (_value + e.delta.dy / c.maxHeight).clamp(0.0, 1.0));
-            if ((_value * 12).round() != ((_value - e.delta.dy / c.maxHeight) * 12).round()) {
+            setState(() =>
+                _value = (_value + e.delta.dy / c.maxHeight).clamp(0.0, 1.0));
+            if ((_value * 12).round() !=
+                ((_value - e.delta.dy / c.maxHeight) * 12).round()) {
               HapticFeedback.selectionClick();
               // Same gap as the spinner: this panel's step clicks were
               // haptic-only while its siblings on the same screen already
@@ -293,7 +351,10 @@ class _GlideRollerState extends State<_GlideRoller> {
                     height: 44,
                     decoration: const BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: RadialGradient(colors: <Color>[Color(0xFFFFD194), Color(0xFFF79D00)]),
+                      gradient: RadialGradient(colors: <Color>[
+                        Color(0xFFFFD194),
+                        Color(0xFFF79D00)
+                      ]),
                     ),
                   ),
                 ),
