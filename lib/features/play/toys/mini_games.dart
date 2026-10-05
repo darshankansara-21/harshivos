@@ -123,9 +123,11 @@ class _GameShellState extends State<_GameShell> {
       _runStartBest = oldWidget.best;
     }
     // See _Shell's matching comment in arcade_games.dart: one discrete
-    // haptic pulse when a run ends, not on every tap.
+    // haptic pulse when a run ends, not on every tap. Must gate on
+    // hapticsEnabled itself since it bypasses TonePlayer.playCue.
     if (oldWidget.status == GameStatus.playing &&
-        widget.status != GameStatus.playing) {
+        widget.status != GameStatus.playing &&
+        TonePlayer.instance.hapticsEnabled) {
       if (widget.status == GameStatus.won) {
         HapticFeedback.mediumImpact();
       } else {

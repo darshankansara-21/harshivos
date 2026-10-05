@@ -146,9 +146,13 @@ class _ShellState extends State<_Shell> {
     // A single discrete pulse (not per-tap spam, which would be a gimmick)
     // gives a real physical sense of "it's over" alongside the sound/visual
     // cue, matching CLAUDE.md's "tactile response" audit criterion that no
-    // Play game previously answered at all.
+    // Play game previously answered at all. This calls HapticFeedback
+    // directly (not through TonePlayer.playCue), so it must gate on
+    // hapticsEnabled itself or the Sensory Settings haptics toggle would
+    // silently fail to mute it, unlike every other haptic pulse in the app.
     if (oldWidget.status == GameStatus.playing &&
-        widget.status != GameStatus.playing) {
+        widget.status != GameStatus.playing &&
+        TonePlayer.instance.hapticsEnabled) {
       if (widget.status == GameStatus.won) {
         HapticFeedback.mediumImpact();
       } else {
