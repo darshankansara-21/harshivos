@@ -49,6 +49,12 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
   // real aspect ratio so hit-testing matches what's drawn.
   double _aspect = 1.0; // height / width of the last laid-out canvas
 
+  // Sensory Settings' "Reduce motion" toggle otherwise only shortens Flutter's
+  // own implicit animations/page transitions — every arcade game's hand-rolled
+  // particle bursts kept firing at full density regardless, so a child who
+  // turned it on for exactly this kind of overstimulation got no relief here.
+  bool _reduceMotion = false;
+
   static const double _shipR = 0.045;
 
   @override
@@ -271,7 +277,10 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
   }
 
   void _burstAt(double x, double y, Color color, int n) {
-    for (var i = 0; i < n; i++) {
+    // Thin the burst (never cut it to zero — some feedback still matters)
+    // when the child has asked for reduced motion.
+    final effectiveN = _reduceMotion ? math.max(3, (n / 3).round()) : n;
+    for (var i = 0; i < effectiveN; i++) {
       final a = _rnd.nextDouble() * math.pi * 2;
       final sp = 0.2 + _rnd.nextDouble() * 0.4;
       _shards.add(_Shard(x, y, math.cos(a) * sp, math.sin(a) * sp, color));
@@ -308,6 +317,7 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
   @override
   Widget build(BuildContext context) {
     drain(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _Shell(
       title: '🚀 Space Dodge',
       introHow:

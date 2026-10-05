@@ -398,6 +398,10 @@ class _FruitCatchGameState extends State<FruitCatchGame>
   double _bannerT = 0;
   String? _banner;
   GameStatus _status = GameStatus.ready;
+  // See BowlingGame's identical field for why: Sensory Settings' "Reduce
+  // motion" toggle never reached hand-rolled particle bursts like this
+  // game's catch splash.
+  bool _reduceMotion = false;
 
   @override
   void initState() {
@@ -506,7 +510,8 @@ class _FruitCatchGameState extends State<FruitCatchGame>
   }
 
   void _splashAt(double x, double y, Color color, int n) {
-    for (var i = 0; i < n; i++) {
+    final effectiveN = _reduceMotion ? math.max(3, (n / 3).round()) : n;
+    for (var i = 0; i < effectiveN; i++) {
       final a = _rnd.nextDouble() * math.pi * 2;
       final sp = 0.3 + _rnd.nextDouble() * 0.5;
       _splash.add(_Particle(
@@ -547,6 +552,7 @@ class _FruitCatchGameState extends State<FruitCatchGame>
   @override
   Widget build(BuildContext context) {
     drainCompanion(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _GameShell(
       title: '🧺 Catch',
       introHow: 'Drag the basket to catch the fruit — dodge the bombs!',
@@ -2422,6 +2428,11 @@ class _BowlingGameState extends State<BowlingGame>
   double _bannerT = 0;
   String? _banner;
   GameStatus _status = GameStatus.ready;
+  // Sensory Settings' "Reduce motion" toggle only shortens Flutter's own
+  // implicit animations/page transitions by default — the strike/spare
+  // confetti burst below ignored it entirely, so it's read here and used
+  // to thin (never fully silence) the burst.
+  bool _reduceMotion = false;
 
   @override
   void initState() {
@@ -2472,7 +2483,9 @@ class _BowlingGameState extends State<BowlingGame>
   // A burst of confetti at the pin deck — the strike/spare celebration a
   // text banner alone can't deliver. Rises and fans out, then fades.
   void _burst(Color color, {int count = 22}) {
-    for (var i = 0; i < count; i++) {
+    final effectiveCount =
+        _reduceMotion ? math.max(4, (count / 3).round()) : count;
+    for (var i = 0; i < effectiveCount; i++) {
       final a = _rnd.nextDouble() * math.pi * 2;
       final sp = 0.25 + _rnd.nextDouble() * 0.55;
       _confetti.add(_Particle(
@@ -2693,6 +2706,7 @@ class _BowlingGameState extends State<BowlingGame>
   @override
   Widget build(BuildContext context) {
     drainCompanion(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _GameShell(
       title: '🎳 Ten-Pin Bowling',
       score: _score,
