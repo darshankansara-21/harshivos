@@ -23,6 +23,12 @@ class _BlockBlastGameState extends State<BlockBlastGame> with _Emit {
   int _best = 0;
   String? _banner;
   GameStatus _status = GameStatus.ready;
+  // Cells of the last attempted-but-rejected placement, briefly flashed red
+  // so tapping a cell a selected piece can't fit into (off the edge or
+  // already filled) isn't total silence — the same "no-op tap gives zero
+  // feedback" bug class fixed in slide_puzzle/color_mixer, applied here.
+  List<math.Point<int>> _invalidCells = const <math.Point<int>>[];
+  int _invalidToken = 0;
 
   static const List<Color> _pieceColors = <Color>[
     Color(0xFFEF476F), Color(0xFFFFD166), Color(0xFF06D6A0),
@@ -97,7 +103,21 @@ class _BlockBlastGameState extends State<BlockBlastGame> with _Emit {
   void _place(int r, int c) {
     if (_status != GameStatus.playing || _sel < 0) return;
     final p = _hand[_sel];
-    if (p == null || !_fits(p, r, c)) return;
+    if (p == null) return;
+    if (!_fits(p, r, c)) {
+      TonePlayer.instance.playCue(SoundCue.gentleRetry);
+      final token = ++_invalidToken;
+      setState(() {
+        _invalidCells =
+            p.cells.map((o) => math.Point<int>(r + o.x, c + o.y)).toList();
+      });
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (mounted && token == _invalidToken) {
+          setState(() => _invalidCells = const <math.Point<int>>[]);
+        }
+      });
+      return;
+    }
     for (final o in p.cells) {
       _grid[r + o.x][c + o.y] = p.color;
     }
@@ -170,6 +190,8 @@ class _BlockBlastGameState extends State<BlockBlastGame> with _Emit {
           List<List<Color?>>.generate(_n, (_) => List<Color?>.filled(_n, null));
       _score = 0;
       _banner = null;
+      _invalidCells = const <math.Point<int>>[];
+      _invalidToken++;
       _status = GameStatus.playing;
       _refill();
     });
@@ -232,8 +254,11 @@ class _BlockBlastGameState extends State<BlockBlastGame> with _Emit {
                                 Transform.scale(scale: s, child: child),
                             child: Container(
                               decoration: BoxDecoration(
-                                color: _grid[r][c] ??
-                                    Colors.white.withOpacity(0.05),
+                                color: _invalidCells.contains(
+                                        math.Point<int>(r, c))
+                                    ? Colors.redAccent.withOpacity(0.55)
+                                    : _grid[r][c] ??
+                                        Colors.white.withOpacity(0.05),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             ),
