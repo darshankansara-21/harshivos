@@ -190,6 +190,7 @@ class _FeelingsMatchGameState extends State<FeelingsMatchGame> with _Emit {
                     for (var i = 0; i < _options.length; i++)
                       _FaceOption(
                         face: _options[i].face,
+                        name: _options[i].name,
                         wrong: _wrong == i,
                         onTap: () => _pick(_options[i], i),
                       ),
@@ -206,27 +207,44 @@ class _FeelingsMatchGameState extends State<FeelingsMatchGame> with _Emit {
 }
 
 class _FaceOption extends StatelessWidget {
-  const _FaceOption({required this.face, required this.wrong, required this.onTap});
+  const _FaceOption(
+      {required this.face,
+      required this.name,
+      required this.wrong,
+      required this.onTap});
   final String face;
+  final String name;
   final bool wrong;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    // This whole option was only a raw GestureDetector around a Text(face)
+    // glyph — a blind child gets no indication these faces are tappable
+    // buttons at all, and raw emoji alone (e.g. 😲 vs 😨) read inconsistently
+    // across screen readers. Expose a named button; excludeSemantics stops
+    // the inner emoji glyph from being separately (and redundantly) read.
+    return Semantics(
+      button: true,
+      label: '$name face',
       onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        width: 92,
-        height: 92,
-        decoration: BoxDecoration(
-          color: wrong ? const Color(0xFFE23B3B) : Colors.white10,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-              color: wrong ? const Color(0xFFE23B3B) : Colors.white24, width: 2),
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          width: 92,
+          height: 92,
+          decoration: BoxDecoration(
+            color: wrong ? const Color(0xFFE23B3B) : Colors.white10,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+                color: wrong ? const Color(0xFFE23B3B) : Colors.white24,
+                width: 2),
+          ),
+          alignment: Alignment.center,
+          child: Text(face, style: const TextStyle(fontSize: 48)),
         ),
-        alignment: Alignment.center,
-        child: Text(face, style: const TextStyle(fontSize: 48)),
       ),
     );
   }
