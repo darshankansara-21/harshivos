@@ -527,7 +527,8 @@ final List<UniverseToy> kToyUniverse = <UniverseToy>[
   UniverseToy(
     id: 'pinball', name: 'Pinball', emoji: '🎱',
     color: const Color(0xFFFFC857),
-    category: ToyCategory.arcade, inputs: const [ToyInput.tap],
+    category: ToyCategory.arcade,
+    inputs: const [ToyInput.hold, ToyInput.multiTouch],
     engagement: ToyEngagement.deep, build: _play('pinball'), isNew: true,
   ),
   UniverseToy(
