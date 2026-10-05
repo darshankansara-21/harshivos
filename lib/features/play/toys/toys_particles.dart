@@ -25,6 +25,7 @@ class _ParticleGalaxyToyState extends State<ParticleGalaxyToy>
   final math.Random _r = math.Random();
   Offset? _attractor;
   double _hue = 0;
+  bool _reduceMotion = false;
 
   @override
   void initState() {
@@ -41,7 +42,8 @@ class _ParticleGalaxyToyState extends State<ParticleGalaxyToy>
     // before — matching the sibling Fireworks toy's audio feedback.
     TonePlayer.instance.playNote(_r.nextInt(TonePlayer.pentatonic.length) + 4,
         seconds: 0.16);
-    for (var i = 0; i < 40; i++) {
+    final n = _reduceMotion ? 13 : 40;
+    for (var i = 0; i < n; i++) {
       final a = _r.nextDouble() * math.pi * 2;
       final speed = 60 + _r.nextDouble() * 220;
       _stars.add(_Star(
@@ -86,6 +88,7 @@ class _ParticleGalaxyToyState extends State<ParticleGalaxyToy>
 
   @override
   Widget build(BuildContext context) {
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return Listener(
       onPointerDown: (e) {
         _attractor = e.localPosition;
@@ -166,6 +169,7 @@ class _FireworksToyState extends State<FireworksToy>
   final List<_Shell> _shells = <_Shell>[];
   final math.Random _r = math.Random();
   double _hue = 0;
+  bool _reduceMotion = false;
 
   void _launch(Offset target) {
     final size = context.size ?? Size.zero;
@@ -180,7 +184,8 @@ class _FireworksToyState extends State<FireworksToy>
   void _explode(Offset p, double hue) {
     HapticFeedback.mediumImpact();
     TonePlayer.instance.playCue(SoundCue.crash);
-    for (var i = 0; i < 60; i++) {
+    final n = _reduceMotion ? 20 : 60;
+    for (var i = 0; i < n; i++) {
       final a = _r.nextDouble() * math.pi * 2;
       final speed = 40 + _r.nextDouble() * 200;
       _sparks.add(_Spark(
@@ -212,6 +217,7 @@ class _FireworksToyState extends State<FireworksToy>
 
   @override
   Widget build(BuildContext context) {
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return GestureDetector(
       onTapDown: (e) => _launch(e.localPosition),
       child: CustomPaint(

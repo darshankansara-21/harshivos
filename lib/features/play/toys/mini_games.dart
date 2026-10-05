@@ -642,6 +642,7 @@ class _BalloonPopGameState extends State<BalloonPopGame>
   final math.Random _rnd = math.Random();
   final List<_Balloon> _items = <_Balloon>[];
   final List<_Particle> _pop = <_Particle>[];
+  bool _reduceMotion = false;
   double _spawnIn = 0.4;
   double _t = 0;
   int _score = 0;
@@ -753,7 +754,8 @@ class _BalloonPopGameState extends State<BalloonPopGame>
   }
 
   void _popBurst(double x, double y, Color color, int n) {
-    for (var i = 0; i < n; i++) {
+    final effectiveN = _reduceMotion ? math.max(3, (n / 3).round()) : n;
+    for (var i = 0; i < effectiveN; i++) {
       final a = _rnd.nextDouble() * math.pi * 2;
       final sp = 0.35 + _rnd.nextDouble() * 0.55;
       _pop.add(_Particle(
@@ -790,6 +792,7 @@ class _BalloonPopGameState extends State<BalloonPopGame>
   @override
   Widget build(BuildContext context) {
     drainCompanion(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _GameShell(
       title: '🎈 Pop',
       introHow: 'Tap the balloons to pop them. Pop fast for combos!',
@@ -1332,6 +1335,7 @@ class _SnakeGameState extends State<SnakeGame>
   final List<_Orb> _orbs = <_Orb>[];
   final List<_AiWorm> _ai = <_AiWorm>[];
   final List<_Particle> _particles = <_Particle>[];
+  bool _reduceMotion = false;
   // Score thresholds at which one more rival worm joins the arena (capped).
   static const List<int> _aiReinforceScores = <int>[8, 18];
   int _aiReinforcementsSpawned = 0;
@@ -1629,7 +1633,8 @@ class _SnakeGameState extends State<SnakeGame>
   }
 
   void _burst(Offset pos, Color color, int n, double speed) {
-    for (var i = 0; i < n; i++) {
+    final effectiveN = _reduceMotion ? math.max(4, (n / 3).round()) : n;
+    for (var i = 0; i < effectiveN; i++) {
       final a = _rnd.nextDouble() * math.pi * 2;
       final sp = speed * (0.4 + _rnd.nextDouble());
       _particles.add(_Particle(pos, Offset(math.cos(a), math.sin(a)) * sp,
@@ -1677,6 +1682,7 @@ class _SnakeGameState extends State<SnakeGame>
   @override
   Widget build(BuildContext context) {
     drainCompanion(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _GameShell(
       title: '🐍 Snake · Orbs',
       score: _score,
