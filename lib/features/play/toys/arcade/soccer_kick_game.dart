@@ -126,6 +126,9 @@ class _SoccerKickGameState extends State<SoccerKickGame>
     final err = (0.26 - _score * 0.015).clamp(0.04, 0.26);
     _keeperTarget =
         (predX + (_rnd.nextDouble() - 0.5) * 2 * err).clamp(_goalL + 0.03, _goalR - 0.03);
+    // The strike itself was silent — the ball visibly flies for several frames
+    // before the goal/miss result plays, so the kick needs its own feedback.
+    TonePlayer.instance.playCue(SoundCue.ball);
     _flying = true;
   }
 
