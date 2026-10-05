@@ -78,6 +78,12 @@ class _QuickTapGameState extends State<QuickTapGame>
     if (_phase == 0) {
       _phase = 2; // tapped before green
       TonePlayer.instance.playCue(SoundCue.gentleRetry);
+      // Tapping early is this game's one and only mistake — the whole point
+      // of a reaction-time game — yet it previously only played a sound with
+      // no companion reaction, unlike every sibling wrong-tap in
+      // goal_games.dart (`_PathFinderGameState`, `GoalKeeperGame`) which
+      // already pair the same sound with this emit so Hari/Pico can react.
+      emit(ExperienceEvent.incorrectAnswer);
       setState(() {});
       return;
     }
