@@ -45,6 +45,10 @@ class _GoalShell extends StatefulWidget {
     this.message,
     this.introHow,
     this.onStart,
+    this.winEmoji,
+    this.winText,
+    this.overEmoji,
+    this.overText,
   });
 
   final String title;
@@ -60,6 +64,14 @@ class _GoalShell extends StatefulWidget {
   final String? message;
   final String? introHow;
   final VoidCallback? onStart;
+  // Optional per-game win/lose flavour. Null falls back to the shared
+  // generic '🎉 Goal complete!' / '💪 Good try!' so every untouched game
+  // stays pixel-identical — same additive, zero-regression pattern used by
+  // `_Shell`/`_GameShell`'s own winEmoji/winText/overEmoji/overText.
+  final String? winEmoji;
+  final String? winText;
+  final String? overEmoji;
+  final String? overText;
 
   @override
   State<_GoalShell> createState() => _GoalShellState();
@@ -96,6 +108,10 @@ class _GoalShellState extends State<_GoalShell> {
     final message = widget.message;
     final introHow = widget.introHow;
     final onStart = widget.onStart;
+    final winEmoji = widget.winEmoji;
+    final winText = widget.winText;
+    final overEmoji = widget.overEmoji;
+    final overText = widget.overText;
     return GameMusicHost(
       playing: status == GameStatus.playing,
       bed: WonderMusicBed.puzzle,
@@ -178,11 +194,16 @@ class _GoalShellState extends State<_GoalShell> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    Text(status == GameStatus.won ? '🎉' : '💪',
+                    Text(
+                        status == GameStatus.won
+                            ? (winEmoji ?? '🎉')
+                            : (overEmoji ?? '💪'),
                         style: const TextStyle(fontSize: 70)),
                     const SizedBox(height: 8),
                     Text(
-                      status == GameStatus.won ? 'Goal complete!' : 'Good try!',
+                      status == GameStatus.won
+                          ? (winText ?? 'Goal complete!')
+                          : (overText ?? 'Good try!'),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 28,
@@ -343,6 +364,8 @@ class _ChoiceGoalGame extends StatefulWidget {
     required this.accent,
     required this.background,
     required this.buildRound,
+    this.winEmoji,
+    this.winText,
   });
 
   final String id;
@@ -351,6 +374,11 @@ class _ChoiceGoalGame extends StatefulWidget {
   final Color accent;
   final List<Color> background;
   final _RoundBuilder buildRound;
+  // Themed win screen for this specific game; null keeps the shared shell's
+  // generic '🎉 Goal complete!' (this game family is no-fail, so there is no
+  // lose screen to theme).
+  final String? winEmoji;
+  final String? winText;
 
   @override
   State<_ChoiceGoalGame> createState() => _ChoiceGoalGameState();
@@ -453,6 +481,8 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> with _GoalEmit {
       accent: widget.accent,
       message: _message,
       onReset: _reset,
+      winEmoji: widget.winEmoji,
+      winText: widget.winText,
       child: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -646,6 +676,8 @@ class ColorQuestGame extends StatelessWidget {
         goal: 'Find the named color · 8 correct answers wins',
         accent: const Color(0xFFFFD166),
         background: const <Color>[Color(0xFF28205A), Color(0xFF111836)],
+        winEmoji: '🎨',
+        winText: 'Color Quest complete!',
         buildRound: (round, random) {
           final choices = List<String>.of(_colors)..shuffle(random);
           final options = choices.take(4).toList();
@@ -670,6 +702,8 @@ class ShapeScoutGame extends StatelessWidget {
         goal: 'Match the shape shown above · 8 matches wins',
         accent: const Color(0xFF4CC9F0),
         background: const <Color>[Color(0xFF123A52), Color(0xFF081D2E)],
+        winEmoji: '🔷',
+        winText: 'Shape Scout champion!',
         buildRound: (round, random) {
           final choices = List<String>.of(_shapes)..shuffle(random);
           final options = choices.take(4).toList();
@@ -689,6 +723,8 @@ class NumberSplashGame extends StatelessWidget {
         goal: 'Solve the sum · 8 correct answers wins',
         accent: const Color(0xFF43E97B),
         background: const <Color>[Color(0xFF174D3A), Color(0xFF092A28)],
+        winEmoji: '➕',
+        winText: 'Number Splash master!',
         buildRound: (round, random) {
           final hi = 5 + round ~/ 3;
           final a = 1 + random.nextInt(hi);
@@ -818,6 +854,8 @@ class _PathFinderGameState extends State<PathFinderGame> with _GoalEmit {
       accent: const Color(0xFFFFD166),
       message: _message,
       onReset: _reset,
+      winEmoji: '🗺️',
+      winText: 'Treasure found!',
       child: ColoredBox(
         color: const Color(0xFF10283A),
         child: SafeArea(
@@ -1116,6 +1154,10 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
       accent: const Color(0xFFFFD166),
       message: _message ?? 'Lives ${'⚽' * _lives}${'·' * (5 - _lives)}',
       onReset: _reset,
+      winEmoji: '🧤',
+      winText: 'Saved the match!',
+      overEmoji: '🥅',
+      overText: 'Out of lives!',
       child: LayoutBuilder(
         builder: (context, c) {
           return GestureDetector(
