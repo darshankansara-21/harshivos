@@ -44,7 +44,14 @@ class _QuickTapGameState extends State<QuickTapGame>
     if (_flashT > 0) _flashT -= dt;
     if (_phase == 0) {
       _waitT -= dt;
-      if (_waitT <= 0) _phase = 1;
+      if (_waitT <= 0) {
+        _phase = 1;
+        // A distinct "go" chirp at the exact red→green instant lets a blind
+        // or low-vision child react by ear the same moment a sighted child
+        // reacts by sight — it never hints at tap correctness, so the real
+        // reaction-time challenge is unchanged.
+        TonePlayer.instance.playCue(SoundCue.readyGo);
+      }
     } else if (_phase == 1) {
       _reactT += dt;
     } else if (_phase == 3) {

@@ -45,6 +45,11 @@ enum SoundCue {
   success,
   gameStart,
   gameOver,
+  // A short, distinct "go" chirp for the instant a reaction-time challenge
+  // becomes tappable (e.g. quick_tap's red→green flip). Lets a blind/low-
+  // vision child react by ear exactly when a sighted child reacts by sight,
+  // without revealing anything about the tap's own correctness.
+  readyGo,
 }
 
 /// The role a sound plays in the experience. This is the single place that
@@ -249,6 +254,9 @@ class TonePlayer {
       SoundCue.ripple || SoundCue.routineDone => 400,
       SoundCue.bowling => 500,
       SoundCue.gameStart => 300,
+      // Fires once per round (at most every ~0.9s by quick_tap's own wait
+      // timer), so no extra cooldown is needed beyond a spam guard.
+      SoundCue.readyGo => 150,
       SoundCue.success || SoundCue.crash || SoundCue.gameOver => 700,
     };
     if (last != null && now.difference(last).inMilliseconds < cooldown) return;
@@ -363,6 +371,13 @@ class TonePlayer {
         await Future<void>.delayed(const Duration(milliseconds: 110));
         await _play(200,
             seconds: 0.30, wave: _Wave.sine, attack: 0.02, decay: 4);
+      case SoundCue.readyGo:
+        // A crisp upward "go" chirp — single bright triangle blip, distinct
+        // from every tap-result cue (correct/gentleRetry/selection) so a
+        // player reacting purely on sound still has to wait for *this* exact
+        // chirp and nothing else.
+        await _play(880,
+            seconds: 0.09, wave: _Wave.triangle, attack: 0.005, decay: 14);
       }
     } finally {
       _kindScale = 1;
@@ -414,6 +429,7 @@ class TonePlayer {
         case SoundCue.learnGood:
         case SoundCue.talkAck:
         case SoundCue.routineDone:
+        case SoundCue.readyGo:
           HapticFeedback.selectionClick();
         case SoundCue.gentleRetry:
         case SoundCue.navigation:
