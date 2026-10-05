@@ -158,23 +158,29 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: <Widget>[
                   for (var i = 0; i < _nums.length; i++)
-                    GestureDetector(
+                    Semantics(
+                      button: true,
+                      label: 'Number ${_nums[i]}',
                       onTap: () => _tap(i),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 140),
-                        width: 92,
-                        height: 110,
-                        decoration: BoxDecoration(
-                          color: _wrong == i ? const Color(0xFFE23B3B) : Colors.white12,
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: Colors.white24, width: 2),
+                      excludeSemantics: true,
+                      child: GestureDetector(
+                        onTap: () => _tap(i),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 140),
+                          width: 92,
+                          height: 110,
+                          decoration: BoxDecoration(
+                            color: _wrong == i ? const Color(0xFFE23B3B) : Colors.white12,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(color: Colors.white24, width: 2),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text('${_nums[i]}',
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 40,
+                                  fontWeight: FontWeight.w900)),
                         ),
-                        alignment: Alignment.center,
-                        child: Text('${_nums[i]}',
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 40,
-                                fontWeight: FontWeight.w900)),
                       ),
                     ),
                 ],
