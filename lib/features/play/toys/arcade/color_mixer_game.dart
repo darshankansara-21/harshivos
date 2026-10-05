@@ -234,25 +234,40 @@ class _ColorMixerGameState extends State<ColorMixerGame> with _Emit {
                 for (var i = 0; i < _dye.length; i++)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 6),
-                    child: GestureDetector(
+                    // The 4 paint drops were only tappable via a bare
+                    // GestureDetector with zero Semantics tree, so a blind
+                    // child's screen reader announced nothing at all here —
+                    // not even "button" — making the whole "tap to pour"
+                    // premise silently undiscoverable. The label states only
+                    // each drop's own colour name (already shown as visible
+                    // text beneath it), never which combination makes the
+                    // target, preserving the real mixing-logic challenge
+                    // exactly as a sighted child must work it out.
+                    child: Semantics(
+                      button: true,
+                      label: '${_dyeName[i]} paint. Tap to pour into the bowl.',
                       onTap: () => _addDrop(i),
-                      child: Column(
-                        children: <Widget>[
-                          Container(
-                            width: 56,
-                            height: 56,
-                            decoration: BoxDecoration(
-                              color: _dyeColor[i],
-                              shape: BoxShape.circle,
-                              border:
-                                  Border.all(color: Colors.white70, width: 2),
+                      excludeSemantics: true,
+                      child: GestureDetector(
+                        onTap: () => _addDrop(i),
+                        child: Column(
+                          children: <Widget>[
+                            Container(
+                              width: 56,
+                              height: 56,
+                              decoration: BoxDecoration(
+                                color: _dyeColor[i],
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                    color: Colors.white70, width: 2),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(_dyeName[i],
-                              style: const TextStyle(
-                                  color: Colors.white70, fontSize: 11)),
-                        ],
+                            const SizedBox(height: 4),
+                            Text(_dyeName[i],
+                                style: const TextStyle(
+                                    color: Colors.white70, fontSize: 11)),
+                          ],
+                        ),
                       ),
                     ),
                   ),
