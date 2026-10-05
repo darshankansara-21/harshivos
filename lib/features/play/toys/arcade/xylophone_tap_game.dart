@@ -125,7 +125,7 @@ class _XylophoneTapGameState extends State<XylophoneTapGame> with _Emit {
       status: _status,
       banner: _banner ?? progress,
       winEmoji: '🎵',
-      winText: 'Keep playing!',
+      winText: 'All 3 tunes played!',
       accent: const Color(0xFFFFD166),
       onPlayAgain: _start,
       child: Container(
