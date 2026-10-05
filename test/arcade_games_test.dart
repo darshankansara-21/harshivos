@@ -686,6 +686,7 @@ void main() {
     await tester.tapAt(const Offset(200, 500));
     await tester.pump(const Duration(milliseconds: 100));
     await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 100));
     expect(tester.takeException(), isNull);
   });
 

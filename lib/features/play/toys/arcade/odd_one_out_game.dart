@@ -92,6 +92,13 @@ class _OddOneOutGameState extends State<OddOneOutGame> with _Emit {
       } else {
         TonePlayer.instance.playCue(SoundCue.gentleRetry);
         _banner = 'Look closely…';
+        // Without this, the red flash on a missed tile stayed stuck for the
+        // rest of the round — the whole time a child kept searching for the
+        // real odd one out — instead of the brief mistake cue every other
+        // sort/match game in the catalog gives.
+        Future.delayed(const Duration(milliseconds: 400), () {
+          if (mounted && _wrong == i) setState(() => _wrong = -1);
+        });
       }
     }
     setState(() {});
