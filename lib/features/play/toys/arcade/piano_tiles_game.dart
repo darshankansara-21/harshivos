@@ -27,6 +27,15 @@ class _PianoTilesGameState extends State<PianoTilesGame>
   int _mPos = 0;
   int _flashCol = -1;
   double _flashT = 0;
+  // Every other tap-the-right-thing game in the catalog (echo, catch_beat,
+  // shadow_match, spot_difference, pattern_weaver, weather_sort) flashes a
+  // distinct red on a wrong/miss tap instead of reusing the correct-tap
+  // highlight. Piano Tiles — the Phase-5 benchmark game — had neither: a
+  // wrong-column tap went straight to the game-over overlay with no visual
+  // flash on the tapped column at all, so the only feedback was the card a
+  // moment later. Track whether the pending flash is a hit or the fatal
+  // miss so the painter can render it in the catalog-wide red tint.
+  bool _flashWrong = false;
   double _speed = 0.42;
   double _spawnIn = 0;
   int _score = 0;
@@ -103,6 +112,7 @@ class _PianoTilesGameState extends State<PianoTilesGame>
       TonePlayer.instance.playNote(target.note, seconds: 0.22);
       _flashCol = c;
       _flashT = 0.26;
+      _flashWrong = false;
       emit(ExperienceEvent.bubblePopped);
       _speed = math.min(0.95, _speed + 0.006);
       // Milestone banners every 10 tiles, matching the celebratory-progress
@@ -116,6 +126,12 @@ class _PianoTilesGameState extends State<PianoTilesGame>
         if (mounted && b != _best) setState(() => _best = b);
       });
     } else {
+      // Mirror the red wrong-tap flash established in echo_game/catch_beat:
+      // set it in the same breath as the game-over status so the tapped
+      // column shows a distinct red pulse instead of nothing at all.
+      _flashCol = c;
+      _flashT = 0.26;
+      _flashWrong = true;
       _gameOver();
     }
   }
@@ -147,6 +163,7 @@ class _PianoTilesGameState extends State<PianoTilesGame>
       _mPos = 0;
       _flashCol = -1;
       _flashT = 0;
+      _flashWrong = false;
       _banner = null;
       _bannerT = 0;
       _lastMilestone = 0;
@@ -182,7 +199,7 @@ class _PianoTilesGameState extends State<PianoTilesGame>
                     .floor()
                     .clamp(0, _cols - 1)),
             child: CustomPaint(
-              painter: _PianoPainter(_rows, _cols, _flashCol, _flashT),
+              painter: _PianoPainter(_rows, _cols, _flashCol, _flashT, _flashWrong),
               size: Size.infinite,
             ),
           );
@@ -193,11 +210,12 @@ class _PianoTilesGameState extends State<PianoTilesGame>
 }
 
 class _PianoPainter extends CustomPainter {
-  _PianoPainter(this.rows, this.cols, this.flashCol, this.flashT);
+  _PianoPainter(this.rows, this.cols, this.flashCol, this.flashT, this.flashWrong);
   final List<_PRow> rows;
   final int cols;
   final int flashCol;
   final double flashT;
+  final bool flashWrong;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -210,12 +228,18 @@ class _PianoPainter extends CustomPainter {
     for (var i = 1; i < cols; i++) {
       canvas.drawLine(Offset(cw * i, 0), Offset(cw * i, size.height), div);
     }
-    // Column hit-flash so every note lands with a visible pulse.
+    // Column hit-flash so every note lands with a visible pulse. A wrong/
+    // fatal miss renders the catalog-wide red tint instead of the purple
+    // accent, matching echo_game/catch_beat's distinct wrong-tap convention.
     if (flashCol >= 0 && flashT > 0) {
       final k = (flashT / 0.26).clamp(0.0, 1.0);
       canvas.drawRect(
           Rect.fromLTWH(flashCol * cw, 0, cw, size.height),
-          Paint()..color = const Color(0xFF9B5DE5).withOpacity(0.22 * k));
+          Paint()
+            ..color = (flashWrong
+                    ? const Color(0xFFE23B3B)
+                    : const Color(0xFF9B5DE5))
+                .withOpacity(0.22 * k));
     }
     final th = size.height * 0.22;
     for (final r in rows) {
