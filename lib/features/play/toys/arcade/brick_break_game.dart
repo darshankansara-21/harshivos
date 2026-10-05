@@ -50,6 +50,7 @@ class _BrickBreakGameState extends State<BrickBreakGame>
   static const double _paddleW = 0.24;
   static const double _ballR = 0.022;
   static const int _maxLives = 5;
+  double _aspect = 1.0; // height / width of the last laid-out canvas
 
   double get _effectivePaddleW => _wideT > 0 ? _paddleW * 1.45 : _paddleW;
 
@@ -154,6 +155,14 @@ class _BrickBreakGameState extends State<BrickBreakGame>
     final ballDt = dt * (_slowT > 0 ? 0.62 : 1.0);
     _bx += _vx * ballDt;
     _by += _vy * ballDt;
+    // The ball is painted as a true pixel circle of radius `_ballR * w`
+    // (width-based, see _BrickPainter). Every y-axis collision margin below
+    // must use `_ballRY` (the same pixel radius converted into height-
+    // normalized units) instead of `_ballR` directly — otherwise the hitbox
+    // is stretched/squashed vertically on any non-square canvas, the same
+    // aspect-ratio distortion bug already fixed in several other arcade
+    // games (mini_golf, pinball, air_hockey, basketball, maze_marble).
+    final ballRY = _ballR / _aspect;
     if (_bx < _ballR) {
       _bx = _ballR;
       _vx = _vx.abs();
@@ -161,14 +170,14 @@ class _BrickBreakGameState extends State<BrickBreakGame>
       _bx = 1 - _ballR;
       _vx = -_vx.abs();
     }
-    if (_by < 0.08 + _ballR) {
-      _by = 0.08 + _ballR;
+    if (_by < 0.08 + ballRY) {
+      _by = 0.08 + ballRY;
       _vy = _vy.abs();
     }
     // Paddle bounce.
     const paddleY = 0.9;
     if (_vy > 0 &&
-        _by + _ballR >= paddleY &&
+        _by + ballRY >= paddleY &&
         _by < paddleY + 0.03 &&
         (_bx - _paddleX).abs() < _effectivePaddleW / 2 + _ballR) {
       _vy = -_vy.abs();
@@ -188,8 +197,8 @@ class _BrickBreakGameState extends State<BrickBreakGame>
       final rect = Rect.fromLTWH(left + 0.008, top, bw - 0.016, 0.042);
       if (_bx > rect.left - _ballR &&
           _bx < rect.right + _ballR &&
-          _by > rect.top - _ballR &&
-          _by < rect.bottom + _ballR) {
+          _by > rect.top - ballRY &&
+          _by < rect.bottom + ballRY) {
         final remaining = _bricks[i] - 1;
         _bricks[i] = remaining;
         _combo = remaining <= 0 ? _combo + 1 : 0;
@@ -311,6 +320,8 @@ class _BrickBreakGameState extends State<BrickBreakGame>
       onPlayAgain: _reset,
       child: LayoutBuilder(
         builder: (context, constraints) {
+          final w = constraints.maxWidth;
+          if (w > 0) _aspect = constraints.maxHeight / w;
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
             onPanUpdate: (d) => _aim(d.localPosition.dx, constraints.maxWidth),
