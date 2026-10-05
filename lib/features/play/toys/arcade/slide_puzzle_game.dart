@@ -63,7 +63,16 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame> with _Emit {
   void _tapCell(int p) {
     if (_status != GameStatus.playing) return;
     final blank = _tiles.indexOf(0);
-    if (!_neighbours(p).contains(blank)) return;
+    if (!_neighbours(p).contains(blank)) {
+      // A tap on a tile that isn't next to the empty space moves nothing —
+      // without ANY cue here, that tap is silent and visually identical to
+      // a touch that never registered at all, so a child can't tell "that
+      // tile can't move yet" from "my finger missed the board". A light
+      // generic tap cue (the same one used for other no-op taps elsewhere
+      // in the catalog) confirms the touch landed, just didn't move a tile.
+      if (_tiles[p] != 0) TonePlayer.instance.playCue(SoundCue.tap);
+      return;
+    }
     _tiles[blank] = _tiles[p];
     _tiles[p] = 0;
     _moves++;
