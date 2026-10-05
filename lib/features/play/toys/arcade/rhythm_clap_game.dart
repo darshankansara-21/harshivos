@@ -18,6 +18,7 @@ class _RhythmClapGameState extends State<RhythmClapGame>
   bool _reduceMotion = false;
   List<double> _markers = <double>[0.2, 0.4, 0.6, 0.8];
   List<bool> _hit = <bool>[false, false, false, false];
+  List<bool> _missed = <bool>[false, false, false, false];
   double _head = 0;
   double _barTime = 2.6;
   int _score = 0;
@@ -43,6 +44,7 @@ class _RhythmClapGameState extends State<RhythmClapGame>
       _markers.add(0.15 + (i + _rnd.nextDouble() * 0.5) * (0.7 / n));
     }
     _hit = List<bool>.filled(n, false);
+    _missed = List<bool>.filled(n, false);
     _head = 0;
     _barTime = (2.6 - _score * 0.06).clamp(1.6, 2.6);
   }
@@ -66,8 +68,10 @@ class _RhythmClapGameState extends State<RhythmClapGame>
     _head += dt / _barTime;
     // Mark missed markers the playhead passed without a hit.
     for (var i = 0; i < _markers.length; i++) {
-      if (!_hit[i] && prev < _markers[i] && _head >= _markers[i] + _window) {
-        _hit[i] = true; // count as resolved (missed)
+      if (!_hit[i] && !_missed[i] && prev < _markers[i] &&
+          _head >= _markers[i] + _window) {
+        _missed[i] = true; // resolved as a miss, NOT a hit — keep the two
+        // visually distinct so a missed beat never looks like a success.
         _lives--;
         if (_lives <= 0) {
           // The run-ending miss needs its own distinct cue, not the routine
@@ -87,7 +91,7 @@ class _RhythmClapGameState extends State<RhythmClapGame>
     if (_status != GameStatus.playing) return;
     _padFlash = 0.25;
     for (var i = 0; i < _markers.length; i++) {
-      if (!_hit[i] && (_head - _markers[i]).abs() <= _window) {
+      if (!_hit[i] && !_missed[i] && (_head - _markers[i]).abs() <= _window) {
         _hit[i] = true;
         _score++;
         final bitCount = _reduceMotion ? 3 : 8;
@@ -157,6 +161,7 @@ class _RhythmClapGameState extends State<RhythmClapGame>
               painter: _RhythmPainter(
                 markers: _markers,
                 hit: _hit,
+                missed: _missed,
                 head: _head,
                 padFlash: _padFlash,
                 bits: _bits,
@@ -174,12 +179,14 @@ class _RhythmPainter extends CustomPainter {
   _RhythmPainter({
     required this.markers,
     required this.hit,
+    required this.missed,
     required this.head,
     required this.padFlash,
     required this.bits,
   });
   final List<double> markers;
   final List<bool> hit;
+  final List<bool> missed;
   final double head, padFlash;
   final List<_Shard> bits;
 
@@ -195,8 +202,11 @@ class _RhythmPainter extends CustomPainter {
           ..strokeWidth = 4);
     double mx(double m) => w * (0.1 + m * 0.8);
     for (var i = 0; i < markers.length; i++) {
+      final color = hit[i]
+          ? const Color(0xFFFFD166)
+          : (missed[i] ? Colors.white24 : Colors.white70);
       canvas.drawCircle(Offset(mx(markers[i]), trackY), 14,
-          Paint()..color = hit[i] ? const Color(0xFFFFD166) : Colors.white70);
+          Paint()..color = color);
     }
     // Playhead.
     canvas.drawLine(Offset(mx(head), trackY - 30), Offset(mx(head), trackY + 30),
