@@ -1999,6 +1999,7 @@ class _RacingGameState extends State<RacingGame>
   final List<double> _rivalMps = <double>[]; // pace per rival
   final List<int> _rivalLane = <int>[];
   int _lane = 1;
+  double _lanePos = 1.0; // eased visual lane position — slides, never teleports
   double _spawnIn = 0.9;
   double _t = 0;
   double _speed = 0.55; // visual road scroll
@@ -2011,6 +2012,15 @@ class _RacingGameState extends State<RacingGame>
   double _bannerT = 0;
   String? _banner;
   GameStatus _status = GameStatus.ready;
+
+  // Linearly interpolates between the three lane x-positions for a
+  // fractional lane value (e.g. 0.5 is halfway between lane 0 and lane 1).
+  static double _laneX3(double lanePos) {
+    final clamped = lanePos.clamp(0.0, 2.0);
+    final i = clamped.floor().clamp(0, 1);
+    final frac = clamped - i;
+    return _laneX[i] + (_laneX[i + 1] - _laneX[i]) * frac;
+  }
 
   int get _place {
     var ahead = 0;
@@ -2049,6 +2059,7 @@ class _RacingGameState extends State<RacingGame>
       _rivalMps.add(88 + _rnd.nextDouble() * 20); // 88..108 mps
     }
     _lane = 1;
+    _lanePos = 1.0;
     _distance = 0;
     _speed = 0.55;
     _boostT = 0;
@@ -2071,6 +2082,16 @@ class _RacingGameState extends State<RacingGame>
     }
     if (_boostT > 0) _boostT -= dt;
     if (_shuntT > 0) _shuntT -= dt;
+
+    // Ease the visual car smoothly towards the target lane instead of
+    // teleporting — a real car banks into the turn over a few frames.
+    final laneDiff = _lane - _lanePos;
+    if (laneDiff.abs() > 0.0005) {
+      final ease = 1 - math.exp(-dt * 10);
+      _lanePos += laneDiff * ease;
+    } else {
+      _lanePos = _lane.toDouble();
+    }
 
     // Advance ourselves and the rival pack down the track.
     final remaining = (_raceLen - _distance).clamp(0.0, _raceLen);
@@ -2260,9 +2281,14 @@ class _RacingGameState extends State<RacingGame>
                         Text(car.emoji, style: const TextStyle(fontSize: 44)),
                   ),
                 Positioned(
-                  left: _laneX[_lane] * w - 26,
+                  left: _laneX3(_lanePos) * w - 26,
                   top: 0.8 * h,
-                  child: const Text('🏎️', style: TextStyle(fontSize: 52)),
+                  child: Transform.rotate(
+                    // Bank into the turn: tilt proportional to how far the
+                    // eased position still has to travel to the target lane.
+                    angle: (_lane - _lanePos) * 0.5,
+                    child: const Text('🏎️', style: TextStyle(fontSize: 52)),
+                  ),
                 ),
               ],
             ),
