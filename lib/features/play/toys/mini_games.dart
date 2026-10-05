@@ -514,8 +514,14 @@ class _FruitCatchGameState extends State<FruitCatchGame>
           // which already pairs its 'Oops!' flash with a sound. Mirror that
           // convention here with the same gentle-retry cue used catalog-wide
           // for every other miss (bigger_number, weather_sort, hoop_toss,
-          // etc.) so the setback is audible, not just readable.
+          // etc.) so the setback is audible, not just readable. The
+          // companion itself still got nothing though: unlike this same
+          // miss in _ChoiceGoalGame/_PathFinderGameState (which both pair
+          // their non-terminal misses with emit(incorrectAnswer) so Hari/
+          // Pico can react), this path only ever emitted on the final
+          // game-over, leaving every mid-game combo break uncommented on.
           TonePlayer.instance.playCue(SoundCue.gentleRetry);
+          emit(ExperienceEvent.incorrectAnswer);
         }
         if (f.kind != 2) _combo = 0;
         return true;
@@ -535,6 +541,10 @@ class _FruitCatchGameState extends State<FruitCatchGame>
       _combo = 0;
       _score = math.max(0, _score - 2);
       TonePlayer.instance.playCue(SoundCue.gentleRetry);
+      // Same companion-silence gap as the missed-fruit path above: a real
+      // scoring penalty deserves the same emit(incorrectAnswer) the
+      // catalog's non-terminal wrong-answer games already pair with it.
+      emit(ExperienceEvent.incorrectAnswer);
       _flash('Oops! -2 — dodge bombs');
       return;
     }
@@ -767,6 +777,11 @@ class _BalloonPopGameState extends State<BalloonPopGame>
             // already pairs its 'Oops!' flash with a sound. Reuse the same
             // gentle-retry miss cue used catalog-wide for every other miss.
             TonePlayer.instance.playCue(SoundCue.gentleRetry);
+            // Pair the sound with the same companion emit the catalog's
+            // non-terminal wrong-answer games (_ChoiceGoalGame,
+            // _PathFinderGameState, fruit_catch's own missed-fruit path)
+            // already give Hari/Pico so it can react to this combo break.
+            emit(ExperienceEvent.incorrectAnswer);
           }
           _combo = 0;
         }
@@ -789,6 +804,10 @@ class _BalloonPopGameState extends State<BalloonPopGame>
           _combo = 0;
           _popBurst(vx, b.y, const Color(0xFF9AA0B5), 10);
           TonePlayer.instance.playCue(SoundCue.gentleRetry);
+          // Same companion-silence gap fixed above for the floated-away
+          // miss: a bomb pop is a real penalty event that deserves the
+          // same emit the catalog's other non-terminal misses already get.
+          emit(ExperienceEvent.incorrectAnswer);
           _flash('Oops! Avoid bombs');
           return;
         }
