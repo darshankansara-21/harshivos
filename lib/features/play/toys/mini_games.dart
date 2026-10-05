@@ -1802,8 +1802,9 @@ class _SnakeGameState extends State<SnakeGame>
       winEmoji: '🏆',
       winText: 'Longest snake in the arena!',
       accent: const Color(0xFF06D6A0),
-      introHow: 'Glide your snake to eat glowing orbs and grow.\n'
-          'Gold orbs = bonus. Avoid the edges and rival snakes!',
+      introHow: 'Glide your snake to eat glowing orbs and grow — hold to boost!\n'
+          'Gold orbs are worth more, and luring a rival into your body '
+          'defeats it for bonus points. Avoid the edges and their heads!',
       onStart: () => setState(() => _status = GameStatus.playing),
       onPlayAgain: _reset,
       child: LayoutBuilder(
