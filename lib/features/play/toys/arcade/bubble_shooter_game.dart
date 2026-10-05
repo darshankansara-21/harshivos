@@ -46,9 +46,16 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
   }
 
   void _layout(double w, double h) {
-    if (_init && (w - _w).abs() < 0.5) return;
+    // Height (e.g. a system bar/gesture-nav inset appearing or disappearing)
+    // can change without the width changing. The grid only needs to be
+    // regenerated when the width changes, but `_w`/`_h` must always track the
+    // real current size — the painter and `_fire()` read `_h` directly to
+    // place the launcher at the true bottom of the screen, and a stale value
+    // would draw/fire from the wrong spot after such a resize.
+    final rebuild = !_init || (w - _w).abs() >= 0.5;
     _w = w;
     _h = h;
+    if (!rebuild) return;
     _cell = w / _cols;
     _r = _cell / 2;
     _rows = math.max(6, (h / _cell).floor());
