@@ -98,28 +98,35 @@ class _MirrorDrawGameState extends State<MirrorDrawGame> with _Emit {
     for (final d in _dots) {
       if (d.lit) continue;
       if ((d.x - nx).abs() < 0.06 && (d.y - ny).abs() * _aspect < 0.06) {
-        d.lit = true;
-        TonePlayer.instance.playCue(SoundCue.correct);
-        if (_dots.every((e) => e.lit)) {
-          _score++;
-          TonePlayer.instance.playCue(SoundCue.success);
-          emit(ExperienceEvent.bubblePopped);
-          GameScores.instance.submit(_id, _score).then((v) {
-            if (mounted) setState(() => _best = v);
-          });
-          if (_score >= _target) {
-            _status = GameStatus.won;
-            TonePlayer.instance.playCue(SoundCue.gameStart);
-            emit(ExperienceEvent.gameCompleted);
-          } else {
-            _banner = 'Beautiful symmetry! Next';
-            _newShape();
-          }
-        }
-        setState(() {});
+        _lightDot(d);
         return;
       }
     }
+  }
+
+  // Shared "a dot just got lit" logic, used both by the drag/tap hit-test in
+  // `_touch` and by the Semantics activation path below (which lights a
+  // specific dot directly rather than nearest-distance matching).
+  void _lightDot(_MirrorDot d) {
+    d.lit = true;
+    TonePlayer.instance.playCue(SoundCue.correct);
+    if (_dots.every((e) => e.lit)) {
+      _score++;
+      TonePlayer.instance.playCue(SoundCue.success);
+      emit(ExperienceEvent.bubblePopped);
+      GameScores.instance.submit(_id, _score).then((v) {
+        if (mounted) setState(() => _best = v);
+      });
+      if (_score >= _target) {
+        _status = GameStatus.won;
+        TonePlayer.instance.playCue(SoundCue.gameStart);
+        emit(ExperienceEvent.gameCompleted);
+      } else {
+        _banner = 'Beautiful symmetry! Next';
+        _newShape();
+      }
+    }
+    setState(() {});
   }
 
   void _reset() {
@@ -164,15 +171,40 @@ class _MirrorDrawGameState extends State<MirrorDrawGame> with _Emit {
             _aspect = h / w;
             _touch((p.dx / w).clamp(0.0, 1.0), (p.dy / h).clamp(0.0, 1.0));
           }
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onPanStart: (d) => handle(d.localPosition),
-            onPanUpdate: (d) => handle(d.localPosition),
-            onTapDown: (d) => handle(d.localPosition),
-            child: CustomPaint(
-              painter: _MirrorDrawPainter(dots: _dots),
-              size: Size.infinite,
-            ),
+          return Stack(
+            children: <Widget>[
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onPanStart: (d) => handle(d.localPosition),
+                onPanUpdate: (d) => handle(d.localPosition),
+                onTapDown: (d) => handle(d.localPosition),
+                child: CustomPaint(
+                  painter: _MirrorDrawPainter(dots: _dots),
+                  size: Size.infinite,
+                ),
+              ),
+              // Dots are re-rolled only on `_newShape` (a fresh picture), so
+              // their positions are static for the current round — same
+              // static-zone overlay pattern as `letter_trace_game.dart`'s
+              // trace dots. Only the left-half dot objects exist (the right
+              // side is a pure mirrored render, not a separate touch target,
+              // and `_touch` itself rejects `nx > 0.5`), so one overlay per
+              // still-unlit dot already matches the real input surface.
+              for (var i = 0; i < _dots.length; i++)
+                if (!_dots[i].lit)
+                  Positioned(
+                    left: _dots[i].x * w - 0.035 * w,
+                    top: _dots[i].y * h - 0.035 * w,
+                    width: 0.07 * w,
+                    height: 0.07 * w,
+                    child: Semantics(
+                      label: 'Mirror dot',
+                      button: true,
+                      onTap: () => _lightDot(_dots[i]),
+                      child: const SizedBox.expand(),
+                    ),
+                  ),
+            ],
           );
         },
       ),
