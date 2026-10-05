@@ -40,7 +40,15 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame> with _Emit {
     _tiles = <int>[1, 2, 3, 4, 5, 6, 7, 8, 0];
     _moves = 0;
     var blank = 8;
-    for (var i = 0; i < 80; i++) {
+    // All 3 boards used the exact same 80-move scramble, so the "challenge
+    // curve" CLAUDE.md asks for was flat: board 3 never felt any harder to
+    // untangle than board 1, unlike every other multi-round game in this
+    // catalog (mini_golf's tighter sink window, memory_deluxe's growing
+    // board, fruit_catch's rising fall speed). A deeper random walk away
+    // from solved statistically needs more real moves to undo, so scale the
+    // scramble length with the board already solved (_score).
+    final scrambleMoves = 70 + _score * 35;
+    for (var i = 0; i < scrambleMoves; i++) {
       final n = _neighbours(blank);
       final pick = n[_rnd.nextInt(n.length)];
       _tiles[blank] = _tiles[pick];
