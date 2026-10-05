@@ -45,7 +45,8 @@ class _BalanceBallGameState extends State<BalanceBallGame>
     _s += _v * dt;
     if (_s.abs() > 1.0) {
       _status = GameStatus.over;
-      TonePlayer.instance.playCue(SoundCue.gentleRetry);
+      TonePlayer.instance.playCue(SoundCue.gameOver);
+      emit(ExperienceEvent.incorrectAnswer);
       setState(() {});
       return;
     }

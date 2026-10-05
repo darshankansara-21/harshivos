@@ -77,9 +77,15 @@ class _OddOneOutGameState extends State<OddOneOutGame> with _Emit {
     } else {
       _wrong = i;
       _lives--;
-      TonePlayer.instance.playCue(SoundCue.gentleRetry);
-      _banner = 'Look closely…';
-      if (_lives <= 0) _status = GameStatus.over;
+      if (_lives <= 0) {
+        _status = GameStatus.over;
+        TonePlayer.instance.playCue(SoundCue.gameOver);
+        emit(ExperienceEvent.incorrectAnswer);
+        _banner = 'Out of lives!';
+      } else {
+        TonePlayer.instance.playCue(SoundCue.gentleRetry);
+        _banner = 'Look closely…';
+      }
     }
     setState(() {});
   }
