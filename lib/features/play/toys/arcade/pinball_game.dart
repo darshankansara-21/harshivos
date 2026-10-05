@@ -43,6 +43,12 @@ class _PinballGameState extends State<PinballGame>
   String? _banner;
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
+  // Rapid, back-to-back bumper hits build a combo multiplier that fades if
+  // the ball drifts away from the bumpers for too long — rewards keeping the
+  // ball alive in the "pinball storm" at the top of the table, like a real
+  // table's chained-shot bonus.
+  int _combo = 0;
+  double _comboT = 0;
 
   @override
   void initState() {
@@ -68,6 +74,10 @@ class _PinballGameState extends State<PinballGame>
       if (_bannerT <= 0) _banner = null;
     }
     if (_flashT > 0) _flashT -= dt;
+    if (_comboT > 0) {
+      _comboT -= dt;
+      if (_comboT <= 0) _combo = 0;
+    }
     if (_leftT > 0) _leftT = math.max(0, _leftT - dt * 5);
     if (_rightT > 0) _rightT = math.max(0, _rightT - dt * 5);
     for (var i = _sparks.length - 1; i >= 0; i--) {
@@ -112,10 +122,16 @@ class _PinballGameState extends State<PinballGame>
             math.sqrt(_vx * _vx + _vy * _vy) * 1.05, 0.62);
         _vx = nx * boost;
         _vy = ny * boost;
-        _score += 10;
-        _flashT = 0.25;
+        // Chaining bumper hits within the combo window builds a multiplier;
+        // letting the ball wander for too long resets it to 1x.
+        _combo = _comboT > 0 ? _combo + 1 : 1;
+        _comboT = 1.1;
+        final gain = 10 + (_combo - 1) * 5;
+        _score += gain;
+        _flashT = 0.25 + (_combo >= 3 ? 0.15 : 0);
         _flashBumper = i;
-        for (var k = 0; k < 9; k++) {
+        final sparkCount = _combo >= 3 ? 14 : 9;
+        for (var k = 0; k < sparkCount; k++) {
           final a = _rnd.nextDouble() * math.pi * 2;
           final sp = 0.15 + _rnd.nextDouble() * 0.28;
           _sparks.add(_Shard(_bx, _by, math.cos(a) * sp, math.sin(a) * sp,
@@ -123,7 +139,7 @@ class _PinballGameState extends State<PinballGame>
         }
         TonePlayer.instance.playCue(SoundCue.ball);
         emit(ExperienceEvent.bubblePopped);
-        _flash('+10');
+        _flash(_combo >= 2 ? 'Combo x$_combo! +$gain' : '+$gain');
       }
     }
 
@@ -153,6 +169,8 @@ class _PinballGameState extends State<PinballGame>
 
   void _loseBall() {
     _balls--;
+    _combo = 0;
+    _comboT = 0;
     if (_balls <= 0) {
       _status = GameStatus.over;
       emit(_score > 0
@@ -194,6 +212,8 @@ class _PinballGameState extends State<PinballGame>
     setState(() {
       _score = 0;
       _balls = 3;
+      _combo = 0;
+      _comboT = 0;
       _banner = null;
       _bannerT = 0;
       _status = GameStatus.playing;
