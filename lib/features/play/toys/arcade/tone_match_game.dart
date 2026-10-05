@@ -85,6 +85,7 @@ class _ToneMatchGameState extends State<ToneMatchGame>
         // stayed completely silent on the mismatch itself, leaving a child
         // to infer failure from the banner text alone.
         TonePlayer.instance.playCue(SoundCue.gentleRetry);
+        emit(ExperienceEvent.incorrectAnswer);
         _banner = 'Different notes — listen again';
       }
     }

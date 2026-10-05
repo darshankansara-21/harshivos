@@ -122,6 +122,7 @@ class _SortingTrainGameState extends State<SortingTrainGame>
       _wrongFlash = wagon;
       _wrongT = 0.4;
       TonePlayer.instance.playCue(SoundCue.gentleRetry);
+      emit(ExperienceEvent.incorrectAnswer);
       _banner = 'Match the colour!';
       _bannerT = 1.0;
     }

@@ -100,6 +100,7 @@ class _XylophoneTapGameState extends State<XylophoneTapGame> with _Emit {
       _banner = 'Follow the glowing bar';
       _wrongBar = b;
       TonePlayer.instance.playCue(SoundCue.gentleRetry);
+      emit(ExperienceEvent.incorrectAnswer);
       Future.delayed(const Duration(milliseconds: 300), () {
         if (mounted && _wrongBar == b) setState(() => _wrongBar = -1);
       });

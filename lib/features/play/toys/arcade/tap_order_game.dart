@@ -70,6 +70,7 @@ class _TapOrderGameState extends State<TapOrderGame> with _Emit {
       }
     } else {
       TonePlayer.instance.playCue(SoundCue.gentleRetry);
+      emit(ExperienceEvent.incorrectAnswer);
       setState(() => _wrongCell = cell);
       Future<void>.delayed(const Duration(milliseconds: 250), () {
         if (mounted) setState(() => _wrongCell = -1);

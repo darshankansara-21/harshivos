@@ -125,6 +125,7 @@ class _DotToDotGameState extends State<DotToDotGame>
         _wrongDot = i;
         _wrongFlashT = 0.3;
         TonePlayer.instance.playCue(SoundCue.gentleRetry);
+        emit(ExperienceEvent.incorrectAnswer);
         setState(() {});
         break;
       }
