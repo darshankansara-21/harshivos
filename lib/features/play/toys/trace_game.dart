@@ -83,10 +83,16 @@ class _TraceGameState extends State<TraceGame> {
 
   void _drag(Offset local, Size size) {
     if (_status != GameStatus.playing) return;
-    final p = Offset(local.dx / size.width, local.dy / size.height);
+    // Compare in real pixel space (not normalized x/y) so the hit radius is a
+    // true circle matching the dots the painter actually draws — normalized
+    // (dx/width, dy/height) distance distorts into an ellipse whenever
+    // width != height, the same aspect-ratio hit-test bug fixed repeatedly
+    // elsewhere in the catalog (space_dodge, letter_trace, steady_hand, etc.).
     var changed = false;
     for (var k = 0; k < _pts.length; k++) {
-      if (!_lit[k] && (_pts[k] - p).distance < 0.06) {
+      if (_lit[k]) continue;
+      final dot = Offset(_pts[k].dx * size.width, _pts[k].dy * size.height);
+      if ((dot - local).distance < 32) {
         _lit[k] = true;
         changed = true;
       }

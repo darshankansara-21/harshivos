@@ -177,7 +177,12 @@ class _BlockBlastGameState extends State<BlockBlastGame> with _Emit {
     drain(context);
     return _Shell(
       title: '🟦 Block Blast',
-      introHow: 'Drag the blocks onto the grid. Fill rows to clear them!',
+      // The actual mechanic is tap-to-select then tap-to-place (there is no
+      // Draggable gesture anywhere in this file) — the old "Drag the blocks"
+      // wording promised a gesture the game never implements, a genuine
+      // first-interaction claim-vs-reality mismatch for a child's very first
+      // try.
+      introHow: 'Tap a block below to pick it, then tap the grid to place it!',
       onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,
