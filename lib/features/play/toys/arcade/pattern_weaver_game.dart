@@ -43,8 +43,16 @@ class _PatternWeaverGameState extends State<PatternWeaverGame>
 
   int get _colorCount => _score >= 6 ? 4 : 3;
 
+  // The header promises "patterns get longer" across the whole ten-round
+  // climb, but the old code only ever widened the period band once (at
+  // score 4) and then stayed flat for the remaining six rounds to the win —
+  // the same claimed-escalation-but-absent bug class as counting_baskets.
+  // This steps the ceiling up every three correct answers so the longest
+  // possible pattern keeps growing all the way to the target.
+  int get _maxPeriod => (2 + _score ~/ 3).clamp(2, 5);
+
   void _newRound() {
-    final period = 2 + _rnd.nextInt(_score >= 4 ? 3 : 2); // 2..4
+    final period = 2 + _rnd.nextInt(_maxPeriod - 1); // 2.._maxPeriod
     _pattern = <int>[];
     for (var i = 0; i < period; i++) {
       int c;
