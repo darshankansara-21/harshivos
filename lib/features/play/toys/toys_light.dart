@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/toy/toy_ticker.dart';
+import '../../../services/audio/tone_player.dart';
 import 'toys_particles.dart' show rainbow;
 
 // ===========================================================================
@@ -118,13 +119,34 @@ class _MagneticBallsToyState extends State<MagneticBallsToy>
       }
       b.vel *= 0.92; // damping
       b.pos += b.vel * dt;
-      // Walls.
-      if (b.pos.dx < b.radius) { b.pos = Offset(b.radius, b.pos.dy); b.vel = Offset(-b.vel.dx * 0.6, b.vel.dy); }
-      if (b.pos.dx > size.width - b.radius) { b.pos = Offset(size.width - b.radius, b.pos.dy); b.vel = Offset(-b.vel.dx * 0.6, b.vel.dy); }
-      if (b.pos.dy < b.radius) { b.pos = Offset(b.pos.dx, b.radius); b.vel = Offset(b.vel.dx, -b.vel.dy * 0.6); }
-      if (b.pos.dy > size.height - b.radius) { b.pos = Offset(b.pos.dx, size.height - b.radius); b.vel = Offset(b.vel.dx, -b.vel.dy * 0.6); }
+      // Walls. Like InfiniteMarbleRunToy's peg field, this toy has real
+      // physics collisions that were entirely silent — a ball bouncing hard
+      // off the edge should be heard, not just seen. SoundCue.marble's own
+      // 60ms cooldown keeps a cluster of simultaneous bounces from spamming.
+      if (b.pos.dx < b.radius) {
+        b.pos = Offset(b.radius, b.pos.dy);
+        if (b.vel.dx.abs() > 60) TonePlayer.instance.playCue(SoundCue.marble);
+        b.vel = Offset(-b.vel.dx * 0.6, b.vel.dy);
+      }
+      if (b.pos.dx > size.width - b.radius) {
+        b.pos = Offset(size.width - b.radius, b.pos.dy);
+        if (b.vel.dx.abs() > 60) TonePlayer.instance.playCue(SoundCue.marble);
+        b.vel = Offset(-b.vel.dx * 0.6, b.vel.dy);
+      }
+      if (b.pos.dy < b.radius) {
+        b.pos = Offset(b.pos.dx, b.radius);
+        if (b.vel.dy.abs() > 60) TonePlayer.instance.playCue(SoundCue.marble);
+        b.vel = Offset(b.vel.dx, -b.vel.dy * 0.6);
+      }
+      if (b.pos.dy > size.height - b.radius) {
+        b.pos = Offset(b.pos.dx, size.height - b.radius);
+        if (b.vel.dy.abs() > 60) TonePlayer.instance.playCue(SoundCue.marble);
+        b.vel = Offset(b.vel.dx, -b.vel.dy * 0.6);
+      }
     }
-    // Simple pairwise separation so they don't overlap.
+    // Simple pairwise separation so they don't overlap; a real impact (fast
+    // closing speed, not just gentle magnetic clustering) also gets the same
+    // tactile click the walls just earned above.
     for (var i = 0; i < _balls.length; i++) {
       for (var j = i + 1; j < _balls.length; j++) {
         final a = _balls[i], c = _balls[j];
@@ -132,7 +154,13 @@ class _MagneticBallsToyState extends State<MagneticBallsToy>
         final d = delta.distance;
         final min = a.radius + c.radius;
         if (d > 0 && d < min) {
-          final push = delta / d * (min - d) / 2;
+          final n = delta / d;
+          final closing = (a.vel.dx - c.vel.dx) * n.dx +
+              (a.vel.dy - c.vel.dy) * n.dy;
+          if (closing > 70) {
+            TonePlayer.instance.playCue(SoundCue.marble);
+          }
+          final push = n * (min - d) / 2;
           a.pos -= push;
           c.pos += push;
         }
