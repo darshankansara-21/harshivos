@@ -315,7 +315,7 @@ class _BrickBreakGameState extends State<BrickBreakGame>
       banner: _banner ??
           '♥ $_lives   ·   Level $_level${activeIcons.isEmpty ? '' : '   ·   $activeIcons'}',
       overEmoji: '🧱',
-      overText: 'Out of balls!',
+      overText: 'Out of balls! Reached Level $_level',
       accent: const Color(0xFFFF6B6B),
       onPlayAgain: _reset,
       child: LayoutBuilder(

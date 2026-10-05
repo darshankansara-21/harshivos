@@ -31,6 +31,7 @@ class _SkyHopGameState extends State<SkyHopGame>
   int _score = 0;
   int _best = 0;
   int _coinCombo = 0;
+  int _bestCoinCombo = 0;
   bool _started = false;
   String? _banner;
   double _bannerT = 0;
@@ -103,6 +104,7 @@ class _SkyHopGameState extends State<SkyHopGame>
           (_birdY - p.coinY).abs() < 0.06) {
         p.coinTaken = true;
         _coinCombo += 1;
+        if (_coinCombo > _bestCoinCombo) _bestCoinCombo = _coinCombo;
         final bonus = 2 + (_coinCombo - 1);
         _score += bonus;
         _banner = _coinCombo > 1 ? 'Coin streak x$_coinCombo!' : 'Coin grab!';
@@ -161,6 +163,7 @@ class _SkyHopGameState extends State<SkyHopGame>
       _pipeSpeed = _basePipeSpeed;
       _score = 0;
       _coinCombo = 0;
+      _bestCoinCombo = 0;
       _banner = null;
       _bannerT = 0;
       _started = false;
@@ -181,7 +184,9 @@ class _SkyHopGameState extends State<SkyHopGame>
       status: _status,
       banner: _banner,
       overEmoji: '🐤',
-      overText: 'Splash!',
+      overText: _bestCoinCombo > 1
+          ? 'Splash! Best coin streak x$_bestCoinCombo'
+          : 'Splash!',
       winEmoji: '🏆',
       winText: 'Sky clear!',
       accent: const Color(0xFFFFD166),

@@ -190,7 +190,7 @@ class _WhackGameState extends State<WhackGame>
       status: _status,
       banner: _banner,
       overEmoji: '🔨',
-      overText: 'Out of lives!',
+      overText: 'Out of lives! Reached Round $_round',
       winEmoji: '🏆',
       winText: 'Whack champion!',
       accent: const Color(0xFF8D5A3B),

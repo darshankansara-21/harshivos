@@ -45,6 +45,10 @@ class _PinballGameState extends State<PinballGame>
   static const int _extraBallScore = 400;
   static const int _maxBalls = 6;
   int _nextExtraBallAt = _extraBallScore;
+  // How many extra balls this run actually earned — a genuine per-run
+  // progress stat distinct from the score, lost the instant the game-over
+  // card covers the transient 'Extra ball!' banner unless surfaced here too.
+  int _extraBallsEarned = 0;
   double _leftT = 0; // 0 down .. 1 fully flipped
   double _rightT = 0;
   // Real pinball flippers stay raised as long as the button is held, not
@@ -183,6 +187,7 @@ class _PinballGameState extends State<PinballGame>
         emit(ExperienceEvent.bubblePopped);
         if (_score >= _nextExtraBallAt && _balls < _maxBalls) {
           _balls++;
+          _extraBallsEarned++;
           _nextExtraBallAt += _extraBallScore;
           TonePlayer.instance.playCue(SoundCue.milestone);
           _flash('Extra ball! 🎉');
@@ -288,6 +293,7 @@ class _PinballGameState extends State<PinballGame>
       _score = 0;
       _balls = 3;
       _nextExtraBallAt = _extraBallScore;
+      _extraBallsEarned = 0;
       _combo = 0;
       _comboT = 0;
       _banner = null;
@@ -312,7 +318,9 @@ class _PinballGameState extends State<PinballGame>
       status: _status,
       banner: _banner ?? 'Balls: $_balls',
       overEmoji: '🎱',
-      overText: 'Table over!',
+      overText: _extraBallsEarned > 0
+          ? 'Table over! Earned $_extraBallsEarned extra ball${_extraBallsEarned > 1 ? 's' : ''}'
+          : 'Table over!',
       accent: const Color(0xFFFFC857),
       introHow:
           'Hold the left or right side to flip — keep holding to catch the ball. Bounce the bumpers and keep the ball alive!',
