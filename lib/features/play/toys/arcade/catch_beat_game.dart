@@ -184,7 +184,13 @@ class _CatchBeatGameState extends State<CatchBeatGame>
       overEmoji: '🎶',
       overText: 'Nice rhythm!',
       winEmoji: '🎶',
-      winText: 'Rhythm star!',
+      // _bestCombo is tracked all run but was never shown anywhere — the win
+      // screen is the natural place to report the stat the child was
+      // actually building toward, giving "beat your own combo" a reason to
+      // replay beyond the raw catch count.
+      winText: _bestCombo >= 2
+          ? 'Rhythm star! Best combo x$_bestCombo 🔥'
+          : 'Rhythm star!',
       accent: const Color(0xFF66D9E8),
       onPlayAgain: _reset,
       child: LayoutBuilder(
