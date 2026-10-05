@@ -109,7 +109,10 @@ class _BlockBlastGameState extends State<BlockBlastGame> with _Emit {
     emit(ExperienceEvent.bubblePopped);
     if (_hand.every((h) => h == null)) _refill();
     GameScores.instance.submit(_id, _score).then((b) {
-      if (mounted && b != _best) _best = b;
+      // Resolves after this frame's setState has already run, so updating
+      // `_best` without triggering a rebuild left a new best silently stale
+      // on screen until some unrelated later interaction happened to repaint.
+      if (mounted && b != _best) setState(() => _best = b);
     });
     final playable =
         _hand.whereType<_BlockPiece>().any((pc) => _fitsAnywhere(pc));

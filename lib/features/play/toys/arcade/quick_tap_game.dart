@@ -92,7 +92,10 @@ class _QuickTapGameState extends State<QuickTapGame>
       });
     } else {
       GameScores.instance.submit(_id, _score).then((b) {
-        if (mounted && b != _best) _best = b;
+        // Resolves after this frame's setState has already run, so updating
+        // `_best` without triggering a rebuild left a new best silently
+        // stale on screen until some unrelated later interaction repainted.
+        if (mounted && b != _best) setState(() => _best = b);
       });
       _phase = 3;
       _resultT = 0.9;
