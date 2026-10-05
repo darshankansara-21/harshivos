@@ -84,6 +84,10 @@ class _LetterTraceGameState extends State<LetterTraceGame> with _Emit {
   int _best = 0;
   String? _banner;
   GameStatus _status = GameStatus.ready;
+  // height/width of the drawing canvas, refreshed every touch so the hit-test
+  // below can compare real pixel distance instead of a mismatched mix of
+  // width- and height-normalized units (the dots are drawn as true circles).
+  double _aspect = 1;
 
   @override
   void initState() {
@@ -126,7 +130,12 @@ class _LetterTraceGameState extends State<LetterTraceGame> with _Emit {
     double bestD = 0.065;
     for (final d in _dots) {
       if (d.lit) continue;
-      final dist = math.sqrt(math.pow(d.x - nx, 2) + math.pow(d.y - ny, 2));
+      // Scale the y-delta by aspect so this compares real pixel distance —
+      // nx/ny are width/height-normalized respectively, so a plain isotropic
+      // sqrt here would make the vertical catch radius wider or narrower
+      // than the horizontal one depending on device aspect ratio.
+      final dist = math.sqrt(
+          math.pow(d.x - nx, 2) + math.pow((d.y - ny) * _aspect, 2));
       if (dist < bestD) {
         bestD = dist;
         best = d;
@@ -193,8 +202,11 @@ class _LetterTraceGameState extends State<LetterTraceGame> with _Emit {
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
-          void handle(Offset p) =>
-              _touch((p.dx / w).clamp(0.0, 1.0), (p.dy / h).clamp(0.0, 1.0));
+          void handle(Offset p) {
+            _aspect = h / w;
+            _touch((p.dx / w).clamp(0.0, 1.0), (p.dy / h).clamp(0.0, 1.0));
+          }
+
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
             onPanStart: (d) => handle(d.localPosition),
