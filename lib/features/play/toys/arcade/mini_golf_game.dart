@@ -26,6 +26,15 @@ class _MiniGolfGameState extends State<MiniGolfGame>
   // keeps getting harder instead of plateauing at the hole-3 difficulty.
   Rect? _wall2;
   bool _moving = false;
+  // The cup-sink distance check and rail-obstacle margins below run in
+  // mixed-normalized coordinates (x as a fraction of canvas width, y as a
+  // fraction of canvas height), but every circle is drawn with radius scaled
+  // only by canvas width (see _GolfPainter). On a typical taller-than-wide
+  // phone, a raw normalized distance check builds an invisible region far
+  // taller than what the child actually sees — the same bug class already
+  // fixed in space_dodge/maze_marble/pinball/air_hockey. Track the real
+  // aspect ratio so collisions match what's drawn.
+  double _aspect = 1.0; // height / width of the last laid-out canvas
   double _nextT = 0;
   int _hole = 1;
   int _strokes = 0;
@@ -149,10 +158,15 @@ class _MiniGolfGameState extends State<MiniGolfGame>
       TonePlayer.instance.playCue(SoundCue.wood);
     }
 
-    // Rail obstacles — reflect off the shallower-penetration axis.
+    // Rail obstacles — reflect off the shallower-penetration axis. Inflate
+    // by the ball's true pixel radius on each axis (x by _ballR, y by
+    // _ballR/_aspect) so the collision margin matches the rendered circle
+    // instead of a width-only margin stretched/squashed by device aspect.
+    final ballRY = _ballR / _aspect;
     for (final wall in <Rect?>[_wall, _wall2]) {
       if (wall == null) continue;
-      final ex = wall.inflate(_ballR);
+      final ex = Rect.fromLTRB(wall.left - _ballR, wall.top - ballRY,
+          wall.right + _ballR, wall.bottom + ballRY);
       if (_bx > ex.left && _bx < ex.right && _by > ex.top && _by < ex.bottom) {
         final penL = _bx - ex.left, penR = ex.right - _bx;
         final penT = _by - ex.top, penB = ex.bottom - _by;
@@ -168,7 +182,9 @@ class _MiniGolfGameState extends State<MiniGolfGame>
     }
 
     // The cup — sink only when rolling slowly, otherwise a thrilling lip-out.
-    final dx = _bx - _cupX, dy = _by - _cupY;
+    // Scale the y delta by the aspect ratio so the sink distance matches the
+    // true pixel circle the painter draws, regardless of device aspect.
+    final dx = _bx - _cupX, dy = (_by - _cupY) * _aspect;
     final d = math.sqrt(dx * dx + dy * dy);
     final speed = math.sqrt(_vx * _vx + _vy * _vy);
     if (d < _cupR) {
@@ -276,6 +292,7 @@ class _MiniGolfGameState extends State<MiniGolfGame>
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
+          if (w > 0) _aspect = h / w;
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
             onPanStart: (d) => _aimAt(d.localPosition, w, h),

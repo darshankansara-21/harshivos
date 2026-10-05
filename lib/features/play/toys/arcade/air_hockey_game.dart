@@ -22,6 +22,15 @@ class _AirHockeyGameState extends State<AirHockeyGame>
   double _ppx = 0.5, _ppy = 0.84; // player mallet (bottom half)
   double _prevPpx = 0.5, _prevPpy = 0.84;
   double _aix = 0.5, _aiy = 0.16; // ai mallet (top half)
+  // The puck/paddle collision below runs in mixed-normalized coordinates (x
+  // as a fraction of canvas width, y as a fraction of canvas height), but
+  // every circle is drawn with radius scaled only by canvas width (see
+  // _HockeyPainter). On a typical taller-than-wide phone, a raw normalized
+  // dx/dy distance check builds an invisible hit-ellipse far taller than the
+  // circle the child actually sees — the same bug class already fixed in
+  // space_dodge/maze_marble/pinball. Track the real aspect ratio so
+  // collisions match what's drawn.
+  double _aspect = 1.0; // height / width of the last laid-out canvas
   int _playerScore = 0, _aiScore = 0, _best = 0;
   double _resetT = 0;
   double _goalGlow = 0; // >0 player glow, <0 ai glow
@@ -123,16 +132,21 @@ class _AirHockeyGameState extends State<AirHockeyGame>
   }
 
   void _collide(double cx, double cy, double vx, double vy) {
-    final dx = _px - cx, dy = _py - cy;
+    final dx = _px - cx;
+    // Scale the y delta into the same width-normalized units as dx/minD so
+    // the collision distance matches the true pixel circles the painter
+    // draws, regardless of device aspect ratio.
+    final dy = (_py - cy) * _aspect;
     final d = math.sqrt(dx * dx + dy * dy);
     const minD = _puckR + _paddleR;
     if (d < minD && d > 1e-4) {
       final nx = dx / d, ny = dy / d;
       _px = cx + nx * minD;
-      _py = cy + ny * minD;
-      final push = 0.55 + math.max(0.0, vx * nx + vy * ny);
+      _py = cy + ny * minD / _aspect;
+      final vyScaled = vy * _aspect;
+      final push = 0.55 + math.max(0.0, vx * nx + vyScaled * ny);
       _pvx = nx * push + vx * 0.3;
-      _pvy = ny * push + vy * 0.3;
+      _pvy = (ny * push + vyScaled * 0.3) / _aspect;
       TonePlayer.instance.playCue(SoundCue.ball);
     }
   }
@@ -253,6 +267,7 @@ class _AirHockeyGameState extends State<AirHockeyGame>
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
+          if (w > 0) _aspect = h / w;
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
             onPanStart: (d) => _movePaddle(d.localPosition, w, h),

@@ -23,6 +23,15 @@ class _BasketballGameState extends State<BasketballGame>
   double _hoopX = 0.5;
   double _hoopDir = 1;
   double _hoopSpeed = 0;
+  // The rim-knob collision below runs in mixed-normalized coordinates (x as
+  // a fraction of canvas width, y as a fraction of canvas height), but the
+  // ball is drawn as a true pixel circle scaled only by canvas width (see
+  // _BasketPainter). On a typical taller-than-wide phone, a raw normalized
+  // distance check builds an invisible hit-ellipse far taller than the ball
+  // the child actually sees — the same bug class already fixed in
+  // space_dodge/maze_marble/pinball/air_hockey/mini_golf. Track the real
+  // aspect ratio so the rim collision matches what's drawn.
+  double _aspect = 1.0; // height / width of the last laid-out canvas
   double _netT = 0;
   double _resetT = 0;
   Offset? _aim;
@@ -125,18 +134,21 @@ class _BasketballGameState extends State<BasketballGame>
       TonePlayer.instance.playCue(SoundCue.wood);
     }
 
-    // Rim knobs — bouncing off these makes near-misses thrilling.
+    // Rim knobs — bouncing off these makes near-misses thrilling. Scale the
+    // y delta by the aspect ratio so the collision distance matches the true
+    // pixel circle the painter draws, regardless of device aspect ratio.
     for (final sgn in <double>[-1, 1]) {
       final rimX = _hoopX + sgn * _rimHalf;
-      final dx = _bx - rimX, dy = _by - _hoopY;
+      final dx = _bx - rimX, dy = (_by - _hoopY) * _aspect;
       final d = math.sqrt(dx * dx + dy * dy);
       if (d < _ballR + 0.012 && d > 0.0001) {
         final nx = dx / d, ny = dy / d;
         _bx = rimX + nx * (_ballR + 0.012);
-        _by = _hoopY + ny * (_ballR + 0.012);
-        final dot = _vx * nx + _vy * ny;
+        _by = _hoopY + ny * (_ballR + 0.012) / _aspect;
+        final vyScaled = _vy * _aspect;
+        final dot = _vx * nx + vyScaled * ny;
         _vx = (_vx - 2 * dot * nx) * 0.6;
-        _vy = (_vy - 2 * dot * ny) * 0.6;
+        _vy = (vyScaled - 2 * dot * ny) * 0.6 / _aspect;
         TonePlayer.instance.playCue(SoundCue.metal);
       }
     }
@@ -245,6 +257,7 @@ class _BasketballGameState extends State<BasketballGame>
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
+          if (w > 0) _aspect = h / w;
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
             onPanStart: (d) => _aimAt(d.localPosition, w, h),

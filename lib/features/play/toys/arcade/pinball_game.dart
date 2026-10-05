@@ -45,6 +45,15 @@ class _PinballGameState extends State<PinballGame>
   // at a time and would silently drop a genuinely simultaneous second flip).
   final Set<int> _leftHeldPointers = <int>{};
   final Set<int> _rightHeldPointers = <int>{};
+  // The ball/bumper physics below runs in mixed-normalized coordinates (x as
+  // a fraction of canvas width, y as a fraction of canvas height), but every
+  // shape is drawn as a true pixel circle scaled only by canvas *width*
+  // (see _PinballPainter). On a typical taller-than-wide phone, a raw
+  // normalized dx/dy distance check builds an invisible hit-ellipse far
+  // taller than the circle the child actually sees — the same bug class
+  // already fixed in space_dodge/maze_marble. Track the real aspect ratio so
+  // bumper collisions match what's drawn.
+  double _aspect = 1.0; // height / width of the last laid-out canvas
   double _flashT = 0;
   int _flashBumper = -1;
   String? _banner;
@@ -130,17 +139,22 @@ class _PinballGameState extends State<PinballGame>
     for (var i = 0; i < _bumpers.length; i++) {
       final b = _bumpers[i];
       final dx = _bx - b.x;
-      final dy = _by - b.y;
+      // Scale the y delta into the same width-normalized units as dx/_rB/b.r
+      // so the collision distance matches the true pixel circles the
+      // painter draws (radius scaled only by canvas width), regardless of
+      // device aspect ratio — the same fix already applied to maze_marble.
+      final dy = (_by - b.y) * _aspect;
       final d = math.sqrt(dx * dx + dy * dy);
       final minD = _rB + b.r;
       if (d < minD && d > 0.0001) {
         final nx = dx / d, ny = dy / d;
         _bx = b.x + nx * minD;
-        _by = b.y + ny * minD;
+        _by = b.y + ny * minD / _aspect;
+        final vyScaled = _vy * _aspect;
         final boost = math.max(
-            math.sqrt(_vx * _vx + _vy * _vy) * 1.05, 0.62);
+            math.sqrt(_vx * _vx + vyScaled * vyScaled) * 1.05, 0.62);
         _vx = nx * boost;
-        _vy = ny * boost;
+        _vy = ny * boost / _aspect;
         // Chaining bumper hits within the combo window builds a multiplier;
         // letting the ball wander for too long resets it to 1x.
         _combo = _comboT > 0 ? _combo + 1 : 1;
@@ -290,6 +304,7 @@ class _PinballGameState extends State<PinballGame>
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth;
+          if (w > 0) _aspect = c.maxHeight / w;
           return Listener(
             behavior: HitTestBehavior.opaque,
             onPointerDown: (e) => _pointerDown(e.pointer, e.localPosition.dx < w / 2),
