@@ -509,6 +509,13 @@ class _InfiniteMarbleRunToyState extends State<InfiniteMarbleRunToy>
           m.pos = peg + n * minDist;
           final vn = m.vel.dx * n.dx + m.vel.dy * n.dy;
           m.vel = (m.vel - n * (2 * vn)) * 0.55;
+          // A marble tumbling through a peg field should be heard, not just
+          // seen — this was the one physics toy with real collisions but no
+          // sound at all. SoundCue.marble already has its own short 60ms
+          // cooldown so a cascade of simultaneous hits never spams.
+          if (vn.abs() > 60) {
+            TonePlayer.instance.playCue(SoundCue.marble);
+          }
         }
       }
     }
