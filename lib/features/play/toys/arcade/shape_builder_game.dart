@@ -154,8 +154,8 @@ class _ShapeBuilderGameState extends State<ShapeBuilderGame> with _Emit {
       target: _target,
       status: _status,
       banner: _banner ?? 'Place the piece',
-      overEmoji: '🛠️',
-      overText: 'Master builder!',
+      winEmoji: '🛠️',
+      winText: 'Master builder!',
       accent: const Color(0xFFFFD166),
       onPlayAgain: _reset,
       child: LayoutBuilder(

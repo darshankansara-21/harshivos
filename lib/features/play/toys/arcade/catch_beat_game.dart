@@ -182,7 +182,9 @@ class _CatchBeatGameState extends State<CatchBeatGame>
       status: _status,
       banner: _banner ?? 'Caught $_score/$_target · ${'💛' * _lives}',
       overEmoji: '🎶',
-      overText: _score >= _target ? 'Rhythm star!' : 'Nice rhythm!',
+      overText: 'Nice rhythm!',
+      winEmoji: '🎶',
+      winText: 'Rhythm star!',
       accent: const Color(0xFF66D9E8),
       onPlayAgain: _reset,
       child: LayoutBuilder(

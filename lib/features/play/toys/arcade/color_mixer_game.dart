@@ -150,8 +150,8 @@ class _ColorMixerGameState extends State<ColorMixerGame> with _Emit {
       target: _target,
       status: _status,
       banner: _banner ?? 'Make ${_recipeName[_recipe]}',
-      overEmoji: '🎨',
-      overText: 'Master mixer!',
+      winEmoji: '🎨',
+      winText: 'Master mixer!',
       accent: const Color(0xFFE0407A),
       onPlayAgain: _reset,
       child: Padding(

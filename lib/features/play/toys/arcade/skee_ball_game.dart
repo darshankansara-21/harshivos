@@ -122,8 +122,8 @@ class _SkeeBallGameState extends State<SkeeBallGame>
       target: _target,
       status: _status,
       banner: _banner ?? (_dragging ? 'Power: ${(_power * 100).round()}%' : 'Drag up to roll'),
-      overEmoji: '🎳',
-      overText: 'Nice rolling!',
+      winEmoji: '🎳',
+      winText: 'Nice rolling!',
       accent: const Color(0xFFFFD166),
       onPlayAgain: _reset,
       child: LayoutBuilder(

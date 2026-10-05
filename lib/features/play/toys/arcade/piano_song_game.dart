@@ -104,8 +104,8 @@ class _PianoSongGameState extends State<PianoSongGame> with _Emit {
       target: _target,
       status: _status,
       banner: _banner ?? progress,
-      overEmoji: '🎹',
-      overText: 'Keep playing!',
+      winEmoji: '🎹',
+      winText: 'Keep playing!',
       accent: const Color(0xFFFFB5E8),
       onPlayAgain: _start,
       child: Container(

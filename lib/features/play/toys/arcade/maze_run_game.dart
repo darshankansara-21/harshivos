@@ -145,8 +145,8 @@ class _MazeRunGameState extends State<MazeRunGame> with _Emit {
       target: _target,
       status: _status,
       banner: _banner ?? (_hasKey ? 'Find the exit!' : 'Grab the key 🔑'),
-      overEmoji: '🧩',
-      overText: 'Maze master!',
+      winEmoji: '🧩',
+      winText: 'Maze master!',
       accent: const Color(0xFF7BD389),
       onPlayAgain: _reset,
       child: GestureDetector(

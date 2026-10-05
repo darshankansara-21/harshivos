@@ -94,8 +94,8 @@ class _CalmBreathsGameState extends State<CalmBreathsGame>
       status: _status,
       rankByScore: false,
       banner: _status == GameStatus.playing ? _phase : 'Breathe along with the circle',
-      overEmoji: '🫧',
-      overText: 'So calm 💙',
+      winEmoji: '🫧',
+      winText: 'So calm 💙',
       accent: const Color(0xFF89F7FE),
       onPlayAgain: _reset,
       child: CustomPaint(

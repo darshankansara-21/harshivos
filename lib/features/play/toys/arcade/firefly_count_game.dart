@@ -141,8 +141,10 @@ class _FireflyCountGameState extends State<FireflyCountGame>
       target: _target,
       status: _status,
       banner: _banner ?? 'How many fireflies? · ${'💛' * _lives}',
-      overEmoji: '✨',
-      overText: 'Counting star!',
+      overEmoji: 'u{1F4AA}',
+      overText: 'Out of lives — nice try!',
+      winEmoji: '✨',
+      winText: 'Counting star!',
       accent: const Color(0xFFFFD166),
       onPlayAgain: _reset,
       child: LayoutBuilder(

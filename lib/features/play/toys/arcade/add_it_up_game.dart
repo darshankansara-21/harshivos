@@ -130,8 +130,10 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
       target: _target,
       status: _status,
       banner: _banner ?? 'Find two that make it  ·  ${'💛' * _lives}',
-      overEmoji: '➕',
-      overText: 'Great maths!',
+      overEmoji: '💔',
+      overText: 'Out of lives — nice try!',
+      winEmoji: '➕',
+      winText: 'Great maths!',
       accent: const Color(0xFF80ED99),
       onPlayAgain: _reset,
       child: Container(

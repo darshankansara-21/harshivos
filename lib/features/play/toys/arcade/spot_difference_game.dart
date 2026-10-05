@@ -106,8 +106,10 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with _Emit {
       target: _target,
       status: _status,
       banner: _banner ?? 'Find the odd tile · ${'💛' * _lives}',
-      overEmoji: '🔍',
-      overText: 'Eagle eyes!',
+      overEmoji: 'u{1F4AA}',
+      overText: 'Out of lives — nice try!',
+      winEmoji: '🔍',
+      winText: 'Eagle eyes!',
       accent: const Color(0xFF66D9E8),
       onPlayAgain: _reset,
       child: LayoutBuilder(

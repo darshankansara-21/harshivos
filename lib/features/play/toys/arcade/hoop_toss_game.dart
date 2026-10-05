@@ -123,8 +123,10 @@ class _HoopTossGameState extends State<HoopTossGame>
       target: _target,
       status: _status,
       banner: _banner ?? 'Ringers $_score/$_target  ·  ${'⭕' * (5 - _misses)}',
-      overEmoji: '🎪',
-      overText: 'Good tosses!',
+      overEmoji: '💪',
+      overText: 'Out of rings — nice try!',
+      winEmoji: '🎪',
+      winText: 'Good tosses!',
       accent: const Color(0xFFFFD166),
       onPlayAgain: _reset,
       child: GestureDetector(

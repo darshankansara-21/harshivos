@@ -129,8 +129,10 @@ class _CalmChoicesGameState extends State<CalmChoicesGame> with _Emit {
       target: _target,
       status: _status,
       banner: _banner ?? 'Choose what helps  ·  ${'💛' * _lives}',
-      overEmoji: '🌈',
-      overText: 'Calm champion!',
+      overEmoji: '💪',
+      overText: 'Out of lives — nice try!',
+      winEmoji: '🌈',
+      winText: 'Calm champion!',
       accent: const Color(0xFF89F7FE),
       onPlayAgain: _reset,
       child: Container(

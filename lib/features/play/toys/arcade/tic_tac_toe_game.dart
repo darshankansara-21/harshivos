@@ -137,6 +137,8 @@ class _TicTacToeGameState extends State<TicTacToeGame> with _Emit {
       status: _status,
       overEmoji: '🐾',
       overText: _overText,
+      winEmoji: '⭐',
+      winText: 'You win!',
       accent: const Color(0xFF43E97B),
       rankByScore: false,
       onPlayAgain: _reset,

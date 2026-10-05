@@ -170,8 +170,10 @@ class _BalloonMathGameState extends State<BalloonMathGame>
       target: _target,
       status: _status,
       banner: _banner ?? '$_a ${_sub ? '−' : '+'} $_b = ?  · ${'💛' * _lives}',
-      overEmoji: '🎈',
-      overText: 'Math whiz!',
+      overEmoji: '💪',
+      overText: 'Out of lives — nice try!',
+      winEmoji: '🎈',
+      winText: 'Math whiz!',
       accent: const Color(0xFFFF6B6B),
       onPlayAgain: _reset,
       child: LayoutBuilder(

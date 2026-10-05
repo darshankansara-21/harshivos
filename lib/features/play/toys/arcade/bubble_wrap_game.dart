@@ -120,8 +120,8 @@ class _BubbleWrapGameState extends State<BubbleWrapGame>
       target: _sheet,
       status: _status,
       banner: _banner ?? 'Popped $_sheetPopped/$_sheet · total $_total',
-      overEmoji: '🫧',
-      overText: 'So satisfying!',
+      winEmoji: '🫧',
+      winText: 'So satisfying!',
       accent: const Color(0xFF5FB2E6),
       onPlayAgain: _reset,
       child: LayoutBuilder(

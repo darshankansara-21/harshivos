@@ -199,8 +199,8 @@ class _TargetTossGameState extends State<TargetTossGame>
       target: _target,
       status: _status,
       banner: _banner ?? 'Points $_score/$_target · tosses $_throws',
-      overEmoji: '🎯',
-      overText: 'Sharp shooter!',
+      winEmoji: '🎯',
+      winText: 'Sharp shooter!',
       accent: const Color(0xFFE23B5B),
       onPlayAgain: _reset,
       child: LayoutBuilder(

@@ -113,8 +113,8 @@ class _BeatBuilderGameState extends State<BeatBuilderGame>
       target: _rowsN * _steps,
       status: _status,
       banner: _banner ?? 'Beat: $_active drums on',
-      overEmoji: '🎛️',
-      overText: 'Nice groove!',
+      winEmoji: '🎛️',
+      winText: 'Nice groove!',
       accent: const Color(0xFF66D9E8),
       onPlayAgain: _reset,
       child: LayoutBuilder(

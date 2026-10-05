@@ -131,8 +131,10 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
       target: _target,
       status: _status,
       banner: _banner ?? 'Follow the path  ·  ${'💛' * _lives}',
-      overEmoji: '🖐️',
-      overText: 'So steady!',
+      overEmoji: '💪',
+      overText: 'Out of lives — nice try!',
+      winEmoji: '🖐️',
+      winText: 'So steady!',
       accent: const Color(0xFF4CC9F0),
       onPlayAgain: _reset,
       child: LayoutBuilder(

@@ -70,6 +70,8 @@ class _GameShell extends StatefulWidget {
     this.banner,
     this.overEmoji = '💪',
     this.overText = 'Good try!',
+    this.winEmoji,
+    this.winText,
     this.accent = const Color(0xFFFFD166),
     this.introHow,
     this.onStart,
@@ -83,6 +85,12 @@ class _GameShell extends StatefulWidget {
   final String? banner;
   final String overEmoji;
   final String overText;
+  // Shown on an outright GameStatus.won instead of the generic '🎉'/'You did
+  // it!' fallback — lets a game give its win screen its own distinct voice
+  // instead of sharing one identical win message with every other game on
+  // this shell. Null keeps the original generic text.
+  final String? winEmoji;
+  final String? winText;
   final VoidCallback onPlayAgain;
   final Widget child;
   final Color accent;
@@ -125,6 +133,8 @@ class _GameShellState extends State<_GameShell> {
     final banner = widget.banner;
     final overEmoji = widget.overEmoji;
     final overText = widget.overText;
+    final winEmoji = widget.winEmoji;
+    final winText = widget.winText;
     final onPlayAgain = widget.onPlayAgain;
     final child = widget.child;
     final accent = widget.accent;
@@ -196,11 +206,13 @@ class _GameShellState extends State<_GameShell> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
-                      Text(status == GameStatus.won ? '🎉' : overEmoji,
+                      Text(status == GameStatus.won ? (winEmoji ?? '🎉') : overEmoji,
                           style: const TextStyle(fontSize: 72)),
                       const SizedBox(height: 8),
                       Text(
-                        status == GameStatus.won ? 'You did it!' : overText,
+                        status == GameStatus.won
+                            ? (winText ?? 'You did it!')
+                            : overText,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 28,
@@ -1607,6 +1619,8 @@ class _SnakeGameState extends State<SnakeGame>
       banner: _banner,
       overEmoji: '🐍',
       overText: _overReason,
+      winEmoji: '🏆',
+      winText: 'Longest snake in the arena!',
       accent: const Color(0xFF06D6A0),
       introHow: 'Glide your snake to eat glowing orbs and grow.\n'
           'Gold orbs = bonus. Avoid the edges and rival snakes!',
@@ -2130,12 +2144,14 @@ class _RacingGameState extends State<RacingGame>
               : 'P$_place/$_fieldSize · ${remaining.round()}m to flag'),
       // A finish is recorded as GameStatus.won only for an outright P1; P2-P4
       // finish as GameStatus.over, but both are a completed race, not a
-      // "didn't finish" — show the real placing in both cases rather than
-      // falling back to the generic over-screen text.
-      overEmoji: _finishPlace == 1 ? '🏆' : '🏁',
-      overText: _finishPlace == 1
-          ? 'P1 — you won the race!'
-          : (_finishPlace > 0 ? 'Finished P$_finishPlace' : 'Race on!'),
+      // "didn't finish" — show the real placing on the over screen, and the
+      // shell's winText/winEmoji (not the hardcoded generic) carry the P1
+      // trophy message on the won screen.
+      overEmoji: '🏁',
+      overText:
+          _finishPlace > 0 ? 'Finished P$_finishPlace' : 'Race on!',
+      winEmoji: '🏆',
+      winText: 'P1 — you won the race!',
       accent: const Color(0xFFFF6B6B),
       introHow: 'Reach the 🏁 chequered flag ahead of 3 rivals.\n'
           'Tap left/right to change lanes, grab 🪙 coins and ⚡ boosts, '
@@ -2580,8 +2596,8 @@ class _BowlingGameState extends State<BowlingGame>
       best: _best,
       status: _status,
       banner: _banner,
-      overEmoji: '🎳',
-      overText: 'Great bowling!',
+      winEmoji: '🎳',
+      winText: 'Great bowling!',
       accent: const Color(0xFF4CC9F0),
       introHow: 'Flick the ball up the lane to knock the pins down.\n'
           'Ten frames — go for a STRIKE!',

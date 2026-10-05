@@ -117,8 +117,10 @@ class _PenaltyDashGameState extends State<PenaltyDashGame>
       target: _target,
       status: _status,
       banner: _banner ?? 'Goals $_score/$_target  ·  ${'🧤' * (5 - _misses)}',
-      overEmoji: '🥅',
-      overText: 'Full time!',
+      overEmoji: '💪',
+      overText: 'Out of shots — nice try!',
+      winEmoji: '🥅',
+      winText: 'Full time!',
       accent: const Color(0xFF80ED99),
       onPlayAgain: _reset,
       child: GestureDetector(

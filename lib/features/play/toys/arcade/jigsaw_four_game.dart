@@ -135,8 +135,8 @@ class _JigsawFourGameState extends State<JigsawFourGame> with _Emit {
           (_status == GameStatus.playing
               ? 'Picture ${_score + 1}  ·  $left pieces to place'
               : 'Rebuild the pictures'),
-      overEmoji: '🧩',
-      overText: 'Great fitting!',
+      winEmoji: '🧩',
+      winText: 'Great fitting!',
       accent: const Color(0xFF48CAE4),
       onPlayAgain: _reset,
       child: LayoutBuilder(

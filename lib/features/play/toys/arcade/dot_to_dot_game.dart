@@ -150,8 +150,8 @@ class _DotToDotGameState extends State<DotToDotGame>
       target: _target,
       status: _status,
       banner: _banner ?? 'Tap dot ${_next + 1}',
-      overEmoji: '🔢',
-      overText: 'Artist!',
+      winEmoji: '🔢',
+      winText: 'Artist!',
       accent: const Color(0xFFFFD166),
       onPlayAgain: _reset,
       child: LayoutBuilder(

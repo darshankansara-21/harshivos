@@ -133,8 +133,8 @@ class _SortingTrainGameState extends State<SortingTrainGame>
       target: _target,
       status: _status,
       banner: _banner ?? 'Load $_score/$_target parcels',
-      overEmoji: '🚂',
-      overText: 'All aboard!',
+      winEmoji: '🚂',
+      winText: 'All aboard!',
       accent: const Color(0xFF63E6BE),
       onPlayAgain: _reset,
       child: LayoutBuilder(

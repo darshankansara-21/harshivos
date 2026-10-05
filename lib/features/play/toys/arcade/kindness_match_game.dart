@@ -131,8 +131,10 @@ class _KindnessMatchGameState extends State<KindnessMatchGame> with _Emit {
       target: _target,
       status: _status,
       banner: _banner ?? 'Choose kindness  ·  ${'💛' * _lives}',
-      overEmoji: '💛',
-      overText: 'Kind friend!',
+      overEmoji: '💪',
+      overText: 'Out of lives — nice try!',
+      winEmoji: '💛',
+      winText: 'Kind friend!',
       accent: const Color(0xFFFFD166),
       onPlayAgain: _reset,
       child: Container(

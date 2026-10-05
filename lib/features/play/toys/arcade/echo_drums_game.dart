@@ -162,8 +162,10 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
       target: _winLen,
       status: _status,
       banner: _banner ?? 'Phrase of ${_seq.length}  ·  ${'💛' * _lives}',
-      overEmoji: '🪘',
-      overText: 'Good listening!',
+      overEmoji: '💪',
+      overText: 'Out of lives — nice try!',
+      winEmoji: '🪘',
+      winText: 'Good listening!',
       accent: const Color(0xFFFFD166),
       onPlayAgain: _reset,
       child: Container(

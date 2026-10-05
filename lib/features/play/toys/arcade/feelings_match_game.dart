@@ -119,8 +119,10 @@ class _FeelingsMatchGameState extends State<FeelingsMatchGame> with _Emit {
       target: _target,
       status: _status,
       banner: _banner ?? 'Find the feeling  ·  ${'💛' * _lives}',
-      overEmoji: '😊',
-      overText: 'Feelings friend!',
+      overEmoji: '💪',
+      overText: 'Out of lives — nice try!',
+      winEmoji: '😊',
+      winText: 'Feelings friend!',
       accent: const Color(0xFFFFB5E8),
       onPlayAgain: _reset,
       child: Container(

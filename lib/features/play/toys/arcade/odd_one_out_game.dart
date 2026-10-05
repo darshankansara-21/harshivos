@@ -117,8 +117,10 @@ class _OddOneOutGameState extends State<OddOneOutGame> with _Emit {
       target: _target,
       status: _status,
       banner: _banner ?? 'Spot the different one  ·  ${'💛' * _lives}',
-      overEmoji: '🧐',
-      overText: 'Sharp eyes!',
+      overEmoji: '💪',
+      overText: 'Out of lives — nice try!',
+      winEmoji: '🧐',
+      winText: 'Sharp eyes!',
       accent: const Color(0xFF80ED99),
       onPlayAgain: _reset,
       child: LayoutBuilder(

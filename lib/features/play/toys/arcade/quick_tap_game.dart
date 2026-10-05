@@ -147,8 +147,8 @@ class _QuickTapGameState extends State<QuickTapGame>
       target: _rounds,
       status: _status,
       banner: _lastMs > 0 ? 'Round $_round · ${_lastMs}ms' : 'Round ${_round + 1}',
-      overEmoji: '⚡',
-      overText: 'Fast fingers!',
+      winEmoji: '⚡',
+      winText: 'Fast fingers!',
       accent: Colors.white,
       onPlayAgain: _reset,
       child: GestureDetector(

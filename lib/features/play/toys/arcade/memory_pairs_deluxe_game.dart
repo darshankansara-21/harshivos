@@ -155,8 +155,8 @@ class _MemoryPairsDeluxeGameState extends State<MemoryPairsDeluxeGame>
       // The "Level $_level" banner below already carries the true signal.
       status: _status,
       banner: _banner ?? 'Level $_level/$_target · find the pairs',
-      overEmoji: '🧠',
-      overText: 'Memory master!',
+      winEmoji: '🧠',
+      winText: 'Memory master!',
       accent: const Color(0xFFB197FC),
       onPlayAgain: _reset,
       child: Padding(

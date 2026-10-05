@@ -91,6 +91,8 @@ class _Shell extends StatefulWidget {
     this.banner,
     this.overEmoji = '💪',
     this.overText = 'Good try!',
+    this.winEmoji,
+    this.winText,
     this.accent = const Color(0xFFFFD166),
     this.rankByScore = true,
     this.introHow,
@@ -105,6 +107,12 @@ class _Shell extends StatefulWidget {
   final String? banner;
   final String overEmoji;
   final String overText;
+  // Shown on an outright GameStatus.won instead of the generic '🎉'/'You did
+  // it!' fallback — lets a game give its win screen its own distinct voice
+  // (e.g. 'Puzzle master!') instead of every one of the 66 arcade games
+  // sharing one identical win message. Null keeps the original generic text.
+  final String? winEmoji;
+  final String? winText;
   final VoidCallback onPlayAgain;
   final Widget child;
   final Color accent;
@@ -145,6 +153,8 @@ class _ShellState extends State<_Shell> {
     final banner = widget.banner;
     final overEmoji = widget.overEmoji;
     final overText = widget.overText;
+    final winEmoji = widget.winEmoji;
+    final winText = widget.winText;
     final onPlayAgain = widget.onPlayAgain;
     final child = widget.child;
     final accent = widget.accent;
@@ -214,10 +224,13 @@ class _ShellState extends State<_Shell> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    Text(status == GameStatus.won ? '🎉' : overEmoji,
+                    Text(status == GameStatus.won ? (winEmoji ?? '🎉') : overEmoji,
                         style: const TextStyle(fontSize: 72)),
                     const SizedBox(height: 8),
-                    Text(status == GameStatus.won ? 'You did it!' : overText,
+                    Text(
+                        status == GameStatus.won
+                            ? (winText ?? 'You did it!')
+                            : overText,
                         style: const TextStyle(
                             color: Colors.white,
                             fontSize: 28,

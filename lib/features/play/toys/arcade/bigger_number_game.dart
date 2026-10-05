@@ -107,8 +107,10 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
       target: _target,
       status: _status,
       banner: _banner ?? 'Which one?  ·  ${'💛' * _lives}',
-      overEmoji: '🥇',
-      overText: 'Number star!',
+      overEmoji: '💪',
+      overText: 'Out of lives — nice try!',
+      winEmoji: '🥇',
+      winText: 'Number star!',
       accent: const Color(0xFFFFD166),
       onPlayAgain: _reset,
       child: Container(

@@ -116,8 +116,8 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame> with _Emit {
           (_status == GameStatus.playing
               ? 'Board ${_score + 1}  ·  $_moves moves'
               : 'Slide the numbers into order'),
-      overEmoji: '🔀',
-      overText: 'Puzzle master!',
+      winEmoji: '🔀',
+      winText: 'Puzzle master!',
       accent: const Color(0xFF4CC9F0),
       onPlayAgain: _reset,
       child: LayoutBuilder(

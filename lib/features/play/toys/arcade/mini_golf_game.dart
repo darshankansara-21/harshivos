@@ -244,8 +244,8 @@ class _MiniGolfGameState extends State<MiniGolfGame>
       target: _target,
       status: _status,
       banner: _banner ?? 'Hole $_hole/$_target · strokes $_strokes',
-      overEmoji: '⛳',
-      overText: 'Clubhouse champion!',
+      winEmoji: '⛳',
+      winText: 'Clubhouse champion!',
       accent: const Color(0xFF2E9E5B),
       onPlayAgain: _reset,
       child: LayoutBuilder(

@@ -126,8 +126,10 @@ class _ShapeSortChuteGameState extends State<ShapeSortChuteGame>
       target: _target,
       status: _status,
       banner: _banner ?? 'Sort the shapes  ·  ${'💛' * _lives}',
-      overEmoji: '🔻',
-      overText: 'Good sorting!',
+      overEmoji: '💪',
+      overText: 'Out of lives — nice try!',
+      winEmoji: '🔻',
+      winText: 'Good sorting!',
       accent: const Color(0xFF4CC9F0),
       onPlayAgain: _reset,
       child: LayoutBuilder(

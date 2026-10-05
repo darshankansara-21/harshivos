@@ -238,8 +238,8 @@ class _BasketballGameState extends State<BasketballGame>
       target: _target,
       status: _status,
       banner: _banner ?? (_shots > 0 ? 'Baskets $_score/$_target · shots $_shots' : 'Aim and shoot!'),
-      overEmoji: '🏀',
-      overText: 'Nothing but net!',
+      winEmoji: '🏀',
+      winText: 'Nothing but net!',
       accent: const Color(0xFFFF9E00),
       onPlayAgain: _reset,
       child: LayoutBuilder(

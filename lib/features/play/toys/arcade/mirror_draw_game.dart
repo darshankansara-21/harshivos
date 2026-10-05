@@ -129,8 +129,8 @@ class _MirrorDrawGameState extends State<MirrorDrawGame> with _Emit {
           (_status == GameStatus.playing
               ? 'Trace the left side  ·  $lit/${_dots.length}'
               : 'Draw symmetric pictures'),
-      overEmoji: '🎨',
-      overText: 'Lovely art!',
+      winEmoji: '🎨',
+      winText: 'Lovely art!',
       accent: const Color(0xFFB197FC),
       onPlayAgain: _reset,
       child: LayoutBuilder(

@@ -151,8 +151,10 @@ class _PatternWeaverGameState extends State<PatternWeaverGame>
       target: _target,
       status: _status,
       banner: _banner ?? 'What comes next? · ${'💛' * _lives}',
-      overEmoji: '🧶',
-      overText: 'Pattern pro!',
+      overEmoji: 'u{1F4AA}',
+      overText: 'Out of lives — nice try!',
+      winEmoji: '🧶',
+      winText: 'Pattern pro!',
       accent: const Color(0xFF63E6BE),
       onPlayAgain: _reset,
       child: LayoutBuilder(

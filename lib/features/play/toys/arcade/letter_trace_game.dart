@@ -186,8 +186,8 @@ class _LetterTraceGameState extends State<LetterTraceGame> with _Emit {
           (_status == GameStatus.playing
               ? 'Trace the "$_glyph"  ·  $lit/${_dots.length}'
               : 'Trace the dotted letters'),
-      overEmoji: '✍️',
-      overText: 'Great writing!',
+      winEmoji: '✍️',
+      winText: 'Great writing!',
       accent: const Color(0xFF80ED99),
       onPlayAgain: _reset,
       child: LayoutBuilder(

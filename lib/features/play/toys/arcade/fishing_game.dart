@@ -156,8 +156,8 @@ class _FishingGameState extends State<FishingGame>
       status: _status,
       banner: _banner ??
           (_biteT > 0 ? 'A bite! Tap now!' : 'Caught $_score/$_target'),
-      overEmoji: '🎣',
-      overText: 'Reel master!',
+      winEmoji: '🎣',
+      winText: 'Reel master!',
       accent: const Color(0xFF2FA7C4),
       onPlayAgain: _reset,
       child: LayoutBuilder(

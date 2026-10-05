@@ -244,8 +244,10 @@ class _AirHockeyGameState extends State<AirHockeyGame>
       target: _target,
       status: _status,
       banner: _banner ?? 'You $_playerScore  ·  AI $_aiScore',
-      overEmoji: _playerScore >= _target ? '🏆' : '🏒',
-      overText: _playerScore >= _target ? 'You win the match!' : 'Good game!',
+      overEmoji: '🏒',
+      overText: 'Good game!',
+      winEmoji: '🏆',
+      winText: 'You win the match!',
       accent: const Color(0xFF28C2D1),
       onPlayAgain: _reset,
       child: LayoutBuilder(

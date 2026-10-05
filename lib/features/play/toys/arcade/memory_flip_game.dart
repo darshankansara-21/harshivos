@@ -204,8 +204,10 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
       status: _status,
       banner: _banner ??
           'Level $_level · ⏱ ${_timeLeft.ceil()}s · $_lives❤',
-      overEmoji: '🧠',
-      overText: 'Great memory!',
+      overEmoji: '💔',
+      overText: 'Out of lives — nice try!',
+      winEmoji: '🧠',
+      winText: 'Great memory!',
       accent: const Color(0xFF06D6A0),
       onPlayAgain: _reset,
       child: DecoratedBox(

@@ -113,8 +113,8 @@ class _CountingBasketsGameState extends State<CountingBasketsGame> with _Emit {
           (_status == GameStatus.playing
               ? 'Put $_need in the basket  ·  $_inBasket/$_need'
               : 'Drag fruits to match the number'),
-      overEmoji: '🧺',
-      overText: 'Great counting!',
+      winEmoji: '🧺',
+      winText: 'Great counting!',
       accent: const Color(0xFFF4A261),
       onPlayAgain: _reset,
       child: LayoutBuilder(

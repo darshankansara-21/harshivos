@@ -110,8 +110,8 @@ class _ToneMatchGameState extends State<ToneMatchGame>
       target: 4,
       status: _status,
       banner: _banner ?? 'Find the matching sounds',
-      overEmoji: '🔔',
-      overText: 'Good ears!',
+      winEmoji: '🔔',
+      winText: 'Good ears!',
       accent: const Color(0xFFFFD166),
       onPlayAgain: _reset,
       child: Container(

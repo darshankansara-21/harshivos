@@ -192,8 +192,8 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
       target: _target,
       status: _status,
       banner: _banner ?? 'Steer through the gates to the cup',
-      overEmoji: '🔵',
-      overText: 'Nice rolling!',
+      winEmoji: '🔵',
+      winText: 'Nice rolling!',
       accent: const Color(0xFF4CC9F0),
       onPlayAgain: _reset,
       child: LayoutBuilder(

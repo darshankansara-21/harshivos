@@ -124,8 +124,10 @@ class _WeatherSortGameState extends State<WeatherSortGame> with _Emit {
       target: _target,
       status: _status,
       banner: _banner ?? 'Where does it go? · ${'💛' * _lives}',
-      overEmoji: '🌦️',
-      overText: 'Weather wise!',
+      overEmoji: 'u{1F4AA}',
+      overText: 'Out of lives — nice try!',
+      winEmoji: '🌦️',
+      winText: 'Weather wise!',
       accent: const Color(0xFF66D9E8),
       onPlayAgain: _reset,
       child: Padding(

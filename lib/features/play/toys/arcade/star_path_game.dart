@@ -132,8 +132,8 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
           (_status == GameStatus.playing
               ? 'Connect the stars  ·  $_linked/${_stars.length}'
               : 'Trace the star paths'),
-      overEmoji: '⭐',
-      overText: 'Stargazer!',
+      winEmoji: '⭐',
+      winText: 'Stargazer!',
       accent: const Color(0xFFFFE066),
       onPlayAgain: _reset,
       child: LayoutBuilder(

@@ -133,8 +133,8 @@ class _CountPopGameState extends State<CountPopGame>
           (_status == GameStatus.playing
               ? 'Pop $_need bubbles  ·  $_popped/$_need'
               : 'Pop the right number of bubbles'),
-      overEmoji: '🔢',
-      overText: 'Great counting!',
+      winEmoji: '🔢',
+      winText: 'Great counting!',
       accent: const Color(0xFF48CAE4),
       onPlayAgain: _reset,
       child: LayoutBuilder(

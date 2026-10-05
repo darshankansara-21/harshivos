@@ -175,7 +175,9 @@ class _DrumGardenGameState extends State<DrumGardenGame>
       status: _status,
       banner: _banner ?? '$phaseLabel · ${'💛' * _lives}',
       overEmoji: '🥁',
-      overText: _seq.length >= _target ? 'What a tune!' : 'Keep the beat!',
+      overText: 'Keep the beat!',
+      winEmoji: '🥁',
+      winText: 'What a tune!',
       accent: const Color(0xFFB197FC),
       onPlayAgain: _reset,
       child: LayoutBuilder(

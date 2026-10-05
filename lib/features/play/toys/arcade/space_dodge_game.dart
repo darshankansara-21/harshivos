@@ -309,8 +309,10 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
           (_status == GameStatus.playing
               ? 'Ships: $_lives${_shield ? ' | Shielded' : ''}'
               : null),
-      overEmoji: _lives <= 0 ? '💥' : '🎉',
-      overText: _lives <= 0 ? 'Mission failed!' : 'Galaxy clear!',
+      overEmoji: '💥',
+      overText: 'Mission failed!',
+      winEmoji: '🎉',
+      winText: 'Galaxy clear!',
       accent: const Color(0xFF9B5DE5),
       onPlayAgain: _reset,
       child: LayoutBuilder(
