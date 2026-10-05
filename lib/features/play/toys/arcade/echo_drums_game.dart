@@ -24,6 +24,17 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
   int _showStep = 0;
   bool _showOn = false;
   double _timer = 0;
+  // The playback itself used to run at one flat 0.5s-on/0.18s-gap pace for
+  // every round — only the sequence length grew (1 to 8 notes), so a child
+  // replaying a short early phrase heard it at exactly the same tempo as a
+  // long late one. Every other multi-round game in the catalog ramps a real
+  // pace/speed dimension with progress (balloon_math's drift speed,
+  // target_toss's ring speed), so Echo Drums' own "growing phrase" curve was
+  // missing its matching tempo escalation. Both durations now shrink toward a
+  // floor as the phrase grows, so round 8's memorised echo is genuinely
+  // faster to watch — and harder to track — than round 1's, not just longer.
+  double _showDur = 0.5;
+  double _gapDur = 0.18;
   int _inputIdx = 0;
   int _lit = -1;
   double _flashT = 0;
@@ -54,11 +65,17 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
   }
 
   void _startShow() {
+    // Ramp tempo with phrase length: 0.5s/0.18s at round 1 down to a 0.3s/0.1s
+    // floor by the final (8-note) round — fast enough to feel like a real
+    // escalation, never so fast the lights blur together.
+    final progress = (_seq.length / _winLen).clamp(0.0, 1.0);
+    _showDur = 0.5 - progress * 0.2;
+    _gapDur = 0.18 - progress * 0.08;
     _showing = true;
     _showStep = 0;
     _showOn = true;
     _lit = _seq[0];
-    _timer = 0.5;
+    _timer = _showDur;
     TonePlayer.instance.playNote(_notes[_seq[0]], seconds: 0.3);
   }
 
@@ -78,7 +95,7 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
       if (_showOn) {
         _showOn = false;
         _lit = -1;
-        _timer = 0.18;
+        _timer = _gapDur;
       } else {
         _showStep++;
         if (_showStep >= _seq.length) {
@@ -89,7 +106,7 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
         } else {
           _showOn = true;
           _lit = _seq[_showStep];
-          _timer = 0.5;
+          _timer = _showDur;
           TonePlayer.instance.playNote(_notes[_lit], seconds: 0.3);
         }
       }
