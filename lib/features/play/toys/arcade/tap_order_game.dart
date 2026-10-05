@@ -17,6 +17,14 @@ class _TapOrderGameState extends State<TapOrderGame> with _Emit {
   String? _banner;
   int _wrongCell = -1;
   GameStatus _status = GameStatus.ready;
+  // Rounds repeat the exact same 1-25 shuffle forever with no escalation at
+  // all, leaving the game with zero challenge curve — the quality bar every
+  // other round-based game in the catalog clears. Rather than bolt on a
+  // generic difficulty gimmick, track how fast each round is cleared and
+  // celebrate a genuine personal-best time, so going again has a real,
+  // honest goal (beat your own speed) instead of just repeating forever.
+  DateTime? _roundStart;
+  Duration? _bestRoundTime;
 
   @override
   void initState() {
@@ -30,7 +38,10 @@ class _TapOrderGameState extends State<TapOrderGame> with _Emit {
   void _shuffle() {
     _cells = List<int>.generate(25, (i) => i + 1)..shuffle(_rnd);
     _next = 1;
+    _roundStart = DateTime.now();
   }
+
+  String _fmtTime(Duration d) => '${(d.inMilliseconds / 1000).toStringAsFixed(1)}s';
 
   void _tap(int cell) {
     if (_status != GameStatus.playing) return;
@@ -44,7 +55,12 @@ class _TapOrderGameState extends State<TapOrderGame> with _Emit {
       });
       if (_next > 25) {
         _round++;
-        _banner = 'Round $_round!';
+        final elapsed = DateTime.now().difference(_roundStart!);
+        final isBest = _bestRoundTime == null || elapsed < _bestRoundTime!;
+        if (isBest) _bestRoundTime = elapsed;
+        _banner = isBest
+            ? 'Round $_round! ${_fmtTime(elapsed)} · ⭐ New best time!'
+            : 'Round $_round! ${_fmtTime(elapsed)} · best ${_fmtTime(_bestRoundTime!)}';
         TonePlayer.instance.playCue(SoundCue.success);
         emit(ExperienceEvent.gameCompleted);
         setState(_shuffle);
