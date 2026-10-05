@@ -5,7 +5,30 @@ import 'package:flutter/material.dart';
 import '../../../core/toy/toy_ticker.dart';
 import '../../../services/audio/game_music_host.dart';
 import '../../../services/audio/tone_player.dart';
+import '../../companion/companion.dart';
 import 'mini_games.dart' show GameScores, GameStatus;
+
+/// Lets a goal-shell game emit companion events (correct / win / encourage)
+/// and flushes them to the host after the frame — the same pattern
+/// arcade_games.dart's `_Emit` and mini_games.dart's `_CompanionEmitter` use,
+/// duplicated here because each of these is a separate library.
+mixin _GoalEmit<T extends StatefulWidget> on State<T> {
+  final List<ExperienceEvent> _pendingEvents = <ExperienceEvent>[];
+
+  void emit(ExperienceEvent event) => _pendingEvents.add(event);
+
+  void drainCompanion(BuildContext context) {
+    if (_pendingEvents.isEmpty) return;
+    final events = List<ExperienceEvent>.from(_pendingEvents);
+    _pendingEvents.clear();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      for (final event in events) {
+        CompanionEventNotification(event).dispatch(context);
+      }
+    });
+  }
+}
 
 class _GoalShell extends StatefulWidget {
   const _GoalShell({
@@ -333,7 +356,7 @@ class _ChoiceGoalGame extends StatefulWidget {
   State<_ChoiceGoalGame> createState() => _ChoiceGoalGameState();
 }
 
-class _ChoiceGoalGameState extends State<_ChoiceGoalGame> {
+class _ChoiceGoalGameState extends State<_ChoiceGoalGame> with _GoalEmit {
   static const int _target = 8;
   final math.Random _random = math.Random();
   int _score = 0;
@@ -369,6 +392,7 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> {
         _message = 'Try another one';
       });
       TonePlayer.instance.playCue(SoundCue.gentleRetry);
+      emit(ExperienceEvent.incorrectAnswer);
       return;
     }
     TonePlayer.instance.playCue(SoundCue.correct);
@@ -391,6 +415,9 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> {
         _shownAt = DateTime.now();
       }
     });
+    emit(_status == GameStatus.won
+        ? ExperienceEvent.gameCompleted
+        : ExperienceEvent.correctAnswer);
     GameScores.instance.submit(widget.id, _score).then((best) {
       if (mounted && best != _best) setState(() => _best = best);
     });
@@ -412,6 +439,7 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> {
 
   @override
   Widget build(BuildContext context) {
+    drainCompanion(context);
     return _GoalShell(
       title: widget.title,
       goal: widget.goal,
@@ -636,7 +664,7 @@ class PathFinderGame extends StatefulWidget {
   State<PathFinderGame> createState() => _PathFinderGameState();
 }
 
-class _PathFinderGameState extends State<PathFinderGame> {
+class _PathFinderGameState extends State<PathFinderGame> with _GoalEmit {
   static const String _id = 'path_finder';
   final math.Random _rnd = math.Random();
   List<int> _path = <int>[];
@@ -706,6 +734,9 @@ class _PathFinderGameState extends State<PathFinderGame> {
     });
     TonePlayer.instance.playCue(
         _status == GameStatus.won ? SoundCue.success : SoundCue.correct);
+    emit(_status == GameStatus.won
+        ? ExperienceEvent.gameCompleted
+        : ExperienceEvent.correctAnswer);
     GameScores.instance.submit(_id, _step).then((best) {
       if (mounted && best != _best) setState(() => _best = best);
     });
@@ -720,6 +751,7 @@ class _PathFinderGameState extends State<PathFinderGame> {
 
   @override
   Widget build(BuildContext context) {
+    drainCompanion(context);
     return _GoalShell(
       title: '🗺️ Path Finder',
       goal: 'Start at the flag · Follow the glowing path to the treasure',
@@ -824,7 +856,7 @@ class _Spark {
 }
 
 class _GoalKeeperGameState extends State<GoalKeeperGame>
-    with TickerProviderStateMixin, ToyTicker {
+    with TickerProviderStateMixin, ToyTicker, _GoalEmit {
   static const String _id = 'goal_keeper';
   static const int _target = 10;
   // Goal mouth + keeper plane, in normalised canvas space.
@@ -957,6 +989,7 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
       _lastSaved = true;
       _message = _streak >= 3 ? 'SAVE! Streak x$_streak 🧤' : 'SAVE! 🧤';
       TonePlayer.instance.playCue(SoundCue.success);
+      emit(ExperienceEvent.correctAnswer);
       _burst(_keeperX, _lineY, const Color(0xFFFFE066), 14, 0.5);
       // Deflect the ball away from goal.
       _ballPos = Offset(_keeperX, _lineY);
@@ -970,6 +1003,7 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
       _lastSaved = false;
       _message = 'Goal in! Lives ${'⚽' * _lives}${'·' * (5 - _lives)}';
       TonePlayer.instance.playCue(SoundCue.crash);
+      emit(ExperienceEvent.incorrectAnswer);
       _burst(_ballTargetX, _lineY, const Color(0xFFEF476F), 10, 0.35);
       _ballPos = Offset(_ballTargetX, _lineY + 0.04);
       if (_lives <= 0) {
@@ -994,6 +1028,7 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
     _submit();
     TonePlayer.instance.playCue(
         status == GameStatus.won ? SoundCue.success : SoundCue.gameOver);
+    if (status == GameStatus.won) emit(ExperienceEvent.gameCompleted);
   }
 
   void _moveTo(double localX, double width) {
@@ -1010,6 +1045,7 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
 
   @override
   Widget build(BuildContext context) {
+    drainCompanion(context);
     return _GoalShell(
       title: '🥅 Goal Keeper',
       goal: 'Read the shot, slide and dive · Make 10 saves',
