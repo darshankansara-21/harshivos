@@ -29,6 +29,14 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
   double _dotX = 0.12, _dotY = 0.8;
   String? _banner;
   GameStatus _status = GameStatus.ready;
+  // A sighted child can see the dot drifting toward the corridor wall and
+  // correct before it actually touches — a blind/low-vision child had zero
+  // signal of that until the sudden, unavoidable wall-touch failure. Fire a
+  // one-shot creak once drift crosses well into the danger zone (before the
+  // real failure threshold) so there is real time to react, then re-arm once
+  // the dot drifts back toward the centreline so a later excursion warns
+  // again too — the same `_edgeWarned` pattern already used in balance_ball.
+  bool _edgeWarned = false;
 
   @override
   void initState() {
@@ -45,6 +53,7 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
     _dotX = _path.first[0];
     _dotY = _path.first[1];
     _holding = false;
+    _edgeWarned = false;
   }
 
   // The corridor the painter draws is a stroked path with strokeWidth
@@ -79,6 +88,7 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
   void _fail() {
     _lives--;
     _holding = false;
+    _edgeWarned = false;
     _dotX = _path.first[0];
     _dotY = _path.first[1];
     if (_lives <= 0) {
@@ -171,9 +181,18 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
             onPanUpdate: (d) {
               if (!_holding || _status != GameStatus.playing) return;
               final nx = d.localPosition.dx / w, ny = d.localPosition.dy / h;
-              if (_distToPath(nx, ny, aspect) > _halfW) {
+              final dist = _distToPath(nx, ny, aspect);
+              if (dist > _halfW) {
                 _fail();
                 return;
+              }
+              if (dist > _halfW * 0.72) {
+                if (!_edgeWarned) {
+                  _edgeWarned = true;
+                  TonePlayer.instance.playCue(SoundCue.wood);
+                }
+              } else if (dist < _halfW * 0.4) {
+                _edgeWarned = false;
               }
               setState(() {
                 _dotX = nx;
