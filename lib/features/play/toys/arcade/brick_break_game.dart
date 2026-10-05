@@ -110,7 +110,12 @@ class _BrickBreakGameState extends State<BrickBreakGame>
     _buildBricks();
     _flash('Level $_level!');
     TonePlayer.instance.playCue(SoundCue.success);
-    emit(ExperienceEvent.gameCompleted);
+    // Clearing a level is a milestone in this endless, ever-escalating game,
+    // not a true run-ending win — the loud `gameCompleted` celebration is
+    // reserved for `_loseLife`'s actual high-score-beat gate below. Every
+    // level-up firing the full "You did it!" fanfare would be the same
+    // mistimed-tier bug already fixed in memory_flip/snack_studio.
+    emit(ExperienceEvent.bubblePopped);
     _serveBall();
   }
 
