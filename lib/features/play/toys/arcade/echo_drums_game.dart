@@ -109,6 +109,16 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
           _status = GameStatus.won;
           TonePlayer.instance.playCue(SoundCue.gameStart);
           emit(ExperienceEvent.gameCompleted);
+          // The win branch never used to call submit() at all, so the final
+          // (longest, highest-scoring) phrase a child ever echoes was always
+          // left out of their best — the win screen's "best" stat showed the
+          // second-to-last round's score instead of the run that just won.
+          // Same fire-and-forget-then-setState pattern as every other submit
+          // call site here (matches the identical fix already applied to
+          // echo_game.dart's win path).
+          GameScores.instance.submit(_id, _score).then((b) {
+            if (mounted) setState(() => _best = b);
+          });
         } else {
           TonePlayer.instance.playCue(SoundCue.success);
           emit(ExperienceEvent.bubblePopped);

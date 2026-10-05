@@ -114,6 +114,14 @@ class _DrumGardenGameState extends State<DrumGardenGame>
           _status = GameStatus.won;
           TonePlayer.instance.playCue(SoundCue.gameStart);
           emit(ExperienceEvent.gameCompleted);
+          // The win branch never called submit() at all, so the final
+          // (longest) tune a child ever completes — the one that just won —
+          // was always left out of their best, same win-path-skips-submit
+          // bug class just fixed in echo_drums_game.dart (and echo_game.dart
+          // before it).
+          GameScores.instance.submit(_id, _seq.length).then((b) {
+            if (mounted) setState(() => _best = b);
+          });
         } else {
           _flash('Nice! 🥁 Tune of ${_seq.length}');
           GameScores.instance.submit(_id, _seq.length).then((b) {
