@@ -455,6 +455,12 @@ class _FruitCatchGameState extends State<FruitCatchGame>
         return true;
       }
       if (f.y > 1.05) {
+        // A fruit falling past the basket is the same "unexplained setback"
+        // gap class as balloon_pop's floated-away balloons: the bomb-catch
+        // path already flashes 'Oops! Dodge bombs', so a silently reset
+        // combo here would cost a child a streak for a reason they never
+        // saw happen.
+        if (f.kind != 2 && _combo > 0) _flash('Missed it! Combo reset');
         if (f.kind != 2) _combo = 0;
         return true;
       }
@@ -967,6 +973,11 @@ class _StarTapGameState extends State<StarTapGame>
     _pops.removeWhere((p) => p.t <= 0);
     _life -= dt;
     if (_life <= 0) {
+      // A star that fades away unclaimed is the same silent-setback gap as
+      // balloon_pop/fruit_catch: the decoy-tap miss already flashes 'Skip
+      // the red one!', so letting a combo vanish here with no message at
+      // all would cost a streak for a reason a child never saw happen.
+      if (_combo > 0) _flash('Star faded! Combo reset');
       _combo = 0; // missed — the star faded away
       _spawnStar();
     }
