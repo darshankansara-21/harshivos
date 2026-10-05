@@ -37,6 +37,41 @@ class _OddOneOutGameState extends State<OddOneOutGame> with _Emit {
 
   int get _count => _cols * _cols;
 
+  // Screen-reader users can't see shape/colour, so expose the same
+  // description a sighted child reads visually (shape + colour per tile)
+  // instead of announcing the answer — they compare descriptions themselves,
+  // same as comparing tiles by eye.
+  static const List<String> _shapeNames = <String>[
+    'circle', 'square', 'triangle', 'star', 'heart', 'diamond',
+  ];
+  static const List<String> _colorNames = <String>[
+    'red', 'blue', 'yellow', 'green', 'purple', 'pink',
+  ];
+
+  String _colorName(Color c) {
+    var best = 0;
+    var bestDist = double.infinity;
+    for (var i = 0; i < _palette.length; i++) {
+      final p = _palette[i];
+      final dist = ((p.red - c.red) * (p.red - c.red) +
+              (p.green - c.green) * (p.green - c.green) +
+              (p.blue - c.blue) * (p.blue - c.blue))
+          .toDouble();
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = i;
+      }
+    }
+    final baseHsl = HSLColor.fromColor(_palette[best]);
+    final hsl = HSLColor.fromColor(c);
+    final shade = (hsl.lightness - baseHsl.lightness).abs() < 0.03
+        ? ''
+        : hsl.lightness > baseHsl.lightness
+            ? 'light '
+            : 'dark ';
+    return '$shade${_colorNames[best]}';
+  }
+
   Color _subtleOddColor(Color base) {
     final progress = (_score / (_target - 1)).clamp(0.0, 1.0);
     final delta = 0.24 - progress * 0.14;
@@ -140,29 +175,59 @@ class _OddOneOutGameState extends State<OddOneOutGame> with _Emit {
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapDown: (d) {
-              if (d.localPosition.dy < h * 0.14) return;
-              final gx = (d.localPosition.dx / w * _cols).floor().clamp(0, _cols - 1);
-              final gy = (((d.localPosition.dy - h * 0.14) / (h * 0.82)) * _cols)
-                  .floor()
-                  .clamp(0, _cols - 1);
-              _tap(gy * _cols + gx);
-            },
-            child: CustomPaint(
-              painter: _OddOneOutPainter(
-                cols: _cols,
-                count: _count,
-                oddIndex: _oddIndex,
-                baseShape: _baseShape,
-                oddShape: _oddShape,
-                baseColor: _baseColor,
-                oddColor: _oddColor,
-                wrong: _wrong,
+          final top = h * 0.14, gh = h * 0.82;
+          final cellW = w / _cols, cellH = gh / _cols;
+          // Screen-reader overlay: one Semantics button per tile describing
+          // its shape + colour, so a blind child can compare descriptions
+          // the same way a sighted child compares tiles by eye, instead of
+          // this whole game being silently unplayable without sight.
+          final tiles = <Widget>[];
+          for (var i = 0; i < _count; i++) {
+            final gx = i % _cols, gy = i ~/ _cols;
+            final isOdd = i == _oddIndex;
+            final shapeName = _shapeNames[isOdd ? _oddShape : _baseShape];
+            final colorName = _colorName(isOdd ? _oddColor : _baseColor);
+            tiles.add(Positioned(
+              left: gx * cellW,
+              top: top + gy * cellH,
+              width: cellW,
+              height: cellH,
+              child: Semantics(
+                label: 'Row ${gy + 1} column ${gx + 1}: $colorName $shapeName',
+                button: true,
+                onTap: () => _tap(i),
+                child: const SizedBox.expand(),
               ),
-              size: Size.infinite,
-            ),
+            ));
+          }
+          return Stack(
+            children: <Widget>[
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapDown: (d) {
+                  if (d.localPosition.dy < h * 0.14) return;
+                  final gx = (d.localPosition.dx / w * _cols).floor().clamp(0, _cols - 1);
+                  final gy = (((d.localPosition.dy - h * 0.14) / (h * 0.82)) * _cols)
+                      .floor()
+                      .clamp(0, _cols - 1);
+                  _tap(gy * _cols + gx);
+                },
+                child: CustomPaint(
+                  painter: _OddOneOutPainter(
+                    cols: _cols,
+                    count: _count,
+                    oddIndex: _oddIndex,
+                    baseShape: _baseShape,
+                    oddShape: _oddShape,
+                    baseColor: _baseColor,
+                    oddColor: _oddColor,
+                    wrong: _wrong,
+                  ),
+                  size: Size.infinite,
+                ),
+              ),
+              ...tiles,
+            ],
           );
         },
       ),
