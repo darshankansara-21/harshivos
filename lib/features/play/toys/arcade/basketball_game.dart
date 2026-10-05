@@ -214,7 +214,16 @@ class _BasketballGameState extends State<BasketballGame>
     final a = _aim;
     _aim = null;
     if (a == null || _flying || _resetT > 0) return;
-    if (a.dy > -0.03) return; // must aim upward toward the hoop
+    if (a.dy > -0.03) {
+      // Releasing a drag aimed sideways/downward used to do nothing at all —
+      // a child dragging the wrong way got no sound or text, so they
+      // couldn't tell "that didn't count" from "the game didn't notice my
+      // touch". Give the same kind of gentle, distinct nudge every other
+      // blocked gesture in the catalog gets.
+      TonePlayer.instance.playCue(SoundCue.gentleRetry);
+      _flash('Drag upward toward the hoop!');
+      return;
+    }
     final v = _launchVel(a);
     _vx = v.dx;
     _vy = v.dy;
