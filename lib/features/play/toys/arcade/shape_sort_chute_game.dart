@@ -137,23 +137,44 @@ class _ShapeSortChuteGameState extends State<ShapeSortChuteGame>
           final w = c.maxWidth;
           void move(double dx) =>
               setState(() => _x = (dx / w).clamp(0.08, 0.92));
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onPanStart: (d) => move(d.localPosition.dx),
-            onPanUpdate: (d) => move(d.localPosition.dx),
-            onTapDown: (d) => move(d.localPosition.dx),
-            child: CustomPaint(
-              painter: _ShapeSortChutePainter(
-                holes: _holes,
-                shape: _shape,
-                x: _x,
-                y: _y,
-                colors: _shapeColors,
-                flashHole: _flashT > 0 ? _flashHole : -1,
-                flashGood: _flashGood,
+          const shapeNames = <String>['circle', 'square', 'triangle', 'star'];
+          return Stack(
+            children: [
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onPanStart: (d) => move(d.localPosition.dx),
+                onPanUpdate: (d) => move(d.localPosition.dx),
+                onTapDown: (d) => move(d.localPosition.dx),
+                child: CustomPaint(
+                  painter: _ShapeSortChutePainter(
+                    holes: _holes,
+                    shape: _shape,
+                    x: _x,
+                    y: _y,
+                    colors: _shapeColors,
+                    flashHole: _flashT > 0 ? _flashHole : -1,
+                    flashGood: _flashGood,
+                  ),
+                  size: Size.infinite,
+                ),
               ),
-              size: Size.infinite,
-            ),
+              // Screen-reader access: each hole is a fixed per-round drop
+              // zone (set once in `_arrange`, like `shape_builder`'s slots),
+              // so steer the falling shape straight over a hole on tap.
+              for (var i = 0; i < 3; i++)
+                Positioned(
+                  left: w * (i / 3),
+                  top: 0,
+                  width: w / 3,
+                  bottom: 0,
+                  child: Semantics(
+                    label: '${shapeNames[_holes[i]]} hole',
+                    button: true,
+                    onTap: () => move(w * (i / 3 + 1 / 6)),
+                    child: const SizedBox.expand(),
+                  ),
+                ),
+            ],
           );
         },
       ),
