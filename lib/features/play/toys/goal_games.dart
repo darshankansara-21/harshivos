@@ -1097,7 +1097,11 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
       _lives--;
       _streak = 0;
       _lastSaved = false;
-      _message = 'Goal in! Lives ${'⚽' * _lives}${'·' * (5 - _lives)}';
+      // Remaining lives are a keeper's gloves, not soccer balls — a ⚽ here
+      // reads as "goals scored", the opposite of what this stat means, right
+      // in the same breath as "Goal in!". Match the glove used by the
+      // "SAVE! 🧤" message so the icon matches what the stat represents.
+      _message = 'Goal in! Lives ${'🧤' * _lives}${'·' * (5 - _lives)}';
       TonePlayer.instance.playCue(SoundCue.crash);
       emit(ExperienceEvent.incorrectAnswer);
       _burst(_ballTargetX, _lineY, const Color(0xFFEF476F), 10, 0.35);
@@ -1156,7 +1160,7 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
       best: _best,
       status: _status,
       accent: const Color(0xFFFFD166),
-      message: _message ?? 'Lives ${'⚽' * _lives}${'·' * (5 - _lives)}',
+      message: _message ?? 'Lives ${'🧤' * _lives}${'·' * (5 - _lives)}',
       onReset: _reset,
       winEmoji: '🧤',
       winText: 'Saved the match!',
