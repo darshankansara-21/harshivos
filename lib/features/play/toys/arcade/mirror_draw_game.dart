@@ -46,6 +46,16 @@ class _MirrorDrawGameState extends State<MirrorDrawGame> with _Emit {
   int _best = 0;
   String? _banner;
   GameStatus _status = GameStatus.ready;
+  // Height/width ratio of the last-seen canvas. The dots are drawn as a
+  // true isotropic circle (same fixed pixel radius on both axes), but
+  // `_touch` is fed coordinates normalized independently by width (x) and
+  // height (y). On a portrait phone (h > w) a flat tolerance compared
+  // against both deltas untouched makes the vertical hit box wider in
+  // pixels than the horizontal one — the same aspect-ratio hit-test bug
+  // class fixed in bug_catch/shape_builder/counting_baskets/letter_trace/
+  // star_path. Track the aspect ratio and scale the y-delta by it so both
+  // axes compare in width-normalized, pixel-equivalent units.
+  double _aspect = 1;
 
   @override
   void initState() {
@@ -87,7 +97,7 @@ class _MirrorDrawGameState extends State<MirrorDrawGame> with _Emit {
     if (_status != GameStatus.playing || nx > 0.5) return;
     for (final d in _dots) {
       if (d.lit) continue;
-      if ((d.x - nx).abs() < 0.06 && (d.y - ny).abs() < 0.06) {
+      if ((d.x - nx).abs() < 0.06 && (d.y - ny).abs() * _aspect < 0.06) {
         d.lit = true;
         TonePlayer.instance.playCue(SoundCue.correct);
         if (_dots.every((e) => e.lit)) {
@@ -150,8 +160,10 @@ class _MirrorDrawGameState extends State<MirrorDrawGame> with _Emit {
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
-          void handle(Offset p) =>
-              _touch((p.dx / w).clamp(0.0, 1.0), (p.dy / h).clamp(0.0, 1.0));
+          void handle(Offset p) {
+            _aspect = h / w;
+            _touch((p.dx / w).clamp(0.0, 1.0), (p.dy / h).clamp(0.0, 1.0));
+          }
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
             onPanStart: (d) => handle(d.localPosition),
