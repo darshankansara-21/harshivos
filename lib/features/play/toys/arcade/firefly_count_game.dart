@@ -97,10 +97,19 @@ class _FireflyCountGameState extends State<FireflyCountGame>
       _wrongFlash = idx;
       _wrongT = 0.5;
       _lives--;
-      TonePlayer.instance.playCue(SoundCue.gentleRetry);
-      _banner = 'Count again…';
-      _bannerT = 1.0;
-      if (_lives <= 0) _status = GameStatus.over;
+      if (_lives <= 0) {
+        // The life-ending miss is the real end of the run — it must sound
+        // distinct from a routine miss, never just the same gentle-retry cue.
+        _status = GameStatus.over;
+        _banner = 'Out of lives!';
+        _bannerT = 1.2;
+        TonePlayer.instance.playCue(SoundCue.gameOver);
+        emit(ExperienceEvent.incorrectAnswer);
+      } else {
+        TonePlayer.instance.playCue(SoundCue.gentleRetry);
+        _banner = 'Count again…';
+        _bannerT = 1.0;
+      }
     }
     setState(() {});
   }

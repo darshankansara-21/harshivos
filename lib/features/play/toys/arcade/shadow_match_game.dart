@@ -72,9 +72,17 @@ class _ShadowMatchGameState extends State<ShadowMatchGame> with _Emit {
     } else {
       _wrongFlash = idx;
       _lives--;
-      TonePlayer.instance.playCue(SoundCue.gentleRetry);
-      _banner = 'Look at the shape…';
-      if (_lives <= 0) _status = GameStatus.over;
+      if (_lives <= 0) {
+        // The life-ending miss is the real end of the run — it must sound
+        // distinct from a routine miss, never just the same gentle-retry cue.
+        _status = GameStatus.over;
+        _banner = 'Out of lives!';
+        TonePlayer.instance.playCue(SoundCue.gameOver);
+        emit(ExperienceEvent.incorrectAnswer);
+      } else {
+        TonePlayer.instance.playCue(SoundCue.gentleRetry);
+        _banner = 'Look at the shape…';
+      }
     }
     setState(() {});
   }
