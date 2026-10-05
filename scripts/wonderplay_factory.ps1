@@ -127,6 +127,19 @@ function Measure-StepDiff {
   return @{ Files = $files; Lines = $lines }
 }
 
+# Count the product-code files a step actually changed. ONLY changes under lib/
+# count as real improvement; a commit that touches only docs/, the state file,
+# CLAUDE.md, scripts, or other non-code is an AUDIT/DOCUMENTATION step and must
+# NOT be mistaken for product progress (that was the no-op-but-exit-0 pattern the
+# human flagged). Returns the number of changed files whose path starts with lib/.
+function Measure-StepProductFiles {
+  param([string]$FromHead, [string]$ToHead)
+  if (-not $FromHead -or -not $ToHead -or $FromHead -eq $ToHead) { return 0 }
+  $names = & git -C $repo diff --name-only "$FromHead..$ToHead" 2>$null
+  if (-not $names) { return 0 }
+  return (@($names | Where-Object { $_ -match '^lib/' }) | Measure-Object).Count
+}
+
 # Workers must operate ONLY in the repo root. A nested clone (observed as
 # .vscode/tmprepo) causes split-brain: a worker commits there and the
 # orchestrator -- watching the real repo -- never sees progress. Remove any such
@@ -277,11 +290,27 @@ while ($true) {
       Write-Halt "Oversized change this step: $($d.Files) files / $($d.Lines) lines (limits $MaxFilesPerStep / $MaxLinesPerStep) between $lastHead..$head. This looks like a bulk/accidental rewrite, not a bounded product change. Review 'git diff $lastHead..$head' before resuming."
       break
     }
-    Write-Log "PROGRESS: local $lastHead -> $head ; origin $lastRemote -> $remote ($($d.Files) files / $($d.Lines) lines)"
+    # Only a change under lib/ is real product progress. A commit that touches
+    # ONLY docs/state/CLAUDE/scripts is an audit/documentation step -- the human
+    # explicitly ruled that does NOT count. Advance the baselines either way (so
+    # the same commits are never re-counted), but a docs-only step is a STALL.
+    $prod = Measure-StepProductFiles $lastHead $head
+    $prevHead   = $lastHead
     $lastHead   = $head
     $lastRemote = $remote
-    $stall = 0
-    $fail = 0
+    if ($prod -gt 0) {
+      Write-Log "PROGRESS: local $prevHead -> $head ; origin $lastRemote -> $remote ($($d.Files) files / $($d.Lines) lines, $prod under lib/)"
+      $stall = 0
+      $fail = 0
+    }
+    else {
+      $stall++
+      Write-Log "NON-PRODUCT STEP: $prevHead..$head changed only docs/state/non-lib files ($($d.Files) files / $($d.Lines) lines, 0 under lib/). This does NOT count as product progress (consecutive stalls=$stall of $StallLimit)."
+      if ($stall -ge $StallLimit) {
+        Write-Halt "$StallLimit consecutive workers produced NO product-code change (only docs/state churn or clean no-ops). The mission requires AUDIT -> IMPLEMENT a real lib/ improvement -> TEST -> COMMIT -> PUSH. Review the newest worker_*.log and NEXT_ACTION: workers are auditing/documenting instead of implementing."
+        break
+      }
+    }
   }
   elseif ($code -ne 0) {
     # A real failure (non-zero exit) with no progress.

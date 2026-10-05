@@ -75,6 +75,17 @@ the existing companion system. Ordinary tapping stays silent.
 ## 7. Batch discipline (Phases 8–10)
 Each worker does ONE substantial batch then exits cleanly:
 `AUDIT → DESIGN → IMPLEMENT → TEST → FIX → ANALYZE → COMMIT+PUSH → UPDATE STATE`.
+- **PRODUCT PROGRESS IS MANDATORY.** Every launch MUST edit at least one file under
+  `lib/` (a real gameplay/UX/audio/logic improvement) and commit+push it. A commit that
+  changes ONLY `docs/`, the state file, `CLAUDE.md`, or `scripts/` is **NOT progress** —
+  the orchestrator treats a docs-only / audit-only launch as a STALL and halts the factory
+  after a few of them. Updating the state file is the WRAP-UP, never the whole job.
+- **Never conclude "all games are QUALITY_A, nothing to do" and exit with a docs-only
+  commit.** The catalog is large; there is ALWAYS one concrete improvement to make (feel,
+  timing, difficulty curve, audio identity, animation, accessibility, delight). Pick the
+  single highest-value one and IMPLEMENT it in `lib/`. If you genuinely believe the product
+  is finished, the only valid move is to work the Phase 11 Definition-of-Done checklist
+  below — not to idle.
 - Never ask "what next?"; never stop merely because tests pass; never make a release
   build after a small batch; never declare done because tests pass.
 - Before you exit (limit reached OR batch done): tests green, analyze clean (0 warn /

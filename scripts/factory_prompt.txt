@@ -19,6 +19,24 @@ Then execute the NEXT_ACTION / current phase from the state file. Do ONE substan
 SAFE unit of work (per CLAUDE.md's batch definition: AUDIT -> DESIGN -> IMPLEMENT ->
 TEST -> FIX -> ANALYZE -> COMMIT+PUSH -> UPDATE STATE).
 
+PRODUCT PROGRESS IS MANDATORY — THIS IS THE #1 RULE:
+Every launch MUST change real product code. You MUST end the session having edited at
+least one file under lib/ (a concrete gameplay/UX/audio/logic improvement) AND committed
+and pushed it. A commit that touches ONLY docs/, the state file, CLAUDE.md, or scripts is
+NOT progress — the orchestrator now treats a docs-only / audit-only launch as a STALL and
+will halt the factory after a few of them. Auditing and updating the state file is the
+WRAP-UP of your work, never the whole of it.
+
+Therefore your loop is strictly: AUDIT (find ONE concrete, specific weakness in a real
+game under lib/features/play/) -> IMPLEMENT that improvement in lib/ -> run flutter test
+--no-pub and flutter analyze --no-pub until green -> COMMIT + PUSH the lib/ change -> THEN
+update docs/WONDERPLAY_GAME_FACTORY_STATE.md. You are FORBIDDEN from concluding "everything
+is already QUALITY_A, nothing to do" and exiting with only a docs commit. The catalog is
+large; there is ALWAYS one concrete improvement to make (feel, timing, difficulty curve,
+audio identity, animation, accessibility, delight). Pick the single highest-value one and
+implement it for real. If you truly believe the product is finished, the ONLY valid action
+is to work through the Phase 11 Definition-of-Done checklist in CLAUDE.md — not to idle.
+
 HARD RULES (also in CLAUDE.md):
 - Mission is QUALITY, not new games. Do NOT add new games unless CLAUDE.md says a real gap exists.
 - NO version bump, NO APK/AAB/release until FACTORY_COMPLETE criteria are met.
