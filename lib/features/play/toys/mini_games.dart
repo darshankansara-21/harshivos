@@ -2062,6 +2062,13 @@ class _RacingGameState extends State<RacingGame>
   final List<double> _rivals = <double>[]; // metres travelled
   final List<double> _rivalMps = <double>[]; // pace per rival
   final List<int> _rivalLane = <int>[];
+  // Rivals used to sit in one fixed lane for the whole race — visually a
+  // static backdrop rather than cars actually racing. Track an eased visual
+  // lane position (mirroring the player's own `_lanePos` slide-and-bank) plus
+  // a per-rival countdown to the next lane change, so the pack genuinely
+  // jostles for position like a real race instead of gliding in parallel rails.
+  final List<double> _rivalLanePos = <double>[];
+  final List<double> _rivalLaneTimer = <double>[];
   int _lane = 1;
   double _lanePos = 1.0; // eased visual lane position — slides, never teleports
   double _spawnIn = 0.9;
@@ -2119,8 +2126,15 @@ class _RacingGameState extends State<RacingGame>
     _rivalLane
       ..clear()
       ..addAll(<int>[0, 2, 1]);
+    _rivalLanePos
+      ..clear()
+      ..addAll(<double>[0, 2, 1]);
+    _rivalLaneTimer
+      ..clear()
+      ..addAll(<double>[0, 0, 0]);
     for (var i = 0; i < 3; i++) {
       _rivalMps.add(88 + _rnd.nextDouble() * 20); // 88..108 mps
+      _rivalLaneTimer[i] = 1.2 + _rnd.nextDouble() * 2.0;
     }
     _lane = 1;
     _lanePos = 1.0;
@@ -2168,6 +2182,24 @@ class _RacingGameState extends State<RacingGame>
       final leadGap = _distance - _rivals[i];
       final rivalPace = _rivalMps[i] + (leadGap > 0 ? 12 : 8);
       _rivals[i] += rivalPace * dt;
+
+      // Rivals periodically swap lanes so the pack looks and behaves like a
+      // real race (overtaking manoeuvres) instead of 3 cars glued to fixed
+      // rails for the whole run. Ease toward the new lane exactly like the
+      // player's own `_lanePos`, so rival banking reads the same way.
+      _rivalLaneTimer[i] -= dt;
+      if (_rivalLaneTimer[i] <= 0) {
+        final choices = <int>[0, 1, 2]..remove(_rivalLane[i]);
+        _rivalLane[i] = choices[_rnd.nextInt(choices.length)];
+        _rivalLaneTimer[i] = 1.8 + _rnd.nextDouble() * 2.4;
+      }
+      final rivalLaneDiff = _rivalLane[i] - _rivalLanePos[i];
+      if (rivalLaneDiff.abs() > 0.0005) {
+        final ease = 1 - math.exp(-dt * 8);
+        _rivalLanePos[i] += rivalLaneDiff * ease;
+      } else {
+        _rivalLanePos[i] = _rivalLane[i].toDouble();
+      }
     }
     if (_distance >= _raceLen) {
       _finish();
@@ -2330,11 +2362,17 @@ class _RacingGameState extends State<RacingGame>
                     return ry >= -0.02 && ry <= 0.95;
                   }())
                     Positioned(
-                      left: _laneX[_rivalLane[i]] * w - 22,
+                      left: _laneX3(_rivalLanePos[i]) * w - 22,
                       top: (0.8 - (_rivals[i] - _distance) / 320) * h - 26,
-                      child: const Opacity(
+                      child: Opacity(
                         opacity: 0.9,
-                        child: Text('🚘', style: TextStyle(fontSize: 42)),
+                        child: Transform.rotate(
+                          // Bank into the lane change exactly like the
+                          // player's own car, so an overtaking rival reads
+                          // as actually steering, not just sliding sideways.
+                          angle: (_rivalLane[i] - _rivalLanePos[i]) * 0.5,
+                          child: const Text('🚘', style: TextStyle(fontSize: 42)),
+                        ),
                       ),
                     ),
                 for (final car in _cars)
