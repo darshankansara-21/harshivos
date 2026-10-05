@@ -65,7 +65,7 @@ class _BrickBreakGameState extends State<BrickBreakGame>
   void _buildBricks() {
     _bricks = List<int>.generate(_cols * _rowCount, (index) {
       final row = index ~/ _cols;
-      final isHeavy = _level > 2 && row >= _rowCount - 2 && (index + _level) % 4 == 0;
+      final isHeavy = _level > 3 && row >= _rowCount - 2 && (index + _level) % 4 == 0;
       return isHeavy ? 2 : 1;
     });
   }
@@ -106,7 +106,12 @@ class _BrickBreakGameState extends State<BrickBreakGame>
   void _nextLevel() {
     _level++;
     _combo = 0;
-    _speedMul = math.min(1.8, _speedMul + 0.12);
+    // Space the three escalations apart instead of stacking them all on the
+    // same level-up: ball speed only climbs on even levels, row count ramps
+    // out early and then holds at its cap, and heavy (2-hit) bricks are
+    // introduced one level after row count maxes out — so a child never
+    // faces a faster ball, more rows, AND tougher bricks all at once.
+    if (_level.isEven) _speedMul = math.min(1.8, _speedMul + 0.12);
     _rowCount = math.min(6, 3 + _level);
     _buildBricks();
     _flash('Level $_level!');

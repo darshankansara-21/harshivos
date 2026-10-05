@@ -58,6 +58,23 @@ class _CatchBeatGameState extends State<CatchBeatGame>
     _bannerT = 1.2;
   }
 
+  // Stagger the two difficulty knobs so only one gets harder at a time: the
+  // first half of the run the orbs arrive faster (spawn interval shrinks
+  // while fall speed holds steady), the second half the spawn rate is
+  // locked and only the fall speed keeps climbing — instead of both
+  // compounding together from the very first catch.
+  double _spawnInterval(int score) {
+    const half = _target / 2;
+    if (score <= half) return math.max(0.65, 1.1 - score * 0.045);
+    return 0.65;
+  }
+
+  double _fallSpeed(int score) {
+    const half = _target / 2;
+    if (score <= half) return 0.55;
+    return (0.55 + (score - half) * 0.04).clamp(0.55, 0.95);
+  }
+
   @override
   void onTick(double dt) {
     if (_status != GameStatus.playing) return;
@@ -79,7 +96,7 @@ class _CatchBeatGameState extends State<CatchBeatGame>
     _spawnT -= dt;
     if (_spawnT <= 0) {
       _orbs.add(_Orb(_rnd.nextInt(_lanes), -0.05));
-      _spawnT = math.max(0.5, 1.1 - _score * 0.03);
+      _spawnT = _spawnInterval(_score);
     }
     for (var i = _orbs.length - 1; i >= 0; i--) {
       final o = _orbs[i];
@@ -128,7 +145,7 @@ class _CatchBeatGameState extends State<CatchBeatGame>
       _score++;
       _combo++;
       if (_combo > _bestCombo) _bestCombo = _combo;
-      _fall = (0.55 + _score * 0.02).clamp(0.55, 1.1);
+      _fall = _fallSpeed(_score);
       for (var i = 0; i < 10; i++) {
         final a = _rnd.nextDouble() * math.pi * 2;
         final sp = 0.15 + _rnd.nextDouble() * 0.3;

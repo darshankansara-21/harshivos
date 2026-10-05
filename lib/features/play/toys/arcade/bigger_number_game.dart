@@ -31,12 +31,23 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
   void _newRound() {
     _wrong = -1;
     _biggest = _rnd.nextBool();
-    final max = (9 + _score * 7).clamp(9, 99);
+    final max = _maxForScore(_score);
     final set = <int>{};
     while (set.length < 3) {
       set.add(1 + _rnd.nextInt(max));
     }
     _nums = set.toList()..shuffle(_rnd);
+  }
+
+  // Gentle ramp: early correct answers widen the number range only a little
+  // (so the very first win doesn't suddenly throw a much bigger range at the
+  // child), then the step grows round by round up to a steady pace.
+  int _maxForScore(int score) {
+    var max = 9;
+    for (var i = 0; i < score; i++) {
+      max += math.min(2 + i, 7);
+    }
+    return max.clamp(9, 99);
   }
 
   int get _answer {

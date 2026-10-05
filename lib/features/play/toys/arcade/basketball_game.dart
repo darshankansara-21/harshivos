@@ -187,8 +187,10 @@ class _BasketballGameState extends State<BasketballGame>
     _flash(swish
         ? (_streak >= 3 ? 'SWISH! Streak x$_streak 🔥' : 'SWISH! +2')
         : 'Bank it! +1');
-    if (_score >= 4) _hoopSpeed = 0.14;
-    if (_score >= 8) _hoopSpeed = 0.22;
+    // Ease the hoop into motion instead of snapping discontinuously at the
+    // score 4/8 thresholds — a smooth ramp from the first wobble to full
+    // speed feels fair rather than a sudden jolt right after a basket.
+    _hoopSpeed = _score < 4 ? 0 : (0.22 * (_score - 4) / (_target - 1)).clamp(0.0, 0.22);
     GameScores.instance.submit(_id, _score).then((b) {
       if (mounted) setState(() => _best = b);
     });
