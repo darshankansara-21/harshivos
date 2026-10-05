@@ -283,7 +283,13 @@ class _GameShellState extends State<_GameShell> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
-                      Text(overEmoji, style: const TextStyle(fontSize: 76)),
+                      // The start card's icon is the game's OWN emoji (every
+                      // title is authored as 'emoji Name'), not `overEmoji` —
+                      // that param is the lose/encourage screen's icon, a
+                      // mismatch for a start-screen first impression. Mirrors
+                      // `_GoalShell`'s existing correct pattern.
+                      Text(title.split(' ').first,
+                          style: const TextStyle(fontSize: 76)),
                       const SizedBox(height: 6),
                       Text(
                         title,

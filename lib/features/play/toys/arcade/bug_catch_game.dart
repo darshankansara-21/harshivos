@@ -184,7 +184,7 @@ class _BugCatchGameState extends State<BugCatchGame>
       target: _target,
       status: _status,
       banner: _banner ?? 'Catch the ${_names[_targetColor]} bugs! · ${'💛' * _lives}',
-      overEmoji: 'u{1F4AA}',
+      overEmoji: '💪',
       overText: 'Out of lives — nice try!',
       winEmoji: '🐞',
       winText: 'Bug buster!',

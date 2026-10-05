@@ -295,7 +295,17 @@ class _ShellState extends State<_Shell> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    Text(overEmoji, style: const TextStyle(fontSize: 76)),
+                    // The start card's icon is the game's OWN emoji (every
+                    // title is authored as 'emoji Name'), not `overEmoji` —
+                    // that param is the lose/encourage screen's icon, which
+                    // for several games (e.g. memory_flip's '💔', add_it_up's
+                    // '💔') is a genuinely bad first impression before a
+                    // child has even pressed Play, and for the many games
+                    // left at the shell's default '💪' showed a generic,
+                    // off-theme icon instead of the game's own. Mirrors
+                    // `_GoalShell`'s existing correct pattern.
+                    Text(title.split(' ').first,
+                        style: const TextStyle(fontSize: 76)),
                     const SizedBox(height: 6),
                     Text(title,
                         textAlign: TextAlign.center,

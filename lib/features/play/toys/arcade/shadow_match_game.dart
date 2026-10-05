@@ -113,7 +113,7 @@ class _ShadowMatchGameState extends State<ShadowMatchGame> with _Emit {
       target: _target,
       status: _status,
       banner: _banner ?? 'Find the shadow · ${'💛' * _lives}',
-      overEmoji: 'u{1F4AA}',
+      overEmoji: '💪',
       overText: 'Out of lives — nice try!',
       winEmoji: '🫥',
       winText: 'Sharp eyes!',

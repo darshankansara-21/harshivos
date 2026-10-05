@@ -139,7 +139,7 @@ class _RhythmClapGameState extends State<RhythmClapGame>
       target: _target,
       status: _status,
       banner: _banner ?? 'Clap on the beat! · ${'💛' * _lives}',
-      overEmoji: 'u{1F4AA}',
+      overEmoji: '💪',
       overText: 'Out of lives — nice try!',
       winEmoji: '👏',
       winText: 'In the groove!',
