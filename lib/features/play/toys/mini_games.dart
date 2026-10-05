@@ -506,7 +506,17 @@ class _FruitCatchGameState extends State<FruitCatchGame>
         // path already flashes 'Oops! Dodge bombs', so a silently reset
         // combo here would cost a child a streak for a reason they never
         // saw happen.
-        if (f.kind != 2 && _combo > 0) _flash('Missed it! Combo reset');
+        if (f.kind != 2 && _combo > 0) {
+          _flash('Missed it! Combo reset');
+          // The banner above is a purely visual setback cue — a blind or
+          // low-vision child relying on audio got zero feedback that their
+          // streak just broke, unlike the bomb-catch path a few lines down
+          // which already pairs its 'Oops!' flash with a sound. Mirror that
+          // convention here with the same gentle-retry cue used catalog-wide
+          // for every other miss (bigger_number, weather_sort, hoop_toss,
+          // etc.) so the setback is audible, not just readable.
+          TonePlayer.instance.playCue(SoundCue.gentleRetry);
+        }
         if (f.kind != 2) _combo = 0;
         return true;
       }
@@ -749,7 +759,15 @@ class _BalloonPopGameState extends State<BalloonPopGame>
         // which already flash "Oops!" on a bad tap) — flash the same kind of
         // setback message here so a reset streak is never a mystery.
         if (b.kind != 2) {
-          if (_combo > 0) _flash('Floated away! Combo reset');
+          if (_combo > 0) {
+            _flash('Floated away! Combo reset');
+            // Same audio-parity gap as fruit_catch's identical miss path: the
+            // flash above is visual-only, so a blind/low-vision child got no
+            // signal their streak just broke, unlike the bomb-pop path which
+            // already pairs its 'Oops!' flash with a sound. Reuse the same
+            // gentle-retry miss cue used catalog-wide for every other miss.
+            TonePlayer.instance.playCue(SoundCue.gentleRetry);
+          }
           _combo = 0;
         }
         return true;
