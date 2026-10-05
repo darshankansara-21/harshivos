@@ -108,6 +108,12 @@ class _TargetTossGameState extends State<TargetTossGame>
     if (_by < -0.05 || _bx < -0.05 || _bx > 1.05 || _by > 1.1) {
       _flying = false;
       _resetT = 0.3;
+      // This score-based game has no lives/retry structure — a missed toss
+      // is the only mistake type, so it must get the same sound + companion
+      // emit every other no-lives mistake (e.g. quick_tap's too-soon tap)
+      // already gets, instead of silently flashing a banner.
+      TonePlayer.instance.playCue(SoundCue.gentleRetry);
+      emit(ExperienceEvent.incorrectAnswer);
       _flash('Missed — toss again');
     }
   }
