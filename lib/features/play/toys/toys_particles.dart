@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/toy/toy_ticker.dart';
+import '../../../services/audio/tone_player.dart';
 
 /// Shared HSV rainbow helper.
 Color rainbow(double t, {double s = 0.8, double v = 1.0, double opacity = 1}) =>
@@ -168,6 +169,7 @@ class _FireworksToyState extends State<FireworksToy>
 
   void _explode(Offset p, double hue) {
     HapticFeedback.mediumImpact();
+    TonePlayer.instance.playCue(SoundCue.crash);
     for (var i = 0; i < 60; i++) {
       final a = _r.nextDouble() * math.pi * 2;
       final speed = 40 + _r.nextDouble() * 200;
