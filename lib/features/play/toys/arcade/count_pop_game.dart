@@ -71,11 +71,19 @@ class _CountPopGameState extends State<CountPopGame>
     setState(() {});
   }
 
-  void _tap(double nx, double ny) {
+  void _tap(Offset p, double w, double h) {
     if (_status != GameStatus.playing) return;
     for (var i = _bubbles.length - 1; i >= 0; i--) {
       final b = _bubbles[i];
-      if ((b.x - nx).abs() < b.r && (b.y - ny).abs() < b.r) {
+      // The painter draws each bubble as a true pixel circle with radius
+      // scaled only by width (`b.r * w`), so the hit-test must compare real
+      // pixel deltas rather than mixing a width-normalized radius with a
+      // height-normalized y-delta — otherwise the tap region stretches
+      // vertically on any device where height != width.
+      final dx = b.x * w - p.dx;
+      final dy = b.y * h - p.dy;
+      final r = b.r * w;
+      if (dx * dx + dy * dy < r * r) {
         _bubbles.removeAt(i);
         _popped++;
         _pop = 1;
@@ -142,7 +150,7 @@ class _CountPopGameState extends State<CountPopGame>
           final w = c.maxWidth, h = c.maxHeight;
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTapDown: (d) => _tap(d.localPosition.dx / w, d.localPosition.dy / h),
+            onTapDown: (d) => _tap(d.localPosition, w, h),
             child: CustomPaint(
               painter: _CountPopPainter(
                 bubbles: _bubbles,
