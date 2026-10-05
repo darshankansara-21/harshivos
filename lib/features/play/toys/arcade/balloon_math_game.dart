@@ -97,8 +97,15 @@ class _BalloonMathGameState extends State<BalloonMathGame>
 
   void _tap(Offset p, double w, double h) {
     if (_status != GameStatus.playing) return;
+    // Hit-test in pixel space: the balloon's drawn size is scaled entirely
+    // by width (painter uses `w * 0.15` / `w * 0.18` for both axes), so the
+    // tap-forgiveness box must also be width-calibrated on both axes —
+    // comparing against a height-normalized y-threshold would silently
+    // stretch the vertical hit zone on any non-square (portrait) screen.
     for (final b in _balloons) {
-      if ((b.x - p.dx / w).abs() < 0.1 && (b.y - p.dy / h).abs() < 0.1) {
+      final dx = p.dx - b.x * w;
+      final dy = p.dy - b.y * h;
+      if (dx.abs() < w * 0.1 && dy.abs() < w * 0.12) {
         if (b.value == _answer) {
           _score++;
           for (var i = 0; i < 14; i++) {
