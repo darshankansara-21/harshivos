@@ -83,7 +83,13 @@ class WonderAudioPolicy {
 WonderAudioKind _kindForCue(SoundCue cue) => switch (cue) {
       SoundCue.tap ||
       SoundCue.selection ||
-      SoundCue.gentleRetry =>
+      SoundCue.gentleRetry ||
+      // talkAck fires on every single AAC board word/phrase tap (talk_screen),
+      // not once per "win" — it's a frequent tap acknowledgment, not a
+      // celebration, so it must stay in the quiet interaction tier like
+      // tap/selection rather than falling through to the loud gameplay
+      // default a child would otherwise hear on every word they build.
+      SoundCue.talkAck =>
         WonderAudioKind.interaction,
       SoundCue.navigation => WonderAudioKind.navigation,
       SoundCue.calm || SoundCue.ripple => WonderAudioKind.ambient,
