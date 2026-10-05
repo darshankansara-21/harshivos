@@ -142,6 +142,13 @@ class _LetterTraceGameState extends State<LetterTraceGame> with _Emit {
       }
     }
     if (best == null) return;
+    _lightDot(best);
+  }
+
+  // Shared "a dot just got lit" logic, used both by the drag/tap hit-test in
+  // `_touch` and by the Semantics activation path below (which lights a
+  // specific dot directly rather than nearest-distance matching).
+  void _lightDot(_TraceDot best) {
     best.lit = true;
     TonePlayer.instance.playCue(SoundCue.correct);
     if (_dots.every((d) => d.lit)) {
@@ -207,15 +214,39 @@ class _LetterTraceGameState extends State<LetterTraceGame> with _Emit {
             _touch((p.dx / w).clamp(0.0, 1.0), (p.dy / h).clamp(0.0, 1.0));
           }
 
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onPanStart: (d) => handle(d.localPosition),
-            onPanUpdate: (d) => handle(d.localPosition),
-            onTapDown: (d) => handle(d.localPosition),
-            child: CustomPaint(
-              painter: _LetterTracePainter(dots: _dots, glyph: _glyph),
-              size: Size.infinite,
-            ),
+          return Stack(
+            children: <Widget>[
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onPanStart: (d) => handle(d.localPosition),
+                onPanUpdate: (d) => handle(d.localPosition),
+                onTapDown: (d) => handle(d.localPosition),
+                child: CustomPaint(
+                  painter: _LetterTracePainter(dots: _dots, glyph: _glyph),
+                  size: Size.infinite,
+                ),
+              ),
+              // Dots are re-rolled only on `_newGlyph` (a fresh letter), so
+              // their positions are static for the current round — same
+              // static-zone overlay pattern as `shape_builder_game.dart`'s
+              // slots, but one overlay per still-unlit dot instead of per
+              // unfilled slot, letting a screen-reader user trace the whole
+              // letter one dot at a time without needing continuous drag.
+              for (var i = 0; i < _dots.length; i++)
+                if (!_dots[i].lit)
+                  Positioned(
+                    left: _dots[i].x * w - 0.035 * w,
+                    top: _dots[i].y * h - 0.035 * w,
+                    width: 0.07 * w,
+                    height: 0.07 * w,
+                    child: Semantics(
+                      label: 'Trace dot, stroke ${_dots[i].strokeIdx + 1}',
+                      button: true,
+                      onTap: () => _lightDot(_dots[i]),
+                      child: const SizedBox.expand(),
+                    ),
+                  ),
+            ],
           );
         },
       ),
