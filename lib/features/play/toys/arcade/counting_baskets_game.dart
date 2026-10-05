@@ -157,6 +157,21 @@ class _CountingBasketsGameState extends State<CountingBasketsGame> with _Emit {
                 setState(() => _collect(f));
               }
             },
+            // A cancelled pan (gesture arena interruption) never calls
+            // onPanEnd, so without this a fruit mid-drag would stay stuck
+            // wherever it was last dragged to — never checked against the
+            // basket, never resettable except by a later drag happening to
+            // grab it again. Run the exact same basket-mouth check onPanEnd
+            // does so an interrupted drag still honestly resolves.
+            onPanCancel: () {
+              final i = _dragging;
+              _dragging = null;
+              if (i == null) return;
+              final f = _fruits[i];
+              if (f.y > 0.7 && f.x > 0.28 && f.x < 0.72) {
+                setState(() => _collect(f));
+              }
+            },
             child: CustomPaint(
               painter: _FruitBasketPainter(fruits: _fruits, need: _need, inBasket: _inBasket),
               size: Size.infinite,

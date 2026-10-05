@@ -186,6 +186,13 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
               }
             },
             onPanEnd: (_) => setState(() => _holding = false),
+            // A cancelled pan (gesture arena interruption) never calls
+            // onPanEnd, so without this `_holding` would stay stuck true
+            // forever — the dot would render as "held" with no finger on
+            // it, and the very next unrelated gesture anywhere on screen
+            // would immediately start dragging it (bypassing the "grab the
+            // dot" requirement) since onPanUpdate only gates on `_holding`.
+            onPanCancel: () => setState(() => _holding = false),
             child: CustomPaint(
               painter: _SteadyHandPainter(
                 path: _path,
