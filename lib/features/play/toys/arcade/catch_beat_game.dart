@@ -223,23 +223,45 @@ class _CatchBeatGameState extends State<CatchBeatGame>
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth;
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapDown: (d) =>
-                _tapLane((d.localPosition.dx / w * _lanes).floor().clamp(0, _lanes - 1)),
-            child: CustomPaint(
-              painter: _CatchPainter(
-                lanes: _lanes,
-                hitY: _hitY,
-                orbs: _orbs,
-                colors: _laneColors,
-                laneFlash: _laneFlash,
-                laneFlashT: _laneFlashT,
-                laneFlashHit: _laneFlashHit,
-                bits: _bits,
+          return Stack(
+            children: [
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapDown: (d) => _tapLane(
+                    (d.localPosition.dx / w * _lanes).floor().clamp(0, _lanes - 1)),
+                child: CustomPaint(
+                  painter: _CatchPainter(
+                    lanes: _lanes,
+                    hitY: _hitY,
+                    orbs: _orbs,
+                    colors: _laneColors,
+                    laneFlash: _laneFlash,
+                    laneFlashT: _laneFlashT,
+                    laneFlashHit: _laneFlashHit,
+                    bits: _bits,
+                  ),
+                  size: Size.infinite,
+                ),
               ),
-              size: Size.infinite,
-            ),
+              // Screen-reader access: the 4 lanes are fixed columns (like
+              // piano_tiles' lanes), so one static Semantics box per lane —
+              // labelled and routed through the same _tapLane handler the
+              // pointer path uses — lets a screen-reader user discover and
+              // tap each lane directly.
+              for (var i = 0; i < _lanes; i++)
+                Positioned(
+                  left: w / _lanes * i,
+                  top: 0,
+                  width: w / _lanes,
+                  height: c.maxHeight,
+                  child: Semantics(
+                    label: 'Catch lane ${i + 1}',
+                    button: true,
+                    onTap: () => _tapLane(i),
+                    child: const SizedBox.expand(),
+                  ),
+                ),
+            ],
           );
         },
       ),
