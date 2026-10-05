@@ -206,7 +206,11 @@ class _StackGameState extends State<StackGame>
       status: _status,
       banner: _banner ?? 'Level $_level · streak x$_perfectStreak',
       overEmoji: '🧱',
-      overText: 'Toppled!',
+      // Score has streak/precision multipliers baked in, so it no longer
+      // reads 1:1 as tower height — the game-over card otherwise loses the
+      // one stat (how high the tower actually got) a child can see and
+      // instantly understand, unlike the abstract score number.
+      overText: 'Toppled! Stacked ${_tower.length} high',
       accent: const Color(0xFF4CC9F0),
       onPlayAgain: _reset,
       child: LayoutBuilder(

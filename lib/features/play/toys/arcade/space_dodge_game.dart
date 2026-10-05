@@ -322,7 +322,11 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
               ? 'Ships: $_lives${_shield ? ' | Shielded' : ''}'
               : null),
       overEmoji: '💥',
-      overText: 'Mission failed!',
+      // _wave only ever surfaces as a transient 'Wave N!' banner during
+      // play, which the full-screen game-over card then covers — without
+      // this the child's actual run progress (how deep into the meteor
+      // field they got) vanishes the instant the ship is lost.
+      overText: 'Mission failed! Reached Wave $_wave',
       winEmoji: '🎉',
       winText: 'Galaxy clear!',
       accent: const Color(0xFF9B5DE5),
