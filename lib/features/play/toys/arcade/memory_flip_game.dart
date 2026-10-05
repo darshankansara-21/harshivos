@@ -122,9 +122,17 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
 
   bool get _gameOver => _status == GameStatus.over;
 
+  // The final level's leftover-time bonus so it can survive onto the win
+  // overlay below — `_flash` only shows its banner for ~1s and that banner
+  // is instantly hidden the moment `_status` flips to `GameStatus.won` (the
+  // win overlay is drawn on top of it in the same frame), so the bonus a
+  // child just earned was silently thrown away and never actually seen.
+  int _finalTimeBonus = 0;
+
   /// Rewards leftover level time as score, shown appended to [base].
   String _bankTimeBonus(String base) {
     final bonus = (_timeLeft * 2).round();
+    _finalTimeBonus = bonus;
     if (bonus <= 0) return base;
     _score += bonus;
     return '$base (+$bonus time bonus)';
@@ -218,6 +226,7 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
       _banner = null;
       _previewing = false;
       _previewLeft = 0;
+      _finalTimeBonus = 0;
       _deal();
       _status = GameStatus.playing;
     });
@@ -248,9 +257,18 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
               ? 'Memorize the pairs!'
               : 'Level $_level · ⏱ ${_timeLeft.ceil()}s · $_lives❤'),
       overEmoji: '💔',
-      overText: 'Out of lives — nice try!',
+      // Reaching level 3 of 5 before running out of lives is real progress a
+      // child earned — the old static text threw it away and said nothing
+      // but "nice try" regardless of how far they actually got.
+      overText: 'Out of lives — reached Level $_level!',
       winEmoji: '🧠',
-      winText: 'Great memory!',
+      // The leftover-time bonus just banked on the winning level used to
+      // flash in a banner that the win overlay covered in the very same
+      // frame, so it was never actually visible — fold it into the win
+      // text itself so the reward a child just earned is the thing they see.
+      winText: _finalTimeBonus > 0
+          ? 'Great memory! +$_finalTimeBonus time bonus'
+          : 'Great memory!',
       accent: const Color(0xFF06D6A0),
       onPlayAgain: _reset,
       child: DecoratedBox(
