@@ -141,6 +141,9 @@ class _GameShellState extends State<_GameShell> {
     final introHow = widget.introHow;
     final onStart = widget.onStart;
     final scoreText = target != null ? '$score / $target' : '$score';
+    // See _Shell's matching comment in arcade_games.dart: marking the score
+    // pill a live region lets TalkBack/VoiceOver re-announce it as the score
+    // changes mid-run, which was previously silent to assistive tech.
     return GameMusicHost(
       playing: status == GameStatus.playing,
       bed: WonderMusicBed.playful,
@@ -156,21 +159,25 @@ class _GameShellState extends State<_GameShell> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.4),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        best > 0
-                            ? '$title   $scoreText   ★ $best'
-                            : '$title   $scoreText',
-                        style: TextStyle(
-                          color: accent,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
+                    Semantics(
+                      container: true,
+                      liveRegion: true,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.4),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          best > 0
+                              ? '$title   $scoreText   ★ $best'
+                              : '$title   $scoreText',
+                          style: TextStyle(
+                            color: accent,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
                     ),
@@ -206,6 +213,20 @@ class _GameShellState extends State<_GameShell> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
+                      // See _Shell's matching comment in arcade_games.dart:
+                      // a one-shot merged announcement so a screen-reader
+                      // user learns the win/lose screen appeared without
+                      // having to manually swipe around to find it.
+                      Semantics(
+                        liveRegion: true,
+                        label: status == GameStatus.won
+                            ? '${winText ?? 'You did it!'} Score $score.'
+                                '${best > 0 ? ' Best $best.' : ''}'
+                                '${score > 0 && score > _runStartBest ? ' New best!' : ''}'
+                            : '$overText Score $score.'
+                                '${best > 0 ? ' Best $best.' : ''}',
+                        child: const SizedBox.shrink(),
+                      ),
                       Text(status == GameStatus.won ? (winEmoji ?? '🎉') : overEmoji,
                           style: const TextStyle(fontSize: 72)),
                       const SizedBox(height: 8),

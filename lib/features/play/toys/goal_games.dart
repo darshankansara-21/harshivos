@@ -127,19 +127,23 @@ class _GoalShellState extends State<_GoalShell> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 9),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.62),
-                      borderRadius: BorderRadius.circular(22),
-                    ),
-                    child: Text(
-                      '$title   $score / $target${best > 0 ? '   ★ $best' : ''}',
-                      style: TextStyle(
-                        color: accent,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w900,
+                  Semantics(
+                    container: true,
+                    liveRegion: true,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 9),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.62),
+                        borderRadius: BorderRadius.circular(22),
+                      ),
+                      child: Text(
+                        '$title   $score / $target${best > 0 ? '   ★ $best' : ''}',
+                        style: TextStyle(
+                          color: accent,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
                   ),
@@ -194,6 +198,19 @@ class _GoalShellState extends State<_GoalShell> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
+                    // See _Shell's matching comment in arcade_games.dart: a
+                    // one-shot merged announcement so a screen-reader user
+                    // learns the win/lose screen appeared without having to
+                    // manually swipe around to find it.
+                    Semantics(
+                      liveRegion: true,
+                      label: status == GameStatus.won
+                          ? '${winText ?? 'Goal complete!'} Score $score of $target.'
+                              '${stars >= 3 ? ' Perfect, no mistakes!' : stars == 2 ? ' Great work!' : ' You did it!'}'
+                              '${score > 0 && score > _runStartBest ? ' New best!' : ''}'
+                          : '${overText ?? 'Good try!'} Score $score of $target.',
+                      child: const SizedBox.shrink(),
+                    ),
                     Text(
                         status == GameStatus.won
                             ? (winEmoji ?? '🎉')

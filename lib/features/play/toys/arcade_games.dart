@@ -162,6 +162,12 @@ class _ShellState extends State<_Shell> {
     final introHow = widget.introHow;
     final onStart = widget.onStart;
     final scoreText = target != null ? '$score / $target' : '$score';
+    // Screen-reader support: the score pill's text already carries a readable
+    // label, so marking the pill a live region is enough for TalkBack/VoiceOver
+    // to re-announce it whenever the score changes mid-run — previously score
+    // updates were silent to assistive tech. The win/lose overlay below adds
+    // its own one-shot announcement since that text is swapped in wholesale
+    // (a live region alone wouldn't reliably fire on first appearance).
     return GameMusicHost(
       playing: status == GameStatus.playing,
       bed: WonderMusicBed.arcade,
@@ -177,21 +183,25 @@ class _ShellState extends State<_Shell> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.4),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      best > 0
-                          ? '$title   $scoreText   ★ $best'
-                          : '$title   $scoreText',
-                      style: TextStyle(
-                        color: accent,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
+                  Semantics(
+                    container: true,
+                    liveRegion: true,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.4),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        best > 0
+                            ? '$title   $scoreText   ★ $best'
+                            : '$title   $scoreText',
+                        style: TextStyle(
+                          color: accent,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
                   ),
@@ -224,6 +234,24 @@ class _ShellState extends State<_Shell> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
+                    // Invisible one-shot announcer: the overlay's own Text
+                    // widgets are individually focusable (so a screen-reader
+                    // user can still re-read them), but nothing previously
+                    // told TalkBack/VoiceOver the win/lose screen had just
+                    // appeared — a sighted child sees it instantly, a blind
+                    // child using a screen reader would only discover it by
+                    // manually swiping around. A plain-English merged
+                    // sentence read once on appearance fixes that gap.
+                    Semantics(
+                      liveRegion: true,
+                      label: status == GameStatus.won
+                          ? '${winText ?? 'You did it!'} Score $score.'
+                              '${best > 0 ? ' Best $best.' : ''}'
+                              '${rankByScore && score > 0 && score > _runStartBest ? ' New best!' : ''}'
+                          : '$overText Score $score.'
+                              '${best > 0 ? ' Best $best.' : ''}',
+                      child: const SizedBox.shrink(),
+                    ),
                     Text(status == GameStatus.won ? (winEmoji ?? '🎉') : overEmoji,
                         style: const TextStyle(fontSize: 72)),
                     const SizedBox(height: 8),
