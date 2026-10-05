@@ -137,7 +137,15 @@ class _MemoryPairsDeluxeGameState extends State<MemoryPairsDeluxeGame>
   Widget build(BuildContext context) {
     drain(context);
     if (_cards.isEmpty) _deal();
-    final cols = _cards.length <= 8 ? 4 : (_cards.length <= 12 ? 4 : 5);
+    // Pick a column count that evenly divides the card count so every level
+    // renders a clean rectangle instead of a dangling, uneven last row (the
+    // old fixed `<=8 ? 4 : ...` thresholds left level 1's 6 cards and level
+    // 3's 10 cards as a half-empty final row of 2 in a 4-column grid).
+    final cols = _cards.length <= 6
+        ? 3
+        : (_cards.length <= 8
+            ? 4
+            : (_cards.length <= 10 ? 5 : 4));
     return _Shell(
       title: '🧠 Memory Pairs Deluxe',
       introHow:
