@@ -155,6 +155,11 @@ class _SpinnerState extends State<_Spinner>
     final detent = (_angle / (math.pi / 3)).floor();
     if (detent != _lastClick && _vel.abs() > 0.6) {
       HapticFeedback.selectionClick();
+      // Every other gadget on this panel (clicky buttons, toggle switches)
+      // already pairs its haptic with a tactile sound cue — the spinner was
+      // the one left haptic-only, silent even mid-spin. SoundCue.selection's
+      // own cooldown keeps a fast spin's rapid detents from spamming.
+      TonePlayer.instance.playCue(SoundCue.selection);
       _lastClick = detent;
     }
   }
@@ -265,6 +270,10 @@ class _GlideRollerState extends State<_GlideRoller> {
             setState(() => _value = (_value + e.delta.dy / c.maxHeight).clamp(0.0, 1.0));
             if ((_value * 12).round() != ((_value - e.delta.dy / c.maxHeight) * 12).round()) {
               HapticFeedback.selectionClick();
+              // Same gap as the spinner: this panel's step clicks were
+              // haptic-only while its siblings on the same screen already
+              // pair haptic with sound.
+              TonePlayer.instance.playCue(SoundCue.selection);
             }
           },
           child: Container(
