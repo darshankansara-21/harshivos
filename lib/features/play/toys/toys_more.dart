@@ -27,6 +27,7 @@ class _SlimeStretchToyState extends State<SlimeStretchToy>
   Offset? _finger;
   double _hue = 0.33;
   bool _seeded = false;
+  Offset? _lastSoundAt;
 
   @override
   void onTick(double dt) {
@@ -62,12 +63,23 @@ class _SlimeStretchToyState extends State<SlimeStretchToy>
       _vel[i] += align * dir.distance.clamp(0, 220) * 0.06;
     }
     _hue = (_hue + 0.002) % 1.0;
+    // A real stretchy blob makes a soft squish/pop as it gets pulled further —
+    // only sound meaningful new stretch (not every tiny jiggle), relying on
+    // SoundCue.balloon's own cooldown to keep rapid pokes from spamming.
+    if (_lastSoundAt == null || (p - _lastSoundAt!).distance > 36) {
+      _lastSoundAt = p;
+      TonePlayer.instance.playCue(SoundCue.balloon);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Listener(
-      onPointerDown: (e) { _poke(e.localPosition); HapticFeedback.selectionClick(); },
+      onPointerDown: (e) {
+        _lastSoundAt = null;
+        _poke(e.localPosition);
+        HapticFeedback.selectionClick();
+      },
       onPointerMove: (e) => _poke(e.localPosition),
       onPointerUp: (_) { _finger = null; HapticFeedback.lightImpact(); },
       child: CustomPaint(
