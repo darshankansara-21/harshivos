@@ -78,6 +78,11 @@ class _ShadowMatchGameState extends State<ShadowMatchGame> with _Emit {
       }
     } else {
       _wrongFlash = idx;
+      // A miss is a brief, honest mistake cue — not a state that sticks
+      // around for the rest of the child's search for the right shadow.
+      Future<void>.delayed(const Duration(milliseconds: 450), () {
+        if (mounted && _wrongFlash == idx) setState(() => _wrongFlash = -1);
+      });
       _lives--;
       if (_lives <= 0) {
         // The life-ending miss is the real end of the run — it must sound

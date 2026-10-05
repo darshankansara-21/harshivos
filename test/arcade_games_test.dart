@@ -303,7 +303,7 @@ void main() {
     expect(find.textContaining('Shadow Match'), findsOneWidget);
     await tester.tapAt(const Offset(200, 600));
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 500));
     expect(tester.takeException(), isNull);
   });
 
