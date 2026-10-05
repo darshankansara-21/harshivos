@@ -126,20 +126,44 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame> with _Emit {
           final board = math.min(w * 0.86, h * 0.56);
           final ox = (w - board) / 2, oy = (h - board) / 2 + h * 0.04;
           final cell = board / 3;
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapDown: (d) {
-              final lx = d.localPosition.dx - ox, ly = d.localPosition.dy - oy;
-              if (lx < 0 || ly < 0 || lx > board || ly > board) return;
-              final col = (lx / cell).floor().clamp(0, 2);
-              final row = (ly / cell).floor().clamp(0, 2);
-              _tapCell(row * 3 + col);
-            },
-            child: CustomPaint(
-              painter: _SlidePuzzlePainter(
-                tiles: _tiles, ox: ox, oy: oy, cell: cell),
-              size: Size.infinite,
-            ),
+          return Stack(
+            children: <Widget>[
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapDown: (d) {
+                  final lx = d.localPosition.dx - ox, ly = d.localPosition.dy - oy;
+                  if (lx < 0 || ly < 0 || lx > board || ly > board) return;
+                  final col = (lx / cell).floor().clamp(0, 2);
+                  final row = (ly / cell).floor().clamp(0, 2);
+                  _tapCell(row * 3 + col);
+                },
+                child: CustomPaint(
+                  painter: _SlidePuzzlePainter(
+                      tiles: _tiles, ox: ox, oy: oy, cell: cell),
+                  size: Size.infinite,
+                ),
+              ),
+              // The board's current arrangement (which number sits in which
+              // cell) is drawn only onto the canvas, so it was completely
+              // invisible to screen readers — a blind child had no way to
+              // touch-explore the grid and discover the puzzle state. These
+              // invisible Semantics overlays let TalkBack/VoiceOver announce
+              // each cell's tile (or the empty space) as a finger explores
+              // the board, and each one is independently tappable too.
+              for (var p = 0; p < 9; p++)
+                Positioned(
+                  left: ox + (p % 3) * cell,
+                  top: oy + (p ~/ 3) * cell,
+                  width: cell,
+                  height: cell,
+                  child: Semantics(
+                    label: _tiles[p] == 0 ? 'Empty space' : 'Tile ${_tiles[p]}',
+                    button: _tiles[p] != 0,
+                    onTap: () => _tapCell(p),
+                    child: const SizedBox.expand(),
+                  ),
+                ),
+            ],
           );
         },
       ),

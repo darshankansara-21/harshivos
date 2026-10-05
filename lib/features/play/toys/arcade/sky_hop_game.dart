@@ -185,7 +185,11 @@ class _SkyHopGameState extends State<SkyHopGame>
       best: _best,
       target: _goalScore,
       status: _status,
-      banner: _banner,
+      banner: _banner ??
+          // "Tap to flap" was painted only onto the canvas before the first
+          // flap, so it was silent to screen readers. Mirroring it into the
+          // shared, semantics-announced banner closes that gap.
+          (!_started && _status == GameStatus.playing ? 'Tap to flap' : null),
       overEmoji: '🐤',
       overText: _bestCoinCombo > 1
           ? 'Splash! Best coin streak x$_bestCoinCombo'

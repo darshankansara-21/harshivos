@@ -323,7 +323,13 @@ class _BrickBreakGameState extends State<BrickBreakGame>
       best: _best,
       status: _status,
       banner: _banner ??
-          '♥ $_lives   ·   Level $_level${activeIcons.isEmpty ? '' : '   ·   $activeIcons'}',
+          (_started
+              ? '♥ $_lives   ·   Level $_level${activeIcons.isEmpty ? '' : '   ·   $activeIcons'}'
+              // "Drag to move · release the ball" was painted only onto the
+              // canvas before the first serve, so it was silent to screen
+              // readers. Mirroring it into the shared, semantics-announced
+              // banner closes that gap without duplicating the on-canvas hint.
+              : 'Drag to move · release the ball'),
       overEmoji: '🧱',
       overText: 'Out of balls! Reached Level $_level',
       accent: const Color(0xFFFF6B6B),

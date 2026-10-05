@@ -170,19 +170,46 @@ class _DotToDotGameState extends State<DotToDotGame>
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapDown: (d) => _tap(d.localPosition, w, h),
-            child: CustomPaint(
-              painter: _DotPainter(
-                dots: _dots,
-                next: _next,
-                pulse: _pulse,
-                bits: _bits,
-                wrongDot: _wrongDot,
+          const dotHit = 36.0;
+          return Stack(
+            children: <Widget>[
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapDown: (d) => _tap(d.localPosition, w, h),
+                child: CustomPaint(
+                  painter: _DotPainter(
+                    dots: _dots,
+                    next: _next,
+                    pulse: _pulse,
+                    bits: _bits,
+                    wrongDot: _wrongDot,
+                  ),
+                  size: Size.infinite,
+                ),
               ),
-              size: Size.infinite,
-            ),
+              // Each dot's number is painted only onto the canvas, so a
+              // screen-reader user had no way to touch-explore the board and
+              // discover where each numbered dot actually is. These
+              // invisible Semantics overlays announce "Dot N" (and whether
+              // it's already connected or the one to tap next) as a finger
+              // explores the picture, and each is independently tappable.
+              for (var i = 0; i < _dots.length; i++)
+                Positioned(
+                  left: _dots[i].dx * w - dotHit / 2,
+                  top: _dots[i].dy * h - dotHit / 2,
+                  width: dotHit,
+                  height: dotHit,
+                  child: Semantics(
+                    label: i < _next
+                        ? 'Dot ${i + 1}, already connected'
+                        : (i == _next ? 'Dot ${i + 1}, tap next' : 'Dot ${i + 1}'),
+                    button: true,
+                    onTap: () => _tap(
+                        Offset(_dots[i].dx * w, _dots[i].dy * h), w, h),
+                    child: const SizedBox.expand(),
+                  ),
+                ),
+            ],
           );
         },
       ),
