@@ -516,6 +516,26 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('Penalty Dash ignores rapid double taps for one opening', (tester) async {
+    await _pump(tester, const PenaltyDashGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    for (var i = 0; i < 5; i++) {
+      await tester.pump(const Duration(milliseconds: 20));
+    }
+
+    await tester.tapAt(const Offset(300, 400));
+    await tester.pump();
+    expect(find.textContaining('1 / 10'), findsOneWidget);
+
+    await tester.tapAt(const Offset(300, 400));
+    await tester.pump();
+    expect(find.textContaining('1 / 10'), findsOneWidget);
+    expect(find.textContaining('2 / 10'), findsNothing);
+
+    await tester.pump(const Duration(milliseconds: 250));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Shape Sort Chute builds and drags', (tester) async {
     await _pump(tester, const ShapeSortChuteGame());
     await tester.tap(find.widgetWithText(FilledButton, 'Play'));

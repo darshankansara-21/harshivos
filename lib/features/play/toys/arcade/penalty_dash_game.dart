@@ -19,6 +19,7 @@ class _PenaltyDashGameState extends State<PenaltyDashGame>
   double _keeper = 0.5;
   int _score = 0, _misses = 0, _best = 0;
   double _flashX = -1, _flashT = 0;
+  double _shotLockT = 0;
   bool _flashGoal = false;
   String? _banner;
   double _bannerT = 0;
@@ -43,13 +44,18 @@ class _PenaltyDashGameState extends State<PenaltyDashGame>
       if (_bannerT <= 0) _banner = null;
     }
     if (_flashT > 0) _flashT -= dt;
+    if (_shotLockT > 0) _shotLockT -= dt;
     _marker = 0.5 + 0.38 * math.sin(_t * _speed);
     _keeper = 0.5 + 0.30 * math.sin(_t * _speed * 0.8 + 1.7);
     setState(() {});
   }
 
   void _shoot() {
-    if (_status != GameStatus.playing) return;
+    if (_status != GameStatus.playing || _shotLockT > 0) return;
+    // Penalty Dash resolves a shot immediately on tap, so without a brief lock
+    // an accidental double-tap or two near-simultaneous fingers can score (or
+    // miss) twice off the exact same keeper/marker state before the next frame.
+    _shotLockT = 0.18;
     _flashX = _marker;
     _flashT = 0.5;
     final inPosts = _marker > 0.17 && _marker < 0.83;
@@ -96,6 +102,7 @@ class _PenaltyDashGameState extends State<PenaltyDashGame>
       _t = 0;
       _banner = null;
       _bannerT = 0;
+      _shotLockT = 0;
       _status = GameStatus.playing;
     });
   }
@@ -110,6 +117,7 @@ class _PenaltyDashGameState extends State<PenaltyDashGame>
           'between the posts. Ten goals to win!',
       onStart: () => setState(() {
         _t = 0;
+        _shotLockT = 0;
         _status = GameStatus.playing;
       }),
       score: _score,
