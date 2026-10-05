@@ -41,7 +41,8 @@ class _TapOrderGameState extends State<TapOrderGame> with _Emit {
     _roundStart = DateTime.now();
   }
 
-  String _fmtTime(Duration d) => '${(d.inMilliseconds / 1000).toStringAsFixed(1)}s';
+  String _fmtTime(Duration d) =>
+      '${(d.inMilliseconds / 1000).toStringAsFixed(1)}s';
 
   void _tap(int cell) {
     if (_status != GameStatus.playing) return;
@@ -125,36 +126,46 @@ class _TapOrderGameState extends State<TapOrderGame> with _Emit {
                   physics: const NeverScrollableScrollPhysics(),
                   children: <Widget>[
                     for (var i = 0; i < 25; i++)
-                      GestureDetector(
-                        onTapDown: (_) => _tap(i),
-                        child: TweenAnimationBuilder<double>(
-                          key: ValueKey('tap-$i-${_cells[i] < _next}'),
-                          tween: Tween<double>(
-                              begin: _cells[i] < _next ? 1.25 : 1.0, end: 1.0),
-                          duration: const Duration(milliseconds: 220),
-                          curve: Curves.easeOutBack,
-                          builder: (c, s, child) =>
-                              Transform.scale(scale: s, child: child),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 120),
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: _wrongCell == i
-                                  ? const Color(0xFFEF476F)
-                                  : _cells[i] < _next
-                                      ? const Color(0xFF06D6A0).withOpacity(0.3)
-                                      : Colors.white.withOpacity(0.08),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(
-                                _cells[i] < _next ? '' : '${_cells[i]}',
-                                maxLines: 1,
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w800),
+                      Semantics(
+                        button: true,
+                        label: _cells[i] < _next
+                            ? 'Cell already cleared'
+                            : 'Cell showing number ${_cells[i]}',
+                        onTap: () => _tap(i),
+                        excludeSemantics: true,
+                        child: GestureDetector(
+                          onTapDown: (_) => _tap(i),
+                          child: TweenAnimationBuilder<double>(
+                            key: ValueKey('tap-$i-${_cells[i] < _next}'),
+                            tween: Tween<double>(
+                                begin: _cells[i] < _next ? 1.25 : 1.0,
+                                end: 1.0),
+                            duration: const Duration(milliseconds: 220),
+                            curve: Curves.easeOutBack,
+                            builder: (c, s, child) =>
+                                Transform.scale(scale: s, child: child),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 120),
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: _wrongCell == i
+                                    ? const Color(0xFFEF476F)
+                                    : _cells[i] < _next
+                                        ? const Color(0xFF06D6A0)
+                                            .withOpacity(0.3)
+                                        : Colors.white.withOpacity(0.08),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  _cells[i] < _next ? '' : '${_cells[i]}',
+                                  maxLines: 1,
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w800),
+                                ),
                               ),
                             ),
                           ),
