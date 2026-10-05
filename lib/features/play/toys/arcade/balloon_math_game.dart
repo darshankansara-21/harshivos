@@ -82,8 +82,15 @@ class _BalloonMathGameState extends State<BalloonMathGame>
       _bannerT -= dt;
       if (_bannerT <= 0) _banner = null;
     }
+    // Challenge curve: unlike target_toss's ring speed or count_pop's rising
+    // count floor, this drift speed was a flat 0.12 for all 10 rounds — round
+    // 9 never felt any more urgent than round 1. Ramp it gently with score so
+    // reading the sum/difference genuinely gets harder to keep up with as the
+    // child approaches the win target, same escalation convention the rest
+    // of the catalog already uses.
+    final driftSpeed = 0.12 + (_score / _target) * 0.09;
     for (final b in _balloons) {
-      b.y -= dt * 0.12;
+      b.y -= dt * driftSpeed;
       b.x += math.sin(_t * 1.5 + b.sway) * dt * 0.02;
       if (b.y < -0.1) b.y = 1.1; // wrap, keep the answer in play
     }
