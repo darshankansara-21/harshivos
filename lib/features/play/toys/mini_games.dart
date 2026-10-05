@@ -2255,6 +2255,8 @@ class _BowlingGameState extends State<BowlingGame>
   static const double _nearHalf = 0.30; // half-width of lane at the foul line
 
   final List<_BowlPin> _pins = <_BowlPin>[];
+  final List<_Particle> _confetti = <_Particle>[];
+  final math.Random _rnd = math.Random();
   _BowlPhase _phase = _BowlPhase.aim;
   double _ballX = 0.5;
   double _ballY = _yFoul;
@@ -2320,12 +2322,33 @@ class _BowlingGameState extends State<BowlingGame>
 
   int get _standing => _pins.where((p) => !p.down).length;
 
+  // A burst of confetti at the pin deck — the strike/spare celebration a
+  // text banner alone can't deliver. Rises and fans out, then fades.
+  void _burst(Color color, {int count = 22}) {
+    for (var i = 0; i < count; i++) {
+      final a = _rnd.nextDouble() * math.pi * 2;
+      final sp = 0.25 + _rnd.nextDouble() * 0.55;
+      _confetti.add(_Particle(
+          const Offset(0.5, 0.16),
+          Offset(math.cos(a) * sp, math.sin(a) * sp - 0.3),
+          color,
+          0.7 + _rnd.nextDouble() * 0.5));
+    }
+  }
+
   @override
   void onTick(double dt) {
     if (_status != GameStatus.playing) return;
     if (_bannerT > 0) {
       _bannerT -= dt;
       if (_bannerT <= 0) _banner = null;
+    }
+    for (var i = _confetti.length - 1; i >= 0; i--) {
+      final p = _confetti[i];
+      p.pos += p.vel * dt;
+      p.vel += const Offset(0, 0.9) * dt; // gentle gravity
+      p.life -= dt;
+      if (p.life <= 0) _confetti.removeAt(i);
     }
     // Advance any toppling pins.
     for (final p in _pins) {
@@ -2413,6 +2436,7 @@ class _BowlingGameState extends State<BowlingGame>
         // Strike.
         _score += 5;
         _flash('STRIKE! 🎳');
+        _burst(const Color(0xFFFFD166));
         emit(ExperienceEvent.gameCompleted);
         TonePlayer.instance.playCue(SoundCue.completion);
         if (isFinalFrame) {
@@ -2436,6 +2460,7 @@ class _BowlingGameState extends State<BowlingGame>
       if (knockedAll) {
         _score += 5;
         _flash('STRIKE! 🎳');
+        _burst(const Color(0xFFFFD166));
         TonePlayer.instance.playCue(SoundCue.completion);
         _rack();
       } else {
@@ -2447,6 +2472,7 @@ class _BowlingGameState extends State<BowlingGame>
       // Spare.
       _score += 3;
       _flash('SPARE! ✨');
+      _burst(const Color(0xFF7FE0FF));
       emit(ExperienceEvent.gameCompleted);
       TonePlayer.instance.playCue(SoundCue.completion);
       if (isFinalFrame) {
@@ -2497,6 +2523,7 @@ class _BowlingGameState extends State<BowlingGame>
       _f10Bonus = false;
       _banner = null;
       _bannerT = 0;
+      _confetti.clear();
       _status = GameStatus.playing;
       _rack();
     });
@@ -2557,6 +2584,7 @@ class _BowlingGameState extends State<BowlingGame>
                   scaleFor: _scaleFor,
                   yFar: _yFar,
                   yFoul: _yFoul,
+                  confetti: _confetti,
                 ),
                 size: Size.infinite,
               ),
@@ -2604,6 +2632,7 @@ class _BowlPainter extends CustomPainter {
     required this.scaleFor,
     required this.yFar,
     required this.yFoul,
+    required this.confetti,
   });
   final List<_BowlPin> pins;
   final double ballX;
@@ -2613,6 +2642,7 @@ class _BowlPainter extends CustomPainter {
   final double Function(double) scaleFor;
   final double yFar;
   final double yFoul;
+  final List<_Particle> confetti;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -2737,6 +2767,13 @@ class _BowlPainter extends CustomPainter {
           ).createShader(Rect.fromCircle(center: bc, radius: br)));
     canvas.drawCircle(bc.translate(-br * 0.3, -br * 0.3), br * 0.18,
         Paint()..color = Colors.white.withOpacity(0.85));
+
+    // Strike/spare confetti burst at the pin deck.
+    for (final p in confetti) {
+      final k = (p.life / p.maxLife).clamp(0.0, 1.0);
+      canvas.drawCircle(Offset(sx(p.pos.dx), sy(p.pos.dy)), 2.5 + 3.5 * k,
+          Paint()..color = p.color.withOpacity(k));
+    }
   }
 
   void _drawPin(Canvas canvas, Offset c, double s, double opacity) {
