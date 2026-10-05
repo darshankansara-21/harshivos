@@ -192,16 +192,39 @@ class _PianoTilesGameState extends State<PianoTilesGame>
       onPlayAgain: _reset,
       child: LayoutBuilder(
         builder: (context, c) {
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapDown: (d) => _tapCol(
-                (d.localPosition.dx / c.maxWidth * _cols)
-                    .floor()
-                    .clamp(0, _cols - 1)),
-            child: CustomPaint(
-              painter: _PianoPainter(_rows, _cols, _flashCol, _flashT, _flashWrong),
-              size: Size.infinite,
-            ),
+          return Stack(
+            children: [
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapDown: (d) => _tapCol(
+                    (d.localPosition.dx / c.maxWidth * _cols)
+                        .floor()
+                        .clamp(0, _cols - 1)),
+                child: CustomPaint(
+                  painter:
+                      _PianoPainter(_rows, _cols, _flashCol, _flashT, _flashWrong),
+                  size: Size.infinite,
+                ),
+              ),
+              // Screen-reader access: the 4 lanes are a fixed grid (unlike
+              // the tiles sliding within them), so one static Semantics box
+              // per lane — labelled and routed through the same _tapCol
+              // handler the pointer path uses — lets a screen-reader user
+              // discover and tap each lane directly.
+              for (var i = 0; i < _cols; i++)
+                Positioned(
+                  left: c.maxWidth / _cols * i,
+                  top: 0,
+                  width: c.maxWidth / _cols,
+                  height: c.maxHeight,
+                  child: Semantics(
+                    label: 'Piano lane ${i + 1}',
+                    button: true,
+                    onTap: () => _tapCol(i),
+                    child: const SizedBox.expand(),
+                  ),
+                ),
+            ],
           );
         },
       ),
