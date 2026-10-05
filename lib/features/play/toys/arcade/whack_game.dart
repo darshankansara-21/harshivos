@@ -123,7 +123,8 @@ class _WhackGameState extends State<WhackGame>
     _roundTarget += 8;
     _dangerLevel = math.min(3, _dangerLevel + 1);
     _spawnIn = math.max(0.22, 0.6 - (_round * 0.04));
-    _banner = _dangerLevel > 1 ? 'Round $_round! Bombs rise!' : 'Round $_round!';
+    _banner =
+        _dangerLevel > 1 ? 'Round $_round! Bombs rise!' : 'Round $_round!';
     _bannerT = 1.2;
     TonePlayer.instance.playCue(SoundCue.milestone);
   }
@@ -148,7 +149,9 @@ class _WhackGameState extends State<WhackGame>
         _checkWin();
       } else if (_score >= _roundTarget) {
         _advanceRound();
-      } else if (_score == 10 || _score == 25 || (_score >= 50 && _score % 25 == 0)) {
+      } else if (_score == 10 ||
+          _score == 25 ||
+          (_score >= 50 && _score % 25 == 0)) {
         _banner = '$_score moles! 🎉';
         _bannerT = 1.3;
         TonePlayer.instance.playCue(SoundCue.milestone);
@@ -187,7 +190,8 @@ class _WhackGameState extends State<WhackGame>
     drain(context);
     return _Shell(
       title: '🔨 Whack',
-      introHow: 'Tap the moles as they pop up, dodge bombs, and reach 35 points before your 3 lives run out!',
+      introHow:
+          'Tap the moles as they pop up, dodge bombs, and reach 35 points before your 3 lives run out!',
       onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,
@@ -217,42 +221,56 @@ class _WhackGameState extends State<WhackGame>
             physics: const NeverScrollableScrollPhysics(),
             children: <Widget>[
               for (var i = 0; i < _holes; i++)
-                GestureDetector(
-                  onTapDown: (_) => _hit(i),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1A120A),
-                      borderRadius: BorderRadius.circular(80),
-                      border: Border.all(color: const Color(0xFF4A3420), width: 3),
-                    ),
-                    alignment: Alignment.center,
-                    child: Stack(
+                Semantics(
+                  button: true,
+                  // States only what a sighted child already sees at a
+                  // glance in this hole — mole / bomb / empty — never
+                  // revealing which hole will pop next.
+                  label: _mole[i] <= 0
+                      ? 'Hole ${i + 1}, empty.'
+                      : (_isBomb[i]
+                          ? 'Hole ${i + 1}, bomb! Avoid it.'
+                          : 'Hole ${i + 1}, mole. Tap to whack.'),
+                  onTap: () => _hit(i),
+                  excludeSemantics: true,
+                  child: GestureDetector(
+                    onTapDown: (_) => _hit(i),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1A120A),
+                        borderRadius: BorderRadius.circular(80),
+                        border: Border.all(
+                            color: const Color(0xFF4A3420), width: 3),
+                      ),
                       alignment: Alignment.center,
-                      children: <Widget>[
-                        AnimatedScale(
-                          scale: _mole[i] > 0 ? 1 : 0,
-                          duration: const Duration(milliseconds: 120),
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(_isBomb[i] ? '💣' : '🐹',
-                                maxLines: 1,
-                                style: const TextStyle(fontSize: 46)),
-                          ),
-                        ),
-                        if (_splat[i] > 0)
-                          Opacity(
-                            opacity: (_splat[i] / 0.35).clamp(0.0, 1.0),
-                            child: Transform.scale(
-                              scale: 1 + (1 - _splat[i] / 0.35) * 1.5,
-                              child: const FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: Text('💥',
-                                    maxLines: 1,
-                                    style: TextStyle(fontSize: 44)),
-                              ),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: <Widget>[
+                          AnimatedScale(
+                            scale: _mole[i] > 0 ? 1 : 0,
+                            duration: const Duration(milliseconds: 120),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(_isBomb[i] ? '💣' : '🐹',
+                                  maxLines: 1,
+                                  style: const TextStyle(fontSize: 46)),
                             ),
                           ),
-                      ],
+                          if (_splat[i] > 0)
+                            Opacity(
+                              opacity: (_splat[i] / 0.35).clamp(0.0, 1.0),
+                              child: Transform.scale(
+                                scale: 1 + (1 - _splat[i] / 0.35) * 1.5,
+                                child: const FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text('💥',
+                                      maxLines: 1,
+                                      style: TextStyle(fontSize: 44)),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
