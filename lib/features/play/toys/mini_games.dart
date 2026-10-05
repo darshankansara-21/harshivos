@@ -855,7 +855,9 @@ class _BalloonPopGameState extends State<BalloonPopGame>
     _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _GameShell(
       title: '🎈 Pop',
-      introHow: 'Tap the balloons to pop them. Pop fast for combos!',
+      introHow:
+          'Tap the balloons to pop them — gold ones are worth bonus points. '
+          'Avoid the dark bomb balloons, and pop fast for combos!',
       onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       target: _target,
@@ -1146,7 +1148,9 @@ class _StarTapGameState extends State<StarTapGame>
     drainCompanion(context);
     return _GameShell(
       title: '⭐ Star Catch',
-      introHow: 'Tap the glowing star as fast as you can!',
+      introHow:
+          'Tap the glowing star fast! Gold and rainbow stars are worth more '
+          '— but skip the red decoy. Reach 15 points to win!',
       onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       target: _target,
