@@ -64,16 +64,26 @@ class _DrumGardenGameState extends State<DrumGardenGame>
     _seq.add(_rnd.nextInt(_pads));
     _phase = 1;
     _showIdx = 0;
-    _showT = 0.5;
+    _showT = _firstShowDur;
     _inputIdx = 0;
   }
 
   void _replaySequence() {
     _phase = 1;
     _showIdx = 0;
-    _showT = 0.5;
+    _showT = _firstShowDur;
     _inputIdx = 0;
   }
+
+  // The per-note playback pace used to be a flat 0.5s/0.62s constant at every
+  // round — only the sequence length grew (1 to 8 notes), the same
+  // flat-tempo gap already fixed in echo_drums_game.dart. Both the delay
+  // before the first note and the gap between later notes now shrink toward
+  // a floor as the tune grows, so an 8-note tune is genuinely faster — and
+  // harder to track — to watch than a 1-note one, not just longer.
+  double get _noteProgress => (_seq.length / _target).clamp(0.0, 1.0);
+  double get _firstShowDur => 0.5 - _noteProgress * 0.2;
+  double get _betweenShowDur => 0.62 - _noteProgress * 0.24;
 
   @override
   void onTick(double dt) {
@@ -97,7 +107,7 @@ class _DrumGardenGameState extends State<DrumGardenGame>
           _flashT = 0.4;
           TonePlayer.instance.playNote(_notes[_seq[_showIdx]], seconds: 0.3);
           _showIdx++;
-          _showT = 0.62;
+          _showT = _betweenShowDur;
         } else {
           _phase = 2;
           _inputIdx = 0;
