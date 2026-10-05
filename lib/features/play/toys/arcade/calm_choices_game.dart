@@ -195,22 +195,28 @@ class _CalmOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Semantics(
+      button: true,
+      label: text,
       onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 18),
-        decoration: BoxDecoration(
-          color: wrong ? const Color(0xFFE23B3B) : Colors.white12,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white24, width: 2),
-        ),
-        child: Text(
-          text,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-              color: Colors.white, fontSize: 19, fontWeight: FontWeight.w700),
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 18),
+          decoration: BoxDecoration(
+            color: wrong ? const Color(0xFFE23B3B) : Colors.white12,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white24, width: 2),
+          ),
+          child: Text(
+            text,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+                color: Colors.white, fontSize: 19, fontWeight: FontWeight.w700),
+          ),
         ),
       ),
     );
