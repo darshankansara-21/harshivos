@@ -69,7 +69,7 @@ class _RainbowRainToyState extends State<RainbowRainToy>
         hue: _r.nextDouble(),
       ));
     }
-    HapticFeedback.selectionClick();
+    TonePlayer.instance.haptic(HapticFeedback.selectionClick);
     TonePlayer.instance.playCue(SoundCue.water);
   }
 

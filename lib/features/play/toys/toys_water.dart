@@ -54,7 +54,7 @@ class _BubblePopToyState extends State<BubblePopToy>
       if ((b.pos - p).distance <= b.radius + 6) {
         _bubbles.remove(b);
         _pops.add(_Pop(pos: b.pos, radius: b.radius, hue: b.hue, life: 1));
-        HapticFeedback.lightImpact();
+        TonePlayer.instance.haptic(HapticFeedback.lightImpact);
         // Smaller bubbles pop higher-pitched than big ones.
         TonePlayer.instance.playPop(1 - (b.radius - 16) / 38);
       }
@@ -151,7 +151,7 @@ class _WaterRipplesToyState extends State<WaterRipplesToy>
   void _drop(Offset p) {
     _ripples.add(_Ripple(center: p, hue: _hue));
     _hue = (_hue + 0.03) % 1.0;
-    HapticFeedback.selectionClick();
+    TonePlayer.instance.haptic(HapticFeedback.selectionClick);
     // Each tap drops a droplet into the pool — give it the tuned water sound,
     // not silence (BubblePopToy, its sibling sensory toy, already pops audibly).
     TonePlayer.instance.playCue(SoundCue.water);

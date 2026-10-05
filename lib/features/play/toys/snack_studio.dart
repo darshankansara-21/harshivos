@@ -25,7 +25,7 @@ class _SnackStudioToyState extends State<SnackStudioToy> {
   int _snacksMade = 0;
 
   void _chooseBase((String, String) base) {
-    HapticFeedback.selectionClick();
+    TonePlayer.instance.haptic(HapticFeedback.selectionClick);
     TonePlayer.instance.playCue(SoundCue.selection);
     setState(() {
       _base = base;
@@ -36,21 +36,21 @@ class _SnackStudioToyState extends State<SnackStudioToy> {
 
   void _addTopping((String, String) topping) {
     if (_base == null || _served || _chosen.length >= 4) return;
-    HapticFeedback.lightImpact();
+    TonePlayer.instance.haptic(HapticFeedback.lightImpact);
     TonePlayer.instance.playPop(_chosen.length / 4);
     setState(() => _chosen.add(topping));
   }
 
   void _serve() {
     if (_base == null || _chosen.isEmpty) return;
-    HapticFeedback.mediumImpact();
+    TonePlayer.instance.haptic(HapticFeedback.mediumImpact);
     TonePlayer.instance.playCue(SoundCue.milestone);
     const CompanionEventNotification(ExperienceEvent.correctAnswer).dispatch(context);
     setState(() => _served = true);
   }
 
   void _feed() {
-    HapticFeedback.heavyImpact();
+    TonePlayer.instance.haptic(HapticFeedback.heavyImpact);
     TonePlayer.instance.playCue(SoundCue.success);
     // Pocket Picnic is an open-ended creative free-play toy — there is no
     // win/end state, a child can serve and feed snacks indefinitely. Firing
@@ -70,7 +70,7 @@ class _SnackStudioToyState extends State<SnackStudioToy> {
   }
 
   void _reset() {
-    HapticFeedback.selectionClick();
+    TonePlayer.instance.haptic(HapticFeedback.selectionClick);
     setState(() {
       _base = null;
       _chosen.clear();

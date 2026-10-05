@@ -127,7 +127,7 @@ class _ToyPlayerScreenState extends ConsumerState<ToyPlayerScreen> {
                         _RoundButton(
                           icon: Icons.visibility_off_rounded,
                           onTap: () {
-                            HapticFeedback.selectionClick();
+                            TonePlayer.instance.haptic(HapticFeedback.selectionClick);
                             setState(() => _chromeVisible = false);
                           },
                         ),
@@ -157,7 +157,7 @@ class _RoundButton extends StatelessWidget {
       child: InkWell(
         customBorder: const CircleBorder(),
         onTap: () {
-          HapticFeedback.selectionClick();
+          TonePlayer.instance.haptic(HapticFeedback.selectionClick);
           TonePlayer.instance.playCue(SoundCue.navigation);
           onTap();
         },

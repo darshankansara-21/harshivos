@@ -23,7 +23,7 @@ class _SandGardenToyState extends State<SandGardenToy> {
   Widget build(BuildContext context) {
     return Listener(
       onPointerDown: (e) {
-        HapticFeedback.selectionClick();
+        TonePlayer.instance.haptic(HapticFeedback.selectionClick);
         TonePlayer.instance.playCue(SoundCue.sand);
         setState(() => _strokes.add(<Offset>[e.localPosition]));
       },
@@ -90,7 +90,7 @@ class _KaleidoscopeToyState extends State<KaleidoscopeToy> {
     return Stack(
       children: <Widget>[
         Listener(
-          onPointerDown: (e) { _last = e.localPosition; HapticFeedback.selectionClick(); },
+          onPointerDown: (e) { _last = e.localPosition; TonePlayer.instance.haptic(HapticFeedback.selectionClick); },
           onPointerMove: (e) => setState(() {
             if (_last != null) {
               _segs.add(_KSeg(_last!, e.localPosition, _hue));
@@ -215,7 +215,7 @@ class _FluidSimulatorToyState extends State<FluidSimulatorToy>
             // Every other continuous-draw toy (SandGarden, Kaleidoscope,
             // PaintWithLight, CarTrackBuilder, ColorMixingLab) gives a haptic
             // pulse on first touch — this was the one silent outlier.
-            HapticFeedback.selectionClick();
+            TonePlayer.instance.haptic(HapticFeedback.selectionClick);
             _last = e.localPosition;
             _emit(e.localPosition, Offset.zero);
           },

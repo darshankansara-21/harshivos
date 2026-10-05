@@ -136,6 +136,21 @@ class TonePlayer {
   /// `SensoryPreferences.hapticsEnabled` so it's a real, reachable opt-out
   /// rather than the previously-uncontrollable always-on haptic pulse.
   bool hapticsEnabled = true;
+
+  /// Fires a tactile pulse only if the child hasn't disabled haptics in
+  /// Sensory Settings. [_triggerHaptic] already gates every pulse reached
+  /// through [playCue], but ~20 sensory/fidget toy files and several arcade
+  /// games called `HapticFeedback.*` directly for their own bespoke taps
+  /// (first-touch, drag-start, button-press, etc.) — those calls silently
+  /// ignored the same opt-out entirely, so a child who disabled haptics
+  /// specifically because vibration is sensory-aversive to them would still
+  /// feel every one of those pulses. Route any direct haptic call through
+  /// this helper instead of calling `HapticFeedback.*` straight, so the
+  /// setting is honoured everywhere, not just on score/win/lose cues.
+  void haptic(void Function() impact) {
+    if (hapticsEnabled) impact();
+  }
+
   AudioPlayer? _musicPlayer;
   WonderMusicBed? _musicBed;
 

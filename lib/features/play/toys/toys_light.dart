@@ -40,7 +40,7 @@ class _PaintWithLightToyState extends State<PaintWithLightToy>
       children: <Widget>[
         Listener(
           onPointerDown: (e) {
-            HapticFeedback.selectionClick();
+            TonePlayer.instance.haptic(HapticFeedback.selectionClick);
             _add(e.localPosition);
           },
           onPointerMove: (e) => _add(e.localPosition),
@@ -195,7 +195,7 @@ class _MagneticBallsToyState extends State<MagneticBallsToy>
   @override
   Widget build(BuildContext context) {
     return Listener(
-      onPointerDown: (e) { _finger = e.localPosition; HapticFeedback.selectionClick(); },
+      onPointerDown: (e) { _finger = e.localPosition; TonePlayer.instance.haptic(HapticFeedback.selectionClick); },
       onPointerMove: (e) => _finger = e.localPosition,
       onPointerUp: (_) => _finger = null,
       onPointerCancel: (_) => _finger = null,

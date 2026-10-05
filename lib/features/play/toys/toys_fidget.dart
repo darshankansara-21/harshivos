@@ -115,7 +115,7 @@ class _ClickyButtonsState extends State<_ClickyButtons> {
             label: 'Click button ${i + 1}${_pressed[i] ? ', pressed' : ''}',
             onTap: () {
               setState(() => _pressed[i] = true);
-              HapticFeedback.lightImpact();
+              TonePlayer.instance.haptic(HapticFeedback.lightImpact);
               TonePlayer.instance.playCue(SoundCue.tap);
               Future<void>.delayed(const Duration(milliseconds: 90), () {
                 if (mounted) setState(() => _pressed[i] = false);
@@ -125,7 +125,7 @@ class _ClickyButtonsState extends State<_ClickyButtons> {
             child: GestureDetector(
               onTapDown: (_) {
                 setState(() => _pressed[i] = true);
-                HapticFeedback.lightImpact();
+                TonePlayer.instance.haptic(HapticFeedback.lightImpact);
                 // A discrete tap deserves a one-shot click, same as every other
                 // tactile gadget in the app — this panel was silent before.
                 TonePlayer.instance.playCue(SoundCue.tap);
@@ -187,7 +187,7 @@ class _SpinnerState extends State<_Spinner>
     // Detent clicks every 60°.
     final detent = (_angle / (math.pi / 3)).floor();
     if (detent != _lastClick && _vel.abs() > 0.6) {
-      HapticFeedback.selectionClick();
+      TonePlayer.instance.haptic(HapticFeedback.selectionClick);
       // Every other gadget on this panel (clicky buttons, toggle switches)
       // already pairs its haptic with a tactile sound cue — the spinner was
       // the one left haptic-only, silent even mid-spin. SoundCue.selection's
@@ -257,7 +257,7 @@ class _ToggleSwitchesState extends State<_ToggleSwitches> {
         children: List<Widget>.generate(_on.length, (i) {
           void flip() {
             setState(() => _on[i] = !_on[i]);
-            HapticFeedback.mediumImpact();
+            TonePlayer.instance.haptic(HapticFeedback.mediumImpact);
             // Discrete flip, same bug class as the clicky buttons above —
             // give it its own cue so it reads differently from a click.
             TonePlayer.instance.playCue(SoundCue.selection);
@@ -327,7 +327,7 @@ class _GlideRollerState extends State<_GlideRoller> {
                 _value = (_value + e.delta.dy / c.maxHeight).clamp(0.0, 1.0));
             if ((_value * 12).round() !=
                 ((_value - e.delta.dy / c.maxHeight) * 12).round()) {
-              HapticFeedback.selectionClick();
+              TonePlayer.instance.haptic(HapticFeedback.selectionClick);
               // Same gap as the spinner: this panel's step clicks were
               // haptic-only while its siblings on the same screen already
               // pair haptic with sound.

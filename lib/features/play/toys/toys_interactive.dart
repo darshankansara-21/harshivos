@@ -59,7 +59,7 @@ class _CalmCloudsToyState extends State<CalmCloudsToy>
   @override
   Widget build(BuildContext context) {
     return Listener(
-      onPointerDown: (e) { _dragging = _nearest(e.localPosition); HapticFeedback.selectionClick(); },
+      onPointerDown: (e) { _dragging = _nearest(e.localPosition); TonePlayer.instance.haptic(HapticFeedback.selectionClick); },
       onPointerMove: (e) {
         if (_dragging != null) _clouds[_dragging!].pos = e.localPosition;
       },
@@ -159,7 +159,7 @@ class _MusicGardenToyState extends State<MusicGardenToy>
     for (final f in _flowers) {
       if ((f.pos - p).distance < 36 && f.bloom < 0.2) {
         f.bloom = 1;
-        HapticFeedback.lightImpact();
+        TonePlayer.instance.haptic(HapticFeedback.lightImpact);
         // Each flower is tuned to a pentatonic note → always harmonious.
         TonePlayer.instance.playNote(f.note + f.octave * 5);
       }

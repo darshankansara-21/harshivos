@@ -78,10 +78,10 @@ class _SlimeStretchToyState extends State<SlimeStretchToy>
       onPointerDown: (e) {
         _lastSoundAt = null;
         _poke(e.localPosition);
-        HapticFeedback.selectionClick();
+        TonePlayer.instance.haptic(HapticFeedback.selectionClick);
       },
       onPointerMove: (e) => _poke(e.localPosition),
-      onPointerUp: (_) { _finger = null; HapticFeedback.lightImpact(); },
+      onPointerUp: (_) { _finger = null; TonePlayer.instance.haptic(HapticFeedback.lightImpact); },
       // Without this, a cancelled poke left `_finger` pointed at a stale
       // offset forever — the blob centre springs toward `_finger` every
       // tick, so it would keep chasing that dead spot instead of settling
@@ -177,7 +177,7 @@ class _ColorMixingLabToyState extends State<ColorMixingLabToy>
   void _drop(Offset p) {
     _blobs.add(_Paint(pos: p, hue: _hue, maxRadius: 60 + math.Random().nextDouble() * 40));
     _hue = (_hue + 0.04) % 1.0;
-    HapticFeedback.selectionClick();
+    TonePlayer.instance.haptic(HapticFeedback.selectionClick);
     TonePlayer.instance.playCue(SoundCue.paint);
   }
 
@@ -274,7 +274,7 @@ class _CarTrackBuilderToyState extends State<CarTrackBuilderToy>
               _drawing = true;
               _dist = 0;
             });
-            HapticFeedback.selectionClick();
+            TonePlayer.instance.haptic(HapticFeedback.selectionClick);
           },
           onPointerMove: (e) {
             if (_track.isEmpty || (_track.last - e.localPosition).distance > 10) {
@@ -283,7 +283,7 @@ class _CarTrackBuilderToyState extends State<CarTrackBuilderToy>
           },
           onPointerUp: (_) {
             _drawing = false;
-            HapticFeedback.lightImpact();
+            TonePlayer.instance.haptic(HapticFeedback.lightImpact);
           },
           // Without this, a cancelled draw gesture left `_drawing` stuck true
           // forever — `onTick` only advances the car's position when
@@ -448,7 +448,7 @@ class _SpinUniverseToyState extends State<SpinUniverseToy>
       // precedent), so tapping alone — not just dragging — visibly speeds
       // the galaxy up.
       onTapDown: (_) {
-        HapticFeedback.selectionClick();
+        TonePlayer.instance.haptic(HapticFeedback.selectionClick);
         _spin = (_spin + 1.4).clamp(-9.0, 9.0);
       },
       child: CustomPaint(painter: _GalaxyPainter(_stars, _rot), size: Size.infinite),
@@ -579,7 +579,7 @@ class _InfiniteMarbleRunToyState extends State<InfiniteMarbleRunToy>
   @override
   Widget build(BuildContext context) {
     return Listener(
-      onPointerDown: (e) { _spawn(e.localPosition.dx); HapticFeedback.lightImpact(); },
+      onPointerDown: (e) { _spawn(e.localPosition.dx); TonePlayer.instance.haptic(HapticFeedback.lightImpact); },
       child: CustomPaint(painter: _MarblePainter(_marbles, _pegs), size: Size.infinite),
     );
   }
