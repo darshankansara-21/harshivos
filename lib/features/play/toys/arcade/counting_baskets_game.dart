@@ -28,6 +28,11 @@ class _CountingBasketsGameState extends State<CountingBasketsGame> with _Emit {
   int _score = 0;
   int _best = 0;
   int? _dragging;
+  // Screen-reader-only selection: a blind child cannot perform the pixel
+  // precision drag the sighted gesture relies on, so a tap on a fruit
+  // selects it, then a tap on the basket collects it via the same _collect
+  // path a successful sighted drag uses.
+  int? _selected;
   String? _banner;
   GameStatus _status = GameStatus.ready;
 
@@ -47,6 +52,7 @@ class _CountingBasketsGameState extends State<CountingBasketsGame> with _Emit {
     final base = 2 + (_score * 6 / 9).round();
     _need = (base + _rnd.nextInt(2)).clamp(2, 8);
     _inBasket = 0;
+    _selected = null;
     _fruits.clear();
     final count = _need + 2;
     for (var i = 0; i < count; i++) {
@@ -107,6 +113,19 @@ class _CountingBasketsGameState extends State<CountingBasketsGame> with _Emit {
     });
   }
 
+  /// Screen-reader path: collect the selected loose fruit into the basket,
+  /// running the exact same `_collect` logic a sighted drag-into-basket uses.
+  void _collectSelected() {
+    final i = _selected;
+    if (i == null || _status != GameStatus.playing) return;
+    setState(() {
+      _selected = null;
+      final f = _fruits[i];
+      if (f.collected) return;
+      _collect(f);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     drain(context);
@@ -134,7 +153,7 @@ class _CountingBasketsGameState extends State<CountingBasketsGame> with _Emit {
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
-          return GestureDetector(
+          final gesture = GestureDetector(
             behavior: HitTestBehavior.opaque,
             onPanStart: (d) {
               _dragging = _fruitAt(d.localPosition, w, h);
@@ -177,9 +196,54 @@ class _CountingBasketsGameState extends State<CountingBasketsGame> with _Emit {
               size: Size.infinite,
             ),
           );
+          return Stack(children: <Widget>[
+            gesture,
+            _a11yOverlay(w, h),
+          ]);
         },
       ),
     );
+  }
+
+  /// Screen-reader overlay: one button per loose fruit (select it) and one
+  /// button over the basket mouth (collect the selected fruit there) — the
+  /// exact same basket-mouth region (`y > 0.7 && 0.28 < x < 0.72`) the
+  /// sighted drag-and-drop check uses, so a screen-reader user faces the same
+  /// "get exactly $_need in" counting challenge, never an auto-solved one.
+  Widget _a11yOverlay(double w, double h) {
+    final kids = <Widget>[];
+    for (var i = 0; i < _fruits.length; i++) {
+      final f = _fruits[i];
+      if (f.collected) continue;
+      const box = 52.0;
+      kids.add(Positioned(
+        left: f.x * w - box / 2,
+        top: f.y * h - box / 2,
+        width: box,
+        height: box,
+        child: Semantics(
+          button: true,
+          label: 'Fruit, not yet in the basket.${_selected == i ? ' Selected.' : ''}',
+          onTap: () => setState(() => _selected = (_selected == i) ? null : i),
+          excludeSemantics: true,
+          child: const SizedBox.expand(),
+        ),
+      ));
+    }
+    kids.add(Positioned(
+      left: w * 0.28,
+      top: h * 0.7,
+      width: w * (0.72 - 0.28),
+      height: h * 0.3,
+      child: Semantics(
+        button: true,
+        label: 'Basket, needs $_need, has $_inBasket.',
+        onTap: _collectSelected,
+        excludeSemantics: true,
+        child: const SizedBox.expand(),
+      ),
+    ));
+    return Stack(children: kids);
   }
 }
 
