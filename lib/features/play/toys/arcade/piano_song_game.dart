@@ -26,8 +26,14 @@ class _PianoSongGameState extends State<PianoSongGame> with _Emit {
     _Song('Row Your Boat', <int>[0, 0, 0, 1, 2, 2, 1, 2, 3, 4]),
   ];
   static const int _target = 3; // songs to win
+  final math.Random _rnd = math.Random();
 
-  int _songIdx = 0;
+  // Shuffled song order for this playthrough — without this, every single
+  // run played 'Twinkle Twinkle', 'Mary Had a Lamb', 'Row Your Boat' in the
+  // exact same fixed sequence forever (the same "identical every session"
+  // gap class already fixed in xylophone_tap/dot_to_dot/mirror_draw).
+  late List<int> _order;
+  int _orderPos = 0;
   int _notePos = 0;
   int _score = 0; // songs completed
   int _best = 0;
@@ -37,17 +43,19 @@ class _PianoSongGameState extends State<PianoSongGame> with _Emit {
   @override
   void initState() {
     super.initState();
+    _order = List<int>.generate(_songs.length, (i) => i)..shuffle(_rnd);
     GameScores.instance.ensureLoaded().then((_) {
       if (mounted) setState(() => _best = GameScores.instance.best(_id));
     });
   }
 
-  _Song get _song => _songs[_songIdx];
+  _Song get _song => _songs[_order[_orderPos]];
   int get _nextKey => _song.keys[_notePos];
 
   void _start() {
     setState(() {
-      _songIdx = 0;
+      _order = List<int>.generate(_songs.length, (i) => i)..shuffle(_rnd);
+      _orderPos = 0;
       _notePos = 0;
       _score = 0;
       _banner = null;
@@ -73,7 +81,7 @@ class _PianoSongGameState extends State<PianoSongGame> with _Emit {
           TonePlayer.instance.playCue(SoundCue.gameStart);
           emit(ExperienceEvent.gameCompleted);
         } else {
-          _songIdx++;
+          _orderPos++;
           _notePos = 0;
           _banner = 'Lovely! Next: ${_song.name}';
         }
