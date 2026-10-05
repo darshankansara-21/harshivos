@@ -120,7 +120,7 @@ class _PenaltyDashGameState extends State<PenaltyDashGame>
       overEmoji: '💪',
       overText: 'Out of shots — nice try!',
       winEmoji: '🥅',
-      winText: 'Full time!',
+      winText: 'Ten goals! You won the shootout!',
       accent: const Color(0xFF80ED99),
       onPlayAgain: _reset,
       child: GestureDetector(
