@@ -257,7 +257,8 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
     drain(context);
     return _Shell(
       title: '🫧 Bubble Shooter',
-      introHow: 'Aim and shoot to match 3 bubbles of the same colour!',
+      introHow: 'Aim and shoot to match 3 bubbles of the same colour. '
+          'The ceiling drops lower every 8 shots, so don\'t let bubbles reach the floor!',
       onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,
