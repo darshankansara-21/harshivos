@@ -39,6 +39,7 @@ class _ColorMixerGameState extends State<ColorMixerGame> with _Emit {
   ];
   final math.Random _rnd = math.Random();
   final List<int> _drops = <int>[];
+  final List<int> _bag = <int>[];
   int _recipe = 0;
   int _score = 0;
   int _best = 0;
@@ -70,8 +71,19 @@ class _ColorMixerGameState extends State<ColorMixerGame> with _Emit {
       Color.fromARGB(255, (c[0] * 255).round(), (c[1] * 255).round(),
           (c[2] * 255).round());
 
+  int _drawRecipe() {
+    // Shuffled bag with no immediate repeat: with only 6 recipes and 8 wins
+    // needed, plain Random.nextInt() with replacement let a child see the
+    // same recipe repeat back-to-back or miss others across a whole round
+    // (same gap class as kindness_match/calm_choices/weather_sort).
+    if (_bag.isEmpty) {
+      _bag.addAll(List<int>.generate(_recipes.length, (i) => i)..shuffle(_rnd));
+    }
+    return _bag.removeLast();
+  }
+
   void _newTarget() {
-    _recipe = _rnd.nextInt(_recipes.length);
+    _recipe = _drawRecipe();
     _drops.clear();
   }
 
@@ -113,6 +125,7 @@ class _ColorMixerGameState extends State<ColorMixerGame> with _Emit {
     setState(() {
       _score = 0;
       _banner = null;
+      _bag.clear();
       _newTarget();
       _status = GameStatus.playing;
     });
@@ -128,6 +141,7 @@ class _ColorMixerGameState extends State<ColorMixerGame> with _Emit {
       introHow:
           'Tap the paint drops to pour them in and match the target colour. Red + yellow = orange!',
       onStart: () => setState(() {
+        _bag.clear();
         _newTarget();
         _status = GameStatus.playing;
       }),
