@@ -148,9 +148,13 @@ class _MemoryPairsDeluxeGameState extends State<MemoryPairsDeluxeGame>
       }),
       score: _score,
       best: _best,
-      target: _target * 1000,
+      // No fake target fraction here: the real win condition is clearing
+      // `_target` levels, not reaching any particular point total, so a
+      // `score / target` header (previously `score / (_target * 1000)`)
+      // showed a fabricated denominator that never matched real progress.
+      // The "Level $_level" banner below already carries the true signal.
       status: _status,
-      banner: _banner ?? 'Level $_level · find the pairs',
+      banner: _banner ?? 'Level $_level/$_target · find the pairs',
       overEmoji: '🧠',
       overText: 'Memory master!',
       accent: const Color(0xFFB197FC),
