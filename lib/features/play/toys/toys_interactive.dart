@@ -64,6 +64,11 @@ class _CalmCloudsToyState extends State<CalmCloudsToy>
         if (_dragging != null) _clouds[_dragging!].pos = e.localPosition;
       },
       onPointerUp: (_) => _dragging = null,
+      // Without this, a cancelled drag (e.g. a system gesture interrupting
+      // the touch) left `_dragging` permanently set — `onTick` skips
+      // animating whichever cloud index that is, so that one cloud would
+      // freeze in place forever instead of drifting like its siblings.
+      onPointerCancel: (_) => _dragging = null,
       child: CustomPaint(painter: _CloudPainter(_clouds), size: Size.infinite),
     );
   }

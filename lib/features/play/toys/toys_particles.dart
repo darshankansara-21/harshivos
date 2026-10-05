@@ -93,6 +93,11 @@ class _ParticleGalaxyToyState extends State<ParticleGalaxyToy>
       },
       onPointerMove: (e) => _attractor = e.localPosition,
       onPointerUp: (_) => _attractor = null,
+      // Without this, a cancelled drag left `_attractor` pointed at a stale
+      // offset forever — the galaxy would keep pulling every star toward
+      // that dead spot indefinitely instead of resuming its calm ambient
+      // swirl, the same stuck-state gap class fixed in CalmCloudsToy.
+      onPointerCancel: (_) => _attractor = null,
       child: CustomPaint(
         painter: _GalaxyPainter(_stars),
         size: Size.infinite,

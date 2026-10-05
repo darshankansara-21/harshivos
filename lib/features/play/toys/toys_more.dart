@@ -82,6 +82,12 @@ class _SlimeStretchToyState extends State<SlimeStretchToy>
       },
       onPointerMove: (e) => _poke(e.localPosition),
       onPointerUp: (_) { _finger = null; HapticFeedback.lightImpact(); },
+      // Without this, a cancelled poke left `_finger` pointed at a stale
+      // offset forever — the blob centre springs toward `_finger` every
+      // tick, so it would keep chasing that dead spot instead of settling
+      // back to the middle, the same stuck-state gap fixed in
+      // CalmCloudsToy/ParticleGalaxyToy.
+      onPointerCancel: (_) { _finger = null; },
       child: CustomPaint(
         painter: _SlimePainter(_center, _radii, _hue),
         size: Size.infinite,
@@ -277,6 +283,11 @@ class _CarTrackBuilderToyState extends State<CarTrackBuilderToy>
         _drawing = false;
         HapticFeedback.lightImpact();
       },
+      // Without this, a cancelled draw gesture left `_drawing` stuck true
+      // forever — `onTick` only advances the car's position when
+      // `!_drawing`, so the car would freeze at the start of the track
+      // permanently instead of ever driving.
+      onPointerCancel: (_) => _drawing = false,
       child: CustomPaint(painter: _TrackPainter(_track, _dist), size: Size.infinite),
     );
   }
