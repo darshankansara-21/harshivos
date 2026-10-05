@@ -112,7 +112,17 @@ class _BugCatchGameState extends State<BugCatchGame>
     if (_status != GameStatus.playing) return;
     for (var i = _bugs.length - 1; i >= 0; i--) {
       final b = _bugs[i];
-      if ((b.x - p.dx / w).abs() < 0.07 && (b.y - p.dy / h).abs() < 0.07) {
+      // Hit-test in pixel space, width-calibrated on BOTH axes: the painter
+      // draws every bug's body as a circle of radius `w * 0.045` (sized off
+      // width only, same as balloon_math's balloons), so a y-tolerance
+      // normalized by `h` would silently shrink or balloon the vertical hit
+      // zone out of sync with the visible bug on any non-square (portrait)
+      // screen — a child could tap right on a bug moving mostly vertically
+      // and miss, or tap well below/above one moving horizontally and catch
+      // it by accident.
+      final dx = p.dx - b.x * w;
+      final dy = p.dy - b.y * h;
+      if (dx.abs() < w * 0.09 && dy.abs() < w * 0.09) {
         if (b.colorIndex == _targetColor) {
           _score++;
           final bitCount = _reduceMotion ? 4 : 10;
