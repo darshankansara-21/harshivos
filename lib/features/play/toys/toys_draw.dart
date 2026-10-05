@@ -197,7 +197,14 @@ class _FluidSimulatorToyState extends State<FluidSimulatorToy>
   @override
   Widget build(BuildContext context) {
     return Listener(
-      onPointerDown: (e) { _last = e.localPosition; _emit(e.localPosition, Offset.zero); },
+      onPointerDown: (e) {
+        // Every other continuous-draw toy (SandGarden, Kaleidoscope,
+        // PaintWithLight, CarTrackBuilder, ColorMixingLab) gives a haptic
+        // pulse on first touch — this was the one silent outlier.
+        HapticFeedback.selectionClick();
+        _last = e.localPosition;
+        _emit(e.localPosition, Offset.zero);
+      },
       onPointerMove: (e) {
         final v = _last == null ? Offset.zero : (e.localPosition - _last!) * 12;
         _emit(e.localPosition, v);
