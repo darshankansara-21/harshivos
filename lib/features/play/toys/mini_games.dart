@@ -1298,6 +1298,9 @@ class _SnakeGameState extends State<SnakeGame>
   final List<_Orb> _orbs = <_Orb>[];
   final List<_AiWorm> _ai = <_AiWorm>[];
   final List<_Particle> _particles = <_Particle>[];
+  // Score thresholds at which one more rival worm joins the arena (capped).
+  static const List<int> _aiReinforceScores = <int>[8, 18];
+  int _aiReinforcementsSpawned = 0;
   int _score = 0;
   int _best = 0;
   int _combo = 0;
@@ -1348,6 +1351,7 @@ class _SnakeGameState extends State<SnakeGame>
     for (var i = 0; i < 5; i++) {
       _ai.add(_spawnAiWorm());
     }
+    _aiReinforcementsSpawned = 0;
   }
 
   _AiWorm _spawnAiWorm() {
@@ -1400,6 +1404,16 @@ class _SnakeGameState extends State<SnakeGame>
       p.vel *= 0.88;
       p.life -= dt;
       if (p.life <= 0) _particles.removeAt(i);
+    }
+
+    // Real challenge escalation: as score climbs toward the 30-point win,
+    // reinforcement rivals join the arena so the threat genuinely grows
+    // instead of staying at a flat 5 lazy worms for the whole run.
+    while (_aiReinforcementsSpawned < _aiReinforceScores.length &&
+        _score >= _aiReinforceScores[_aiReinforcementsSpawned]) {
+      _ai.add(_spawnAiWorm());
+      _aiReinforcementsSpawned++;
+      _flash('Rival incoming!');
     }
 
     // Steer toward the target heading with a capped turn rate.
@@ -1531,10 +1545,18 @@ class _SnakeGameState extends State<SnakeGame>
   }
 
   void _updateAi(double dt) {
+    // Rivals genuinely get faster and sharper-turning as the run progresses
+    // toward the win target, instead of staying at one flat difficulty the
+    // whole game — mirrors the player's own speed-up curve below.
+    final difficulty = math.min(_score, _targetScore) / _targetScore;
+    final aiSpeed = 120 * (1.0 + difficulty * 0.5);
+    final aiTurnRate = 2.4 * (1.0 + difficulty * 0.4);
+    final aiTurnMin = 0.6 - difficulty * 0.25;
+    final aiTurnSpan = 1.4 - difficulty * 0.5;
     for (final w in _ai) {
       w.turnTimer -= dt;
       if (w.turnTimer <= 0) {
-        w.turnTimer = 0.6 + _rnd.nextDouble() * 1.4;
+        w.turnTimer = aiTurnMin + _rnd.nextDouble() * aiTurnSpan;
         w.target = w.angle + (_rnd.nextDouble() - 0.5) * 1.6;
       }
       if (w.head.distance > _arenaR * 0.86) {
@@ -1543,8 +1565,8 @@ class _SnakeGameState extends State<SnakeGame>
       double d = w.target - w.angle;
       while (d > math.pi) d -= math.pi * 2;
       while (d < -math.pi) d += math.pi * 2;
-      w.angle += d.clamp(-2.4 * dt, 2.4 * dt);
-      w.head += Offset(math.cos(w.angle), math.sin(w.angle)) * 120 * dt;
+      w.angle += d.clamp(-aiTurnRate * dt, aiTurnRate * dt);
+      w.head += Offset(math.cos(w.angle), math.sin(w.angle)) * aiSpeed * dt;
       if (w.path.isEmpty || (w.head - w.path.first).distance >= _spacing) {
         w.path.insert(0, w.head);
       }
