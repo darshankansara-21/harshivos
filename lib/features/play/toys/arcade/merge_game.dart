@@ -90,6 +90,13 @@ class _MergeGameState extends State<MergeGame> with _Emit {
       _spawn();
       TonePlayer.instance.playCue(SoundCue.wood);
       emit(ExperienceEvent.bubblePopped);
+    } else {
+      // A swipe toward a direction where nothing can slide or merge (e.g.
+      // the board is already packed flush against that edge) left the board
+      // completely silent — the same silent-blocked-gesture gap already
+      // closed in maze_run and basketball_game. A child couldn't tell "that
+      // swipe did nothing" from "my swipe wasn't registered."
+      TonePlayer.instance.playCue(SoundCue.gentleRetry);
     }
     if (_milestone > 0 && _status != GameStatus.won) {
       _banner = 'New best: $_milestone! 🎉';
