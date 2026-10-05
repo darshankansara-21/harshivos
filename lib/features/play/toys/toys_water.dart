@@ -152,6 +152,9 @@ class _WaterRipplesToyState extends State<WaterRipplesToy>
     _ripples.add(_Ripple(center: p, hue: _hue));
     _hue = (_hue + 0.03) % 1.0;
     HapticFeedback.selectionClick();
+    // Each tap drops a droplet into the pool — give it the tuned water sound,
+    // not silence (BubblePopToy, its sibling sensory toy, already pops audibly).
+    TonePlayer.instance.playCue(SoundCue.water);
   }
 
   @override
