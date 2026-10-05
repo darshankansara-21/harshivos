@@ -45,7 +45,15 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
   double _timeLimit = 0;
   double _timeLeft = 0;
 
-  int get _pairsThisLevel => (5 + _level).clamp(4, _facePool.length);
+  // Per-level pair counts, picked so every resulting card count (2x this)
+  // factors into a clean rectangle in `_cols` below — a straight
+  // `(5 + level).clamp(...)` used to produce 7 pairs (14 cards) and 9 pairs
+  // (18 cards) at levels 2/4, and 14/18 don't evenly divide by the 3-or-4
+  // column choice the grid used, leaving a dangling half-empty last row
+  // (the same bug class already fixed in memory_pairs_deluxe).
+  static const List<int> _pairsSchedule = <int>[6, 8, 9, 10, 10];
+  int get _pairsThisLevel =>
+      _pairsSchedule[(_level - 1).clamp(0, _pairsSchedule.length - 1)];
   double get _levelTimeLimit => 16 + _pairsThisLevel * 2.2;
 
   // The memorize-the-board preview used to be a flat 1.4s no matter how many
@@ -241,10 +249,28 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
     _startPreview();
   }
 
+  // Maps an exact card count to a column count that divides it evenly, so
+  // the board is always a clean rectangle (no dangling half-empty last
+  // row) for every count `_pairsSchedule` above can actually produce.
+  int get _cols {
+    switch (_cards.length) {
+      case 12:
+        return 3;
+      case 16:
+        return 4;
+      case 18:
+        return 6;
+      case 20:
+        return 4;
+      default:
+        return 4;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     drain(context);
-    final cols = _cards.length <= 12 ? 3 : 4;
+    final cols = _cols;
     return _Shell(
       title: '🧠 Memory Flip',
       introHow:
@@ -341,7 +367,12 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
                             child: Text(
                               faceUp ? _cards[i] : '',
                               maxLines: 1,
-                              style: TextStyle(fontSize: cols == 3 ? 40 : 30),
+                              style: TextStyle(
+                                  fontSize: cols <= 3
+                                      ? 40
+                                      : cols == 4
+                                          ? 30
+                                          : 24),
                             ),
                           ),
                         ),
