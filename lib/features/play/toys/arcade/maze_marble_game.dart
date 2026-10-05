@@ -29,6 +29,16 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
   bool _dragging = false;
   double _goalX = 0.5;
   final double _goalY = 0.93;
+  // All physics below runs in mixed-normalized coordinates (x as a fraction
+  // of canvas width, y as a fraction of canvas height), but every size the
+  // painter draws (marble radius, wall thickness, goal radius) is a true
+  // pixel circle scaled only by canvas *width*. On a typical taller-than-wide
+  // phone that mismatch silently distorts every isotropic radius check below
+  // (edges, wall collisions, goal detection) — stopping/bouncing the marble
+  // at a distance that doesn't match what's actually drawn. Track the real
+  // aspect ratio so physics matches the rendering, the same fix already
+  // applied to space_dodge's hit test.
+  double _aspect = 1.0; // height / width of the last laid-out canvas
   int _level = 1;
   int _score = 0;
   int _best = 0;
@@ -95,7 +105,7 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
         _resolveWall(w);
       }
     }
-    final dx = _mx - _goalX, dy = _my - _goalY;
+    final dx = _mx - _goalX, dy = (_my - _goalY) * _aspect;
     if (dx * dx + dy * dy < 0.07 * 0.07) {
       _reachGoal();
     }
@@ -110,11 +120,15 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
       _mx = 1 - _r;
       _vx = -_vx * 0.4;
     }
-    if (_my < _r) {
-      _my = _r;
+    // The vertical margin must shrink by the aspect ratio so the real pixel
+    // gap kept from the top/bottom matches the marble's rendered radius
+    // (which is scaled only by width), instead of leaving a visible gap.
+    final ry = _r / _aspect;
+    if (_my < ry) {
+      _my = ry;
       _vy = -_vy * 0.4;
-    } else if (_my > 1 - _r) {
-      _my = 1 - _r;
+    } else if (_my > 1 - ry) {
+      _my = 1 - ry;
       _vy = -_vy * 0.4;
     }
   }
@@ -128,7 +142,11 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
 
   void _collideBar(double x0, double x1, double y, double t) {
     final cx = _mx.clamp(x0, x1);
-    final dx = _mx - cx, dy = _my - y;
+    final dx = _mx - cx;
+    // Scale the y delta into the same width-normalized units as dx/_r/t so
+    // the collision distance matches the true pixel circle the painter
+    // draws, regardless of device aspect ratio.
+    final dy = (_my - y) * _aspect;
     final d2 = dx * dx + dy * dy;
     final rr = _r + t;
     if (d2 < rr * rr && d2 > 1e-9) {
@@ -136,11 +154,12 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
       final nx = dx / d, ny = dy / d;
       final push = rr - d;
       _mx += nx * push;
-      _my += ny * push;
-      final vn = _vx * nx + _vy * ny;
+      _my += ny * push / _aspect;
+      final vyScaled = _vy * _aspect;
+      final vn = _vx * nx + vyScaled * ny;
       if (vn < 0) {
         _vx -= vn * nx * 1.3;
-        _vy -= vn * ny * 1.3;
+        _vy -= vn * ny * 1.3 / _aspect;
       }
     }
   }
@@ -199,6 +218,7 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
+          if (w > 0) _aspect = h / w;
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
             onPanStart: (d) {
