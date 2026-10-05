@@ -143,7 +143,15 @@ class _SkeeBallGameState extends State<SkeeBallGame>
             onPanEnd: (_) {
               if (_rolling || !_dragging) return;
               _dragging = false;
-              if (_power > 0.05) _launch();
+              if (_power > 0.05) {
+                _launch();
+              } else {
+                // Too weak a flick to count as a roll — give the same
+                // audible nudge every other blocked gesture in the catalog
+                // gets, so a child can tell "too soft" from "nothing happened".
+                TonePlayer.instance.playCue(SoundCue.gentleRetry);
+                setState(() => _power = 0);
+              }
             },
             // A cancelled drag (onPanEnd never fires) would otherwise leave
             // the "Power: X%" banner and ramp indicator frozen on screen
