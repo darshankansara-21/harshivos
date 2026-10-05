@@ -93,14 +93,26 @@ class _MirrorDrawGameState extends State<MirrorDrawGame> with _Emit {
     }
   }
 
+  // Index of the one dot the child must trace to next, in path order. `_dots`
+  // is built polyline-point-by-point in order inside `_newShape`, so "first
+  // unlit dot in list order" is exactly "next point on the path" — same
+  // convention as `letter_trace_game.dart`.
+  int get _nextDotIdx => _dots.indexWhere((d) => !d.lit);
+
   void _touch(double nx, double ny) {
     if (_status != GameStatus.playing || nx > 0.5) return;
-    for (final d in _dots) {
-      if (d.lit) continue;
-      if ((d.x - nx).abs() < 0.06 && (d.y - ny).abs() * _aspect < 0.06) {
-        _lightDot(d);
-        return;
-      }
+    final idx = _nextDotIdx;
+    if (idx < 0) return;
+    final next = _dots[idx];
+    // Only the next dot on the path can be lit. The prior behaviour matched
+    // whichever unlit dot was globally nearest the touch point, so a quick
+    // diagonal swipe across the left pane could light dots scattered across
+    // the picture out of sequence — the same "trace order isn't enforced"
+    // gap class just fixed in `letter_trace_game.dart`, and just as fatal to
+    // this game's own "trace the dots" pitch (a child could "finish" a
+    // picture without ever drawing its real symmetric shape).
+    if ((next.x - nx).abs() < 0.06 && (next.y - ny).abs() * _aspect < 0.06) {
+      _lightDot(next);
     }
   }
 
@@ -179,31 +191,34 @@ class _MirrorDrawGameState extends State<MirrorDrawGame> with _Emit {
                 onPanUpdate: (d) => handle(d.localPosition),
                 onTapDown: (d) => handle(d.localPosition),
                 child: CustomPaint(
-                  painter: _MirrorDrawPainter(dots: _dots),
+                  painter: _MirrorDrawPainter(dots: _dots, nextIdx: _nextDotIdx),
                   size: Size.infinite,
                 ),
               ),
               // Dots are re-rolled only on `_newShape` (a fresh picture), so
               // their positions are static for the current round — same
               // static-zone overlay pattern as `letter_trace_game.dart`'s
-              // trace dots. Only the left-half dot objects exist (the right
-              // side is a pure mirrored render, not a separate touch target,
-              // and `_touch` itself rejects `nx > 0.5`), so one overlay per
-              // still-unlit dot already matches the real input surface.
-              for (var i = 0; i < _dots.length; i++)
-                if (!_dots[i].lit)
-                  Positioned(
-                    left: _dots[i].x * w - 0.035 * w,
-                    top: _dots[i].y * h - 0.035 * w,
+              // trace dots. Tracing is now enforced in path order, so only
+              // the one next dot is exposed here too — a screen-reader user
+              // should be guided along the path, not offered every remaining
+              // dot to activate at once (and the right side is a pure
+              // mirrored render, never a separate touch target).
+              if (_nextDotIdx >= 0)
+                Builder(builder: (context) {
+                  final d = _dots[_nextDotIdx];
+                  return Positioned(
+                    left: d.x * w - 0.035 * w,
+                    top: d.y * h - 0.035 * w,
                     width: 0.07 * w,
                     height: 0.07 * w,
                     child: Semantics(
-                      label: 'Mirror dot',
+                      label: 'Next mirror dot',
                       button: true,
-                      onTap: () => _lightDot(_dots[i]),
+                      onTap: () => _lightDot(d),
                       child: const SizedBox.expand(),
                     ),
-                  ),
+                  );
+                }),
             ],
           );
         },
@@ -213,8 +228,9 @@ class _MirrorDrawGameState extends State<MirrorDrawGame> with _Emit {
 }
 
 class _MirrorDrawPainter extends CustomPainter {
-  _MirrorDrawPainter({required this.dots});
+  _MirrorDrawPainter({required this.dots, required this.nextIdx});
   final List<_MirrorDot> dots;
+  final int nextIdx;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -236,7 +252,8 @@ class _MirrorDrawPainter extends CustomPainter {
           ..color = Colors.white12
           ..strokeWidth = 1);
 
-    for (final d in dots) {
+    for (var i = 0; i < dots.length; i++) {
+      final d = dots[i];
       final left = Offset(d.x * w, d.y * h);
       final right = Offset((1 - d.x) * w, d.y * h);
       if (d.lit) {
@@ -245,6 +262,21 @@ class _MirrorDrawPainter extends CustomPainter {
               c, 12, Paint()..color = const Color(0xFFB197FC).withOpacity(0.35));
           canvas.drawCircle(c, 7, Paint()..color = const Color(0xFFB197FC));
         }
+      } else if (i == nextIdx) {
+        // Tracing is now enforced in path order, so the one dot a touch will
+        // actually light needs to read as visibly "next" — a plain identical
+        // white ring for every remaining dot gave no clue which one the
+        // enforced order wants, undercutting the whole fix (same convention
+        // as `letter_trace_game.dart`'s next-dot ring).
+        canvas.drawCircle(
+            left, 14, Paint()..color = Colors.white.withOpacity(0.25));
+        canvas.drawCircle(
+            left,
+            9,
+            Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 3
+              ..color = Colors.white);
       } else {
         canvas.drawCircle(
             left,
