@@ -118,14 +118,27 @@ class _SoccerKickGameState extends State<SoccerKickGame>
     }
   }
 
+  // Shared by the real kick and the dotted aim preview so they can never
+  // disagree. The ball always launches *upward* toward the goal (vy is
+  // forced negative) no matter which way the finger actually sits relative
+  // to the ball — the painter used to recompute its own raw (ball - aim)
+  // direction for the preview line, which pointed straight back down
+  // whenever that vertical sign was flipped to go up for the real shot, so
+  // the arrow told the child the exact opposite of where the ball was about
+  // to fly. Funnelling both through this one function keeps them identical.
+  Offset _launchVel(double dx, double dy) {
+    const k = 3.2;
+    return Offset(dx * k, -dy.abs() * k - 0.2);
+  }
+
   void _launch() {
     final dx = _bx - _aimX;
     final dy = _by - _aimY;
     final power = math.sqrt(dx * dx + dy * dy);
     if (power < 0.03 || dy <= 0) return; // must pull back/down
-    const k = 3.2;
-    _bvx = dx * k;
-    _bvy = -dy.abs() * k - 0.2;
+    final v = _launchVel(dx, dy);
+    _bvx = v.dx;
+    _bvy = v.dy;
     _spin = (_rnd.nextDouble() - 0.5) * 0.25 + _bvx * 0.12;
     final t = (_goalY - _by) / _bvy;
     final predX = (_bx + _bvx * t).clamp(_goalL, _goalR);
@@ -294,7 +307,17 @@ class _SoccerPainter extends CustomPainter {
     if (dragging) {
       final b = Offset(bx * w, by * h);
       final a = Offset(aimX * w, aimY * h);
-      final dir = b - a; // launch direction
+      final rawDir = b - a;
+      // The real kick's vertical velocity is always -|dy| (see
+      // _SoccerKickGameState._launchVel) — it launches upward no matter
+      // which way the vertical pull actually points. The preview used to
+      // show the raw (ball - aim) vector unconditionally, so for the only
+      // drag direction that actually fires a shot (finger above the ball)
+      // the arrow pointed straight down, away from the goal, while the ball
+      // flew up — telling the child the opposite of what was about to
+      // happen. Mirror the same unconditional abs() here so they can never
+      // disagree.
+      final dir = Offset(rawDir.dx, -rawDir.dy.abs());
       final tip = b + dir * 2.2;
       canvas.drawLine(
           b,
