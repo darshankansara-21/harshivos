@@ -265,11 +265,20 @@ class _SkyHopPainter extends CustomPainter {
         Offset(w * 0.02, -w * 0.015), 3, Paint()..color = Colors.black);
     canvas.restore();
     if (!started) {
+      // The sky/grass gradient is pale at every stop (light cyan fading to
+      // light mint), so plain white text here was low-contrast against the
+      // whole backdrop — use a dark ink with a soft light halo so it reads
+      // clearly no matter where the hint lands on the gradient.
       final tp = TextPainter(
         text: const TextSpan(
             text: 'Tap to flap',
             style: TextStyle(
-                color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+                color: Color(0xFF1B3B4B),
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                shadows: <Shadow>[
+                  Shadow(color: Colors.white70, blurRadius: 6),
+                ])),
         textDirection: TextDirection.ltr,
       )..layout();
       tp.paint(canvas, Offset((w - tp.width) / 2, h * 0.6));

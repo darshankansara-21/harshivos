@@ -219,7 +219,13 @@ class _MergeGameState extends State<MergeGame> with _Emit {
                                 _g[r][c] == 0 ? '' : '${_g[r][c]}',
                                 maxLines: 1,
                                 style: const TextStyle(
-                                    color: Colors.white,
+                                    // Tiles are a bright pastel at every hue in
+                                    // the 0.95-value HSV sweep (same root
+                                    // cause as the slide_puzzle contrast bug),
+                                    // so white digits were low-contrast on
+                                    // most tile colors a child needs to read
+                                    // to merge matching numbers.
+                                    color: Color(0xFF2B2140),
                                     fontSize: 26,
                                     fontWeight: FontWeight.w900),
                               ),
