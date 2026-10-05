@@ -74,9 +74,14 @@ class _BeatBuilderGameState extends State<BeatBuilderGame>
         GameScores.instance.submit(_id, _active);
       }
       if (_active == _rowsN * _steps) {
+        // Filling every step is the whole point of the sequencer — it must
+        // earn the same win celebration every other game gets, not just a
+        // banner that fades while the status quietly stays "playing".
         _banner = 'Full groove! 🔥';
         _bannerT = 1.6;
-        emit(ExperienceEvent.bubblePopped);
+        _status = GameStatus.won;
+        TonePlayer.instance.playCue(SoundCue.gameStart);
+        emit(ExperienceEvent.gameCompleted);
       }
     });
   }
