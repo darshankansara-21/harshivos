@@ -23,11 +23,13 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
   String? _banner;
   GameStatus _status = GameStatus.ready;
 
-  // Difficulty escalates with score: tiles start small (1-5) and six wide,
-  // growing to bigger numbers (up to 1-15) and an extra tile by round 10 —
-  // round 1 should feel noticeably easier than round 10, not identical.
-  int get _maxVal => (5 + _score * 2).clamp(5, 15);
-  int get _tileCount => _score >= 5 ? 7 : 6;
+  // Difficulty escalates with score across the WHOLE 10-round game: tiles
+  // start small (1-5) and six wide, climbing to bigger numbers (up to 1-23)
+  // and up to nine tiles only by the final round. The old formula capped
+  // both at round 5, leaving the back half of the game completely flat —
+  // round 10 must feel harder than round 5, not identical to it.
+  int get _maxVal => (5 + _score * 2).clamp(5, 23);
+  int get _tileCount => (6 + _score ~/ 3).clamp(6, 9);
 
   @override
   void initState() {
