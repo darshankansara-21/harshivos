@@ -116,6 +116,9 @@ class _ShapeBuilderGameState extends State<ShapeBuilderGame> with _Emit {
         } else {
           setState(() => _wrongFlash = i);
           TonePlayer.instance.playCue(SoundCue.gentleRetry);
+          Future.delayed(const Duration(milliseconds: 350), () {
+            if (mounted && _wrongFlash == i) setState(() => _wrongFlash = -1);
+          });
         }
         return;
       }
