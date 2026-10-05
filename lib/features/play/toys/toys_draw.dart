@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/toy/toy_ticker.dart';
+import '../../../services/audio/tone_player.dart';
 import 'toys_particles.dart' show rainbow;
 
 // ===========================================================================
@@ -23,11 +24,14 @@ class _SandGardenToyState extends State<SandGardenToy> {
     return Listener(
       onPointerDown: (e) {
         HapticFeedback.selectionClick();
+        TonePlayer.instance.playCue(SoundCue.sand);
         setState(() => _strokes.add(<Offset>[e.localPosition]));
       },
       onPointerMove: (e) => setState(() {
         if (_strokes.isNotEmpty) _strokes.last.add(e.localPosition);
         if (_strokes.length > 60) _strokes.removeAt(0);
+        // Grainy rake texture while the finger drags, matching what's drawn.
+        TonePlayer.instance.playCue(SoundCue.sand);
       }),
       child: CustomPaint(painter: _SandPainter(_strokes), size: Size.infinite),
     );
