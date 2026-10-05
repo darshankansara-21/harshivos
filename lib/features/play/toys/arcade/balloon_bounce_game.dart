@@ -47,7 +47,10 @@ class _BalloonBounceGameState extends State<BalloonBounceGame>
   void onTick(double dt) {
     if (_status != GameStatus.playing) return;
     if (_squash > 0) _squash -= dt * 3;
-    _vy += 0.5 * dt; // gentle gravity
+    // Gravity ramps up gently as the streak grows, so bounce 20 genuinely
+    // demands quicker reflexes than bounce 1 instead of feeling identical.
+    final gravity = 0.5 + (_score / _target).clamp(0.0, 1.0) * 0.45;
+    _vy += gravity * dt;
     _x += _vx * dt;
     _y += _vy * dt;
     if (_x < _r || _x > 1 - _r) {
