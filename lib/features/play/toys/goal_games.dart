@@ -446,6 +446,17 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> with _GoalEmit {
       });
       TonePlayer.instance.playCue(SoundCue.gentleRetry);
       emit(ExperienceEvent.incorrectAnswer);
+      // Same stuck-wrong-flash bug class fixed catalog-wide elsewhere
+      // (weather_sort/bigger_number/calm_choices/kindness_match/
+      // feelings_match/odd_one_out): without an auto-clear, a missed tile's
+      // red border only ever cleared on the NEXT correct answer, so a child
+      // who kept missing while hunting for the right tile saw every prior
+      // wrong tile stay red the whole time instead of a brief mistake flash.
+      Future.delayed(const Duration(milliseconds: 450), () {
+        if (mounted && _wrongIndex == index) {
+          setState(() => _wrongIndex = -1);
+        }
+      });
       return;
     }
     TonePlayer.instance.playCue(SoundCue.correct);
