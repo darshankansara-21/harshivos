@@ -1536,7 +1536,12 @@ class _SnakeGameState extends State<SnakeGame>
         _score += 3;
         _flash('Snake down! +3');
         TonePlayer.instance.playCue(SoundCue.success);
-        emit(ExperienceEvent.gameCompleted);
+        // A rival going down is a great mid-run moment, not the actual end
+        // of the game — _finish (below) already fires the full "You did
+        // it!" celebration once the run really ends, so this only gets the
+        // lighter big-positive-moment reaction (matches the golden-orb
+        // catch above and other games' in-run pickups).
+        emit(ExperienceEvent.bubblePopped);
         GameScores.instance.submit(_id, _score).then((b) {
           if (mounted && b != _best) setState(() => _best = b);
         });
@@ -2540,11 +2545,14 @@ class _BowlingGameState extends State<BowlingGame>
 
     if (_ballInFrame == 1) {
       if (knockedAll) {
-        // Strike.
+        // Strike. A great in-run moment, but NOT the end of the 10-frame
+        // game — the companion's full "You did it!" celebration is reserved
+        // for actually finishing all 10 frames (see _nextFrame), so this
+        // only fires the lighter big-positive-moment reaction.
         _score += 5;
         _flash('STRIKE! 🎳');
         _burst(const Color(0xFFFFD166));
-        emit(ExperienceEvent.gameCompleted);
+        emit(ExperienceEvent.bubblePopped);
         TonePlayer.instance.playCue(SoundCue.completion);
         if (isFinalFrame) {
           // Earns two bonus balls on a fresh rack instead of ending the game.
@@ -2576,11 +2584,12 @@ class _BowlingGameState extends State<BowlingGame>
       }
       _ballInFrame = 3;
     } else if (_ballInFrame == 2 && knockedAll) {
-      // Spare.
+      // Spare. Same reasoning as the strike above: a strong in-run moment,
+      // not the actual end of the game, so it gets the lighter reaction.
       _score += 3;
       _flash('SPARE! ✨');
       _burst(const Color(0xFF7FE0FF));
-      emit(ExperienceEvent.gameCompleted);
+      emit(ExperienceEvent.bubblePopped);
       TonePlayer.instance.playCue(SoundCue.completion);
       if (isFinalFrame) {
         // Earns one bonus ball on a fresh rack instead of ending the game.
@@ -2602,6 +2611,10 @@ class _BowlingGameState extends State<BowlingGame>
   void _nextFrame() {
     if (_frame >= 10) {
       _status = GameStatus.won;
+      // The real end of the 10-frame game: this is the one moment that
+      // should earn the companion's full "You did it!" celebration, not the
+      // individual strikes/spares along the way.
+      emit(ExperienceEvent.gameCompleted);
       GameScores.instance.submit(_id, _score).then((b) {
         if (mounted) setState(() => _best = b);
       });
