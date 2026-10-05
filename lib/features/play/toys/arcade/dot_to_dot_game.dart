@@ -20,6 +20,8 @@ class _DotToDotGameState extends State<DotToDotGame>
   int _score = 0;
   int _best = 0;
   double _pulse = 0;
+  int _wrongDot = -1;
+  double _wrongFlashT = 0;
   String? _banner;
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
@@ -54,6 +56,10 @@ class _DotToDotGameState extends State<DotToDotGame>
       _bannerT -= dt;
       if (_bannerT <= 0) _banner = null;
     }
+    if (_wrongFlashT > 0) {
+      _wrongFlashT -= dt;
+      if (_wrongFlashT <= 0) _wrongDot = -1;
+    }
     for (var i = _bits.length - 1; i >= 0; i--) {
       final s = _bits[i];
       s.x += s.vx * dt;
@@ -65,8 +71,9 @@ class _DotToDotGameState extends State<DotToDotGame>
 
   void _tap(Offset p, double w, double h) {
     if (_status != GameStatus.playing || _next >= _dots.length) return;
+    final nx = p.dx / w, ny = p.dy / h;
     final target = _dots[_next];
-    if ((target.dx - p.dx / w).abs() < 0.08 && (target.dy - p.dy / h).abs() < 0.08) {
+    if ((target.dx - nx).abs() < 0.08 && (target.dy - ny).abs() < 0.08) {
       _next++;
       TonePlayer.instance.playNote(2 + _next, seconds: 0.14);
       if (_next >= _dots.length) {
@@ -94,6 +101,21 @@ class _DotToDotGameState extends State<DotToDotGame>
         }
       }
       setState(() {});
+      return;
+    }
+    // Tapped a dot that isn't next in sequence — give clear feedback instead
+    // of silently doing nothing, so the child knows the tap registered but
+    // picked the wrong number.
+    for (var i = 0; i < _dots.length; i++) {
+      if (i == _next) continue;
+      final d = _dots[i];
+      if ((d.dx - nx).abs() < 0.08 && (d.dy - ny).abs() < 0.08) {
+        _wrongDot = i;
+        _wrongFlashT = 0.3;
+        TonePlayer.instance.playCue(SoundCue.gentleRetry);
+        setState(() {});
+        break;
+      }
     }
   }
 
@@ -104,6 +126,8 @@ class _DotToDotGameState extends State<DotToDotGame>
       _bits.clear();
       _banner = null;
       _bannerT = 0;
+      _wrongDot = -1;
+      _wrongFlashT = 0;
       _buildFigure();
       _status = GameStatus.playing;
     });
@@ -142,6 +166,7 @@ class _DotToDotGameState extends State<DotToDotGame>
                 next: _next,
                 pulse: _pulse,
                 bits: _bits,
+                wrongDot: _wrongDot,
               ),
               size: Size.infinite,
             ),
@@ -158,11 +183,13 @@ class _DotPainter extends CustomPainter {
     required this.next,
     required this.pulse,
     required this.bits,
+    required this.wrongDot,
   });
   final List<Offset> dots;
   final int next;
   final double pulse;
   final List<_Shard> bits;
+  final int wrongDot;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -197,6 +224,17 @@ class _DotPainter extends CustomPainter {
           Paint()..color = done
               ? const Color(0xFFFFD166)
               : (isNext ? Colors.white : Colors.white54));
+      if (i == wrongDot) {
+        // A tap landed here but it isn't next — a clear ring says "I saw
+        // that tap, it's just not the right dot yet".
+        canvas.drawCircle(
+            c,
+            r + 6,
+            Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 3
+              ..color = const Color(0xFFE23B3B));
+      }
       if (!done) {
         final tp = TextPainter(
           text: TextSpan(
