@@ -1211,6 +1211,7 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
                 lastSaved: _lastSaved,
                 sparks: _sparks,
                 aimHint: _score < 3 && _phase == 1 ? _ballTargetX : -1,
+                phaseT: _phaseT,
               ),
               size: Size.infinite,
             ),
@@ -1233,6 +1234,7 @@ class _KeeperPainter extends CustomPainter {
     required this.lastSaved,
     required this.sparks,
     required this.aimHint,
+    required this.phaseT,
   });
   final double keeperX;
   final double lean;
@@ -1242,6 +1244,10 @@ class _KeeperPainter extends CustomPainter {
   final bool lastSaved;
   final List<_Spark> sparks;
   final double aimHint;
+  // Countdown from 0.85s set when a shot resolves (see _resolveShot); used to
+  // fade the save/goal result flash in then out instead of either snapping
+  // on and off or — before this fix — never using `lastSaved` at all.
+  final double phaseT;
 
   static const double _goalLeft = 0.14;
   static const double _goalRight = 0.86;
@@ -1271,6 +1277,16 @@ class _KeeperPainter extends CustomPainter {
           Paint()..color = Colors.white.withOpacity(0.03));
     }
 
+    // Result flash — fades in then out across the 0.85s pause after a shot
+    // resolves. `lastSaved` used to be computed and threaded all the way to
+    // this painter but never actually read here, so a save and a goal looked
+    // visually identical except for the text banner; this gives each a
+    // distinct, satisfying payoff a child can see at a glance.
+    final resultFlash =
+        phase == 2 ? (phaseT / 0.85).clamp(0.0, 1.0) : 0.0;
+    final netRippleOn = phase == 2 && !lastSaved && resultFlash > 0;
+    final rippleX = sx(ball.dx);
+
     // Goal net.
     final netRect = Rect.fromLTRB(sx(_goalLeft), sy(_crossbarY),
         sx(_goalRight), sy(_lineY));
@@ -1279,7 +1295,16 @@ class _KeeperPainter extends CustomPainter {
       ..strokeWidth = 1;
     for (var gx = 0; gx <= 10; gx++) {
       final x = netRect.left + netRect.width * gx / 10;
-      canvas.drawLine(Offset(x, netRect.top), Offset(x, netRect.bottom), net);
+      // On a goal, bulge the net cords outward near where the ball crossed
+      // the line — the bottom of each cord shifts, the top (fixed to the
+      // crossbar) doesn't, so the net reads as genuinely pushed by impact.
+      var bottomShift = 0.0;
+      if (netRippleOn) {
+        final d = (x - rippleX) / (w * 0.12);
+        bottomShift = math.exp(-d * d) * w * 0.035 * resultFlash;
+      }
+      canvas.drawLine(Offset(x, netRect.top),
+          Offset(x + bottomShift, netRect.bottom), net);
     }
     for (var gy = 0; gy <= 5; gy++) {
       final y = netRect.top + netRect.height * gy / 5;
@@ -1370,6 +1395,19 @@ class _KeeperPainter extends CustomPainter {
           bc + Offset(math.cos(a), math.sin(a)) * ballR * 0.5,
           ballR * 0.22,
           Paint()..color = Colors.black87);
+    }
+
+    // Save glow — an expanding, fading golden ring around the ball right
+    // where the glove met it, so "SAVE!" has a clear visual payoff distinct
+    // from a goal, instead of only differing by particle colour + text.
+    if (phase == 2 && lastSaved && resultFlash > 0) {
+      canvas.drawCircle(
+          bc,
+          ballR * (1.7 + (1 - resultFlash) * 1.6),
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 3
+            ..color = const Color(0xFFFFE066).withOpacity(0.85 * resultFlash));
     }
 
     // Sparks.
