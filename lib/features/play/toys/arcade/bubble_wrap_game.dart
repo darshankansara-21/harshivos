@@ -130,20 +130,48 @@ class _BubbleWrapGameState extends State<BubbleWrapGame>
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapDown: (d) => _popAt(d.localPosition, w, h),
-            onPanStart: (d) => _popAt(d.localPosition, w, h),
-            onPanUpdate: (d) => _popAt(d.localPosition, w, h),
-            child: CustomPaint(
-              painter: _BubbleWrapPainter(
-                popped: _popped,
-                cols: _cols,
-                rows: _rows,
-                bits: _bits,
+          final cw = w / _cols, ch = h / _rows;
+          return Stack(
+            children: <Widget>[
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapDown: (d) => _popAt(d.localPosition, w, h),
+                onPanStart: (d) => _popAt(d.localPosition, w, h),
+                onPanUpdate: (d) => _popAt(d.localPosition, w, h),
+                child: CustomPaint(
+                  painter: _BubbleWrapPainter(
+                    popped: _popped,
+                    cols: _cols,
+                    rows: _rows,
+                    bits: _bits,
+                  ),
+                  size: Size.infinite,
+                ),
               ),
-              size: Size.infinite,
-            ),
+              // Every bubble is a plain canvas circle with no widget-tree
+              // counterpart, so a screen-reader user had no way to discover
+              // or pop any cell. Fixed-position overlays (the sheet never
+              // scrolls or drifts, matching beat_builder's static grid, not
+              // balloon_math's live-tracked drifters) announce each
+              // bubble's row/column and popped state and reuse the same
+              // row/col hit-test math already baked into `_popAt`.
+              for (var row = 0; row < _rows; row++)
+                for (var col = 0; col < _cols; col++)
+                  Positioned(
+                    left: col * cw,
+                    top: row * ch,
+                    width: cw,
+                    height: ch,
+                    child: Semantics(
+                      label: 'Bubble, row ${row + 1}, column ${col + 1}, '
+                          '${_popped[row * _cols + col] ? 'popped' : 'unpopped'}',
+                      button: true,
+                      onTap: () =>
+                          _popAt(Offset((col + 0.5) * cw, (row + 0.5) * ch), w, h),
+                      child: const SizedBox.expand(),
+                    ),
+                  ),
+            ],
           );
         },
       ),
