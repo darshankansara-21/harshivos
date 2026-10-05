@@ -34,6 +34,13 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
   int _best = 0;
   String? _banner;
   GameStatus _status = GameStatus.ready;
+  // Without this, the game never escalates: the ceiling of bubbles sits
+  // still forever and a patient child can match forever at the exact same
+  // flat difficulty — there's no sense of mounting pressure or a reason to
+  // hurry, unlike every other arcade game in the catalog. Every few shots we
+  // drop the whole field one row, genre-standard "ceiling descends" pressure.
+  static const int _shotsPerDrop = 8;
+  int _shotsFired = 0;
 
   @override
   void initState() {
@@ -156,6 +163,12 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
     _next = _pal[_rnd.nextInt(_pal.length)];
     if (br >= _rows - 1) {
       _gameOver();
+      return;
+    }
+    if (_status == GameStatus.playing &&
+        _shotsFired > 0 &&
+        _shotsFired % _shotsPerDrop == 0) {
+      _dropCeiling();
     }
   }
 
@@ -187,11 +200,30 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
     final n = dir / dir.distance;
     _vel = n * 640;
     _pos = origin;
+    _shotsFired++;
     // The shot itself was completely silent — feedback only arrived once the
     // bubble landed. `SoundCue.laser` already has its own distinct synth
     // built for exactly this "launch" moment but was never wired into any
     // game; this is the shooting toy it belongs to.
     TonePlayer.instance.playCue(SoundCue.laser);
+  }
+
+  // Shift every row down one and fill a fresh row at the top, so the whole
+  // field visibly creeps closer to the floor. If that push leaves the bottom
+  // row occupied, the field has reached the floor and the run ends — exactly
+  // the same "bubbles reached the floor" loss condition `_snap` already uses,
+  // just triggered by the ceiling advancing instead of a bad shot.
+  void _dropCeiling() {
+    if (_grid[_rows - 1].any((c) => c != null)) {
+      _gameOver();
+      return;
+    }
+    for (var r = _rows - 1; r > 0; r--) {
+      _grid[r] = _grid[r - 1];
+    }
+    _grid[0] = List<Color?>.generate(_cols, (_) => _pal[_rnd.nextInt(_pal.length)]);
+    TonePlayer.instance.playCue(SoundCue.milestone);
+    _banner = 'Ceiling drops!';
   }
 
   void _gameOver() {
@@ -212,6 +244,7 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
       _pos = null;
       _pops.clear();
       _score = 0;
+      _shotsFired = 0;
       _banner = null;
       _status = GameStatus.playing;
       _shot = _pal[_rnd.nextInt(_pal.length)];
