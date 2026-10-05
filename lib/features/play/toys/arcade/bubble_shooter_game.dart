@@ -180,6 +180,11 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
     final n = dir / dir.distance;
     _vel = n * 640;
     _pos = origin;
+    // The shot itself was completely silent — feedback only arrived once the
+    // bubble landed. `SoundCue.laser` already has its own distinct synth
+    // built for exactly this "launch" moment but was never wired into any
+    // game; this is the shooting toy it belongs to.
+    TonePlayer.instance.playCue(SoundCue.laser);
   }
 
   void _gameOver() {
