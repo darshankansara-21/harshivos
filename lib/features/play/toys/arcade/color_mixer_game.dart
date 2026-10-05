@@ -87,16 +87,24 @@ class _ColorMixerGameState extends State<ColorMixerGame> with _Emit {
     _drops.clear();
   }
 
+  double _dist(List<double> a, List<double> b) => math.sqrt(
+      math.pow(a[0] - b[0], 2) + math.pow(a[1] - b[1], 2) + math.pow(a[2] - b[2], 2));
+
   void _addDrop(int i) {
     if (_status != GameStatus.playing) return;
     setState(() {
+      final t = _targetRgb;
+      // Capture the distance BEFORE this drop so a blind-guessing child gets
+      // an honest "warmer/colder" steer on every pour, not just silence until
+      // (if ever) they happen to land inside the match threshold. Without
+      // this, diluting the bowl with the wrong colour for 10+ drops gave zero
+      // feedback at all — the one gap left in this catalog's wrong-answer
+      // feedback pattern.
+      final prevDist = _drops.isEmpty ? double.infinity : _dist(_mixOf(_drops), t);
       _drops.add(i);
       TonePlayer.instance.playPop(0.6 + _drops.length * 0.03);
       final mix = _mixOf(_drops);
-      final t = _targetRgb;
-      final dist = math.sqrt(math.pow(mix[0] - t[0], 2) +
-          math.pow(mix[1] - t[1], 2) +
-          math.pow(mix[2] - t[2], 2));
+      final dist = _dist(mix, t);
       if (_drops.length >= 2 && dist < 0.14) {
         _score++;
         _banner = 'Matched ${_recipeName[_recipe]}! 🎨';
@@ -111,6 +119,13 @@ class _ColorMixerGameState extends State<ColorMixerGame> with _Emit {
           emit(ExperienceEvent.gameCompleted);
         } else {
           _newTarget();
+        }
+      } else if (_drops.length >= 2) {
+        if (dist < prevDist - 0.01) {
+          _banner = 'Getting warmer!';
+        } else if (dist > prevDist + 0.01) {
+          _banner = 'Getting colder — try Empty the bowl';
+          TonePlayer.instance.playCue(SoundCue.gentleRetry);
         }
       }
     });
