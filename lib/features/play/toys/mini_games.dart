@@ -2942,6 +2942,26 @@ class _BowlPainter extends CustomPainter {
           ..color = const Color(0xFFEF476F)
           ..strokeWidth = 3);
 
+    // Dashed aim guide, dragged ball-side first, up toward the pin deck —
+    // `phase` used to be threaded all the way into this painter and never
+    // actually read, so aiming (the single most important moment in
+    // bowling) had no visual guide at all: a child dragging the ball left
+    // or right had no way to see where their flick was about to send it
+    // until the ball was already rolling.
+    if (phase == _BowlPhase.aim) {
+      final guide = Paint()
+        ..color = Colors.white.withOpacity(0.4)
+        ..strokeWidth = 3;
+      const dash = 12.0, gap = 9.0;
+      final guideTop = sy(yFar + 0.03);
+      var y = sy(yFoul) - 6;
+      while (y - dash > guideTop) {
+        canvas.drawLine(
+            Offset(sx(ballX), y), Offset(sx(ballX), y - dash), guide);
+        y -= dash + gap;
+      }
+    }
+
     // Pins (painter order: far first so near pins overlap).
     final sorted = List<_BowlPin>.from(pins)
       ..sort((a, b) => a.y.compareTo(b.y));
