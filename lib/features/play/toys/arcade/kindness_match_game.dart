@@ -33,6 +33,7 @@ class _KindnessMatchGameState extends State<KindnessMatchGame> with _Emit {
     _KindScene('Someone is tired.', 'Have a rest', 'Keep going', 'Too slow'),
   ];
   final math.Random _rnd = math.Random();
+  final List<int> _bag = <int>[];
 
   _KindScene _scene = _scenes.first;
   List<String> _options = <String>[];
@@ -51,9 +52,18 @@ class _KindnessMatchGameState extends State<KindnessMatchGame> with _Emit {
     });
   }
 
+  int _drawScene() {
+    // Shuffled bag with no immediate repeat: every scenario is shown once
+    // before any repeats, so a full win sees all ten kindness lessons.
+    if (_bag.isEmpty) {
+      _bag.addAll(List<int>.generate(_scenes.length, (i) => i)..shuffle(_rnd));
+    }
+    return _bag.removeLast();
+  }
+
   void _newRound() {
     _wrong = -1;
-    _scene = _scenes[_rnd.nextInt(_scenes.length)];
+    _scene = _scenes[_drawScene()];
     _options = <String>[_scene.kind, _scene.other1, _scene.other2]..shuffle(_rnd);
   }
 
@@ -89,6 +99,7 @@ class _KindnessMatchGameState extends State<KindnessMatchGame> with _Emit {
       _score = 0;
       _lives = 3;
       _banner = null;
+      _bag.clear();
       _newRound();
       _status = GameStatus.playing;
     });
@@ -103,6 +114,7 @@ class _KindnessMatchGameState extends State<KindnessMatchGame> with _Emit {
           'Read what happens, then tap the kind thing to say or do. Ten kind '
           'choices to win!',
       onStart: () => setState(() {
+        _bag.clear();
         _newRound();
         _status = GameStatus.playing;
       }),
