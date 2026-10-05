@@ -20,6 +20,12 @@ class _SortingTrainGameState extends State<SortingTrainGame>
   ];
   final math.Random _rnd = math.Random();
   final List<_Shard> _bits = <_Shard>[];
+  // Shuffled bag of colour indices so the 12-parcel win draws each colour an
+  // even number of times with no repeat, instead of plain Random-with-
+  // replacement risking the same colour several times in a row while the
+  // child never sees another one — same gap class as kindness_match /
+  // calm_choices / weather_sort.
+  final List<int> _bag = <int>[];
   int _item = 0;
   double _bob = 0;
   int _score = 0;
@@ -33,10 +39,17 @@ class _SortingTrainGameState extends State<SortingTrainGame>
   @override
   void initState() {
     super.initState();
-    _item = _rnd.nextInt(_colors.length);
+    _item = _drawItem();
     GameScores.instance.ensureLoaded().then((_) {
       if (mounted) setState(() => _best = GameScores.instance.best(_id));
     });
+  }
+
+  int _drawItem() {
+    if (_bag.isEmpty) {
+      _bag.addAll(List<int>.generate(_colors.length, (i) => i)..shuffle(_rnd));
+    }
+    return _bag.removeLast();
   }
 
   @override
@@ -83,7 +96,7 @@ class _SortingTrainGameState extends State<SortingTrainGame>
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
       } else {
-        _item = _rnd.nextInt(_colors.length);
+        _item = _drawItem();
       }
     } else {
       _wrongFlash = wagon;
@@ -98,7 +111,8 @@ class _SortingTrainGameState extends State<SortingTrainGame>
   void _reset() {
     setState(() {
       _score = 0;
-      _item = _rnd.nextInt(_colors.length);
+      _bag.clear();
+      _item = _drawItem();
       _bits.clear();
       _banner = null;
       _bannerT = 0;
