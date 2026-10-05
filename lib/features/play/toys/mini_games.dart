@@ -415,9 +415,12 @@ class _FruitCatchGameState extends State<FruitCatchGame>
         : kind == 1
             ? '🌟'
             : _fruits[_rnd.nextInt(_fruits.length)];
+    // Fall speed escalates with score so the last stretch before the win
+    // target genuinely feels harder than the opening catches, not a flat
+    // plateau that never reaches a meaningfully faster end-state.
     final speed = 0.28 +
         _rnd.nextDouble() * 0.16 +
-        _score * 0.006 +
+        math.min(0.26, _score * 0.0145) +
         (kind == 1 ? 0.12 : 0);
     _items.add(
         _Faller(0.08 + _rnd.nextDouble() * 0.84, -0.05, speed, emoji, kind));
@@ -440,7 +443,7 @@ class _FruitCatchGameState extends State<FruitCatchGame>
     _spawnIn -= dt;
     if (_spawnIn <= 0) {
       _spawnIn =
-          math.max(0.32, 0.7 - _score * 0.01) * (0.7 + _rnd.nextDouble() * 0.6);
+          math.max(0.32, 0.7 - _score * 0.021) * (0.7 + _rnd.nextDouble() * 0.6);
       _spawn();
     }
     for (final f in _items) {
