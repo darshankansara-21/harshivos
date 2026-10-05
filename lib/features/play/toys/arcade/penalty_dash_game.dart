@@ -14,6 +14,13 @@ class _PenaltyDashGameState extends State<PenaltyDashGame>
   static const String _id = 'penalty_dash';
   static const int _target = 10;
 
+  final math.Random _rnd = math.Random();
+  // Mirrors hoop_toss_game.dart's fix: every other aim-and-score game in the
+  // catalog bursts a few shards of colour on a successful hit, but a GOAL
+  // here only ever flashed the banner text + a sound — flatter than almost
+  // every other scoring moment in the catalog.
+  final List<_Shard> _bits = <_Shard>[];
+  bool _reduceMotion = false;
   double _t = 0;
   double _marker = 0.5;
   double _keeper = 0.5;
@@ -47,6 +54,14 @@ class _PenaltyDashGameState extends State<PenaltyDashGame>
     if (_shotLockT > 0) _shotLockT -= dt;
     _marker = 0.5 + 0.38 * math.sin(_t * _speed);
     _keeper = 0.5 + 0.30 * math.sin(_t * _speed * 0.8 + 1.7);
+    for (var i = _bits.length - 1; i >= 0; i--) {
+      final b = _bits[i];
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.vy += 0.5 * dt;
+      b.life -= dt;
+      if (b.life <= 0) _bits.removeAt(i);
+    }
     setState(() {});
   }
 
@@ -65,6 +80,13 @@ class _PenaltyDashGameState extends State<PenaltyDashGame>
       _score++;
       TonePlayer.instance.playCue(SoundCue.success);
       emit(ExperienceEvent.bubblePopped);
+      final n = _reduceMotion ? 4 : 12;
+      for (var i = 0; i < n; i++) {
+        final a = _rnd.nextDouble() * math.pi * 2;
+        final sp = 0.15 + _rnd.nextDouble() * 0.3;
+        _bits.add(_Shard(_marker, 0.3, math.cos(a) * sp, math.sin(a) * sp,
+            const Color(0xFF80ED99)));
+      }
       _banner = 'GOAL!  ⚽';
       _bannerT = 1.1;
       GameScores.instance.submit(_id, _score).then((b) {
@@ -100,6 +122,7 @@ class _PenaltyDashGameState extends State<PenaltyDashGame>
       _score = 0;
       _misses = 0;
       _t = 0;
+      _bits.clear();
       _banner = null;
       _bannerT = 0;
       _shotLockT = 0;
@@ -110,6 +133,7 @@ class _PenaltyDashGameState extends State<PenaltyDashGame>
   @override
   Widget build(BuildContext context) {
     drain(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _Shell(
       title: '🥅 Penalty Dash',
       introHow:
@@ -140,6 +164,7 @@ class _PenaltyDashGameState extends State<PenaltyDashGame>
             keeper: _keeper,
             flashX: _flashT > 0 ? _flashX : -1,
             flashGoal: _flashGoal,
+            bits: _bits,
           ),
           size: Size.infinite,
         ),
@@ -154,9 +179,11 @@ class _PenaltyDashPainter extends CustomPainter {
     required this.keeper,
     required this.flashX,
     required this.flashGoal,
+    required this.bits,
   });
   final double marker, keeper, flashX;
   final bool flashGoal;
+  final List<_Shard> bits;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -211,6 +238,12 @@ class _PenaltyDashPainter extends CustomPainter {
             ..color = (flashGoal ? const Color(0xFF80ED99) : const Color(0xFFE23B3B))
                 .withOpacity(0.8)
             ..strokeWidth = 4);
+    }
+
+    for (final b in bits) {
+      final k = (b.life / 0.5).clamp(0.0, 1.0);
+      canvas.drawCircle(Offset(b.x * w, b.y * h), 2 + 3 * k,
+          Paint()..color = b.color.withOpacity(k));
     }
   }
 

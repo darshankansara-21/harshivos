@@ -15,6 +15,14 @@ class _HoopTossGameState extends State<HoopTossGame>
   static const int _target = 10;
   static const double _pegY = 0.3;
 
+  final math.Random _rnd = math.Random();
+  // Every other aim-and-score game in the catalog (basketball, target_toss,
+  // bug_catch, pinball, brick_break...) bursts a few shards of colour on a
+  // successful hit; Hoop Toss only ever flashed the banner text + a sound,
+  // making a "Ringer!" feel flatter than catching a single bug elsewhere in
+  // the same catalog. Mirror the established celebratory-burst convention.
+  final List<_Shard> _bits = <_Shard>[];
+  bool _reduceMotion = false;
   double _t = 0;
   double _pegX = 0.5;
   double _ringY = 0.86;
@@ -48,7 +56,24 @@ class _HoopTossGameState extends State<HoopTossGame>
       _ringY -= 1.15 * dt;
       if (_ringY <= _pegY) _resolve();
     }
+    for (var i = _bits.length - 1; i >= 0; i--) {
+      final b = _bits[i];
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.vy += 0.5 * dt;
+      b.life -= dt;
+      if (b.life <= 0) _bits.removeAt(i);
+    }
     setState(() {});
+  }
+
+  void _burst(Color color) {
+    final n = _reduceMotion ? 4 : 12;
+    for (var i = 0; i < n; i++) {
+      final a = _rnd.nextDouble() * math.pi * 2;
+      final sp = 0.15 + _rnd.nextDouble() * 0.3;
+      _bits.add(_Shard(_pegX, _pegY, math.cos(a) * sp, math.sin(a) * sp, color));
+    }
   }
 
   void _resolve() {
@@ -58,6 +83,7 @@ class _HoopTossGameState extends State<HoopTossGame>
       _score++;
       TonePlayer.instance.playCue(SoundCue.success);
       emit(ExperienceEvent.bubblePopped);
+      _burst(const Color(0xFFFFD166));
       _banner = 'Ringer!  🎯';
       _bannerT = 1.1;
       GameScores.instance.submit(_id, _score).then((b) {
@@ -100,6 +126,7 @@ class _HoopTossGameState extends State<HoopTossGame>
       _t = 0;
       _flying = false;
       _ringY = 0.86;
+      _bits.clear();
       _banner = null;
       _bannerT = 0;
       _status = GameStatus.playing;
@@ -109,6 +136,7 @@ class _HoopTossGameState extends State<HoopTossGame>
   @override
   Widget build(BuildContext context) {
     drain(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _Shell(
       title: '🎪 Hoop Toss',
       introHow:
@@ -133,7 +161,12 @@ class _HoopTossGameState extends State<HoopTossGame>
         behavior: HitTestBehavior.opaque,
         onTapDown: (_) => _toss(),
         child: CustomPaint(
-          painter: _HoopTossPainter(pegX: _pegX, pegY: _pegY, ringY: _ringY, flying: _flying),
+          painter: _HoopTossPainter(
+              pegX: _pegX,
+              pegY: _pegY,
+              ringY: _ringY,
+              flying: _flying,
+              bits: _bits),
           size: Size.infinite,
         ),
       ),
@@ -147,9 +180,11 @@ class _HoopTossPainter extends CustomPainter {
     required this.pegY,
     required this.ringY,
     required this.flying,
+    required this.bits,
   });
   final double pegX, pegY, ringY;
   final bool flying;
+  final List<_Shard> bits;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -190,6 +225,12 @@ class _HoopTossPainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 3
           ..color = Colors.white70);
+
+    for (final b in bits) {
+      final k = (b.life / 0.5).clamp(0.0, 1.0);
+      canvas.drawCircle(Offset(b.x * w, b.y * h), 2 + 3 * k,
+          Paint()..color = b.color.withOpacity(k));
+    }
   }
 
   @override
