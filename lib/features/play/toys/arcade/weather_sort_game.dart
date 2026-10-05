@@ -19,6 +19,10 @@ class _WeatherSortGameState extends State<WeatherSortGame> with _Emit {
     <String>['🧤', '⛄', '🧣', '⛷️', '🎿', '🧊'],
   ];
   final math.Random _rnd = math.Random();
+  // Flattened (bin, item) draw order — shuffled bag with no repeat so a
+  // full 12-item win sees real variety across all 18 items instead of
+  // risking the same emoji (or even the same bin) several times in a row.
+  final List<int> _bag = <int>[];
   String _item = '🕶️';
   int _answer = 0;
   int _score = 0;
@@ -37,10 +41,24 @@ class _WeatherSortGameState extends State<WeatherSortGame> with _Emit {
     });
   }
 
+  int _drawFlatIndex() {
+    if (_bag.isEmpty) {
+      final total = _items.fold<int>(0, (sum, l) => sum + l.length);
+      _bag.addAll(List<int>.generate(total, (i) => i)..shuffle(_rnd));
+    }
+    return _bag.removeLast();
+  }
+
   void _newItem() {
-    _answer = _rnd.nextInt(3);
-    final list = _items[_answer];
-    _item = list[_rnd.nextInt(list.length)];
+    var flat = _drawFlatIndex();
+    for (var bin = 0; bin < _items.length; bin++) {
+      if (flat < _items[bin].length) {
+        _answer = bin;
+        _item = _items[bin][flat];
+        break;
+      }
+      flat -= _items[bin].length;
+    }
     _wrongFlash = -1;
   }
 
@@ -83,6 +101,7 @@ class _WeatherSortGameState extends State<WeatherSortGame> with _Emit {
       _score = 0;
       _lives = 3;
       _banner = null;
+      _bag.clear();
       _newItem();
       _status = GameStatus.playing;
     });
@@ -96,6 +115,7 @@ class _WeatherSortGameState extends State<WeatherSortGame> with _Emit {
       introHow:
           'Look at the item, then tap the weather it belongs to — sunny, rainy or snowy!',
       onStart: () => setState(() {
+        _bag.clear();
         _newItem();
         _status = GameStatus.playing;
       }),
