@@ -40,6 +40,14 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
   String? _banner;
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
+  // Collision math below runs in normalized (0..1) coordinates, but every
+  // shape on screen is drawn with a pixel radius scaled only by the canvas
+  // *width* (see _SpacePainter), so on a typical taller-than-wide phone a
+  // raw normalized dx/dy distance check builds an invisible hit-ellipse far
+  // taller than the circle the child actually sees — a meteor can "hit" the
+  // ship while still looking a full ship-height away vertically. Track the
+  // real aspect ratio so hit-testing matches what's drawn.
+  double _aspect = 1.0; // height / width of the last laid-out canvas
 
   static const double _shipR = 0.045;
 
@@ -194,7 +202,11 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
       }
 
       final dx = (m.x - _shipX);
-      final dy = (m.y - 0.85);
+      // Scale the vertical delta by the aspect ratio so the hit test
+      // measures the same physical (pixel) distance in both axes as what's
+      // actually rendered (shapes are drawn with radius scaled only by
+      // canvas width), instead of an invisible tall ellipse.
+      final dy = (m.y - 0.85) * _aspect;
       if (dx * dx + dy * dy < (m.r + _shipR) * (m.r + _shipR)) {
         if (m.kind == 1) {
           _bonus += 20;
@@ -317,6 +329,9 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
       onPlayAgain: _reset,
       child: LayoutBuilder(
         builder: (context, constraints) {
+          if (constraints.maxWidth > 0) {
+            _aspect = constraints.maxHeight / constraints.maxWidth;
+          }
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
             onPanUpdate: (d) =>
