@@ -164,6 +164,8 @@ class _MergeGameState extends State<MergeGame> with _Emit {
       banner: _banner,
       overEmoji: '🔢',
       overText: 'Board full!',
+      winEmoji: '🏆',
+      winText: 'Merge master!',
       accent: const Color(0xFFF7B801),
       onPlayAgain: _reset,
       child: GestureDetector(

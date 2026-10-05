@@ -123,6 +123,8 @@ class _BalloonBounceGameState extends State<BalloonBounceGame>
       banner: _banner ?? 'Keep it up!  ·  $_score/$_target',
       overEmoji: '🎈',
       overText: 'It floated down!',
+      winEmoji: '🏆',
+      winText: 'Bounce champion!',
       accent: const Color(0xFFFF5DA2),
       onPlayAgain: _reset,
       child: LayoutBuilder(

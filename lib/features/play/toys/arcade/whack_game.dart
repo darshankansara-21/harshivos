@@ -190,6 +190,10 @@ class _WhackGameState extends State<WhackGame>
       target: _winTarget,
       status: _status,
       banner: _banner,
+      overEmoji: '🔨',
+      overText: 'Out of lives!',
+      winEmoji: '🏆',
+      winText: 'Whack champion!',
       accent: const Color(0xFF8D5A3B),
       onPlayAgain: _reset,
       child: DecoratedBox(

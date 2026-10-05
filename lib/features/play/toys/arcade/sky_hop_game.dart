@@ -182,6 +182,8 @@ class _SkyHopGameState extends State<SkyHopGame>
       banner: _banner,
       overEmoji: '🐤',
       overText: 'Splash!',
+      winEmoji: '🏆',
+      winText: 'Sky clear!',
       accent: const Color(0xFFFFD166),
       onPlayAgain: _reset,
       child: GestureDetector(

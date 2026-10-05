@@ -101,6 +101,8 @@ class _BalanceBallGameState extends State<BalanceBallGame>
       banner: 'Keep it centred  ·  ${_score}s',
       overEmoji: '⚖️',
       overText: 'It rolled off!',
+      winEmoji: '🏆',
+      winText: 'Balance master!',
       accent: const Color(0xFF48CAE4),
       onPlayAgain: _reset,
       child: LayoutBuilder(

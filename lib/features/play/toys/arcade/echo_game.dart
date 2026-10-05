@@ -128,6 +128,8 @@ class _EchoGameState extends State<EchoGame>
       status: _status,
       overEmoji: '🎵',
       overText: 'Missed the tune',
+      winEmoji: '🏆',
+      winText: 'Tune master!',
       accent: const Color(0xFF9B5DE5),
       onPlayAgain: _reset,
       child: DecoratedBox(
