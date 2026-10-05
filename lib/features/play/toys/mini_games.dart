@@ -1072,6 +1072,11 @@ class _StarTapGameState extends State<StarTapGame>
       }
       setState(_spawnStar);
     } else {
+      // Tapping an empty cell is the same silent-setback gap the comment on
+      // the star-fade timeout above already fixed: it resets a combo with
+      // only a sound cue and no banner, so a child losing a streak here
+      // never saw why. Match the star-fade/decoy-tap wording pattern.
+      if (_combo > 0) _flash('Missed! Combo reset');
       _combo = 0;
       TonePlayer.instance.playCue(SoundCue.gentleRetry);
     }
