@@ -153,7 +153,10 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
               _level++;
               _score += 20;
               TonePlayer.instance.playCue(SoundCue.milestone);
-              emit(ExperienceEvent.gameCompleted);
+              // Clearing a level is a real in-run milestone, not the end of
+              // the galaxy — only the _level >= _maxLevel branch above is
+              // the true completion that earns the full celebration.
+              emit(ExperienceEvent.bubblePopped);
               _locked = true;
               Future<void>.delayed(const Duration(milliseconds: 650), () {
                 if (!mounted) return;
