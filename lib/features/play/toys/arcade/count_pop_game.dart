@@ -156,20 +156,45 @@ class _CountPopGameState extends State<CountPopGame>
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapDown: (d) => _tap(d.localPosition, w, h),
-            child: CustomPaint(
-              painter: _CountPopPainter(
-                bubbles: _bubbles,
-                need: _need,
-                popped: _popped,
-                pop: _pop.clamp(0.0, 1.0),
-                popX: _popX,
-                popY: _popY,
+          return Stack(
+            children: <Widget>[
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapDown: (d) => _tap(d.localPosition, w, h),
+                child: CustomPaint(
+                  painter: _CountPopPainter(
+                    bubbles: _bubbles,
+                    need: _need,
+                    popped: _popped,
+                    pop: _pop.clamp(0.0, 1.0),
+                    popX: _popX,
+                    popY: _popY,
+                  ),
+                  size: Size.infinite,
+                ),
               ),
-              size: Size.infinite,
-            ),
+              // Each bubble drifts continuously and is only ever drawn onto
+              // the canvas, so a screen-reader user had no way to discover or
+              // pop any of them. These invisible Semantics overlays track
+              // every bubble's live x/y each tick (the widget already
+              // rebuilds every frame via ToyTicker) and route activation
+              // through the existing `_tap` hit-test — same live-tracked
+              // pattern as balloon_math/bug_catch's drifting targets.
+              for (var i = 0; i < _bubbles.length; i++)
+                Positioned(
+                  left: _bubbles[i].x * w - _bubbles[i].r * w,
+                  top: _bubbles[i].y * h - _bubbles[i].r * w,
+                  width: _bubbles[i].r * w * 2,
+                  height: _bubbles[i].r * w * 2,
+                  child: Semantics(
+                    label: 'Bubble ${i + 1}',
+                    button: true,
+                    onTap: () => _tap(
+                        Offset(_bubbles[i].x * w, _bubbles[i].y * h), w, h),
+                    child: const SizedBox.expand(),
+                  ),
+                ),
+            ],
           );
         },
       ),
