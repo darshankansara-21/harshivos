@@ -88,10 +88,12 @@ class _TicTacToeGameState extends State<TicTacToeGame> with _Emit {
     } else if (w == 2) {
       _status = GameStatus.over;
       _overText = 'Pico wins!';
+      TonePlayer.instance.playCue(SoundCue.gameOver);
       emit(ExperienceEvent.incorrectAnswer);
     } else {
       _status = GameStatus.over;
       _overText = 'Draw!';
+      TonePlayer.instance.playCue(SoundCue.gentleRetry);
       emit(ExperienceEvent.correctAnswer);
     }
   }
