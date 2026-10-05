@@ -41,7 +41,15 @@ class _CountPopGameState extends State<CountPopGame>
   }
 
   void _newRound() {
-    _need = 2 + _rnd.nextInt(5);
+    // Difficulty curve: every 10 games in the catalog that reaches a fixed
+    // target escalates something as the player approaches it (skee_ball's
+    // scoring bands, target_toss's ring speed, soccer_kick's keeper read) —
+    // this one didn't. `_need` was a flat 2-6 draw for all 10 rounds, so
+    // counting round 1 was exactly as hard as counting round 9. The floor
+    // now rises with `_score` (every other round), so later rounds genuinely
+    // ask the child to count higher, while the random width keeps variety.
+    final floor = 2 + (_score ~/ 2).clamp(0, 6);
+    _need = floor + _rnd.nextInt(5);
     _popped = 0;
     _bubbles.clear();
     for (var i = 0; i < _need + 4; i++) {
