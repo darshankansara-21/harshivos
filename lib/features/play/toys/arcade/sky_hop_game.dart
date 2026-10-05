@@ -88,7 +88,10 @@ class _SkyHopGameState extends State<SkyHopGame>
       p.x -= _pipeSpeed * dt;
       if (!p.scored && p.x < 0.28) {
         p.scored = true;
-        _coinCombo = 0;
+        // Only break the streak when THIS pipe's coin was missed — a coin
+        // already grabbed on this pass must survive into the next pipe, or
+        // the "Coin streak" bonus could mathematically never exceed x1.
+        if (!p.coinTaken) _coinCombo = 0;
         _score++;
         _banner = 'Nice hop!';
         _bannerT = 0.8;
