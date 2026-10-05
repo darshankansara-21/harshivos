@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/toy/toy_ticker.dart';
+import '../../../services/audio/tone_player.dart';
 import 'toys_particles.dart' show rainbow;
 
 // ===========================================================================
@@ -159,6 +160,7 @@ class _ColorMixingLabToyState extends State<ColorMixingLabToy>
     _blobs.add(_Paint(pos: p, hue: _hue, maxRadius: 60 + math.Random().nextDouble() * 40));
     _hue = (_hue + 0.04) % 1.0;
     HapticFeedback.selectionClick();
+    TonePlayer.instance.playCue(SoundCue.paint);
   }
 
   @override
