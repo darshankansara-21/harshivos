@@ -60,6 +60,19 @@ class _LightPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     canvas.drawRect(Offset.zero & size, Paint()..color = const Color(0xFF02010A));
+    // A pure black canvas with zero ambient motion gives a child no clue this
+    // is a finger-drawing toy — show a fading hint until the first stroke,
+    // the same pattern already used by CarTrackBuilderToy's empty state.
+    if (dots.isEmpty) {
+      final tp = TextPainter(
+        text: const TextSpan(
+          text: 'Draw with your finger ✨',
+          style: TextStyle(color: Colors.white54, fontSize: 20, fontWeight: FontWeight.w600),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout(maxWidth: size.width - 40);
+      tp.paint(canvas, Offset((size.width - tp.width) / 2, (size.height - tp.height) / 2));
+    }
     final glow = Paint()..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
     for (final d in dots) {
       final o = d.life.clamp(0.0, 1.0);

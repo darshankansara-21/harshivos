@@ -240,6 +240,20 @@ class _FireworksPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     canvas.drawRect(Offset.zero & size, Paint()..color = const Color(0xFF050813));
+    // A blank night sky with no shells in flight gives no clue tapping
+    // launches a firework — show a fading hint until the first tap, the
+    // same empty-state pattern used by the other blank-canvas toys.
+    if (sparks.isEmpty && shells.isEmpty) {
+      final tp = TextPainter(
+        text: const TextSpan(
+          text: 'Tap to launch a firework 🎆',
+          style: TextStyle(color: Colors.white54, fontSize: 20, fontWeight: FontWeight.w600),
+        ),
+        textDirection: TextDirection.ltr,
+        textAlign: TextAlign.center,
+      )..layout(maxWidth: size.width - 40);
+      tp.paint(canvas, Offset((size.width - tp.width) / 2, (size.height - tp.height) / 2));
+    }
     final glow = Paint()..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
     for (final shell in shells) {
       glow.color = rainbow(shell.hue);

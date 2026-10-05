@@ -117,6 +117,20 @@ class _KaleidoPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     canvas.drawRect(Offset.zero & size, Paint()..color = const Color(0xFF080014));
+    // A blank dark canvas gives no hint this is a mirrored-drawing toy — show
+    // a fading hint until the first stroke, matching the PaintWithLightToy
+    // and CarTrackBuilderToy empty-state pattern.
+    if (segs.isEmpty) {
+      final tp = TextPainter(
+        text: const TextSpan(
+          text: 'Draw — it mirrors into a kaleidoscope ✨',
+          style: TextStyle(color: Colors.white54, fontSize: 20, fontWeight: FontWeight.w600),
+        ),
+        textDirection: TextDirection.ltr,
+        textAlign: TextAlign.center,
+      )..layout(maxWidth: size.width - 40);
+      tp.paint(canvas, Offset((size.width - tp.width) / 2, (size.height - tp.height) / 2));
+    }
     final center = size.center(Offset.zero);
     canvas.save();
     canvas.translate(center.dx, center.dy);
@@ -208,6 +222,19 @@ class _FluidPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     canvas.drawRect(Offset.zero & size, Paint()..color = const Color(0xFF03010A));
+    // Same blank-dark-canvas gap as Kaleidoscope/PaintWithLight — nothing
+    // moves or glows until the finger touches down, so show a fading hint.
+    if (particles.isEmpty) {
+      final tp = TextPainter(
+        text: const TextSpan(
+          text: 'Swirl your finger to stir the colors 🌊',
+          style: TextStyle(color: Colors.white54, fontSize: 20, fontWeight: FontWeight.w600),
+        ),
+        textDirection: TextDirection.ltr,
+        textAlign: TextAlign.center,
+      )..layout(maxWidth: size.width - 40);
+      tp.paint(canvas, Offset((size.width - tp.width) / 2, (size.height - tp.height) / 2));
+    }
     final paint = Paint()
       ..blendMode = BlendMode.plus
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14);
