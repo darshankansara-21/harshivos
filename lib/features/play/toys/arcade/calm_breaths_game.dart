@@ -61,8 +61,11 @@ class _CalmBreathsGameState extends State<CalmBreathsGame>
       });
       if (_score >= _target) {
         _status = GameStatus.won;
-        TonePlayer.instance.playCue(SoundCue.gameStart);
-        emit(ExperienceEvent.gameCompleted);
+        // No loud win fanfare here — five slow breaths ending in an excited
+        // "You did it!" celebration burst would undercut the whole point of
+        // a calming exercise. `calmCompleted` settles the companion instead
+        // of celebrating it.
+        emit(ExperienceEvent.calmCompleted);
       }
     }
     setState(() {});

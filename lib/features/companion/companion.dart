@@ -38,6 +38,7 @@ enum ExperienceEvent {
   calmStarted,
   aacSelected,
   routineCompleted,
+  calmCompleted,
 }
 
 class CompanionEventNotification extends Notification {
@@ -348,6 +349,16 @@ class CompanionController extends ChangeNotifier {
           const _CompanionBeat(CompanionReaction.happy, 420, bounce: false),
         ], settle: CompanionReaction.happy);
         _flashCelebration('Amazing!', '⭐', SoundCue.completion);
+        return;
+      case ExperienceEvent.calmCompleted:
+        // A genuinely no-pressure calming activity (e.g. a breathing
+        // exercise) finishing must never trigger the loud excited/
+        // celebrating `gameCompleted` fanfare — that would undercut the
+        // whole point of the activity. Settle into the soothing tier
+        // instead, with a quiet flash and the same gentle `calm` cue used
+        // throughout the activity, not a completion sting.
+        calm();
+        _flashCelebration('Nice and calm', '🫧', SoundCue.calm);
         return;
     }
   }
