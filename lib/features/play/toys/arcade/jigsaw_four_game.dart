@@ -35,6 +35,11 @@ class _JigsawFourGameState extends State<JigsawFourGame> with _Emit {
   int _best = 0;
   int _cols = 2, _rows = 2;
   int? _dragging;
+  // Screen-reader-only selection: a blind child cannot perform the pixel
+  // precision pan gesture the sighted drag relies on, so taps on a piece
+  // select it, then a tap on a slot moves the selected piece there and runs
+  // the exact same `_drop` home-position check the sighted drag uses.
+  int? _selected;
   String? _banner;
   GameStatus _status = GameStatus.ready;
 
@@ -114,6 +119,21 @@ class _JigsawFourGameState extends State<JigsawFourGame> with _Emit {
     });
   }
 
+  /// Screen-reader path: move the selected piece to slot (col,row) and run
+  /// the same home-position check a sighted drag-and-drop uses.
+  void _placeSelectedAt(int col, int row) {
+    final i = _selected;
+    if (i == null) return;
+    setState(() {
+      _selected = null;
+      final p = _pieces[i];
+      if (p.placed) return;
+      p.x = _bx0 + col * _cellW;
+      p.y = _by0 + row * _cellH;
+      _drop(p);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     drain(context);
@@ -142,7 +162,8 @@ class _JigsawFourGameState extends State<JigsawFourGame> with _Emit {
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
-          return GestureDetector(
+          return Stack(children: <Widget>[
+          GestureDetector(
             behavior: HitTestBehavior.opaque,
             onPanStart: (d) {
               final nx = d.localPosition.dx / w, ny = d.localPosition.dy / h;
@@ -185,10 +206,60 @@ class _JigsawFourGameState extends State<JigsawFourGame> with _Emit {
               ),
               size: Size.infinite,
             ),
-          );
+          ),
+          _a11yOverlay(w, h),
+          ]);
         },
       ),
     );
+  }
+
+  /// Screen-reader overlay: one button per loose piece (select it) and one
+  /// button per board slot (place the selected piece there). Labels never
+  /// reveal a piece's true home, only its current state — exactly the same
+  /// information a sighted child has before they've tried fitting it.
+  Widget _a11yOverlay(double w, double h) {
+    final kids = <Widget>[];
+    for (var i = 0; i < _pieces.length; i++) {
+      final p = _pieces[i];
+      if (p.placed) continue;
+      kids.add(Positioned(
+        left: p.x * w,
+        top: p.y * h,
+        width: _cellW * w,
+        height: _cellH * h,
+        child: Semantics(
+          button: true,
+          label: 'Puzzle piece ${i + 1}, not yet placed.'
+              '${_selected == i ? ' Selected.' : ''}',
+          onTap: () => setState(() => _selected = (_selected == i) ? null : i),
+          excludeSemantics: true,
+          child: const SizedBox.expand(),
+        ),
+      ));
+    }
+    for (var r = 0; r < _rows; r++) {
+      for (var c = 0; c < _cols; c++) {
+        final filled = _pieces.any(
+            (p) => p.placed && p.homeCol == c && p.homeRow == r);
+        kids.add(Positioned(
+          left: (_bx0 + c * _cellW) * w,
+          top: (_by0 + r * _cellH) * h,
+          width: _cellW * w,
+          height: _cellH * h,
+          child: Semantics(
+            button: true,
+            label: filled
+                ? 'Slot row ${r + 1} column ${c + 1}, filled.'
+                : 'Slot row ${r + 1} column ${c + 1}, empty.',
+            onTap: () => _placeSelectedAt(c, r),
+            excludeSemantics: true,
+            child: const SizedBox.expand(),
+          ),
+        ));
+      }
+    }
+    return Stack(children: kids);
   }
 }
 
