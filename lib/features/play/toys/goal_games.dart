@@ -861,6 +861,11 @@ class _PathFinderGameState extends State<PathFinderGame> with _GoalEmit {
     if (cell != _path[_step]) {
       setState(() => _message = 'Follow the glowing next step');
       TonePlayer.instance.playCue(SoundCue.gentleRetry);
+      // Every sibling goal-shell game (_ChoiceGoalGame, GoalKeeperGame) pairs
+      // a wrong-tap sound with an incorrectAnswer companion emit so Hari/Pico
+      // can offer a contextual encouragement; Path Finder's off-path tap only
+      // ever played the sound, leaving the companion silent on every mistake.
+      emit(ExperienceEvent.incorrectAnswer);
       return;
     }
     setState(() {
