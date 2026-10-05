@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/toy/toy_ticker.dart';
+import '../../../services/audio/tone_player.dart';
 import 'toys_particles.dart' show rainbow;
 
 // ===========================================================================
@@ -160,6 +161,11 @@ class _LavaLampToyState extends State<LavaLampToy>
           ));
           if (_blobs.length > 14) _blobs.removeAt(0);
         });
+        // Summoning a new blob is a real discrete tactile event — unlike
+        // every sibling sensory toy, this tap previously gave zero haptic
+        // or sound confirmation. A soft "bubble" cue reads as a gentle
+        // plop, matching the lamp's slow/calm identity.
+        TonePlayer.instance.playCue(SoundCue.bubble);
       },
       child: CustomPaint(
         painter: _LavaPainter(_blobs, _t),
