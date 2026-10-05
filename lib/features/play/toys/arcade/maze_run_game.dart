@@ -92,6 +92,16 @@ class _MazeRunGameState extends State<MazeRunGame> with _Emit {
     if (moved) {
       setState(() {});
       TonePlayer.instance.playPop(0.7);
+    } else {
+      // A swipe straight into a closed wall (dot never moves at all) was
+      // previously completely silent — the only feedback for a valid move
+      // was a pop sound, so a blocked swipe looked identical to a swipe that
+      // was never registered at all. A child can't tell "that wall is
+      // closed, try another direction" from "nothing happened, swipe
+      // harder". A short, distinct gentle-retry cue (the same one every
+      // other game in the catalog uses for a blocked/wrong input) confirms
+      // the swipe was heard without being a celebratory or scary sound.
+      TonePlayer.instance.playCue(SoundCue.gentleRetry);
     }
   }
 
