@@ -123,7 +123,10 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
         _status != GameStatus.playing) {
       return;
     }
-    TonePlayer.instance.playCue(SoundCue.wood);
+    // A card flip is a flat paper/cardboard tile, not a wooden block — use
+    // the dedicated `paper` grain cue (previously orphaned) instead of the
+    // percussive `wood` click so the sound actually matches what's drawn.
+    TonePlayer.instance.playCue(SoundCue.paper);
     setState(() {
       if (_first == -1) {
         _first = i;
