@@ -22,10 +22,19 @@ class GameMusicHost extends StatefulWidget {
   State<GameMusicHost> createState() => _GameMusicHostState();
 }
 
-class _GameMusicHostState extends State<GameMusicHost> {
+class _GameMusicHostState extends State<GameMusicHost> with WidgetsBindingObserver {
+  // Tracks whether the app itself is in the foreground, independent of
+  // `widget.playing`. Without this, backgrounding the app (phone call, app
+  // switcher, lock screen) left the music bed looping right through it —
+  // the one place in the app that kept making noise with nobody looking at
+  // the screen, unlike every tap/companion sound which naturally stops the
+  // moment a finger lifts.
+  bool _appVisible = true;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _sync();
   }
 
@@ -35,8 +44,16 @@ class _GameMusicHostState extends State<GameMusicHost> {
     _sync();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final visible = state == AppLifecycleState.resumed;
+    if (visible == _appVisible) return;
+    _appVisible = visible;
+    _sync();
+  }
+
   void _sync() {
-    if (widget.playing) {
+    if (widget.playing && _appVisible) {
       TonePlayer.instance.startMusic(widget.bed);
     } else {
       TonePlayer.instance.stopMusic();
@@ -45,6 +62,7 @@ class _GameMusicHostState extends State<GameMusicHost> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     TonePlayer.instance.stopMusic();
     super.dispose();
   }
