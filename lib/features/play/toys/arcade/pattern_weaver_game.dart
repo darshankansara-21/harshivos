@@ -21,6 +21,16 @@ class _PatternWeaverGameState extends State<PatternWeaverGame>
   final math.Random _rnd = math.Random();
   final List<_Shard> _bits = <_Shard>[];
   bool _reduceMotion = false;
+
+  // Screen-reader users can't see the bead colours, so describe each visible
+  // bead by its paired colour+shape (matching _shapeForColor in the painter,
+  // where colour index == shape index) and expose the full pattern sequence
+  // plus each answer pad's own appearance — never which pad is correct — so
+  // a blind child must spot the repeat themselves exactly as a sighted
+  // child reads the beads by eye.
+  static const List<String> _colorNames = <String>['red', 'yellow', 'teal', 'sky blue'];
+  static const List<String> _shapeNames = <String>['circle', 'square', 'triangle', 'star'];
+  String _beadName(int c) => '${_colorNames[c]} ${_shapeNames[c]}';
   List<int> _pattern = <int>[0, 1];
   int _visible = 4;
   int _answer = 0;
@@ -171,26 +181,69 @@ class _PatternWeaverGameState extends State<PatternWeaverGame>
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapDown: (d) {
-              if (d.localPosition.dy < h * 0.6) return;
-              final i =
-                  (d.localPosition.dx / w * _colorCount).floor().clamp(0, _colorCount - 1);
-              _pick(i, i);
-            },
-            child: CustomPaint(
-              painter: _PatternPainter(
-                palette: _palette,
-                pattern: _pattern,
-                visible: _visible,
-                colorCount: _colorCount,
-                wrongFlash: _wrongFlash,
-                pop: _pop,
-                bits: _bits,
+          // Build a left-to-right description of every visible bead, with
+          // the still-blank missing bead called out by its own position so
+          // a screen-reader user can find the repeat without ever being
+          // told the answer outright.
+          final period = _pattern.length;
+          final beadDesc = <String>[];
+          for (var i = 0; i < _visible; i++) {
+            beadDesc.add(_beadName(_pattern[i % period]));
+          }
+          beadDesc.add('missing bead');
+          final overlays = <Widget>[
+            Positioned(
+              left: 0,
+              top: 0,
+              width: w,
+              height: h * 0.6,
+              child: Semantics(
+                label: 'Pattern so far: ${beadDesc.join(', ')}',
+                child: const SizedBox.expand(),
               ),
-              size: Size.infinite,
             ),
+          ];
+          for (var i = 0; i < _colorCount; i++) {
+            final cw = w / _colorCount;
+            overlays.add(Positioned(
+              left: i * cw,
+              top: h * 0.6,
+              width: cw,
+              height: h * 0.4,
+              child: Semantics(
+                label: 'Option ${i + 1}: ${_beadName(i)}',
+                button: true,
+                onTap: () => _pick(i, i),
+                child: const SizedBox.expand(),
+              ),
+            ));
+          }
+          return Stack(
+            children: <Widget>[
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapDown: (d) {
+                  if (d.localPosition.dy < h * 0.6) return;
+                  final i = (d.localPosition.dx / w * _colorCount)
+                      .floor()
+                      .clamp(0, _colorCount - 1);
+                  _pick(i, i);
+                },
+                child: CustomPaint(
+                  painter: _PatternPainter(
+                    palette: _palette,
+                    pattern: _pattern,
+                    visible: _visible,
+                    colorCount: _colorCount,
+                    wrongFlash: _wrongFlash,
+                    pop: _pop,
+                    bits: _bits,
+                  ),
+                  size: Size.infinite,
+                ),
+              ),
+              ...overlays,
+            ],
           );
         },
       ),
