@@ -49,7 +49,14 @@ class _FishingGameState extends State<FishingGame>
 
   void _spawnFish() {
     final fromLeft = _rnd.nextBool();
-    final y = _waterTop + 0.08 + _rnd.nextDouble() * 0.4;
+    // The bobber never moves vertically (`_hookY` is fixed at 0.6, and a bite
+    // only triggers within `(f.y - _hookY).abs() < 0.12`, i.e. y in
+    // [0.48, 0.72]). Spawning fish across the old full water depth
+    // (0.50-0.90) meant ~45% of fish swam past at a depth the bobber could
+    // never reach — invisible "dead" fish a child would watch cross right by
+    // the hook with nothing happening. Keep every fish inside the catchable
+    // band so any fish that reaches the bobber's x can always be caught.
+    final y = _waterTop + 0.06 + _rnd.nextDouble() * 0.24;
     final speed = 0.08 + _rnd.nextDouble() * 0.12;
     _fish.add(_Fish(fromLeft ? -0.05 : 1.05, y, fromLeft ? speed : -speed,
         _rnd.nextInt(4) == 0));
