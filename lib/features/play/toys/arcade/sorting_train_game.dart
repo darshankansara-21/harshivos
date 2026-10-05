@@ -180,6 +180,12 @@ class _TrainPainter extends CustomPainter {
   final int wrongFlash;
   final List<_Shard> bits;
 
+  // One fixed shape per colour (circle/square/triangle/diamond) so a
+  // colour-blind child can match by silhouette alone, the same
+  // shape+colour redundancy already used by odd_one_out/shadow_match —
+  // sorting_train was the one matching game still colour-only.
+  static const List<int> _shapeForColor = <int>[0, 1, 2, 5];
+
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width, h = size.height;
@@ -190,10 +196,8 @@ class _TrainPainter extends CustomPainter {
     final box = Rect.fromCenter(center: pc, width: w * 0.18, height: w * 0.18);
     canvas.drawRRect(RRect.fromRectAndRadius(box, const Radius.circular(10)),
         Paint()..color = colors[item]);
-    canvas.drawLine(Offset(box.left, pc.dy), Offset(box.right, pc.dy),
-        Paint()..color = Colors.white70..strokeWidth = 3);
-    canvas.drawLine(Offset(pc.dx, box.top), Offset(pc.dx, box.bottom),
-        Paint()..color = Colors.white70..strokeWidth = 3);
+    _paintPolyShape(canvas, pc, w * 0.05, _shapeForColor[item],
+        Paint()..color = Colors.white.withOpacity(0.92));
     // Wagons.
     final lw = w / colors.length;
     for (var i = 0; i < colors.length; i++) {
@@ -201,6 +205,12 @@ class _TrainPainter extends CustomPainter {
       canvas.drawRRect(
           RRect.fromRectAndRadius(rect, const Radius.circular(10)),
           Paint()..color = colors[i].withOpacity(wrongFlash == i ? 0.4 : 0.9));
+      _paintPolyShape(
+          canvas,
+          Offset(rect.left + lw * 0.5 - 8, rect.top + rect.height * 0.42),
+          lw * 0.14,
+          _shapeForColor[i],
+          Paint()..color = Colors.white.withOpacity(0.92));
       // wheels
       canvas.drawCircle(Offset(rect.left + lw * 0.25, rect.bottom + 8), 7,
           Paint()..color = Colors.black54);
