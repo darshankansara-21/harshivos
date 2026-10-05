@@ -85,9 +85,17 @@ class _CalmChoicesGameState extends State<CalmChoicesGame> with _Emit {
     } else {
       _wrong = idx;
       _lives--;
-      TonePlayer.instance.playCue(SoundCue.gentleRetry);
-      _banner = 'That might make it harder. Try a calm one.';
-      if (_lives <= 0) _status = GameStatus.over;
+      if (_lives <= 0) {
+        // The life-ending wrong choice must sound distinct from a routine
+        // miss, never just the same gentle-retry cue as every other one.
+        _status = GameStatus.over;
+        _banner = 'Out of lives!';
+        TonePlayer.instance.playCue(SoundCue.gameOver);
+        emit(ExperienceEvent.incorrectAnswer);
+      } else {
+        TonePlayer.instance.playCue(SoundCue.gentleRetry);
+        _banner = 'That might make it harder. Try a calm one.';
+      }
     }
     setState(() {});
   }

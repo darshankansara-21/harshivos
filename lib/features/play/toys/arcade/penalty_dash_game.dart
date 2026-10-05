@@ -72,10 +72,19 @@ class _PenaltyDashGameState extends State<PenaltyDashGame>
     } else {
       _flashGoal = false;
       _misses++;
-      TonePlayer.instance.playCue(SoundCue.gentleRetry);
-      _banner = inPosts ? 'Saved!' : 'Wide!';
-      _bannerT = 1.1;
-      if (_misses >= 5) _status = GameStatus.over;
+      if (_misses >= 5) {
+        // The game-ending miss must sound distinct from a routine miss,
+        // never just the same gentle-retry cue as every other shot.
+        _status = GameStatus.over;
+        _banner = 'Out of shots!';
+        _bannerT = 1.1;
+        TonePlayer.instance.playCue(SoundCue.gameOver);
+        emit(ExperienceEvent.incorrectAnswer);
+      } else {
+        TonePlayer.instance.playCue(SoundCue.gentleRetry);
+        _banner = inPosts ? 'Saved!' : 'Wide!';
+        _bannerT = 1.1;
+      }
     }
     setState(() {});
   }

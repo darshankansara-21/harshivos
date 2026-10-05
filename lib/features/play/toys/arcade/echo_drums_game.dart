@@ -121,11 +121,16 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
       }
     } else {
       _lives--;
-      TonePlayer.instance.playCue(SoundCue.gentleRetry);
-      _banner = 'Oops — listen again';
       if (_lives <= 0) {
+        // The life-ending miss must sound distinct from a routine miss,
+        // never just the same gentle-retry cue as every other wrong tap.
         _status = GameStatus.over;
+        _banner = 'Out of lives!';
+        TonePlayer.instance.playCue(SoundCue.gameOver);
+        emit(ExperienceEvent.incorrectAnswer);
       } else {
+        TonePlayer.instance.playCue(SoundCue.gentleRetry);
+        _banner = 'Oops — listen again';
         _startShow();
       }
     }

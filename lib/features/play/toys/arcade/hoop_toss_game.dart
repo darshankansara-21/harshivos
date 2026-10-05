@@ -70,10 +70,19 @@ class _HoopTossGameState extends State<HoopTossGame>
       }
     } else {
       _misses++;
-      TonePlayer.instance.playCue(SoundCue.gentleRetry);
-      _banner = 'Just missed!';
-      _bannerT = 1.1;
-      if (_misses >= 5) _status = GameStatus.over;
+      if (_misses >= 5) {
+        // The game-ending miss must sound distinct from a routine miss,
+        // never just the same gentle-retry cue as every other near-miss.
+        _status = GameStatus.over;
+        _banner = 'Out of rings!';
+        _bannerT = 1.2;
+        TonePlayer.instance.playCue(SoundCue.gameOver);
+        emit(ExperienceEvent.incorrectAnswer);
+      } else {
+        TonePlayer.instance.playCue(SoundCue.gentleRetry);
+        _banner = 'Just missed!';
+        _bannerT = 1.1;
+      }
     }
   }
 

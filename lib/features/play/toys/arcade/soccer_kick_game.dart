@@ -102,12 +102,18 @@ class _SoccerKickGameState extends State<SoccerKickGame>
   void _missShot(String why) {
     _flying = false;
     _misses++;
-    TonePlayer.instance.playCue(SoundCue.gentleRetry);
-    _banner = why;
-    _bannerT = 1.2;
     if (_misses >= 5) {
+      // The game-ending miss must sound distinct from a routine miss,
+      // never just the same gentle-retry cue as every other shot.
       _status = GameStatus.over;
+      _banner = 'Out of shots!';
+      _bannerT = 1.2;
+      TonePlayer.instance.playCue(SoundCue.gameOver);
+      emit(ExperienceEvent.incorrectAnswer);
     } else {
+      TonePlayer.instance.playCue(SoundCue.gentleRetry);
+      _banner = why;
+      _bannerT = 1.2;
       _resetBall();
     }
   }

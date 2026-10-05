@@ -179,6 +179,12 @@ class _AirHockeyGameState extends State<AirHockeyGame>
       GameScores.instance.submit(_id, _playerScore).then((b) {
         if (mounted) setState(() => _best = b);
       });
+    } else if (_aiScore >= _target) {
+      // The match-losing goal must sound distinct from a routine concede,
+      // never just the same gentle-retry cue as every other AI score.
+      TonePlayer.instance.playCue(SoundCue.gameOver);
+      emit(ExperienceEvent.incorrectAnswer);
+      _flash('They scored · $_playerScore–$_aiScore');
     } else {
       TonePlayer.instance.playCue(SoundCue.gentleRetry);
       _flash('They scored · $_playerScore–$_aiScore');

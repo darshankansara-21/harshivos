@@ -78,9 +78,17 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
         _wrong = k;
         _selected = -1;
         _lives--;
-        TonePlayer.instance.playCue(SoundCue.gentleRetry);
-        _banner = 'Not quite — try again';
-        if (_lives <= 0) _status = GameStatus.over;
+        if (_lives <= 0) {
+          // The life-ending miss must sound distinct from a routine miss,
+          // never just the same gentle-retry cue as every other wrong pair.
+          _status = GameStatus.over;
+          _banner = 'Out of lives!';
+          TonePlayer.instance.playCue(SoundCue.gameOver);
+          emit(ExperienceEvent.incorrectAnswer);
+        } else {
+          TonePlayer.instance.playCue(SoundCue.gentleRetry);
+          _banner = 'Not quite — try again';
+        }
       }
     }
     setState(() {});

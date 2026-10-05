@@ -59,7 +59,12 @@ class _BalloonBounceGameState extends State<BalloonBounceGame>
       _vy = _vy.abs() * 0.5;
     }
     if (_y > 1 - _r * 0.4) {
+      // The balloon touching the floor ends the round — it must not be
+      // silent; play a distinct game-over cue, same as every other game's
+      // terminal loss branch.
       _status = GameStatus.over;
+      TonePlayer.instance.playCue(SoundCue.gameOver);
+      emit(ExperienceEvent.incorrectAnswer);
     }
     setState(() {});
   }

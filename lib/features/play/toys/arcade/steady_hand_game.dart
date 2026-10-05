@@ -70,9 +70,17 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
     _holding = false;
     _dotX = _path.first[0];
     _dotY = _path.first[1];
-    TonePlayer.instance.playCue(SoundCue.gentleRetry);
-    _banner = 'Touched the wall — back to start';
-    if (_lives <= 0) _status = GameStatus.over;
+    if (_lives <= 0) {
+      // The life-ending wall-touch must sound distinct from a routine
+      // bump, never just the same gentle-retry cue as every other miss.
+      _status = GameStatus.over;
+      _banner = 'Out of lives!';
+      TonePlayer.instance.playCue(SoundCue.gameOver);
+      emit(ExperienceEvent.incorrectAnswer);
+    } else {
+      TonePlayer.instance.playCue(SoundCue.gentleRetry);
+      _banner = 'Touched the wall — back to start';
+    }
     setState(() {});
   }
 
