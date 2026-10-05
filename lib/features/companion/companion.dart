@@ -166,6 +166,12 @@ class CompanionController extends ChangeNotifier {
     _priorityReset?.cancel();
     _clearScriptTimers();
     _revert?.cancel();
+    // A still-pending decay from a recent tap() would otherwise fire mid-
+    // sequence and force _reaction back to idle (and _energy to 0) over this
+    // higher-priority celebration/encourage/dance animation, flickering it
+    // back to idle partway through — cancel it so only this sequence's own
+    // beats/settle drive the reaction from here.
+    _decay?.cancel();
     if (beats.isEmpty) return;
     _setNow(beats.first.reaction, bounce: beats.first.bounce);
     var elapsedMs = beats.first.durationMs;
@@ -195,6 +201,9 @@ class CompanionController extends ChangeNotifier {
     if (priority < _activePriority) return;
     _activePriority = priority;
     _clearScriptTimers();
+    // See the matching comment in _startSequence: a still-pending tap()
+    // decay must not stomp this reaction while it's active.
+    _decay?.cancel();
     _setNow(r, bounce: bounce);
     _revert?.cancel();
     _revert = Timer(hold, () {
