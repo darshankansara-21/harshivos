@@ -37,6 +37,17 @@ class _OddOneOutGameState extends State<OddOneOutGame> with _Emit {
 
   int get _count => _cols * _cols;
 
+  Color _subtleOddColor(Color base) {
+    final progress = (_score / (_target - 1)).clamp(0.0, 1.0);
+    final delta = 0.24 - progress * 0.14;
+    final hsl = HSLColor.fromColor(base);
+    final lighten = (0.88 - hsl.lightness) >= (hsl.lightness - 0.12);
+    return hsl
+        .withLightness(
+            (hsl.lightness + (lighten ? delta : -delta)).clamp(0.12, 0.88))
+        .toColor();
+  }
+
   void _newRound() {
     _wrong = -1;
     _cols = (2 + _score ~/ 3).clamp(2, 5);
@@ -49,11 +60,7 @@ class _OddOneOutGameState extends State<OddOneOutGame> with _Emit {
       _oddColor = _baseColor;
     } else {
       _oddShape = _baseShape;
-      var c = _palette[_rnd.nextInt(_palette.length)];
-      while (c == _baseColor) {
-        c = _palette[_rnd.nextInt(_palette.length)];
-      }
-      _oddColor = c;
+      _oddColor = _subtleOddColor(_baseColor);
     }
   }
 
