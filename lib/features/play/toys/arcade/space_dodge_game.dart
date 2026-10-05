@@ -299,7 +299,7 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
     return _Shell(
       title: '🚀 Space Dodge',
       introHow:
-          'Steer to dodge the meteors. Later waves bring pink seekers that track you and grey splitters that fork in two — survive, grab gems, and reach 180 points before all 3 ships are gone.',
+          'Steer to dodge the meteors, grab gems, and reach 180 points before all 3 ships are gone.',
       onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,

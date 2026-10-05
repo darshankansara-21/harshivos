@@ -29,6 +29,7 @@ class _StackGameState extends State<StackGame>
   int _perfectStreak = 0;
   double _dashTimer = 2.6;
   double _dashActive = 0;
+  bool _seenDash = false;
   String? _banner;
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
@@ -66,7 +67,14 @@ class _StackGameState extends State<StackGame>
         if (_dashActive <= 0) _dashTimer = 2.2 - math.min(1.0, _level * 0.12);
       } else {
         _dashTimer -= dt;
-        if (_dashTimer <= 0) _dashActive = 0.4;
+        if (_dashTimer <= 0) {
+          _dashActive = 0.4;
+          if (!_seenDash) {
+            _seenDash = true;
+            _banner = 'Speed dash! Time it carefully.';
+            _bannerT = 1.2;
+          }
+        }
       }
     }
     final effSpeed = _speed * (_dashActive > 0 ? 1.8 : 1.0);
@@ -179,6 +187,7 @@ class _StackGameState extends State<StackGame>
       _perfectStreak = 0;
       _dashTimer = 2.6;
       _dashActive = 0;
+      _seenDash = false;
       _banner = null;
       _bannerT = 0;
       _status = GameStatus.playing;
@@ -190,7 +199,7 @@ class _StackGameState extends State<StackGame>
     drain(context);
     return _Shell(
       title: '🧱 Stack',
-      introHow: 'Tap to drop the moving block. Line it up for a perfect stack, watch for speed dashes, and chain 5 perfects for a width rescue!',
+      introHow: 'Tap to drop the moving block and stack it as high as you can.',
       onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,
