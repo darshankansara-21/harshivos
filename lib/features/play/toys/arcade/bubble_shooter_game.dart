@@ -17,6 +17,16 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
     Color(0xFF4CC9F0),
     Color(0xFF9B5DE5),
   ];
+  // Every other match-by-colour game in the catalog (pattern_weaver,
+  // sorting_train, shadow_match, odd_one_out, shape_sort_chute) already pairs
+  // its palette with a distinct shape glyph so matching never depends on
+  // colour perception alone — this was the one game left relying purely on
+  // 5 similarly-bright candy hues (red/violet and teal/sky are an easy
+  // confusion for red-green or blue-yellow colour-blind children) to tell
+  // which bubbles can legally pop together. Shapes 1-5 (square/triangle/
+  // star/heart/diamond) are used, skipping 0 (circle) since every bubble is
+  // already drawn as a circle and a circle-on-circle glyph would be invisible.
+  static const List<int> _shapeForColor = <int>[1, 2, 3, 4, 5];
   final math.Random _rnd = math.Random();
   late List<List<Color?>> _grid;
   final List<_Shard> _pops = <_Shard>[]; // pixel-space pop particles
@@ -338,6 +348,18 @@ class _BubblePainter extends CustomPainter {
         center.translate(-r * 0.28, -r * 0.28),
         r * 0.3,
         Paint()..color = Colors.white.withOpacity(0.4));
+    // Colour-blind-safe shape redundancy: every palette colour also carries
+    // its own distinct glyph, so which bubbles can pop together never
+    // depends on distinguishing similarly-bright hues alone.
+    final idx = _BubbleShooterGameState._pal.indexOf(color);
+    if (idx >= 0) {
+      _paintPolyShape(
+          canvas,
+          center,
+          r * 0.36,
+          _BubbleShooterGameState._shapeForColor[idx],
+          Paint()..color = Colors.white.withOpacity(0.55));
+    }
   }
 
   @override
