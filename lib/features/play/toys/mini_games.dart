@@ -2045,8 +2045,11 @@ class _RacingGameState extends State<RacingGame>
   }
 
   void _finish() {
-    _status = GameStatus.won;
     _finishPlace = _place;
+    // Only an actual 1st-place finish earns the shell's generic "🎉 You did
+    // it!" win celebration; finishing P2-P4 is a real race result, not a
+    // win, so it gets the honest "Finished P#" banner via GameStatus.over.
+    _status = _finishPlace == 1 ? GameStatus.won : GameStatus.over;
     _score += <int>[60, 30, 15, 5][(_finishPlace - 1).clamp(0, 3)];
     TonePlayer.instance
         .playCue(_finishPlace == 1 ? SoundCue.success : SoundCue.gameOver);
