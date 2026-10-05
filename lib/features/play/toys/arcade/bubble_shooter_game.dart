@@ -277,14 +277,39 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
       child: LayoutBuilder(
         builder: (context, c) {
           _layout(c.maxWidth, c.maxHeight);
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapDown: (d) => _fire(d.localPosition),
-            child: CustomPaint(
-              painter: _BubblePainter(_grid, _rows, _cols, _cell, _r, _pos,
-                  _shot, _next, _w, _h, _pops),
-              size: Size.infinite,
-            ),
+          return Stack(
+            children: <Widget>[
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapDown: (d) => _fire(d.localPosition),
+                child: CustomPaint(
+                  painter: _BubblePainter(_grid, _rows, _cols, _cell, _r, _pos,
+                      _shot, _next, _w, _h, _pops),
+                  size: Size.infinite,
+                ),
+              ),
+              // Bubble Shooter aims continuously (any tap position becomes a
+              // launch direction), so there's no fixed set of discrete
+              // targets to track like `piano_tiles`'s lanes or
+              // `beat_builder`'s grid cells. The closest honest mapping for a
+              // screen-reader user is one static overlay per column (the
+              // grid the bubbles themselves snap to), announcing which
+              // column a tap aims toward and firing straight up that column.
+              if (_init)
+                for (var col = 0; col < _cols; col++)
+                  Positioned(
+                    left: col * _cell,
+                    top: 0,
+                    width: _cell,
+                    height: _h,
+                    child: Semantics(
+                      button: true,
+                      label: 'Aim column ${col + 1}',
+                      onTap: () => _fire(_center(0, col)),
+                      child: const SizedBox.expand(),
+                    ),
+                  ),
+            ],
           );
         },
       ),
