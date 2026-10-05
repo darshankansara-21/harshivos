@@ -428,7 +428,18 @@ class _SpinUniverseToyState extends State<SpinUniverseToy>
           _spin = (_spin + proj * 26).clamp(-9.0, 9.0);
         }
       },
-      onTapDown: (_) => HapticFeedback.selectionClick(),
+      // A plain tap previously only buzzed the haptic with zero visible
+      // effect — the galaxy's spin speed never changed, so a child's very
+      // first instinct (tap the screen) produced nothing locally
+      // attributable, the same "first 3 seconds" gap already fixed in
+      // RainbowRainToy/LavaLampToy. Give every tap a small, satisfying
+      // nudge to the spin (mirroring FidgetCubeToy's `_Spinner.onTap`
+      // precedent), so tapping alone — not just dragging — visibly speeds
+      // the galaxy up.
+      onTapDown: (_) {
+        HapticFeedback.selectionClick();
+        _spin = (_spin + 1.4).clamp(-9.0, 9.0);
+      },
       child: CustomPaint(painter: _GalaxyPainter(_stars, _rot), size: Size.infinite),
     );
   }
