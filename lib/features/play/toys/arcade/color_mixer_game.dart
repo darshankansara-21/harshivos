@@ -198,26 +198,33 @@ class _ColorMixerGameState extends State<ColorMixerGame> with _Emit {
                 const Text('Your bowl',
                     style: TextStyle(color: Colors.white70, fontSize: 13)),
                 const SizedBox(height: 6),
-                TweenAnimationBuilder<Color?>(
-                  tween: ColorTween(begin: mix, end: mix),
+                // Each new drop should visibly BLEND into the bowl rather than
+                // snap instantly — but `TweenAnimationBuilder<Color?>` was
+                // given `begin: mix, end: mix`, the same freshly-computed
+                // value for both ends of its own tween, on every rebuild. An
+                // interpolation between two identical colours is a no-op, so
+                // the "smooth mixing" polish this widget was built for never
+                // actually ran; the bowl just jumped straight to the new
+                // colour. `AnimatedContainer` genuinely animates its `color`
+                // property across rebuilds by diffing the previous widget,
+                // so swapping to it makes every pour visibly swirl/blend in.
+                AnimatedContainer(
                   duration: const Duration(milliseconds: 250),
-                  builder: (context, c, _) => Container(
-                    width: 108,
-                    height: 108,
-                    decoration: BoxDecoration(
-                      color: c ?? mix,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 4),
-                      boxShadow: const <BoxShadow>[
-                        BoxShadow(color: Colors.black38, blurRadius: 8)
-                      ],
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(_drops.isEmpty ? 'empty' : '${_drops.length}',
-                        style: TextStyle(
-                            color: Colors.black.withOpacity(0.45),
-                            fontWeight: FontWeight.bold)),
+                  width: 108,
+                  height: 108,
+                  decoration: BoxDecoration(
+                    color: mix,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 4),
+                    boxShadow: const <BoxShadow>[
+                      BoxShadow(color: Colors.black38, blurRadius: 8)
+                    ],
                   ),
+                  alignment: Alignment.center,
+                  child: Text(_drops.isEmpty ? 'empty' : '${_drops.length}',
+                      style: TextStyle(
+                          color: Colors.black.withOpacity(0.45),
+                          fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
