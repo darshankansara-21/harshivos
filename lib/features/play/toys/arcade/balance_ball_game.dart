@@ -119,6 +119,12 @@ class _BalanceBallGameState extends State<BalanceBallGame>
               _tilt = (((d.localPosition.dx / w) - 0.5) * 1.1).clamp(-0.5, 0.5);
             },
             onPanEnd: (_) => _dragging = false,
+            // The gesture arena can cancel an in-progress pan (another
+            // recognizer steals the pointer, an OS interruption, etc.)
+            // without ever delivering onPanEnd. Without this, _dragging would
+            // stay stuck true forever, freezing the beam at whatever tilt it
+            // last had instead of letting it settle back to level.
+            onPanCancel: () => _dragging = false,
             child: CustomPaint(
               painter: _BalanceBallPainter(beam: _beam, s: _s),
               size: Size.infinite,

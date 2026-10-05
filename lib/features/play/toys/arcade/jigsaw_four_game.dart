@@ -163,6 +163,16 @@ class _JigsawFourGameState extends State<JigsawFourGame> with _Emit {
               _dragging = null;
               if (i != null) setState(() => _drop(_pieces[i]));
             },
+            // A cancelled pan (gesture arena interruption) never calls
+            // onPanEnd, so without this a piece mid-drag would stay stuck in
+            // its last dragged position forever — never snapped home, never
+            // dropped, and drawn on top of every other piece indefinitely —
+            // until a later drag happened to grab it again.
+            onPanCancel: () {
+              final i = _dragging;
+              _dragging = null;
+              if (i != null) setState(() => _drop(_pieces[i]));
+            },
             child: CustomPaint(
               painter: _JigsawPainter(
                 pieces: _pieces,

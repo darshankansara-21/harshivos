@@ -231,6 +231,11 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
               _ty = (d.localPosition.dy / h).clamp(0.0, 1.0);
             },
             onPanEnd: (_) => _dragging = false,
+            // A cancelled pan (gesture arena interruption) never calls
+            // onPanEnd, so without this _dragging would stay stuck true
+            // forever and the marble would keep getting pulled toward the
+            // last finger position long after the touch ended.
+            onPanCancel: () => _dragging = false,
             child: CustomPaint(
               painter: _MazeMarblePainter(
                 walls: _walls,
