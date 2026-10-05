@@ -401,7 +401,7 @@ final List<UniverseToy> kToyUniverse = <UniverseToy>[
   ),
   UniverseToy(
     id: 'bowling', name: 'Bowling', emoji: '🎳', color: const Color(0xFF4CC9F0),
-    category: ToyCategory.arcade, inputs: const [ToyInput.tap],
+    category: ToyCategory.arcade, inputs: const [ToyInput.tap, ToyInput.drag],
     engagement: ToyEngagement.deep, build: _play('bowling'), isNew: true,
   ),
   UniverseToy(
@@ -509,7 +509,7 @@ final List<UniverseToy> kToyUniverse = <UniverseToy>[
   UniverseToy(
     id: 'goal_keeper', name: 'Goal Keeper', emoji: '🥅',
     color: const Color(0xFF06D6A0),
-    category: ToyCategory.arcade, inputs: const [ToyInput.tap],
+    category: ToyCategory.arcade, inputs: const [ToyInput.tap, ToyInput.drag],
     engagement: ToyEngagement.deep, build: _play('goal_keeper'), isNew: true,
   ),
   UniverseToy(
@@ -533,31 +533,31 @@ final List<UniverseToy> kToyUniverse = <UniverseToy>[
   UniverseToy(
     id: 'basketball', name: 'Basketball', emoji: '🏀',
     color: const Color(0xFFFF9E00),
-    category: ToyCategory.arcade, inputs: const [ToyInput.tap],
+    category: ToyCategory.arcade, inputs: const [ToyInput.drag],
     engagement: ToyEngagement.deep, build: _play('basketball'), isNew: true,
   ),
   UniverseToy(
     id: 'mini_golf', name: 'Mini Golf', emoji: '⛳',
     color: const Color(0xFF2E9E5B),
-    category: ToyCategory.arcade, inputs: const [ToyInput.tap],
+    category: ToyCategory.arcade, inputs: const [ToyInput.drag],
     engagement: ToyEngagement.deep, build: _play('mini_golf'), isNew: true,
   ),
   UniverseToy(
     id: 'air_hockey', name: 'Air Hockey', emoji: '🏒',
     color: const Color(0xFF28C2D1),
-    category: ToyCategory.arcade, inputs: const [ToyInput.tap],
+    category: ToyCategory.arcade, inputs: const [ToyInput.drag],
     engagement: ToyEngagement.deep, build: _play('air_hockey'), isNew: true,
   ),
   UniverseToy(
     id: 'target_toss', name: 'Target Toss', emoji: '🎯',
     color: const Color(0xFFE23B5B),
-    category: ToyCategory.arcade, inputs: const [ToyInput.tap],
+    category: ToyCategory.arcade, inputs: const [ToyInput.drag],
     engagement: ToyEngagement.deep, build: _play('target_toss'), isNew: true,
   ),
   UniverseToy(
     id: 'bubble_wrap', name: 'Bubble Wrap', emoji: '🫧',
     color: const Color(0xFF5FB2E6),
-    category: ToyCategory.arcade, inputs: const [ToyInput.tap],
+    category: ToyCategory.arcade, inputs: const [ToyInput.tap, ToyInput.drag],
     engagement: ToyEngagement.endless, build: _play('bubble_wrap'), isNew: true,
   ),
   UniverseToy(
@@ -581,7 +581,7 @@ final List<UniverseToy> kToyUniverse = <UniverseToy>[
   UniverseToy(
     id: 'maze_run', name: 'Maze Run', emoji: '🧩',
     color: const Color(0xFF7BD389),
-    category: ToyCategory.arcade, inputs: const [ToyInput.tap],
+    category: ToyCategory.arcade, inputs: const [ToyInput.drag],
     engagement: ToyEngagement.deep, build: _play('maze_run'), isNew: true,
   ),
   UniverseToy(
