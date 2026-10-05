@@ -39,6 +39,7 @@ class _PianoSongGameState extends State<PianoSongGame> with _Emit {
   int _best = 0;
   String? _banner;
   GameStatus _status = GameStatus.ready;
+  int _wrongKey = -1; // brief red flash on a mis-tapped key
 
   @override
   void initState() {
@@ -89,8 +90,17 @@ class _PianoSongGameState extends State<PianoSongGame> with _Emit {
         _banner = null;
       }
     } else {
+      // A wrong key previously only changed the banner text at the top of
+      // the screen — the mis-tapped key itself gave no sign it was the
+      // wrong one. Added the same brief red-flash-then-clear feedback used
+      // catalog-wide (dot_to_dot/odd_one_out/shadow_match) so the tap the
+      // child actually felt is the one that visibly answers them.
       _banner = 'Follow the glowing key';
+      _wrongKey = k;
       TonePlayer.instance.playCue(SoundCue.gentleRetry);
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (mounted && _wrongKey == k) setState(() => _wrongKey = -1);
+      });
     }
     setState(() {});
   }
@@ -137,6 +147,7 @@ class _PianoSongGameState extends State<PianoSongGame> with _Emit {
                       child: _PianoKey(
                         letter: _letters[k],
                         lit: _status == GameStatus.playing && _nextKey == k,
+                        wrong: _wrongKey == k,
                         onTap: () => _tapKey(k),
                       ),
                     ),
@@ -151,9 +162,15 @@ class _PianoSongGameState extends State<PianoSongGame> with _Emit {
 }
 
 class _PianoKey extends StatelessWidget {
-  const _PianoKey({required this.letter, required this.lit, required this.onTap});
+  const _PianoKey({
+    required this.letter,
+    required this.lit,
+    required this.onTap,
+    this.wrong = false,
+  });
   final String letter;
   final bool lit;
+  final bool wrong;
   final VoidCallback onTap;
 
   @override
@@ -167,13 +184,17 @@ class _PianoKey extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: lit
-                ? const <Color>[Color(0xFFFFE3F6), Color(0xFFFF8ED8)]
-                : const <Color>[Color(0xFFFDFDFD), Color(0xFFDADADA)],
+            colors: wrong
+                ? const <Color>[Color(0xFFFFD9D9), Color(0xFFFF8A8A)]
+                : (lit
+                    ? const <Color>[Color(0xFFFFE3F6), Color(0xFFFF8ED8)]
+                    : const <Color>[Color(0xFFFDFDFD), Color(0xFFDADADA)]),
           ),
-          border: lit
-              ? Border.all(color: const Color(0xFFFF4FC3), width: 3)
-              : Border.all(color: Colors.black26, width: 1),
+          border: wrong
+              ? Border.all(color: const Color(0xFFE23B3B), width: 3)
+              : (lit
+                  ? Border.all(color: const Color(0xFFFF4FC3), width: 3)
+                  : Border.all(color: Colors.black26, width: 1)),
           boxShadow: lit
               ? <BoxShadow>[
                   BoxShadow(
@@ -189,7 +210,9 @@ class _PianoKey extends StatelessWidget {
         child: Text(
           letter,
           style: TextStyle(
-            color: lit ? const Color(0xFF7A1457) : Colors.black54,
+            color: wrong
+                ? const Color(0xFF8A1414)
+                : (lit ? const Color(0xFF7A1457) : Colors.black54),
             fontSize: 20,
             fontWeight: FontWeight.w900,
           ),

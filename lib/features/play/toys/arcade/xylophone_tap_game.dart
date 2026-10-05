@@ -44,6 +44,7 @@ class _XylophoneTapGameState extends State<XylophoneTapGame> with _Emit {
   int _best = 0;
   String? _banner;
   GameStatus _status = GameStatus.ready;
+  int _wrongBar = -1; // brief red flash on a mis-tapped bar
 
   @override
   void initState() {
@@ -93,7 +94,15 @@ class _XylophoneTapGameState extends State<XylophoneTapGame> with _Emit {
         _banner = null;
       }
     } else {
+      // Same gap as piano_song: a wrong tap only changed the banner text,
+      // never the bar the child actually touched. Add the catalog-wide
+      // brief red-flash-then-clear feedback so the tap itself answers them.
       _banner = 'Follow the glowing bar';
+      _wrongBar = b;
+      TonePlayer.instance.playCue(SoundCue.gentleRetry);
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (mounted && _wrongBar == b) setState(() => _wrongBar = -1);
+      });
     }
     setState(() {});
   }
@@ -144,6 +153,7 @@ class _XylophoneTapGameState extends State<XylophoneTapGame> with _Emit {
                           child: _XyloBar(
                             color: _colors[b],
                             lit: _status == GameStatus.playing && _nextBar == b,
+                            wrong: _wrongBar == b,
                             onTap: () => _hit(b),
                           ),
                         ),
@@ -160,9 +170,15 @@ class _XylophoneTapGameState extends State<XylophoneTapGame> with _Emit {
 }
 
 class _XyloBar extends StatelessWidget {
-  const _XyloBar({required this.color, required this.lit, required this.onTap});
+  const _XyloBar({
+    required this.color,
+    required this.lit,
+    required this.onTap,
+    this.wrong = false,
+  });
   final Color color;
   final bool lit;
+  final bool wrong;
   final VoidCallback onTap;
 
   @override
@@ -176,25 +192,39 @@ class _XyloBar extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: <Color>[
-              Color.lerp(color, Colors.white, lit ? 0.5 : 0.18)!,
-              color,
-            ],
+            colors: wrong
+                ? <Color>[
+                    Color.lerp(const Color(0xFFE23B3B), Colors.white, 0.35)!,
+                    const Color(0xFFE23B3B),
+                  ]
+                : <Color>[
+                    Color.lerp(color, Colors.white, lit ? 0.5 : 0.18)!,
+                    color,
+                  ],
           ),
-          border: lit ? Border.all(color: Colors.white, width: 3) : null,
-          boxShadow: lit
+          border: wrong
+              ? Border.all(color: const Color(0xFFFFD9D9), width: 3)
+              : (lit ? Border.all(color: Colors.white, width: 3) : null),
+          boxShadow: wrong
               ? <BoxShadow>[
                   BoxShadow(
-                      color: color.withOpacity(0.8),
+                      color: const Color(0xFFE23B3B).withOpacity(0.8),
                       blurRadius: 20,
                       spreadRadius: 1),
                 ]
-              : <BoxShadow>[
-                  BoxShadow(
-                      color: Colors.black.withOpacity(0.35),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2)),
-                ],
+              : (lit
+                  ? <BoxShadow>[
+                      BoxShadow(
+                          color: color.withOpacity(0.8),
+                          blurRadius: 20,
+                          spreadRadius: 1),
+                    ]
+                  : <BoxShadow>[
+                      BoxShadow(
+                          color: Colors.black.withOpacity(0.35),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2)),
+                    ]),
         ),
         child: const Center(
           child: SizedBox(width: 10, height: 10),
