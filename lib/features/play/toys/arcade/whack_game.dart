@@ -65,9 +65,14 @@ class _WhackGameState extends State<WhackGame>
       ];
       if (free.isNotEmpty) {
         final h = free[_rnd.nextInt(free.length)];
-        final dangerBias = _dangerLevel + (_combo >= 7 ? 1 : 0);
-        _isBomb[h] = _rnd.nextDouble() < (0.12 + dangerBias * 0.08);
-        _mole[h] = math.max(0.42, 1.05 - _round * 0.06 - dangerBias * 0.04) +
+        // Bomb risk and mole lifetime scale only with the round's danger
+        // level, not with the player's combo — a child doing WELL (a long
+        // combo) should never be punished with a harder board than someone
+        // doing poorly at the same round. That combo-linked spike used to
+        // push bomb odds as high as 44%; it's capped at 36% here, tied
+        // purely to round progression.
+        _isBomb[h] = _rnd.nextDouble() < (0.12 + _dangerLevel * 0.08);
+        _mole[h] = math.max(0.42, 1.05 - _round * 0.06 - _dangerLevel * 0.04) +
             _rnd.nextDouble() * 0.35;
       }
     }

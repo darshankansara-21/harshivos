@@ -113,7 +113,7 @@ class _CloudPainter extends CustomPainter {
 
 // ===========================================================================
 // Music Garden — tap flowers to bloom them and play a pentatonic note.
-// (Visual + haptic feedback; wire a synth/audio asset for full sound.)
+// (Visual + haptic feedback, plus a real tone via TonePlayer.playNote.)
 // ===========================================================================
 class MusicGardenToy extends StatefulWidget {
   const MusicGardenToy({super.key});
