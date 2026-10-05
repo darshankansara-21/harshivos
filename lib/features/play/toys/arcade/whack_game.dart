@@ -135,7 +135,6 @@ class _WhackGameState extends State<WhackGame>
         return;
       }
       _combo++;
-      _dangerLevel = math.max(0, _dangerLevel - (_combo > 7 ? 1 : 0));
       _score += 1 + (_combo >= 5 ? 1 : 0) + (_combo >= 9 ? 1 : 0);
       _splat[i] = 0.35;
       TonePlayer.instance.playCue(SoundCue.wood);
