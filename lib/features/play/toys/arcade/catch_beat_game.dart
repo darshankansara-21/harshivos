@@ -93,10 +93,16 @@ class _CatchBeatGameState extends State<CatchBeatGame>
         o.dead = true;
         _combo = 0;
         _lives--;
-        _flash('Missed!');
-        TonePlayer.instance.playCue(SoundCue.gentleRetry);
         if (_lives <= 0) {
+          // Out of lives is the real end of the run — it must sound distinct
+          // from a routine miss, never just the same gentle-retry cue.
           _status = GameStatus.over;
+          _flash('Out of lives!');
+          TonePlayer.instance.playCue(SoundCue.gameOver);
+          emit(ExperienceEvent.incorrectAnswer);
+        } else {
+          _flash('Missed!');
+          TonePlayer.instance.playCue(SoundCue.gentleRetry);
         }
         _orbs.removeAt(i);
       }
