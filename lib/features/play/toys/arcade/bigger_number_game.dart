@@ -86,6 +86,16 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
       } else {
         TonePlayer.instance.playCue(SoundCue.gentleRetry);
         _banner = 'Look again…';
+        // Unlike every other miss-flash in the catalog (a brief ~350-500ms
+        // highlight), this one was only ever cleared by the next correct
+        // answer's _newRound() call — so a child who missed then paused (or
+        // missed again without yet solving the round) saw the tile stuck red
+        // indefinitely. Auto-clear it the same way weather_sort/shape_builder
+        // do, gated so a later miss on a different tile can't be stomped by
+        // a stale timer.
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted && _wrong == i) setState(() => _wrong = -1);
+        });
       }
     }
     setState(() {});
