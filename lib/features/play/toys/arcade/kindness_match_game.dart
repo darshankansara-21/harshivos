@@ -10,27 +10,30 @@ class KindnessMatchGame extends StatefulWidget {
 }
 
 class _KindScene {
-  const _KindScene(this.situation, this.kind, this.other1, this.other2);
+  const _KindScene(this.situation, this.kind, this.other1, this.other2, this.other3);
   final String situation;
   final String kind;
   final String other1;
   final String other2;
+  // Third distractor, only shown once the active option count grows past 3
+  // (see _optionCount) — keeps later rounds genuinely harder than early ones.
+  final String other3;
 }
 
 class _KindnessMatchGameState extends State<KindnessMatchGame> with _Emit {
   static const String _id = 'kindness_match';
   static const int _target = 10;
   static const List<_KindScene> _scenes = <_KindScene>[
-    _KindScene('Your friend falls down.', 'Are you okay?', "You're silly", 'Go away'),
-    _KindScene('Someone is new at school.', 'Want to play with us?', "That's my spot", "You can't sit here"),
-    _KindScene('Your friend looks sad.', "I'm here for you", 'Stop crying', "That's boring"),
-    _KindScene('Someone drops their books.', 'Let me help you', 'Watch out!', 'So clumsy!'),
-    _KindScene('A friend shares their toy.', 'Thank you so much!', 'I want more', "It's mine now"),
-    _KindScene('Someone makes a mistake.', "It's okay, try again", "You're bad at this", 'Ha ha ha'),
-    _KindScene('Your friend wins a game.', 'Well done!', 'No fair', 'You cheated'),
-    _KindScene('Someone feels left out.', 'Come join us!', 'Not you', 'Go away'),
-    _KindScene('A friend is scared.', "I'll stay with you", "Don't be a baby", 'Scaredy cat'),
-    _KindScene('Someone is tired.', 'Have a rest', 'Keep going', 'Too slow'),
+    _KindScene('Your friend falls down.', 'Are you okay?', "You're silly", 'Go away', 'Clumsy!'),
+    _KindScene('Someone is new at school.', 'Want to play with us?', "That's my spot", "You can't sit here", 'Not my friend'),
+    _KindScene('Your friend looks sad.', "I'm here for you", 'Stop crying', "That's boring", 'So dramatic'),
+    _KindScene('Someone drops their books.', 'Let me help you', 'Watch out!', 'So clumsy!', 'Not my problem'),
+    _KindScene('A friend shares their toy.', 'Thank you so much!', 'I want more', "It's mine now", 'Give me that'),
+    _KindScene('Someone makes a mistake.', "It's okay, try again", "You're bad at this", 'Ha ha ha', 'You always mess up'),
+    _KindScene('Your friend wins a game.', 'Well done!', 'No fair', 'You cheated', "I'm still better"),
+    _KindScene('Someone feels left out.', 'Come join us!', 'Not you', 'Go away', 'Find your own group'),
+    _KindScene('A friend is scared.', "I'll stay with you", "Don't be a baby", 'Scaredy cat', 'Just get over it'),
+    _KindScene('Someone is tired.', 'Have a rest', 'Keep going', 'Too slow', "Don't be lazy"),
   ];
   final math.Random _rnd = math.Random();
   static const List<String> _winPraisePool = <String>[
@@ -73,10 +76,18 @@ class _KindnessMatchGameState extends State<KindnessMatchGame> with _Emit {
     return _bag.removeLast();
   }
 
+  // Real difficulty curve: the first few rounds offer only 3 choices (1 kind
+  // + 2 unkind), then from the halfway point on a 3rd unkind distractor
+  // joins the mix, so late rounds are genuinely harder to tell apart than
+  // round 1 instead of every round being identically easy.
+  int get _optionCount => (3 + _score ~/ 5).clamp(3, 4);
+
   void _newRound() {
     _wrong = -1;
     _scene = _scenes[_drawScene()];
-    _options = <String>[_scene.kind, _scene.other1, _scene.other2]..shuffle(_rnd);
+    final List<String> distractors = <String>[_scene.other1, _scene.other2, _scene.other3]
+      ..shuffle(_rnd);
+    _options = <String>[_scene.kind, ...distractors.take(_optionCount - 1)]..shuffle(_rnd);
   }
 
   void _pick(String choice, int idx) {
