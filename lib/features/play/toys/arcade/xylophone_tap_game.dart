@@ -119,6 +119,14 @@ class _XylophoneTapGameState extends State<XylophoneTapGame> with _Emit {
         if (_score >= _target) {
           _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
           _status = GameStatus.won;
+          // The winning tune is exactly as likely to be the one that crosses
+          // `_best` as any other — but only the non-winning branch below ever
+          // played the milestone chime, so a perfect 3-tune personal-best run
+          // silently skipped the one celebration it most deserved.
+          if (crossedBest) {
+            TonePlayer.instance.playCue(SoundCue.milestone);
+            emit(ExperienceEvent.personalBest);
+          }
           TonePlayer.instance.playCue(SoundCue.success);
           emit(ExperienceEvent.gameCompleted);
         } else {
