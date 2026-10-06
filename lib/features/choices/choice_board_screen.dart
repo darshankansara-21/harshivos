@@ -364,75 +364,79 @@ class _RevealOverlayState extends State<_RevealOverlay>
   @override
   Widget build(BuildContext context) {
     return Positioned.fill(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: widget.onDismiss,
-        child: TweenAnimationBuilder<double>(
-          tween: Tween<double>(begin: 0, end: 1),
-          duration: const Duration(milliseconds: 620),
-          curve: Curves.easeOutBack,
-          builder: (BuildContext context, double t, Widget? child) {
-            final double clamped = t.clamp(0.0, 1.0);
-            return Opacity(opacity: clamped, child: child);
-          },
-          child: Container(
-            color: Colors.black.withOpacity(0.72),
-            child: Stack(
-              children: <Widget>[
-                Positioned.fill(child: _buildHalo()),
-                Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      const Text(
-                        'I want',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 30,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.5,
+      child: Semantics(
+        button: true,
+        label: 'I want ${widget.choice.word}. Tap to go back.',
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: widget.onDismiss,
+          child: TweenAnimationBuilder<double>(
+            tween: Tween<double>(begin: 0, end: 1),
+            duration: const Duration(milliseconds: 620),
+            curve: Curves.easeOutBack,
+            builder: (BuildContext context, double t, Widget? child) {
+              final double clamped = t.clamp(0.0, 1.0);
+              return Opacity(opacity: clamped, child: child);
+            },
+            child: Container(
+              color: Colors.black.withOpacity(0.72),
+              child: Stack(
+                children: <Widget>[
+                  Positioned.fill(child: _buildHalo()),
+                  Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        const Text(
+                          'I want',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 30,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      _buildBloomEmoji(),
-                      const SizedBox(height: 4),
-                      Text(
-                        widget.choice.word,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 56,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.4,
-                          shadows: <Shadow>[
-                            Shadow(
-                              color: widget.glow.withOpacity(0.8),
-                              blurRadius: 28,
+                        const SizedBox(height: 8),
+                        _buildBloomEmoji(),
+                        const SizedBox(height: 4),
+                        Text(
+                          widget.choice.word,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 56,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.4,
+                            shadows: <Shadow>[
+                              Shadow(
+                                color: widget.glow.withOpacity(0.8),
+                                blurRadius: 28,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const <Widget>[
+                            Icon(Icons.touch_app_rounded,
+                                color: Colors.white54, size: 22),
+                            SizedBox(width: 8),
+                            Text(
+                              'Tap to go back',
+                              style: TextStyle(
+                                color: Colors.white54,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ],
                         ),
-                      ),
-                      const SizedBox(height: 28),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: const <Widget>[
-                          Icon(Icons.touch_app_rounded,
-                              color: Colors.white54, size: 22),
-                          SizedBox(width: 8),
-                          Text(
-                            'Tap to go back',
-                            style: TextStyle(
-                              color: Colors.white54,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
