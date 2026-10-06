@@ -16,7 +16,7 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with _Emit {
     'Eagle eyes!', 'Sharp spotter!', 'Great eyes!', 'Detail detective!',
   ];
   String _winPraise = _winPraisePool[0];
-  // Every correct pick routinely flashed the exact same "Spotted it! 🔍"
+  String _overPraise = _gentleTryAgainPool[0];
   // banner (up to ten times in one round); vary it like the win praise.
   static const List<String> _spottedPool = <String>[
     'Spotted it! 🔍', 'Sharp eyes!', 'Found it!', 'Nice spot!',
@@ -93,6 +93,7 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with _Emit {
         // The life-ending miss is the real end of the run — it must sound
         // distinct from a routine miss, never just the same gentle-retry cue.
         _status = GameStatus.over;
+        _overPraise = _gentleTryAgainPool[_rnd.nextInt(_gentleTryAgainPool.length)];
         _banner = 'Out of lives!';
         TonePlayer.instance.playCue(SoundCue.gameOver);
       } else {
@@ -145,7 +146,7 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with _Emit {
       status: _status,
       banner: _banner ?? 'Find the odd tile · ${'💛' * _lives}',
       overEmoji: '💪',
-      overText: 'Out of lives — nice try!',
+      overText: _overPraise,
       winEmoji: '🔍',
       winText: _winPraise,
       accent: const Color(0xFF66D9E8),

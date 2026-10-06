@@ -22,6 +22,7 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
     'Good listening!', 'Golden ears!', 'Rhythm master!', 'Echo champion!',
   ];
   String _winPraise = _winPraisePool[0];
+  String _overPraise = _gentleTryAgainPool[0];
 
   final List<int> _seq = <int>[];
   bool _showing = false;
@@ -200,6 +201,7 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
         // The life-ending miss must sound distinct from a routine miss,
         // never just the same gentle-retry cue as every other wrong tap.
         _status = GameStatus.over;
+        _overPraise = _gentleTryAgainPool[_rnd.nextInt(_gentleTryAgainPool.length)];
         _banner = 'Out of lives!';
         TonePlayer.instance.playCue(SoundCue.gameOver);
       } else {
@@ -238,7 +240,7 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
       status: _status,
       banner: _banner ?? 'Phrase of ${_seq.length}  ·  ${'💛' * _lives}',
       overEmoji: '💪',
-      overText: 'Out of lives — nice try!',
+      overText: _overPraise,
       winEmoji: '🪘',
       winText: _winPraise,
       accent: const Color(0xFFFFD166),

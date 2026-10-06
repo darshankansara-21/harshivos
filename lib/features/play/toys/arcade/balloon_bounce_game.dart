@@ -23,6 +23,7 @@ class _BalloonBounceGameState extends State<BalloonBounceGame>
     'Twenty in a row!',
   ];
   String _winPraise = _winPraisePool[0];
+  String _overPraise = _gentleTryAgainPool[0];
   final math.Random _rnd = math.Random();
 
   double _x = 0.5, _y = 0.4, _vx = 0.1, _vy = 0;
@@ -105,6 +106,7 @@ class _BalloonBounceGameState extends State<BalloonBounceGame>
       // silent; play a distinct game-over cue, same as every other game's
       // terminal loss branch.
       _status = GameStatus.over;
+      _overPraise = _gentleTryAgainPool[_rnd.nextInt(_gentleTryAgainPool.length)];
       TonePlayer.instance.playCue(SoundCue.gameOver);
       emit(ExperienceEvent.incorrectAnswer);
     }
@@ -173,7 +175,7 @@ class _BalloonBounceGameState extends State<BalloonBounceGame>
       status: _status,
       banner: _banner ?? 'Keep it up!  ·  $_score/$_target',
       overEmoji: '🎈',
-      overText: 'It floated down!',
+      overText: _overPraise,
       winEmoji: '🏆',
       winText: _winPraise,
       accent: const Color(0xFFFF5DA2),

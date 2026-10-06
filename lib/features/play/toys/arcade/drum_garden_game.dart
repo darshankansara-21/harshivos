@@ -31,6 +31,7 @@ class _DrumGardenGameState extends State<DrumGardenGame>
     'Rhythm master!',
   ];
   String _winPraise = _winPraisePool.first;
+  String _overPraise = _gentleTryAgainPool[0];
   final List<int> _seq = <int>[];
   int _inputIdx = 0;
   int _phase = 0; // 0 free, 1 showing, 2 input, 3 result
@@ -192,6 +193,7 @@ class _DrumGardenGameState extends State<DrumGardenGame>
         // Out of lives ends the run — give it its own distinct game-over cue
         // instead of reusing the routine wrong-tap retry sound.
         _status = GameStatus.over;
+        _overPraise = _gentleTryAgainPool[_rnd.nextInt(_gentleTryAgainPool.length)];
         _flash('Out of lives!');
         TonePlayer.instance.playCue(SoundCue.gameOver);
       } else {
@@ -244,7 +246,7 @@ class _DrumGardenGameState extends State<DrumGardenGame>
       status: _status,
       banner: _banner ?? '$phaseLabel · ${'💛' * _lives}',
       overEmoji: '🥁',
-      overText: 'Keep the beat!',
+      overText: _overPraise,
       winEmoji: '🥁',
       winText: _winPraise,
       accent: const Color(0xFFB197FC),

@@ -34,6 +34,7 @@ class _BugCatchGameState extends State<BugCatchGame>
     'Catch champion!',
   ];
   String _winPraise = _winPraisePool[0];
+  String _overPraise = _gentleTryAgainPool[0];
   final math.Random _rnd = math.Random();
   final List<_Bug> _bugs = <_Bug>[];
   final List<_Shard> _bits = <_Shard>[];
@@ -186,6 +187,7 @@ class _BugCatchGameState extends State<BugCatchGame>
           if (_lives <= 0) {
             // Distinct terminal cue — the catching run really ends here.
             _status = GameStatus.over;
+            _overPraise = _gentleTryAgainPool[_rnd.nextInt(_gentleTryAgainPool.length)];
             TonePlayer.instance.playCue(SoundCue.gameOver);
             // A run that ends in a loss of lives can still be this child's
             // best-ever catch count — every sibling lives-based game
@@ -241,7 +243,7 @@ class _BugCatchGameState extends State<BugCatchGame>
       status: _status,
       banner: _banner ?? 'Catch the ${_names[_targetColor]} bugs! · ${'💛' * _lives}',
       overEmoji: '💪',
-      overText: 'Out of lives — nice try!',
+      overText: _overPraise,
       winEmoji: '🐞',
       winText: _winPraise,
       accent: _colors[_targetColor],

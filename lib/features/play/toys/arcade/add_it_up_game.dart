@@ -16,6 +16,7 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
     'Great maths!', 'Number whiz!', 'Sum master!', 'Math star!',
   ];
   String _winPraise = _winPraisePool[0];
+  String _overPraise = _gentleTryAgainPool[0];
   // Every correct tap routinely flashed the exact same "Correct!" banner
   // (up to ten times in one round); vary it like the win-screen praise.
   static const List<String> _correctPool = <String>[
@@ -156,6 +157,7 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
           // The life-ending miss must sound distinct from a routine miss,
           // never just the same gentle-retry cue as every other wrong pair.
           _status = GameStatus.over;
+          _overPraise = _gentleTryAgainPool[_rnd.nextInt(_gentleTryAgainPool.length)];
           _banner = 'Out of lives!';
           TonePlayer.instance.playCue(SoundCue.gameOver);
           emit(ExperienceEvent.incorrectAnswer);
@@ -208,7 +210,7 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
       status: _status,
       banner: _banner ?? 'Find two that make it  ·  ${'💛' * _lives}',
       overEmoji: '💔',
-      overText: 'Out of lives — nice try!',
+      overText: _overPraise,
       winEmoji: '➕',
       winText: _winPraise,
       accent: const Color(0xFF80ED99),

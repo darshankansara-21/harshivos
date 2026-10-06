@@ -24,6 +24,7 @@ class _ShapeSortChuteGameState extends State<ShapeSortChuteGame>
     'Good sorting!', 'Sorting star!', 'Shape expert!', 'Great sorting!',
   ];
   String _winPraise = _winPraisePool[0];
+  String _overPraise = _gentleTryAgainPool[0];
   List<int> _holes = <int>[0, 1, 2]; // shape index per hole (3 holes)
   int _shape = 0;
   double _x = 0.5, _y = 0.0, _fall = 0.28;
@@ -139,6 +140,7 @@ class _ShapeSortChuteGameState extends State<ShapeSortChuteGame>
         // The life-ending miss must sound distinct from a routine miss,
         // never just the same gentle-retry cue as every other wrong drop.
         _status = GameStatus.over;
+        _overPraise = _gentleTryAgainPool[_rnd.nextInt(_gentleTryAgainPool.length)];
         _banner = 'Out of lives!';
         TonePlayer.instance.playCue(SoundCue.gameOver);
         emit(ExperienceEvent.incorrectAnswer);
@@ -182,7 +184,7 @@ class _ShapeSortChuteGameState extends State<ShapeSortChuteGame>
       status: _status,
       banner: _banner ?? 'Sort the shapes  ·  ${'💛' * _lives}',
       overEmoji: '💪',
-      overText: 'Out of lives — nice try!',
+      overText: _overPraise,
       winEmoji: '🔻',
       winText: _winPraise,
       accent: const Color(0xFF4CC9F0),

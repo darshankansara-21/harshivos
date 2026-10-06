@@ -22,6 +22,7 @@ class _BlockBlastGameState extends State<BlockBlastGame>
   int _sel = -1;
   int _score = 0;
   int _best = 0;
+  String _overPraise = _gentleTryAgainPool[0];
   String? _banner;
   GameStatus _status = GameStatus.ready;
   // Cells of the last attempted-but-rejected placement, briefly flashed red
@@ -262,6 +263,7 @@ class _BlockBlastGameState extends State<BlockBlastGame>
   void _gameOver() {
     final prev = GameScores.instance.best(_id);
     _status = GameStatus.over;
+    _overPraise = _gentleTryAgainPool[_rnd.nextInt(_gentleTryAgainPool.length)];
     TonePlayer.instance.playCue(SoundCue.gameOver);
     emit(_score > prev
         ? ExperienceEvent.gameCompleted
@@ -305,7 +307,7 @@ class _BlockBlastGameState extends State<BlockBlastGame>
       status: _status,
       banner: _banner,
       overEmoji: '🟦',
-      overText: 'No moves left!',
+      overText: _overPraise,
       accent: const Color(0xFF4CC9F0),
       onPlayAgain: _reset,
       child: DecoratedBox(

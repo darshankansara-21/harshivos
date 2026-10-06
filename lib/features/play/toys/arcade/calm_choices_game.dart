@@ -45,6 +45,7 @@ class _CalmChoicesGameState extends State<CalmChoicesGame> with _Emit {
     'Ten calm choices!',
   ];
   String _winPraise = _winPraisePool[0];
+  String _overPraise = _gentleTryAgainPool[0];
   final math.Random _rnd = math.Random();
   // Every healthy choice routinely flashed the exact same "That helps 💙"
   // banner (up to ten times in one round); vary it like the win praise.
@@ -160,6 +161,7 @@ class _CalmChoicesGameState extends State<CalmChoicesGame> with _Emit {
         // The life-ending wrong choice must sound distinct from a routine
         // miss, never just the same gentle-retry cue as every other one.
         _status = GameStatus.over;
+        _overPraise = _gentleTryAgainPool[_rnd.nextInt(_gentleTryAgainPool.length)];
         _banner = 'Out of lives!';
         TonePlayer.instance.playCue(SoundCue.gameOver);
       } else {
@@ -207,7 +209,7 @@ class _CalmChoicesGameState extends State<CalmChoicesGame> with _Emit {
       status: _status,
       banner: _banner ?? 'Choose what helps  ·  ${'💛' * _lives}',
       overEmoji: '💪',
-      overText: 'Out of lives — nice try!',
+      overText: _overPraise,
       winEmoji: '🌈',
       winText: _winPraise,
       accent: const Color(0xFF89F7FE),

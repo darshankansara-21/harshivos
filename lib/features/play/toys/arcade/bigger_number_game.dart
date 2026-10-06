@@ -20,6 +20,7 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
     'Twelve for twelve!',
   ];
   String _winPraise = _winPraisePool[0];
+  String _overPraise = _gentleTryAgainPool[0];
   final math.Random _rnd = math.Random();
   // Every correct tap routinely flashed the exact same "Correct!" banner
   // (up to twelve times in one round); vary it like the win-screen praise.
@@ -141,6 +142,7 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
       emit(ExperienceEvent.incorrectAnswer);
       if (_lives <= 0) {
         _status = GameStatus.over;
+        _overPraise = _gentleTryAgainPool[_rnd.nextInt(_gentleTryAgainPool.length)];
         TonePlayer.instance.playCue(SoundCue.gameOver);
         _banner = 'Out of lives!';
       } else {
@@ -190,7 +192,7 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
       status: _status,
       banner: _banner ?? 'Which one?  ·  ${'💛' * _lives}',
       overEmoji: '💪',
-      overText: 'Out of lives — nice try!',
+      overText: _overPraise,
       winEmoji: '🥇',
       winText: _winPraise,
       accent: const Color(0xFFFFD166),

@@ -53,6 +53,7 @@ class _PianoTilesGameState extends State<PianoTilesGame>
   int _score = 0;
   int _best = 0;
   int _lastCol = -1;
+  String _overPraise = _gentleTryAgainPool[0];
   // Every other audited game in the catalog flashes a celebratory banner at
   // score milestones (whack's 'Round N!', star_tap's 'Combo xN!', etc.) —
   // Piano Tiles, the Phase-5 benchmark game, had none at all: its only
@@ -185,6 +186,7 @@ class _PianoTilesGameState extends State<PianoTilesGame>
   void _gameOver() {
     final prev = GameScores.instance.best(_id);
     _status = GameStatus.over;
+    _overPraise = _gentleTryAgainPool[_rnd.nextInt(_gentleTryAgainPool.length)];
     TonePlayer.instance.playCue(SoundCue.gameOver);
     emit(_score > prev
         ? ExperienceEvent.gameCompleted
@@ -230,7 +232,7 @@ class _PianoTilesGameState extends State<PianoTilesGame>
       status: _status,
       banner: _banner,
       overEmoji: '🎹',
-      overText: 'Missed a tile!',
+      overText: _overPraise,
       accent: const Color(0xFF9B5DE5),
       onPlayAgain: _reset,
       child: LayoutBuilder(

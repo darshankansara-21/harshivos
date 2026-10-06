@@ -24,6 +24,7 @@ class _EchoGameState extends State<EchoGame>
     'Melody master!',
   ];
   String _winPraise = _winPraisePool.first;
+  String _overPraise = _gentleTryAgainPool[0];
   final List<int> _seq = <int>[];
   int _inputAt = 0;
   int _flash = -1;
@@ -143,6 +144,7 @@ class _EchoGameState extends State<EchoGame>
       _tapFlash = -1;
       _wrongPad = pad;
       setState(() => _status = GameStatus.over);
+      _overPraise = _gentleTryAgainPool[_rnd.nextInt(_gentleTryAgainPool.length)];
       TonePlayer.instance.playCue(SoundCue.gameOver);
       emit(ExperienceEvent.incorrectAnswer);
       GameScores.instance.submit(_id, _seq.length - 1).then((b) {
@@ -173,7 +175,7 @@ class _EchoGameState extends State<EchoGame>
       best: _best,
       status: _status,
       overEmoji: '🎵',
-      overText: 'Missed the tune',
+      overText: _overPraise,
       winEmoji: '🏆',
       winText: _winPraise,
       accent: const Color(0xFF9B5DE5),

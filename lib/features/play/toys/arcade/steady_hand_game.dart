@@ -31,7 +31,7 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
     'So steady!', 'Rock steady!', 'Calm hands!', 'Precision master!',
   ];
   String _winPraise = _winPraisePool[0];
-  // Pool of per-path completion phrases so finishing a steady-hand path
+  String _overPraise = _gentleTryAgainPool[0];
   // doesn't always flash the identical "Steady! Next path" line.
   static const List<String> _nextPathPool = <String>[
     'Steady! Next path',
@@ -146,6 +146,7 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
       // The life-ending wall-touch must sound distinct from a routine
       // bump, never just the same gentle-retry cue as every other miss.
       _status = GameStatus.over;
+      _overPraise = _gentleTryAgainPool[_rnd.nextInt(_gentleTryAgainPool.length)];
       _banner = 'Out of lives!';
       TonePlayer.instance.playCue(SoundCue.gameOver);
     } else {
@@ -218,7 +219,7 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
       status: _status,
       banner: _banner ?? 'Follow the path  ·  ${'💛' * _lives}',
       overEmoji: '💪',
-      overText: 'Out of lives — nice try!',
+      overText: _overPraise,
       winEmoji: '🖐️',
       winText: _winPraise,
       accent: const Color(0xFF4CC9F0),

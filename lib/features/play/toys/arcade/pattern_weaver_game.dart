@@ -26,6 +26,7 @@ class _PatternWeaverGameState extends State<PatternWeaverGame>
     'Pattern master!',
   ];
   String _winPraise = _winPraisePool.first;
+  String _overPraise = _gentleTryAgainPool[0];
   final List<_Shard> _bits = <_Shard>[];
   bool _reduceMotion = false;
 
@@ -165,6 +166,7 @@ class _PatternWeaverGameState extends State<PatternWeaverGame>
         // The life-ending miss is the real end of the run — it must sound
         // distinct from a routine miss, never just the same gentle-retry cue.
         _status = GameStatus.over;
+        _overPraise = _gentleTryAgainPool[_rnd.nextInt(_gentleTryAgainPool.length)];
         _banner = 'Out of lives!';
         _bannerT = 1.2;
         TonePlayer.instance.playCue(SoundCue.gameOver);
@@ -208,7 +210,7 @@ class _PatternWeaverGameState extends State<PatternWeaverGame>
       status: _status,
       banner: _banner ?? 'What comes next? · ${'💛' * _lives}',
       overEmoji: '💪',
-      overText: 'Out of lives — nice try!',
+      overText: _overPraise,
       winEmoji: '🧶',
       winText: _winPraise,
       accent: const Color(0xFF63E6BE),

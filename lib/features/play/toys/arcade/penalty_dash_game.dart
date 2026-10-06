@@ -22,7 +22,7 @@ class _PenaltyDashGameState extends State<PenaltyDashGame>
     'Clinical finish!',
   ];
   String _winPraise = _winPraisePool.first;
-  // The routine (non-fatal) miss banner was a flat, always-identical 'Saved!'
+  String _overPraise = _gentleTryAgainPool[0];
   // or 'Wide!' literal — the exact same flat-repeated-miss-text gap already
   // fixed in whack_game.dart/catch_beat_game.dart. Up to 4 misses can fire
   // this per playthrough, every playthrough, forever.
@@ -159,6 +159,7 @@ class _PenaltyDashGameState extends State<PenaltyDashGame>
         // The game-ending miss must sound distinct from a routine miss,
         // never just the same gentle-retry cue as every other shot.
         _status = GameStatus.over;
+        _overPraise = _gentleTryAgainPool[_rnd.nextInt(_gentleTryAgainPool.length)];
         _banner = 'Out of shots!';
         _bannerT = 1.1;
         TonePlayer.instance.playCue(SoundCue.gameOver);
@@ -208,7 +209,7 @@ class _PenaltyDashGameState extends State<PenaltyDashGame>
       status: _status,
       banner: _banner ?? 'Goals $_score/$_target  ·  ${'🧤' * (5 - _misses)}',
       overEmoji: '💪',
-      overText: 'Out of shots — nice try!',
+      overText: _overPraise,
       winEmoji: '🥅',
       winText: _winPraise,
       accent: const Color(0xFF80ED99),

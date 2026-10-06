@@ -25,7 +25,7 @@ class _OddOneOutGameState extends State<OddOneOutGame>
     'Detail detective!',
   ];
   String _winPraise = _winPraisePool.first;
-  // Every correct tap routinely flashed the exact same "You found it!"
+  String _overPraise = _gentleTryAgainPool[0];
   // banner (up to ten times in one round); vary it like the win praise.
   static const List<String> _foundPool = <String>[
     'You found it!', 'Sharp eyes!', 'Spotted it!', 'Nice find!',
@@ -179,6 +179,7 @@ class _OddOneOutGameState extends State<OddOneOutGame>
       emit(ExperienceEvent.incorrectAnswer);
       if (_lives <= 0) {
         _status = GameStatus.over;
+        _overPraise = _gentleTryAgainPool[_rnd.nextInt(_gentleTryAgainPool.length)];
         TonePlayer.instance.playCue(SoundCue.gameOver);
         _banner = 'Out of lives!';
       } else {
@@ -227,7 +228,7 @@ class _OddOneOutGameState extends State<OddOneOutGame>
       status: _status,
       banner: _banner ?? 'Spot the different one  ·  ${'💛' * _lives}',
       overEmoji: '💪',
-      overText: 'Out of lives — nice try!',
+      overText: _overPraise,
       winEmoji: '🧐',
       winText: _winPraise,
       accent: const Color(0xFF80ED99),

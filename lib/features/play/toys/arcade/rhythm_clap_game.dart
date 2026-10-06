@@ -18,6 +18,7 @@ class _RhythmClapGameState extends State<RhythmClapGame>
     'In the groove!', 'Perfect rhythm!', 'Beat master!', 'On the beat!',
   ];
   String _winPraise = _winPraisePool[0];
+  String _overPraise = _gentleTryAgainPool[0];
   final List<_Shard> _bits = <_Shard>[];
   bool _reduceMotion = false;
   List<double> _markers = <double>[0.2, 0.4, 0.6, 0.8];
@@ -100,6 +101,7 @@ class _RhythmClapGameState extends State<RhythmClapGame>
           // The run-ending miss needs its own distinct cue, not the routine
           // gentle-retry sound used for every other missed beat.
           _status = GameStatus.over;
+          _overPraise = _gentleTryAgainPool[_rnd.nextInt(_gentleTryAgainPool.length)];
           TonePlayer.instance.playCue(SoundCue.gameOver);
         } else {
           TonePlayer.instance.playCue(SoundCue.gentleRetry);
@@ -190,7 +192,7 @@ class _RhythmClapGameState extends State<RhythmClapGame>
       status: _status,
       banner: _banner ?? 'Clap on the beat! · ${'💛' * _lives}',
       overEmoji: '💪',
-      overText: 'Out of lives — nice try!',
+      overText: _overPraise,
       winEmoji: '👏',
       winText: _winPraise,
       accent: const Color(0xFFFFD166),

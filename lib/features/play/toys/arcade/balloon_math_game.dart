@@ -36,6 +36,7 @@ class _BalloonMathGameState extends State<BalloonMathGame>
     'Perfect ten!',
   ];
   String _winPraise = _winPraisePool[0];
+  String _overPraise = _gentleTryAgainPool[0];
   final math.Random _rnd = math.Random();
   final List<_Balloon> _balloons = <_Balloon>[];
   final List<_Shard> _bits = <_Shard>[];
@@ -167,6 +168,7 @@ class _BalloonMathGameState extends State<BalloonMathGame>
             // The life-ending miss must sound distinct from a routine miss,
             // never just the same gentle-retry cue as every other pop.
             _status = GameStatus.over;
+            _overPraise = _gentleTryAgainPool[_rnd.nextInt(_gentleTryAgainPool.length)];
             _banner = 'Out of lives!';
             _bannerT = 1.2;
             TonePlayer.instance.playCue(SoundCue.gameOver);
@@ -215,7 +217,7 @@ class _BalloonMathGameState extends State<BalloonMathGame>
       status: _status,
       banner: _banner ?? '$_a ${_sub ? '−' : '+'} $_b = ?  · ${'💛' * _lives}',
       overEmoji: '💪',
-      overText: 'Out of lives — nice try!',
+      overText: _overPraise,
       winEmoji: '🎈',
       winText: _winPraise,
       accent: const Color(0xFFFF6B6B),

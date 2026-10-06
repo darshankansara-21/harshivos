@@ -21,6 +21,7 @@ class _SoccerKickGameState extends State<SoccerKickGame>
     'Full time!', 'Golden boot!', 'Top scorer!', 'Match winner!',
   ];
   String _winPraise = _winPraisePool[0];
+  String _overPraise = _gentleTryAgainPool[0];
   double _bx = 0.5, _by = 0.84, _bvx = 0, _bvy = 0, _spin = 0;
   double _keeperX = 0.5, _keeperTarget = 0.5;
   bool _flying = false;
@@ -145,6 +146,7 @@ class _SoccerKickGameState extends State<SoccerKickGame>
       // The game-ending miss must sound distinct from a routine miss,
       // never just the same gentle-retry cue as every other shot.
       _status = GameStatus.over;
+      _overPraise = _gentleTryAgainPool[_rnd.nextInt(_gentleTryAgainPool.length)];
       _banner = 'Out of shots!';
       _bannerT = 1.2;
       TonePlayer.instance.playCue(SoundCue.gameOver);
@@ -238,7 +240,7 @@ class _SoccerKickGameState extends State<SoccerKickGame>
       status: _status,
       banner: _banner ?? 'Goals $_score/$_target  ·  ${'🧤' * (5 - _misses)}',
       overEmoji: '💪',
-      overText: 'Out of shots — nice try!',
+      overText: _overPraise,
       winEmoji: '⚽',
       winText: _winPraise,
       accent: const Color(0xFF80ED99),

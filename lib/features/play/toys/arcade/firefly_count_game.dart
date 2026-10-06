@@ -26,6 +26,7 @@ class _FireflyCountGameState extends State<FireflyCountGame>
     'Ten for ten!',
   ];
   String _winPraise = _winPraisePool[0];
+  String _overPraise = _gentleTryAgainPool[0];
   final math.Random _rnd = math.Random();
   final List<_Fly> _flies = <_Fly>[];
   List<int> _options = <int>[2, 3, 4];
@@ -154,6 +155,7 @@ class _FireflyCountGameState extends State<FireflyCountGame>
         // The life-ending miss is the real end of the run — it must sound
         // distinct from a routine miss, never just the same gentle-retry cue.
         _status = GameStatus.over;
+        _overPraise = _gentleTryAgainPool[_rnd.nextInt(_gentleTryAgainPool.length)];
         _banner = 'Out of lives!';
         _bannerT = 1.2;
         TonePlayer.instance.playCue(SoundCue.gameOver);
@@ -198,7 +200,7 @@ class _FireflyCountGameState extends State<FireflyCountGame>
       status: _status,
       banner: _banner ?? 'How many fireflies? · ${'💛' * _lives}',
       overEmoji: '💪',
-      overText: 'Out of lives — nice try!',
+      overText: _overPraise,
       winEmoji: '✨',
       winText: _winPraise,
       accent: const Color(0xFFFFD166),

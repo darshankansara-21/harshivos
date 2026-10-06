@@ -43,6 +43,7 @@ class _KindnessMatchGameState extends State<KindnessMatchGame> with _Emit {
     'Big heart!',
   ];
   String _winPraise = _winPraisePool.first;
+  String _overPraise = _gentleTryAgainPool[0];
   // Every kind choice routinely flashed the exact same "That was kind 💛"
   // banner (up to ten times in one round); vary it like the win praise.
   static const List<String> _kindPool = <String>[
@@ -158,6 +159,7 @@ class _KindnessMatchGameState extends State<KindnessMatchGame> with _Emit {
         // The life-ending wrong choice must sound distinct from a routine
         // miss, never just the same gentle-retry cue as every other one.
         _status = GameStatus.over;
+        _overPraise = _gentleTryAgainPool[_rnd.nextInt(_gentleTryAgainPool.length)];
         _banner = 'Out of lives!';
         TonePlayer.instance.playCue(SoundCue.gameOver);
       } else {
@@ -205,7 +207,7 @@ class _KindnessMatchGameState extends State<KindnessMatchGame> with _Emit {
       status: _status,
       banner: _banner ?? 'Choose kindness  ·  ${'💛' * _lives}',
       overEmoji: '💪',
-      overText: 'Out of lives — nice try!',
+      overText: _overPraise,
       winEmoji: '💛',
       winText: _winPraise,
       accent: const Color(0xFFFFD166),

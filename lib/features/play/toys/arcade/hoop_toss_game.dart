@@ -23,6 +23,7 @@ class _HoopTossGameState extends State<HoopTossGame>
     'Hoop champion!',
   ];
   String _winPraise = _winPraisePool.first;
+  String _overPraise = _gentleTryAgainPool[0];
   // Every other aim-and-score game in the catalog (basketball, target_toss,
   // bug_catch, pinball, brick_break...) bursts a few shards of colour on a
   // successful hit; Hoop Toss only ever flashed the banner text + a sound,
@@ -137,6 +138,7 @@ class _HoopTossGameState extends State<HoopTossGame>
         // The game-ending miss must sound distinct from a routine miss,
         // never just the same gentle-retry cue as every other near-miss.
         _status = GameStatus.over;
+        _overPraise = _gentleTryAgainPool[_rnd.nextInt(_gentleTryAgainPool.length)];
         _banner = 'Out of rings!';
         _bannerT = 1.2;
         TonePlayer.instance.playCue(SoundCue.gameOver);
@@ -190,7 +192,7 @@ class _HoopTossGameState extends State<HoopTossGame>
       status: _status,
       banner: _banner ?? 'Ringers $_score/$_target  ·  ${'⭕' * (5 - _misses)}',
       overEmoji: '💪',
-      overText: 'Out of rings — nice try!',
+      overText: _overPraise,
       winEmoji: '🎪',
       winText: _winPraise,
       accent: const Color(0xFFFFD166),

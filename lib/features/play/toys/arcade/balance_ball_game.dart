@@ -22,6 +22,7 @@ class _BalanceBallGameState extends State<BalanceBallGame>
     'Rock-steady champion!',
   ];
   String _winPraise = _winPraisePool[0];
+  String _overPraise = _gentleTryAgainPool[0];
   final math.Random _rnd = math.Random();
 
   double _t = 0;
@@ -72,6 +73,7 @@ class _BalanceBallGameState extends State<BalanceBallGame>
     _s += _v * dt;
     if (_s.abs() > 1.0) {
       _status = GameStatus.over;
+      _overPraise = _gentleTryAgainPool[_rnd.nextInt(_gentleTryAgainPool.length)];
       TonePlayer.instance.playCue(SoundCue.gameOver);
       emit(ExperienceEvent.incorrectAnswer);
       setState(() {});
@@ -158,7 +160,7 @@ class _BalanceBallGameState extends State<BalanceBallGame>
       status: _status,
       banner: _banner ?? 'Keep it centred  ·  ${_score}s',
       overEmoji: '⚖️',
-      overText: 'It rolled off!',
+      overText: _overPraise,
       winEmoji: '🏆',
       winText: _winPraise,
       accent: const Color(0xFF48CAE4),

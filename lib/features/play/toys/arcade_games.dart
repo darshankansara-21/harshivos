@@ -472,6 +472,20 @@ class _ShellState extends State<_Shell> {
   }
 }
 
+// A game-over screen is shown on EVERY loss, and losses are the most common
+// outcome for a child still learning a game — far more common than wins.
+// Many games showed the exact same hard-coded "Out of lives — nice try!"
+// (or equivalent) line on every single replay, forever. Pair it with one of
+// these warm variants so the most-seen screen in the whole catalog doesn't
+// feel like a broken record.
+const List<String> _gentleTryAgainPool = <String>[
+  'Nice try — go again!',
+  'So close — try again!',
+  'Great effort — once more!',
+  'Almost there — have another go!',
+  'You can do it — try again!',
+];
+
 /// Lets a game emit companion events from anywhere and flush them after frame.
 mixin _Emit<T extends StatefulWidget> on State<T> {
   final List<ExperienceEvent> _pending = <ExperienceEvent>[];

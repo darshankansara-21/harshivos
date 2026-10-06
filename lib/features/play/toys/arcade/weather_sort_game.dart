@@ -49,7 +49,7 @@ class _WeatherSortGameState extends State<WeatherSortGame>
     'Weather wise!', 'Forecast star!', 'Sorting champ!', 'Great sorting!',
   ];
   String _winPraise = _winPraisePool[0];
-  // Flattened (bin, item) draw order — shuffled bag with no repeat so a
+  String _overPraise = _gentleTryAgainPool[0];
   // full 12-item win sees real variety across all 18 items instead of
   // risking the same emoji (or even the same bin) several times in a row.
   final List<int> _bag = <int>[];
@@ -106,6 +106,7 @@ class _WeatherSortGameState extends State<WeatherSortGame>
     emit(ExperienceEvent.incorrectAnswer);
     if (_lives <= 0) {
       _status = GameStatus.over;
+      _overPraise = _gentleTryAgainPool[_rnd.nextInt(_gentleTryAgainPool.length)];
       TonePlayer.instance.playCue(SoundCue.gameOver);
     } else {
       TonePlayer.instance.playCue(SoundCue.gentleRetry);
@@ -194,6 +195,7 @@ class _WeatherSortGameState extends State<WeatherSortGame>
         // Final miss ends the round — give it its own distinct cue instead
         // of reusing the routine gentle-retry miss sound.
         _status = GameStatus.over;
+        _overPraise = _gentleTryAgainPool[_rnd.nextInt(_gentleTryAgainPool.length)];
         TonePlayer.instance.playCue(SoundCue.gameOver);
       } else {
         TonePlayer.instance.playCue(SoundCue.gentleRetry);
@@ -243,7 +245,7 @@ class _WeatherSortGameState extends State<WeatherSortGame>
       status: _status,
       banner: _banner ?? 'Where does it go? · ${'💛' * _lives}',
       overEmoji: '💪',
-      overText: 'Out of lives — nice try!',
+      overText: _overPraise,
       winEmoji: '🌦️',
       winText: _winPraise,
       accent: const Color(0xFF66D9E8),

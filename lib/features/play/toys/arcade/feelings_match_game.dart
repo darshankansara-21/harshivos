@@ -37,6 +37,7 @@ class _FeelingsMatchGameState extends State<FeelingsMatchGame> with _Emit {
     'Ten right in a row!',
   ];
   String _winPraise = _winPraisePool[0];
+  String _overPraise = _gentleTryAgainPool[0];
   final math.Random _rnd = math.Random();
   final List<int> _bag = <int>[];
 
@@ -154,6 +155,7 @@ class _FeelingsMatchGameState extends State<FeelingsMatchGame> with _Emit {
         // The life-ending miss must sound distinct from a routine miss,
         // never just the same gentle-retry cue as every other wrong tap.
         _status = GameStatus.over;
+        _overPraise = _gentleTryAgainPool[_rnd.nextInt(_gentleTryAgainPool.length)];
         _banner = 'Out of lives!';
         TonePlayer.instance.playCue(SoundCue.gameOver);
       } else {
@@ -201,7 +203,7 @@ class _FeelingsMatchGameState extends State<FeelingsMatchGame> with _Emit {
       status: _status,
       banner: _banner ?? 'Find the feeling  ·  ${'💛' * _lives}',
       overEmoji: '💪',
-      overText: 'Out of lives — nice try!',
+      overText: _overPraise,
       winEmoji: '😊',
       winText: _winPraise,
       accent: const Color(0xFFFFB5E8),
