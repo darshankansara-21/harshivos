@@ -63,7 +63,16 @@ class _SortingTrainGameState extends State<SortingTrainGame>
   // Wagons in play right now: starts at 3 (easier opening than the old
   // always-4) and opens up to the full 6-colour palette by the final
   // parcels, same escalating-but-clamped shape as odd_one_out's `_cols`.
-  int get _activeCount => (3 + _score ~/ 3).clamp(3, _colors.length);
+  // That ramp only ever read the current round's `_score`, so a veteran
+  // with a high all-time `_best` restarted every playthrough at the
+  // identical easy 3-wagon opener as a first-timer — the same
+  // "flat-forever difficulty never fed by career `_best`" bug class already
+  // closed for the quiz-game family. Nudge the effective score a little
+  // from parcel 1 for a seasoned player, capped small so it stays genuinely
+  // sortable even for them.
+  int get _careerSkillRamp => (_best ~/ 4).clamp(0, 3);
+  int get _activeCount =>
+      (3 + (_score + _careerSkillRamp) ~/ 3).clamp(3, _colors.length);
   List<Color> get _activeColors => _colors.sublist(0, _activeCount);
   // Shuffled bag of colour indices so the 12-parcel win draws each colour an
   // even number of times with no repeat, instead of plain Random-with-

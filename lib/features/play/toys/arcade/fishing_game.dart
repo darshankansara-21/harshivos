@@ -90,7 +90,15 @@ class _FishingGameState extends State<FishingGame>
         _rnd.nextInt(4) == 0));
   }
 
-  double get _window => math.max(0.55, 1.2 - _score * 0.06);
+  // Only ever read the current round's `_score`, so a veteran with a high
+  // all-time `_best` cast every fresh line at the identical generous 1.2
+  // catch window as a first-time player — the same "flat-forever
+  // difficulty never fed by career `_best`" bug class already closed for
+  // the pace/skill-ramp families. Nudge the effective score a little from
+  // cast one for a seasoned player, capped small so round 1 stays genuinely
+  // fishable even for them.
+  int get _careerSkillRamp => (_best ~/ 3).clamp(0, 4);
+  double get _window => math.max(0.55, 1.2 - (_score + _careerSkillRamp) * 0.06);
 
   @override
   void onTick(double dt) {

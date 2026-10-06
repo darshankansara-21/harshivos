@@ -72,7 +72,13 @@ class _HoopTossGameState extends State<HoopTossGame>
   double get _careerPaceRamp => (_best / (_target * 4)).clamp(0.0, 1.0) * 0.5;
 
   double get _speed => 1.7 + _careerPaceRamp + _score * 0.13;
-  double get _catch => (0.1 - _score * 0.004).clamp(0.05, 0.1);
+  // The catch tolerance below only ever read the current round's `_score`,
+  // so a veteran's opening toss was just as forgiving as a first-timer's —
+  // the same "flat-forever difficulty never fed by career `_best`" bug
+  // class as `_speed` above, just on the tolerance axis. Reuse the same
+  // `_careerPaceRamp` (already capped) scaled down to this axis's range.
+  double get _catch =>
+      (0.1 - _score * 0.004 - _careerPaceRamp * 0.02).clamp(0.05, 0.1);
 
   @override
   void onTick(double dt) {

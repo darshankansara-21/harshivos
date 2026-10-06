@@ -58,8 +58,16 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
   // and up to nine tiles only by the final round. The old formula capped
   // both at round 5, leaving the back half of the game completely flat —
   // round 10 must feel harder than round 5, not identical to it.
-  int get _maxVal => (5 + _score * 2).clamp(5, 23);
-  int get _tileCount => (6 + _score ~/ 3).clamp(6, 9);
+  // Both ramps below only ever read the current round's `_score`, so a
+  // veteran with a high all-time `_best` restarted every playthrough at the
+  // identical easy 1-5/six-tile round 1 as a first-timer — the same
+  // "flat-forever difficulty never fed by career `_best`" bug class already
+  // closed for the quiz-game family. Nudge the effective score a little
+  // from round 1 for a seasoned player, capped small so round 1 stays
+  // genuinely playable even for them.
+  int get _careerSkillRamp => (_best ~/ 4).clamp(0, 3);
+  int get _maxVal => (5 + (_score + _careerSkillRamp) * 2).clamp(5, 23);
+  int get _tileCount => (6 + (_score + _careerSkillRamp) ~/ 3).clamp(6, 9);
 
   @override
   void initState() {

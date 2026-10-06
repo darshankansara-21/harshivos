@@ -107,7 +107,16 @@ class _LetterTraceGameState extends State<LetterTraceGame> with _Emit {
   // challenge actually ramps toward the target instead of staying identical
   // for all five letters of a playthrough — same per-round-tightening shape
   // as `steady_hand_game.dart`'s corridor `_widths` narrowing by level.
-  double get _catchTolerance => (0.09 - _score * 0.006).clamp(0.065, 0.09);
+  // That narrowing only ever read the current round's `_score`, so a
+  // veteran with a high all-time `_best` restarted every playthrough at the
+  // identical easy 0.09 tolerance as a first-timer — the same
+  // "flat-forever difficulty never fed by career `_best`" bug class already
+  // closed for the quiz-game family. Nudge the effective score a little
+  // from letter 1 for a seasoned player, capped small so it stays genuinely
+  // traceable even for them.
+  int get _careerSkillRamp => (_best ~/ 2).clamp(0, 2);
+  double get _catchTolerance =>
+      (0.09 - (_score + _careerSkillRamp) * 0.006).clamp(0.065, 0.09);
 
   final List<_TraceDot> _dots = <_TraceDot>[];
   String _glyph = 'A';

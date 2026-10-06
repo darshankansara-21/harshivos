@@ -73,7 +73,15 @@ class _CountPopGameState extends State<CountPopGame>
     // counting round 1 was exactly as hard as counting round 9. The floor
     // now rises with `_score` (every other round), so later rounds genuinely
     // ask the child to count higher, while the random width keeps variety.
-    final floor = 2 + (_score ~/ 2).clamp(0, 6);
+    // `floor` only ever read the current round's `_score`, so a veteran
+    // with a high all-time `_best` restarted every playthrough counting the
+    // identical easy 2-6 bubbles as a first-timer — the same
+    // "flat-forever difficulty never fed by career `_best`" bug class
+    // already closed for the quiz-game family. Nudge the effective score a
+    // little from round 1 for a seasoned player, capped small so round 1
+    // stays genuinely countable even for them.
+    final careerSkillRamp = (_best ~/ 4).clamp(0, 3);
+    final floor = 2 + ((_score + careerSkillRamp) ~/ 2).clamp(0, 6);
     _need = floor + _rnd.nextInt(5);
     _popped = 0;
     _bubbles.clear();

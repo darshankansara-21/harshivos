@@ -138,7 +138,16 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
   // `shape_builder_game.dart`'s `_tolerancePad`), just missed here. Narrows a
   // little as `_score` climbs across the five constellations, clamped so the
   // last one still stays comfortably reachable for small fingers.
-  double get _catchTolerance => (0.07 - _score * 0.005).clamp(0.05, 0.07);
+  // That narrowing only ever read the current round's `_score`, so a
+  // veteran with a high all-time `_best` restarted every playthrough at the
+  // identical easy 0.07 tolerance as a first-timer — the same
+  // "flat-forever difficulty never fed by career `_best`" bug class already
+  // closed for the quiz-game family. Nudge the effective score a little
+  // from constellation 1 for a seasoned player, capped small so it stays
+  // genuinely reachable even for them.
+  int get _careerSkillRamp => (_best ~/ 2).clamp(0, 2);
+  double get _catchTolerance =>
+      (0.07 - (_score + _careerSkillRamp) * 0.005).clamp(0.05, 0.07);
 
   void _touch(double nx, double ny) {
     if (_status != GameStatus.playing || _linked >= _stars.length) return;
