@@ -41,6 +41,16 @@ class _StackGameState extends State<StackGame>
   // crossing a prior personal best mid-tower is a real, judgment-free
   // moment worth its own banner.
   bool _beatBest = false;
+  // Same "flat-forever opening pace never fed by career `_best`" bug class
+  // already fixed in brick_break_game/piano_tiles_game/hoop_toss_game/
+  // sky_hop_game/space_dodge_game/whack_game: `_speed` was always reset to
+  // the exact same gentle 0.55 opener on every single play, regardless of
+  // how high a child's all-time best already climbs. A child who has
+  // stacked 80+ blocks before still gets the identical toddler-pace opening
+  // block every single replay — capped so a very high best can't make the
+  // very first block unfairly fast, while a fresh/low-`_best` child still
+  // gets the original gentle opener.
+  double get _careerPaceRamp => (_best / 150).clamp(0.0, 1.0) * 0.3;
 
   @override
   void initState() {
@@ -98,7 +108,11 @@ class _StackGameState extends State<StackGame>
 
   void _updateLevel() {
     _level = 1 + ((_tower.length - 1) ~/ 6);
-    _speed = math.min(1.35, 0.55 + (_level - 1) * 0.05);
+    // Must re-add `_careerPaceRamp` here too — this recompute runs after
+    // every single drop (not just on reset) and would otherwise silently
+    // wipe the opening career-ramp boost back down to the flat base speed
+    // the moment the first block lands.
+    _speed = math.min(1.35, 0.55 + _careerPaceRamp + (_level - 1) * 0.05);
   }
 
   void _drop() {
@@ -201,7 +215,7 @@ class _StackGameState extends State<StackGame>
       _curLeft = 0.1;
       _curWidth = 0.44;
       _dir = 1;
-      _speed = 0.55;
+      _speed = 0.55 + _careerPaceRamp;
       _score = 0;
       _level = 1;
       _perfectStreak = 0;
@@ -222,7 +236,10 @@ class _StackGameState extends State<StackGame>
     return _Shell(
       title: '🧱 Stack',
       introHow: 'Tap to drop the moving block and stack it as high as you can.',
-      onStart: () => setState(() => _status = GameStatus.playing),
+      onStart: () => setState(() {
+        _speed = 0.55 + _careerPaceRamp;
+        _status = GameStatus.playing;
+      }),
       score: _score,
       best: _best,
       status: _status,
