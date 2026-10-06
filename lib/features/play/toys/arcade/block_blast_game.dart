@@ -29,6 +29,15 @@ class _BlockBlastGameState extends State<BlockBlastGame> with _Emit {
   // feedback" bug class fixed in slide_puzzle/color_mixer, applied here.
   List<math.Point<int>> _invalidCells = const <math.Point<int>>[];
   int _invalidToken = 0;
+  // Every placement scored the exact same flat `cleared * 10`, so chaining
+  // line clears back-to-back (the genre-defining "combo" reward every real
+  // block-puzzle game — Tetris, Block Blast, etc. — gives for consecutive
+  // clears) was completely absent; a child clearing lines on consecutive
+  // placements earned nothing extra for the skillful streak over someone
+  // clearing once every ten placements. Tracks how many PLACEMENTS in a row
+  // have each cleared at least one line; resets the moment a placement
+  // doesn't clear anything, mirroring stack_game's `_perfectStreak` pattern.
+  int _comboStreak = 0;
 
   static const List<Color> _pieceColors = <Color>[
     Color(0xFFEF476F), Color(0xFFFFD166), Color(0xFF06D6A0),
@@ -155,7 +164,10 @@ class _BlockBlastGameState extends State<BlockBlastGame> with _Emit {
         fullCols.add(c);
       }
     }
-    if (fullRows.isEmpty && fullCols.isEmpty) return;
+    if (fullRows.isEmpty && fullCols.isEmpty) {
+      _comboStreak = 0;
+      return;
+    }
     for (final r in fullRows) {
       for (var c = 0; c < _n; c++) {
         _grid[r][c] = null;
@@ -167,9 +179,12 @@ class _BlockBlastGameState extends State<BlockBlastGame> with _Emit {
       }
     }
     final cleared = fullRows.length + fullCols.length;
-    _score += cleared * 10;
-    _banner = 'Clear +${cleared * 10}!';
-    TonePlayer.instance.playCue(SoundCue.success);
+    _comboStreak++;
+    final mult = _comboStreak.clamp(1, 5);
+    final gain = cleared * 10 * mult;
+    _score += gain;
+    _banner = mult > 1 ? 'Clear +$gain! Combo x$mult 🔥' : 'Clear +$gain!';
+    TonePlayer.instance.playCue(mult > 1 ? SoundCue.milestone : SoundCue.success);
   }
 
   void _gameOver() {
@@ -192,6 +207,7 @@ class _BlockBlastGameState extends State<BlockBlastGame> with _Emit {
       _banner = null;
       _invalidCells = const <math.Point<int>>[];
       _invalidToken++;
+      _comboStreak = 0;
       _status = GameStatus.playing;
       _refill();
     });
