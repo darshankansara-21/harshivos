@@ -955,7 +955,23 @@ class _ToyCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isFav = ref.watch(favoritesProvider).contains(toy.id);
     final best = GameScores.instance.best(toy.id);
-    return GestureDetector(
+    // This card is the single tap target for every toy in the whole catalog
+    // — both the "All Toys" grid and the "Picked for you" rail render it —
+    // yet it was a bare GestureDetector with zero Semantics tree, so a
+    // screen-reader user had no way to discover or open ANY game from the
+    // main catalog (only the nested favorite heart, fixed separately, was
+    // ever reachable). ExcludeSemantics hides the purely-decorative thumb
+    // art/badges/name-text (already folded into this label) while leaving
+    // `_HeartButton`'s own Semantics node untouched so its favorite toggle
+    // stays independently announced and actionable.
+    return Semantics(
+      button: true,
+      label: '${toy.name}, ${toy.category.label}.'
+          '${isFav ? ' Favorited.' : ''}'
+          '${best > 0 ? ' Best score $best.' : ''}',
+      onTap: () => ToyUniverseScreen.open(context, ref, toy),
+      onLongPress: () => _showPreview(context, ref),
+      child: GestureDetector(
       onTap: () => ToyUniverseScreen.open(context, ref, toy),
       onLongPress: () => _showPreview(context, ref),
       child: ClipRRect(
@@ -973,7 +989,10 @@ class _ToyCard extends ConsumerWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: <Widget>[
-                    GameThumb(id: toy.id, color: toy.color, emoji: toy.emoji),
+                    ExcludeSemantics(
+                      child: GameThumb(
+                          id: toy.id, color: toy.color, emoji: toy.emoji),
+                    ),
                     Positioned(
                       top: 6,
                       right: 6,
@@ -989,67 +1008,74 @@ class _ToyCard extends ConsumerWidget {
                       Positioned(
                         left: 6,
                         bottom: 6,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 7, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.55),
-                            borderRadius: BorderRadius.circular(10),
+                        child: ExcludeSemantics(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.55),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text('\u2605 $best',
+                                style: const TextStyle(
+                                    color: Color(0xFFFFD166),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800)),
                           ),
-                          child: Text('\u2605 $best',
-                              style: const TextStyle(
-                                  color: Color(0xFFFFD166),
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w800)),
                         ),
                       )
                     else if (toy.isNew)
                       Positioned(
                         left: 6,
                         bottom: 6,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 7, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: toy.color.withOpacity(0.85),
-                            borderRadius: BorderRadius.circular(10),
+                        child: ExcludeSemantics(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: toy.color.withOpacity(0.85),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Text('New \u2728',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800)),
                           ),
-                          child: const Text('New \u2728',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w800)),
                         ),
                       ),
                   ],
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(toy.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 1),
-                    Text(toy.category.label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            color: Colors.white.withOpacity(0.55),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600)),
-                  ],
+              ExcludeSemantics(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(toy.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 1),
+                      Text(toy.category.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              color: Colors.white.withOpacity(0.55),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600)),
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
         ),
+      ),
       ),
     );
   }
