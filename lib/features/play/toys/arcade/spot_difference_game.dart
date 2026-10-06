@@ -8,7 +8,8 @@ class SpotDifferenceGame extends StatefulWidget {
   State<SpotDifferenceGame> createState() => _SpotDifferenceGameState();
 }
 
-class _SpotDifferenceGameState extends State<SpotDifferenceGame> with _Emit {
+class _SpotDifferenceGameState extends State<SpotDifferenceGame>
+    with TickerProviderStateMixin, ToyTicker, _Emit {
   static const String _id = 'spot_difference';
   static const int _target = 10;
   final math.Random _rnd = math.Random();
@@ -35,6 +36,13 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with _Emit {
   // very first tap's text glued itself on screen for the rest of the run.
   Timer? _bannerTimer;
   GameStatus _status = GameStatus.ready;
+  // Every sibling tap/sort game in the catalog (odd_one_out, shadow_match,
+  // dot_to_dot...) bursts a few shards of colour on a correct hit; this
+  // grid — built around the exact same "found the odd one" feeling — only
+  // ever advanced silently to the next round, so even a genuine new
+  // personal best landed as text + a chime, nothing visual at all.
+  final List<_Shard> _bits = <_Shard>[];
+  bool _reduceMotion = false;
 
   void _flashBanner(String text, {Duration duration = const Duration(milliseconds: 1100)}) {
     _banner = text;
@@ -42,6 +50,27 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with _Emit {
     _bannerTimer = Timer(duration, () {
       if (mounted) setState(() => _banner = null);
     });
+  }
+
+  @override
+  void onTick(double dt) {
+    for (var i = _bits.length - 1; i >= 0; i--) {
+      final b = _bits[i];
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.vy += 0.5 * dt;
+      b.life -= dt;
+      if (b.life <= 0) _bits.removeAt(i);
+    }
+  }
+
+  void _burst(double x, double y, Color color) {
+    final n = _reduceMotion ? 4 : 12;
+    for (var i = 0; i < n; i++) {
+      final a = _rnd.nextDouble() * math.pi * 2;
+      final sp = 0.15 + _rnd.nextDouble() * 0.3;
+      _bits.add(_Shard(x, y, math.cos(a) * sp, math.sin(a) * sp, color));
+    }
   }
 
   @override
@@ -87,6 +116,7 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with _Emit {
       TonePlayer.instance.playCue(SoundCue.success);
       emit(ExperienceEvent.bubblePopped);
       _flashBanner(_spottedPool[_rnd.nextInt(_spottedPool.length)]);
+      _burst((idx % _cols + 0.5) / _cols, (idx ~/ _cols + 0.5) / _rows, _oddColor);
       // A child who runs out of lives right after this tap still deserves
       // the companion's loudest celebration if it's a genuine all-time
       // record, not just the routine correct-spot chime.
@@ -99,6 +129,11 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with _Emit {
         _flashBanner('New personal best! 🏆', duration: const Duration(milliseconds: 1300));
         TonePlayer.instance.playCue(SoundCue.milestone);
         emit(ExperienceEvent.personalBest);
+        // Layer a gold milestone burst onto the correct-spot burst above,
+        // the same distinctly-coloured personal-best celebration every
+        // other beat-your-best moment in the catalog gets.
+        _burst((idx % _cols + 0.5) / _cols, (idx ~/ _cols + 0.5) / _rows,
+            const Color(0xFFFFD166));
       }
       if (_score >= _target) {
         _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
@@ -149,6 +184,7 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with _Emit {
       _beatBest = false;
       _banner = null;
       _bannerTimer?.cancel();
+      _bits.clear();
       _newRound();
       _status = GameStatus.playing;
     });
@@ -157,6 +193,7 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with _Emit {
   @override
   Widget build(BuildContext context) {
     drain(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _Shell(
       title: '🔍 Spot the Difference',
       introHow:
@@ -223,6 +260,7 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with _Emit {
                     base: _base,
                     oddColor: _oddColor,
                     wrongFlash: _wrongFlash,
+                    bits: _bits,
                   ),
                   size: Size.infinite,
                 ),
@@ -244,9 +282,11 @@ class _SpotPainter extends CustomPainter {
     required this.base,
     required this.oddColor,
     required this.wrongFlash,
+    required this.bits,
   });
   final int cols, rows, odd, wrongFlash;
   final Color base, oddColor;
+  final List<_Shard> bits;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -269,6 +309,11 @@ class _SpotPainter extends CustomPainter {
                 ..color = const Color(0xFFE23B3B));
         }
       }
+    }
+    for (final b in bits) {
+      final k = (b.life / 0.5).clamp(0.0, 1.0);
+      canvas.drawCircle(Offset(b.x * w, b.y * h), 2 + 3 * k,
+          Paint()..color = b.color.withOpacity(k));
     }
   }
 

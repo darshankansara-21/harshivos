@@ -9,7 +9,8 @@ class StarPathGame extends StatefulWidget {
   State<StarPathGame> createState() => _StarPathGameState();
 }
 
-class _StarPathGameState extends State<StarPathGame> with _Emit {
+class _StarPathGameState extends State<StarPathGame>
+    with TickerProviderStateMixin, ToyTicker, _Emit {
   static const String _id = 'star_path';
   static const int _target = 5;
 
@@ -79,6 +80,12 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
   // `_reset()`, so it stayed glued on screen through the next constellation.
   Timer? _bannerTimer;
   GameStatus _status = GameStatus.ready;
+  // Every sibling tracing/matching game in the catalog bursts a few shards
+  // of colour on its own biggest moment (constellation-complete, personal
+  // best, win); this game only ever celebrated with a note + chime, leaving
+  // the exact "connected every star" feeling with no visual payoff at all.
+  final List<_Shard> _bits = <_Shard>[];
+  bool _reduceMotion = false;
 
   void _flashBanner(String text, {Duration duration = const Duration(milliseconds: 1300)}) {
     _banner = text;
@@ -92,6 +99,27 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
   void dispose() {
     _bannerTimer?.cancel();
     super.dispose();
+  }
+
+  @override
+  void onTick(double dt) {
+    for (var i = _bits.length - 1; i >= 0; i--) {
+      final b = _bits[i];
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.vy += 0.5 * dt;
+      b.life -= dt;
+      if (b.life <= 0) _bits.removeAt(i);
+    }
+  }
+
+  void _burst(double x, double y, Color color) {
+    final n = _reduceMotion ? 4 : 12;
+    for (var i = 0; i < n; i++) {
+      final a = _rnd.nextDouble() * math.pi * 2;
+      final sp = 0.15 + _rnd.nextDouble() * 0.3;
+      _bits.add(_Shard(x, y, math.cos(a) * sp, math.sin(a) * sp, color));
+    }
   }
 
   @override
@@ -180,6 +208,8 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
         GameScores.instance.submit(_id, _score).then((v) {
           if (mounted) setState(() => _best = v);
         });
+        final cx = _stars[_linked - 1][0], cy = _stars[_linked - 1][1];
+        _burst(cx, cy, const Color(0xFF4CC9F0));
         if (_score >= _target) {
           _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
           _status = GameStatus.won;
@@ -195,9 +225,11 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
           if (beatTime) {
             TonePlayer.instance.playCue(SoundCue.milestone);
             emit(ExperienceEvent.personalBest);
+            _burst(cx, cy, const Color(0xFFFFD166));
           }
           TonePlayer.instance.playCue(SoundCue.success);
           emit(ExperienceEvent.gameCompleted);
+          _burst(cx, cy, const Color(0xFFFFD166));
         } else {
           _flashBanner(_nextConstellationPool[_rnd.nextInt(_nextConstellationPool.length)]);
           _newShape();
@@ -219,6 +251,7 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
       _bannerTimer?.cancel();
       _finishMs = 0;
       _roundStartMs = DateTime.now().millisecondsSinceEpoch;
+      _bits.clear();
       _status = GameStatus.playing;
     });
   }
@@ -226,6 +259,7 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
   @override
   Widget build(BuildContext context) {
     drain(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _Shell(
       title: '⭐ Star Path',
       introHow:
@@ -288,7 +322,7 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
                 onPanUpdate: (d) => handle(d.localPosition),
                 onTapDown: (d) => handle(d.localPosition),
                 child: CustomPaint(
-                  painter: _StarPathPainter(stars: _stars, linked: _linked),
+                  painter: _StarPathPainter(stars: _stars, linked: _linked, bits: _bits),
                   size: Size.infinite,
                 ),
               ),
@@ -302,9 +336,10 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
 }
 
 class _StarPathPainter extends CustomPainter {
-  _StarPathPainter({required this.stars, required this.linked});
+  _StarPathPainter({required this.stars, required this.linked, required this.bits});
   final List<List<double>> stars;
   final int linked;
+  final List<_Shard> bits;
 
   void _star(Canvas canvas, Offset c, double r, Color color) {
     final path = Path();
@@ -354,6 +389,12 @@ class _StarPathPainter extends CustomPainter {
       }
       _star(canvas, c, next ? 15 : 11,
           done ? const Color(0xFFFFF3B0) : (next ? Colors.white : Colors.white54));
+    }
+
+    for (final b in bits) {
+      final k = (b.life / 0.5).clamp(0.0, 1.0);
+      canvas.drawCircle(Offset(b.x * w, b.y * h), 2 + 3 * k,
+          Paint()..color = b.color.withOpacity(k));
     }
   }
 

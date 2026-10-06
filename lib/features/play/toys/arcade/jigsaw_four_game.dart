@@ -108,13 +108,13 @@ class _JigsawFourGameState extends State<JigsawFourGame>
   double get _cellW => _bw / _cols;
   double get _cellH => _bh / _rows;
 
-  void _burst(double cx, double cy) {
+  void _burst(double cx, double cy, [Color? color]) {
     final n = _reduceMotion ? 4 : 14;
     for (var k = 0; k < n; k++) {
       final a = _rnd.nextDouble() * math.pi * 2;
       final sp = 0.15 + _rnd.nextDouble() * 0.3;
       _shards.add(_Shard(cx, cy, math.cos(a) * sp, math.sin(a) * sp,
-          _JigsawPainter._suns[_rnd.nextInt(_JigsawPainter._suns.length)]));
+          color ?? _JigsawPainter._suns[_rnd.nextInt(_JigsawPainter._suns.length)]));
     }
   }
 
@@ -196,6 +196,11 @@ class _JigsawFourGameState extends State<JigsawFourGame>
             _banner = 'Fastest rebuild yet! 🏆';
             TonePlayer.instance.playCue(SoundCue.milestone);
             emit(ExperienceEvent.personalBest);
+            // Layer a gold milestone burst onto the picture-complete burst
+            // above, mirroring slide_puzzle's distinctly-colored
+            // personal-best celebration so a genuine new record reads as
+            // its own moment, not just the routine completion fanfare.
+            _burst(_bx0 + _bw / 2, _by0 + _bh / 2, const Color(0xFFFFD166));
           }
         } else {
           _level++;
