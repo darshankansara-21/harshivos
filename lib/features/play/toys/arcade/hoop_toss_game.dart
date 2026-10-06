@@ -53,7 +53,19 @@ class _HoopTossGameState extends State<HoopTossGame>
     });
   }
 
-  double get _speed => 1.7 + _score * 0.13;
+  // Same "flat-forever opening pace never fed by career `_best`" bug class
+  // already fixed in space_dodge_game/whack_game/rhythm_clap_game/
+  // echo_drums_game/drum_garden_game/air_hockey_game/penalty_dash_game/
+  // piano_tiles_game: the peg's swing speed only ever ramped within a
+  // single run (`_score * 0.13`), so a child who has already ringed dozens
+  // of career hoops still opens every fresh toss at the exact same gentle
+  // 1.7 pace as a first-time player. Small capped career nudge (well short
+  // of the in-run ramp above) so a returning skilled player meets a
+  // slightly livelier peg from toss one, while a fresh/low-`_best` child
+  // still gets the original easy opener.
+  double get _careerPaceRamp => (_best / (_target * 4)).clamp(0.0, 1.0) * 0.5;
+
+  double get _speed => 1.7 + _careerPaceRamp + _score * 0.13;
   double get _catch => (0.1 - _score * 0.004).clamp(0.05, 0.1);
 
   @override
