@@ -164,7 +164,15 @@ class _DrumGardenGameState extends State<DrumGardenGame>
           // (longest) tune a child ever completes — the one that just won —
           // was always left out of their best, same win-path-skips-submit
           // bug class just fixed in echo_drums_game.dart (and echo_game.dart
-          // before it).
+          // before it). It also never checked `crossedBest`, so a winning
+          // tune that was also an all-time record silently skipped the
+          // milestone celebration the non-winning branch below already gets.
+          final crossedBest = _seq.length > _best && !_beatBest && _best > 0;
+          if (crossedBest) {
+            _beatBest = true;
+            TonePlayer.instance.playCue(SoundCue.milestone);
+            emit(ExperienceEvent.personalBest);
+          }
           GameScores.instance.submit(_id, _seq.length).then((b) {
             if (mounted) setState(() => _best = b);
           });
