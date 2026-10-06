@@ -38,6 +38,15 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
     '🍩': 'donut',
   };
   static const int _maxLevel = 5;
+  // The win screen's own praise was a single invariant "Great memory!"
+  // literal on every completed run forever — the same robotic-repetition
+  // gap already fixed catalog-wide via a random-pick `_winPraisePool`
+  // (e.g. catch_beat above). Picked fresh each win; the real earned
+  // time-bonus stat still appends after it unchanged.
+  static const List<String> _winPraisePool = <String>[
+    'Great memory!', 'Sharp mind!', 'Memory master!', 'Well remembered!',
+  ];
+  String _winPraise = _winPraisePool[0];
   final math.Random _rnd = math.Random();
   late List<String> _cards;
   late List<bool> _matched;
@@ -281,6 +290,7 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
             if (_level >= _maxLevel) {
               _flash(_bankTimeBonus('Galaxy cleared!'));
               _status = GameStatus.won;
+              _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
               TonePlayer.instance.playCue(SoundCue.success);
               emit(ExperienceEvent.gameCompleted);
               GameScores.instance.submit(_id, _score).then((b) {
@@ -392,8 +402,8 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
       // frame, so it was never actually visible — fold it into the win
       // text itself so the reward a child just earned is the thing they see.
       winText: _finalTimeBonus > 0
-          ? 'Great memory! +$_finalTimeBonus time bonus'
-          : 'Great memory!',
+          ? '$_winPraise +$_finalTimeBonus time bonus'
+          : _winPraise,
       accent: const Color(0xFF06D6A0),
       onPlayAgain: _reset,
       child: DecoratedBox(

@@ -37,6 +37,15 @@ class _CatchBeatGameState extends State<CatchBeatGame>
   static const List<String> _missPool = <String>[
     'Missed!', 'So close!', 'Next one!', 'Keep going!',
   ];
+  // The win screen's own praise was a single invariant "Rhythm star!"
+  // literal on every completed run forever — the exact same robotic-
+  // repetition gap already fixed catalog-wide via a random-pick
+  // `_winPraisePool` (e.g. dot_to_dot/tone_match above). Picked fresh each
+  // win; the real earned combo stat still appends after it unchanged.
+  static const List<String> _winPraisePool = <String>[
+    'Rhythm star!', 'Beat master!', 'Great ears!', 'On the beat!',
+  ];
+  String _winPraise = _winPraisePool[0];
   final math.Random _rnd = math.Random();
   final List<_Orb> _orbs = <_Orb>[];
   final List<_Shard> _bits = <_Shard>[];
@@ -210,6 +219,7 @@ class _CatchBeatGameState extends State<CatchBeatGame>
       }
       if (_score >= _target) {
         _status = GameStatus.won;
+        _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
       }
@@ -256,8 +266,8 @@ class _CatchBeatGameState extends State<CatchBeatGame>
           : 'Nice rhythm!',
       winEmoji: '🎶',
       winText: _bestCombo >= 2
-          ? 'Rhythm star! Best combo x$_bestCombo 🔥'
-          : 'Rhythm star!',
+          ? '$_winPraise Best combo x$_bestCombo 🔥'
+          : _winPraise,
       accent: const Color(0xFF66D9E8),
       onPlayAgain: _reset,
       child: LayoutBuilder(
