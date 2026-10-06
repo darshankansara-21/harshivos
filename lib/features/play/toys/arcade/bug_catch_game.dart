@@ -58,7 +58,11 @@ class _BugCatchGameState extends State<BugCatchGame>
 
   // Scurry gets busier and faster as you go: more bugs on screen and a
   // quicker wander speed, so round 12 is a genuinely harder hunt than round 1.
-  int get _maxBugs => math.min(6 + _score ~/ 4, 10);
+  // `_maxBugs` only ever read this run's own `_score` (always 0 right after
+  // `_reset()`), the same "flat-forever opening pace" bug already fixed on
+  // `_speedBoost` just below via `_careerPaceRamp` — missed here.
+  int get _maxBugs =>
+      math.min(6 + (_score + (_careerPaceRamp * 4).round()) ~/ 4, 10);
   // `_speedBoost` reset to a flat 1x every single replay because it only
   // scaled off this run's own `_score` (always 0 right after `_reset()`) —
   // a child who has caught hundreds of bugs across many runs still met the

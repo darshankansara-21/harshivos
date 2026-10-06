@@ -31,8 +31,16 @@ class _SkeeBallGameState extends State<SkeeBallGame>
   // Interpolates from the easy opening bands to the hard late-game bands as
   // score climbs toward target, giving the run a real difficulty curve while
   // keeping the point values themselves unchanged.
+  //
+  // Only ever read this run's own `_score` (always 0 right after
+  // `_reset()`), so a veteran with a high all-time `_best` rolled the
+  // identical wide-open opening bands as a first-timer — the same
+  // "flat-forever opening pace never fed by career `_best`" bug class
+  // already closed catalog-wide. Small, capped career head start so a
+  // returning skilled player meets narrower bands from roll one.
+  double get _careerSkillRamp => (_best / _target).clamp(0.0, 1.0) * 0.15;
   List<double> get _liveBandUpperY {
-    final t = (_score / _target).clamp(0.0, 1.0);
+    final t = (_score / _target + _careerSkillRamp).clamp(0.0, 1.0);
     return <double>[
       for (var i = 0; i < _bandUpperY.length; i++)
         _bandUpperY[i] + (_bandUpperYHard[i] - _bandUpperY[i]) * t,

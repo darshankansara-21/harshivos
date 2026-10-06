@@ -46,6 +46,10 @@ class _BalloonBounceGameState extends State<BalloonBounceGame>
   // judgment-free moment worth its own banner — not just the eventual
   // win/over screen.
   bool _beatBest = false;
+  // Small, capped career head start so a veteran with a high all-time
+  // `_best` meets a slightly livelier opening bounce than a first-time
+  // player, while round 1 still stays gentle for a fresh/low-`_best` child.
+  double get _careerPaceRamp => (_best / _target).clamp(0.0, 1.0) * 3;
 
   static const List<Color> _colors = <Color>[
     Color(0xFFFF5DA2), Color(0xFF48CAE4), Color(0xFF80ED99),
@@ -77,7 +81,14 @@ class _BalloonBounceGameState extends State<BalloonBounceGame>
     }
     // Gravity ramps up gently as the streak grows, so bounce 20 genuinely
     // demands quicker reflexes than bounce 1 instead of feeling identical.
-    final gravity = 0.5 + (_score / _target).clamp(0.0, 1.0) * 0.45;
+    // Only ever read this run's own `_score` (always 0 right after
+    // `_reset()`), so a veteran with a high all-time `_best` met the
+    // identical gentle opening bounce every time — the same
+    // "flat-forever opening pace never fed by career `_best`" bug class
+    // already closed catalog-wide. `_careerPaceRamp` seeds a small, capped
+    // head start off career `_best` instead.
+    final gravity =
+        0.5 + ((_score + _careerPaceRamp) / _target).clamp(0.0, 1.0) * 0.45;
     _vy += gravity * dt;
     _x += _vx * dt;
     _y += _vy * dt;
