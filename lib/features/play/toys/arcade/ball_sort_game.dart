@@ -18,6 +18,16 @@ class _BallSortGameState extends State<BallSortGame> with _Emit {
   static const List<String> _colorNames = <String>[
     'Red', 'Yellow', 'Green', 'Blue', 'Purple', 'Orange',
   ];
+  // Every other colour-matching game in the catalog (bubble_shooter,
+  // sorting_train, pattern_weaver, odd_one_out, shadow_match) already pairs
+  // its palette with a distinct shape glyph so matching never depends on
+  // colour perception alone — Ball Sort was the one tube-pouring game left
+  // relying purely on 6 similarly-bright hues (red/orange and blue/purple
+  // are an easy mix-up for red-green or blue-yellow colour-blind children)
+  // to tell which balls belong together. Index-matched to `_colorsPal`;
+  // every value is non-zero (no plain circle) since the balls themselves
+  // are already circles and a circle-on-circle glyph would be invisible.
+  static const List<int> _shapeForColor = <int>[1, 2, 3, 4, 5, 6];
   final math.Random _rnd = math.Random();
   late List<List<int>> _tubes;
   int _selected = -1;
@@ -288,6 +298,10 @@ class _BallSortGameState extends State<BallSortGame> with _Emit {
                         ? _colorsPal[t[s]]
                         : Colors.white.withOpacity(0.04),
                   ),
+                  child: s < t.length
+                      ? CustomPaint(
+                          painter: _BallGlyphPainter(_shapeForColor[t[s]]))
+                      : null,
                 ),
               ),
           ],
@@ -296,6 +310,24 @@ class _BallSortGameState extends State<BallSortGame> with _Emit {
       ),
     );
   }
+}
+
+/// Paints the colour-blind-safe shape glyph (see `_shapeForColor`) centred
+/// inside a single ball widget, reusing the catalog-shared `_paintPolyShape`
+/// (defined in sorting_train_game.dart, same library scope).
+class _BallGlyphPainter extends CustomPainter {
+  _BallGlyphPainter(this.shape);
+  final int shape;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    _paintPolyShape(canvas, size.center(Offset.zero), size.shortestSide * 0.26,
+        shape, Paint()..color = Colors.white.withOpacity(0.85));
+  }
+
+  @override
+  bool shouldRepaint(_BallGlyphPainter oldDelegate) =>
+      oldDelegate.shape != shape;
 }
 
 // ===========================================================================

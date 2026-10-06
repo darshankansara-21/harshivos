@@ -355,6 +355,21 @@ void _paintPolyShape(Canvas canvas, Offset c, double r, int shape, Paint p) {
         ..lineTo(c.dx - r * 0.8, c.dy)
         ..close();
       canvas.drawPath(dia, p);
+    case 6: // plus/cross — a 6th distinct glyph for games with a 6-colour
+      // palette (e.g. ball_sort) where every base shape is already a
+      // circle, so shape 0 can't be reused as a silhouette without being
+      // invisible against the ball itself.
+      final arm = r * 0.42;
+      canvas.drawRRect(
+          RRect.fromRectAndRadius(
+              Rect.fromCenter(center: c, width: r * 1.8, height: arm * 2),
+              Radius.circular(arm * 0.6)),
+          p);
+      canvas.drawRRect(
+          RRect.fromRectAndRadius(
+              Rect.fromCenter(center: c, width: arm * 2, height: r * 1.8),
+              Radius.circular(arm * 0.6)),
+          p);
   }
 }
 
