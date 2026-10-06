@@ -34,6 +34,15 @@ class _TapOrderGameState extends State<TapOrderGame> with _Emit {
   static const String _timeId = '${_id}_time_ms';
   DateTime? _roundStart;
   int _bestRoundTimeMs = 0;
+  // `_score` is a running tally across every round this session (it only
+  // ever resets via `_reset()`, not between rounds), so it climbs open-
+  // ended exactly like bubble_wrap/maze_run/echo/quick_tap's run totals —
+  // but unlike every one of those siblings, crossing a prior all-time best
+  // here only ever updated `_best` silently with no banner, milestone chime
+  // or `ExperienceEvent.personalBest`. Guard it the same way (reset in
+  // `_reset()`) so a genuinely record-setting session gets the same
+  // celebration every other open-ended-score game in the catalog gives.
+  bool _beatBest = false;
 
   @override
   void initState() {
@@ -65,6 +74,7 @@ class _TapOrderGameState extends State<TapOrderGame> with _Emit {
       _next++;
       TonePlayer.instance.playNote(_next % 10, seconds: 0.16);
       emit(ExperienceEvent.bubblePopped);
+      final crossedBest = _score > _best && !_beatBest && _best > 0;
       GameScores.instance.submit(_id, _score).then((b) {
         if (mounted && b != _best) setState(() => _best = b);
       });
@@ -73,10 +83,16 @@ class _TapOrderGameState extends State<TapOrderGame> with _Emit {
         final elapsed = DateTime.now().difference(_roundStart!);
         final elapsedMs = elapsed.inMilliseconds;
         final isBest = _bestRoundTimeMs <= 0 || elapsedMs < _bestRoundTimeMs;
-        _banner = isBest
-            ? 'Round $_round! ${_fmtTime(elapsed)} · ⭐ New best time!'
-            : 'Round $_round! ${_fmtTime(elapsed)} · '
-                'best ${_fmtTime(Duration(milliseconds: _bestRoundTimeMs))}';
+        // A record-setting session total is the bigger moment of the two if
+        // both land on the same tap — takes priority over the routine
+        // round/time banner, same convention as ball_sort/maze_run's
+        // "New personal best!" vs. their own routine level banner.
+        _banner = crossedBest
+            ? 'New personal best! 🏆'
+            : isBest
+                ? 'Round $_round! ${_fmtTime(elapsed)} · ⭐ New best time!'
+                : 'Round $_round! ${_fmtTime(elapsed)} · '
+                    'best ${_fmtTime(Duration(milliseconds: _bestRoundTimeMs))}';
         TonePlayer.instance.playCue(SoundCue.success);
         emit(ExperienceEvent.gameCompleted);
         if (isBest) {
@@ -84,7 +100,18 @@ class _TapOrderGameState extends State<TapOrderGame> with _Emit {
             if (mounted) setState(() => _bestRoundTimeMs = v);
           });
         }
+        if (crossedBest) {
+          _beatBest = true;
+          TonePlayer.instance.playCue(SoundCue.milestone);
+          emit(ExperienceEvent.personalBest);
+        }
         setState(_shuffle);
+      } else if (crossedBest) {
+        _beatBest = true;
+        _banner = 'New personal best! 🏆';
+        TonePlayer.instance.playCue(SoundCue.milestone);
+        emit(ExperienceEvent.personalBest);
+        setState(() {});
       } else {
         setState(() {});
       }
@@ -109,6 +136,7 @@ class _TapOrderGameState extends State<TapOrderGame> with _Emit {
       _score = 0;
       _round = 1;
       _banner = null;
+      _beatBest = false;
       _status = GameStatus.playing;
       _shuffle();
     });
