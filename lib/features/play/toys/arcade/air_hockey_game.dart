@@ -25,6 +25,15 @@ class _AirHockeyGameState extends State<AirHockeyGame>
     'Puck master!',
   ];
   String _winPraise = _winPraisePool[0];
+  // Every other match/round-loss screen in the catalog (28 arcade files, via
+  // `_gentleTryAgainPool`) pairs a loss with one of several warm phrases so
+  // the most-seen screen for a losing match doesn't feel like a broken
+  // record — Air Hockey's own match-loss screen was the one holdout still
+  // hard-coding a single literal ('Good game!') every single defeat, forever.
+  static const List<String> _lossPool = <String>[
+    'Good game!', 'Close match!', 'Nice rally!', 'Solid effort!',
+  ];
+  String _lossIntro = _lossPool[0];
   final math.Random _rnd = math.Random();
   final List<_Shard> _bits = <_Shard>[];
   bool _reduceMotion = false;
@@ -265,6 +274,7 @@ class _AirHockeyGameState extends State<AirHockeyGame>
       emit(ExperienceEvent.gameCompleted);
     } else if (_aiScore >= _target) {
       _status = GameStatus.over;
+      _lossIntro = _lossPool[_rnd.nextInt(_lossPool.length)];
     } else {
       _resetT = 0.8;
     }
@@ -317,7 +327,7 @@ class _AirHockeyGameState extends State<AirHockeyGame>
       status: _status,
       banner: _banner ?? 'You $_playerScore  ·  AI $_aiScore',
       overEmoji: '🏒',
-      overText: 'Good game! Lost $_playerScore–$_aiScore',
+      overText: '$_lossIntro Lost $_playerScore–$_aiScore',
       winEmoji: '🏆',
       winText: _winPraise,
       accent: const Color(0xFF28C2D1),
