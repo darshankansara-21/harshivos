@@ -44,6 +44,16 @@ class _SkyHopGameState extends State<SkyHopGame>
   int _coinCombo = 0;
   int _bestCoinCombo = 0;
   bool _started = false;
+  // Same "flat-forever difficulty never fed by career `_best`" bug class
+  // already fixed catalog-wide (brick_break/hoop_toss/piano_tiles/
+  // space_dodge/air_hockey/goal_keeper/...): pipe speed and spawn gap only
+  // ever scaled with the CURRENT run's `_score`, resetting to the identical
+  // gentle opener every single replay no matter how many pipes a flier has
+  // historically cleared. Nudges both knobs a little from pipe 1 of every
+  // flight for a flier with a high all-time `_best`, capped small so the
+  // very first pipe of a match stays reachable even for a seasoned player.
+  double get _careerPaceRamp =>
+      (_best / (_goalScore * 3)).clamp(0.0, 1.0) * 0.5;
   String? _banner;
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
@@ -109,7 +119,8 @@ class _SkyHopGameState extends State<SkyHopGame>
       if (s.life <= 0) _bits.removeAt(i);
     }
     if (!_started) return;
-    _pipeSpeed = math.min(0.82, _basePipeSpeed + _score * 0.02);
+    _pipeSpeed = math.min(
+        0.82, _basePipeSpeed + _careerPaceRamp * 0.12 + _score * 0.02);
     _vy += 1.6 * dt; // gravity
     _birdY += _vy * dt;
     _spawnIn -= dt;
@@ -126,7 +137,8 @@ class _SkyHopGameState extends State<SkyHopGame>
       return;
     }
     if (_spawnIn <= 0) {
-      _spawnIn = math.max(1.1, 1.7 - _score * 0.04);
+      _spawnIn = math.max(
+          1.1, 1.7 - _careerPaceRamp * 0.25 - _score * 0.04);
       final gapY = 0.18 + _rnd.nextDouble() * 0.64;
       final coinY = gapY + (_rnd.nextDouble() - 0.5) * _gap * 0.7;
       _pipes.add(_Pipe(1.1, gapY, coinY));
