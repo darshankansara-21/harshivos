@@ -228,17 +228,30 @@ class _CountPopGameState extends State<CountPopGame>
               // rebuilds every frame via ToyTicker) and route activation
               // through the existing `_tap` hit-test — same live-tracked
               // pattern as balloon_math/bug_catch's drifting targets.
-              for (var i = 0; i < _bubbles.length; i++)
+              //
+              // Captures the bubble object itself (`b`), not its list index:
+              // a popped bubble is removed from `_bubbles` via `removeAt`,
+              // which shifts every later index down. An index-captured
+              // closure queued by a screen reader (activated after the list
+              // had already shrunk) could fire against a stale/reused index
+              // — popping the wrong bubble, or indexing past the now-shorter
+              // list and throwing a `RangeError`. Every sibling drifting-
+              // target game (balloon_math, bug_catch) already captures the
+              // object directly for exactly this reason.
+              for (final b in _bubbles)
                 Positioned(
-                  left: _bubbles[i].x * w - _bubbles[i].r * w,
-                  top: _bubbles[i].y * h - _bubbles[i].r * w,
-                  width: _bubbles[i].r * w * 2,
-                  height: _bubbles[i].r * w * 2,
+                  key: ValueKey(b),
+                  left: b.x * w - b.r * w,
+                  top: b.y * h - b.r * w,
+                  width: b.r * w * 2,
+                  height: b.r * w * 2,
                   child: Semantics(
-                    label: 'Bubble ${i + 1}',
+                    label: 'Bubble',
                     button: true,
-                    onTap: () => _tap(
-                        Offset(_bubbles[i].x * w, _bubbles[i].y * h), w, h),
+                    onTap: () {
+                      if (!_bubbles.contains(b)) return;
+                      _tap(Offset(b.x * w, b.y * h), w, h);
+                    },
                     child: const SizedBox.expand(),
                   ),
                 ),
