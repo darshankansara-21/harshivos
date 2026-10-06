@@ -15,7 +15,8 @@ class _Song {
   final List<int> keys; // indices into the 7 white keys (C..B)
 }
 
-class _PianoSongGameState extends State<PianoSongGame> with _Emit {
+class _PianoSongGameState extends State<PianoSongGame>
+    with TickerProviderStateMixin, ToyTicker, _Emit {
   static const String _id = 'piano_song';
   // White-key letters and their pentatonic/diatonic degree for TonePlayer.
   static const List<String> _letters = <String>['C', 'D', 'E', 'F', 'G', 'A', 'B'];
@@ -52,6 +53,14 @@ class _PianoSongGameState extends State<PianoSongGame> with _Emit {
   String? _banner;
   GameStatus _status = GameStatus.ready;
   int _wrongKey = -1; // brief red flash on a mis-tapped key
+  // Finishing a whole nursery song — this game's one genuine "I did it!"
+  // moment — previously gave zero screen-space celebration, only a banner
+  // line and a chime identical in weight to every ordinary correct-key tap.
+  // Every other grid/row tap game in the catalog (tone_match, memory_flip,
+  // odd_one_out) bursts a few colour shards on its big win moment; mirror
+  // that here with a burst sweeping across all 7 keys.
+  final List<_Shard> _bits = <_Shard>[];
+  bool _reduceMotion = false;
 
   @override
   void initState() {
@@ -60,6 +69,32 @@ class _PianoSongGameState extends State<PianoSongGame> with _Emit {
     GameScores.instance.ensureLoaded().then((_) {
       if (mounted) setState(() => _best = GameScores.instance.best(_id));
     });
+  }
+
+  @override
+  void onTick(double dt) {
+    if (_bits.isEmpty) return;
+    for (var i = _bits.length - 1; i >= 0; i--) {
+      final b = _bits[i];
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.life -= dt;
+      if (b.life <= 0) _bits.removeAt(i);
+    }
+    setState(() {});
+  }
+
+  void _burstSongComplete() {
+    final perKey = _reduceMotion ? 1 : 3;
+    for (var k = 0; k < 7; k++) {
+      final cx = (k + 0.5) / 7;
+      for (var i = 0; i < perKey; i++) {
+        final a = _rnd.nextDouble() * math.pi * 2;
+        final sp = 0.12 + _rnd.nextDouble() * 0.28;
+        _bits.add(_Shard(cx, 0.82, math.cos(a) * sp, math.sin(a) * sp,
+            const Color(0xFFFF8ED8)));
+      }
+    }
   }
 
   _Song get _song => _songs[_order[_orderPos]];
@@ -72,6 +107,7 @@ class _PianoSongGameState extends State<PianoSongGame> with _Emit {
       _notePos = 0;
       _score = 0;
       _banner = null;
+      _bits.clear();
       _status = GameStatus.playing;
     });
   }
@@ -86,6 +122,7 @@ class _PianoSongGameState extends State<PianoSongGame> with _Emit {
         _score++;
         emit(ExperienceEvent.bubblePopped);
         TonePlayer.instance.playCue(SoundCue.success);
+        _burstSongComplete();
         GameScores.instance.submit(_id, _score).then((b) {
           if (mounted) setState(() => _best = b);
         });
@@ -121,6 +158,7 @@ class _PianoSongGameState extends State<PianoSongGame> with _Emit {
   @override
   Widget build(BuildContext context) {
     drain(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     final progress = _status == GameStatus.playing
         ? '${_song.name} · ${_notePos + 1}/${_song.keys.length}'
         : 'Tap the lit keys to play a song';
@@ -148,25 +186,36 @@ class _PianoSongGameState extends State<PianoSongGame> with _Emit {
           ),
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(10, 150, 10, 24),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                for (var k = 0; k < 7; k++)
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: _PianoKey(
-                        letter: _letters[k],
-                        lit: _status == GameStatus.playing && _nextKey == k,
-                        wrong: _wrongKey == k,
-                        onTap: () => _tapKey(k),
+          child: Stack(
+            fit: StackFit.expand,
+            children: <Widget>[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(10, 150, 10, 24),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    for (var k = 0; k < 7; k++)
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: _PianoKey(
+                            letter: _letters[k],
+                            lit: _status == GameStatus.playing && _nextKey == k,
+                            wrong: _wrongKey == k,
+                            onTap: () => _tapKey(k),
+                          ),
+                        ),
                       ),
-                    ),
+                  ],
+                ),
+              ),
+              if (_bits.isNotEmpty)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: CustomPaint(painter: _PianoSongShardPainter(_bits)),
                   ),
-              ],
-            ),
+                ),
+            ],
           ),
         ),
       ),
@@ -244,4 +293,22 @@ class _PianoKey extends StatelessWidget {
       ),
     );
   }
+}
+
+class _PianoSongShardPainter extends CustomPainter {
+  _PianoSongShardPainter(this.bits);
+  final List<_Shard> bits;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    for (final s in bits) {
+      final k = (s.life / 0.5).clamp(0.0, 1.0);
+      canvas.drawCircle(Offset(s.x * w, s.y * h), 2 + 3 * k,
+          Paint()..color = s.color.withOpacity(k));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_PianoSongShardPainter oldDelegate) => true;
 }
