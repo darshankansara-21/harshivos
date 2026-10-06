@@ -8,7 +8,8 @@ class SlidePuzzleGame extends StatefulWidget {
   State<SlidePuzzleGame> createState() => _SlidePuzzleGameState();
 }
 
-class _SlidePuzzleGameState extends State<SlidePuzzleGame> with _Emit {
+class _SlidePuzzleGameState extends State<SlidePuzzleGame>
+    with TickerProviderStateMixin, ToyTicker, _Emit {
   static const String _id = 'slide_puzzle';
   static const int _target = 3;
   final math.Random _rnd = math.Random();
@@ -44,6 +45,16 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame> with _Emit {
   // so once one board solved it stayed glued on screen through the next.
   Timer? _bannerTimer;
   GameStatus _status = GameStatus.ready;
+  // Every other grid-puzzle sibling sharing this `_Shard`/`_ShardPainter`
+  // convention (merge, jigsaw_four) bursts a few shards of colour on its own
+  // biggest moments; Slide Puzzle never did, leaving a solved board, the
+  // final win, and a crossed personal-best moves record exactly as flat as
+  // every routine slide (the same gap class just closed in merge_game).
+  final List<_Shard> _bits = <_Shard>[];
+  bool _reduceMotion = false;
+  // Burst origin in real pixels, kept in sync by the LayoutBuilder below —
+  // the board centre is the obvious celebration point.
+  Offset _boardCenter = Offset.zero;
 
   void _flashBanner(String text, {Duration duration = const Duration(milliseconds: 1300)}) {
     _banner = text;
@@ -51,6 +62,28 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame> with _Emit {
     _bannerTimer = Timer(duration, () {
       if (mounted) setState(() => _banner = null);
     });
+  }
+
+  void _burst(Color color) {
+    final n = _reduceMotion ? 4 : 14;
+    for (var i = 0; i < n; i++) {
+      final a = _rnd.nextDouble() * math.pi * 2;
+      final sp = 60 + _rnd.nextDouble() * 140;
+      _bits.add(_Shard(_boardCenter.dx, _boardCenter.dy, math.cos(a) * sp,
+          math.sin(a) * sp, color));
+    }
+  }
+
+  @override
+  void onTick(double dt) {
+    for (var i = _bits.length - 1; i >= 0; i--) {
+      final b = _bits[i];
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.vy += 300 * dt;
+      b.life -= dt;
+      if (b.life <= 0) _bits.removeAt(i);
+    }
   }
 
   @override
@@ -141,6 +174,7 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame> with _Emit {
       _score++;
       TonePlayer.instance.playCue(SoundCue.success);
       emit(ExperienceEvent.bubblePopped);
+      _burst(const Color(0xFF4CC9F0));
       GameScores.instance.submit(_id, _score).then((b) {
         if (mounted) setState(() => _best = b);
       });
@@ -159,9 +193,11 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame> with _Emit {
         if (beatMoves) {
           TonePlayer.instance.playCue(SoundCue.milestone);
           emit(ExperienceEvent.personalBest);
+          _burst(const Color(0xFFFFD166));
         }
         TonePlayer.instance.playCue(SoundCue.success);
         emit(ExperienceEvent.gameCompleted);
+        _burst(const Color(0xFFFFD166));
       } else {
         _flashBanner(_nextBoardPool[_rnd.nextInt(_nextBoardPool.length)]);
         _shuffle();
@@ -176,6 +212,7 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame> with _Emit {
       _totalMoves = 0;
       _banner = null;
       _bannerTimer?.cancel();
+      _bits.clear();
       _shuffle();
       _status = GameStatus.playing;
     });
@@ -184,6 +221,7 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame> with _Emit {
   @override
   Widget build(BuildContext context) {
     drain(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     final beatMoves = _status == GameStatus.won &&
         _bestMoves > 0 &&
         _totalMoves < _bestMoves;
@@ -219,6 +257,7 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame> with _Emit {
           final board = math.min(w * 0.86, h * 0.56);
           final ox = (w - board) / 2, oy = (h - board) / 2 + h * 0.04;
           final cell = board / 3;
+          _boardCenter = Offset(ox + board / 2, oy + board / 2);
           return Stack(
             children: <Widget>[
               GestureDetector(
@@ -254,6 +293,13 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame> with _Emit {
                     button: _tiles[p] != 0,
                     onTap: () => _tapCell(p),
                     child: const SizedBox.expand(),
+                  ),
+                ),
+              if (_bits.isNotEmpty)
+                IgnorePointer(
+                  child: CustomPaint(
+                    size: Size(w, h),
+                    painter: _ShardPainter(_bits),
                   ),
                 ),
             ],
