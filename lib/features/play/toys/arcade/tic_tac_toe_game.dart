@@ -117,10 +117,18 @@ class _TicTacToeGameState extends State<TicTacToeGame> with _Emit {
       TonePlayer.instance.playCue(SoundCue.gameOver);
       emit(ExperienceEvent.incorrectAnswer);
     } else {
+      // A draw is the one genuinely neutral outcome in this whole catalog —
+      // nobody answered anything, right or wrong, so it must not fire
+      // `ExperienceEvent.correctAnswer` (Hari/Pico's happy "you got it
+      // right!" reaction), which falsely told the child they'd answered
+      // something correctly when really neither side won. `incorrectAnswer`
+      // would be just as dishonest the other way (a draw against Pico is a
+      // successful block, not a mistake). The already-honest `gentleRetry`
+      // sound + 'Draw!' banner speak for themselves without a mismatched
+      // companion reaction on top.
       _status = GameStatus.over;
       _overText = 'Draw!';
       TonePlayer.instance.playCue(SoundCue.gentleRetry);
-      emit(ExperienceEvent.correctAnswer);
     }
   }
 
