@@ -105,11 +105,16 @@ class _MemoryPairsDeluxeGameState extends State<MemoryPairsDeluxeGame>
     if (_status != GameStatus.playing || _hideT > 0) return;
     final card = _cards[i];
     if (card.up || card.matched) return;
+    // A card flip is a flat paper/cardboard tile, not a mechanical fidget
+    // switch — use the dedicated `paper` grain cue (same fix already applied
+    // to `memory_flip_game.dart`) instead of the generic `playClick` thock so
+    // the sound actually matches what's drawn, and so this deluxe sibling
+    // doesn't sound unrelated to the base memory game.
+    TonePlayer.instance.playCue(SoundCue.paper);
     setState(() {
       card.up = true;
       if (_first == -1) {
         _first = i;
-        TonePlayer.instance.playClick();
       } else {
         _second = i;
         if (_cards[_first].emoji == card.emoji) {
@@ -144,7 +149,11 @@ class _MemoryPairsDeluxeGameState extends State<MemoryPairsDeluxeGame>
             if (_level >= _target) {
               _status = GameStatus.won;
               _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
-              TonePlayer.instance.playCue(SoundCue.gameStart);
+              // `gameStart` is the cue for beginning a run, not winning one —
+              // it was firing at the exact moment of victory, the opposite of
+              // what a child hears. `success` is the catalog's established
+              // win-moment cue (same one `memory_flip_game.dart` uses).
+              TonePlayer.instance.playCue(SoundCue.success);
               emit(ExperienceEvent.gameCompleted);
             } else {
               _level++;
@@ -155,7 +164,10 @@ class _MemoryPairsDeluxeGameState extends State<MemoryPairsDeluxeGame>
           }
         } else {
           _hideT = 0.8;
-          TonePlayer.instance.playThock();
+          // Matches the rest of the catalog's gentle wrong-answer cue
+          // (`gentleRetry`) instead of the generic fidget-toy `thock`, which
+          // read as a harsh mechanical buzz rather than an encouraging retry.
+          TonePlayer.instance.playCue(SoundCue.gentleRetry);
           emit(ExperienceEvent.incorrectAnswer);
         }
       }
