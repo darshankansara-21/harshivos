@@ -73,6 +73,17 @@ class _BrickBreakGameState extends State<BrickBreakGame>
 
   double get _effectivePaddleW => _wideT > 0 ? _paddleW * 1.45 : _paddleW;
 
+  // Same "flat-forever opening pace never fed by career `_best`" bug class
+  // already fixed in space_dodge_game/whack_game/rhythm_clap_game/
+  // echo_drums_game/drum_garden_game/air_hockey_game/penalty_dash_game/
+  // piano_tiles_game/hoop_toss_game: `_speedMul` always reset to the exact
+  // same 1.0 beginner pace every run, no matter how many bricks the child
+  // has already broken across their whole career. Small capped career nudge
+  // (well short of the in-run 1.8 ceiling `_nextLevel` climbs to) so a
+  // returning skilled player meets a slightly livelier ball from serve one,
+  // while a fresh/low-`_best` child still gets the original gentle opener.
+  double get _careerPaceRamp => (_best / 400).clamp(0.0, 1.0) * 0.3;
+
   @override
   void initState() {
     super.initState();
@@ -335,7 +346,7 @@ class _BrickBreakGameState extends State<BrickBreakGame>
     setState(() {
       _level = 1;
       _lives = 3;
-      _speedMul = 1;
+      _speedMul = 1 + _careerPaceRamp;
       _rowCount = 4;
       _combo = 0;
       _wideT = 0;
@@ -366,7 +377,11 @@ class _BrickBreakGameState extends State<BrickBreakGame>
       introHow: 'Move the paddle to bounce the ball and smash every brick! '
           'Golden bricks need two hits. Catch falling capsules for a helpful boost. '
           'Missing the ball costs one of your 3 lives.',
-      onStart: () => setState(() => _status = GameStatus.playing),
+      onStart: () => setState(() {
+        _speedMul = 1 + _careerPaceRamp;
+        _serveBall();
+        _status = GameStatus.playing;
+      }),
       score: _score,
       best: _best,
       status: _status,
