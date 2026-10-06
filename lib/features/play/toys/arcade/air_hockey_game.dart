@@ -42,6 +42,12 @@ class _AirHockeyGameState extends State<AirHockeyGame>
   // collisions match what's drawn.
   double _aspect = 1.0; // height / width of the last laid-out canvas
   int _playerScore = 0, _aiScore = 0, _best = 0;
+  // Unlike every other open-ended scoring game in the catalog (hoop_toss,
+  // bubble_wrap, shape_sort_chute...), Air Hockey can end a match (AI reaches
+  // `_target` first) with the player's own score still climbing past a prior
+  // all-time best — that moment silently updated `_best` with no banner or
+  // celebration at all, unlike every sibling score-with-a-fail-state game.
+  bool _beatBest = false;
   double _resetT = 0;
   double _goalGlow = 0; // >0 player glow, <0 ai glow
   String? _banner;
@@ -214,10 +220,20 @@ class _AirHockeyGameState extends State<AirHockeyGame>
     emit(ExperienceEvent.bubblePopped);
     if (player) {
       TonePlayer.instance.playCue(SoundCue.success);
+      final crossedBest = _playerScore > _best && !_beatBest && _best > 0;
       _flash('GOAL! $_playerScore–$_aiScore');
       GameScores.instance.submit(_id, _playerScore).then((b) {
         if (mounted) setState(() => _best = b);
       });
+      if (crossedBest) {
+        _beatBest = true;
+        // Takes priority over the routine goal banner above — a new
+        // all-time record is the bigger moment of the two, same precedence
+        // used by hoop_toss/shape_sort_chute.
+        _flash('New personal best! 🏆');
+        TonePlayer.instance.playCue(SoundCue.milestone);
+        emit(ExperienceEvent.personalBest);
+      }
     } else if (_aiScore >= _target) {
       // The match-losing goal must sound distinct from a routine concede,
       // never just the same gentle-retry cue as every other AI score.
@@ -250,6 +266,7 @@ class _AirHockeyGameState extends State<AirHockeyGame>
     setState(() {
       _playerScore = 0;
       _aiScore = 0;
+      _beatBest = false;
       _bits.clear();
       _banner = null;
       _bannerT = 0;
