@@ -28,6 +28,12 @@ class _SlimeStretchToyState extends State<SlimeStretchToy>
   double _hue = 0.33;
   bool _seeded = false;
   Offset? _lastSoundAt;
+  // Every other continuous-motion toy in this file (SpinUniverse's idle
+  // spin, InfiniteMarbleRun's spawn pace) already dampens its perpetual
+  // motion for Reduce Motion; this blob's spring-jiggle physics — which
+  // keeps oscillating/overshooting on every poke and release, unlike a
+  // one-shot animation — was the one toy left with zero accommodation.
+  bool _reduceMotion = false;
 
   @override
   void onTick(double dt) {
@@ -38,15 +44,20 @@ class _SlimeStretchToyState extends State<SlimeStretchToy>
       _seeded = true;
     }
     // Spring the blob centre toward the finger (or back to the middle).
+    // Reduce Motion raises the spring's damping (not its stiffness), so the
+    // blob still follows the finger responsively but settles without the
+    // bouncy overshoot.
+    final damping = _reduceMotion ? 16.0 : 7.0;
     final target = _finger ?? size.center(Offset.zero);
-    final accel = (target - _center) * 26 - _centerVel * 7;
+    final accel = (target - _center) * 26 - _centerVel * damping;
     _centerVel += accel * dt;
     _center += _centerVel * dt;
 
     // Each rim vertex springs back to the base radius, jiggling like jelly.
     const base = 90.0;
+    final rimDamping = _reduceMotion ? 14.0 : 6.0;
     for (var i = 0; i < _verts; i++) {
-      final force = (base - _radii[i]) * 60 - _vel[i] * 6;
+      final force = (base - _radii[i]) * 60 - _vel[i] * rimDamping;
       _vel[i] += force * dt;
       _radii[i] += _vel[i] * dt;
     }
@@ -56,11 +67,13 @@ class _SlimeStretchToyState extends State<SlimeStretchToy>
     _finger = p;
     final dir = p - _center;
     final ang = math.atan2(dir.dy, dir.dx);
-    // Bulge the rim toward the finger to create the stretch.
+    // Bulge the rim toward the finger to create the stretch; thinned under
+    // Reduce Motion so the bulge settles instead of wobbling.
+    final bulge = _reduceMotion ? 0.035 : 0.06;
     for (var i = 0; i < _verts; i++) {
       final a = i / _verts * 2 * math.pi;
       final align = math.cos(a - ang).clamp(-1.0, 1.0);
-      _vel[i] += align * dir.distance.clamp(0, 220) * 0.06;
+      _vel[i] += align * dir.distance.clamp(0, 220) * bulge;
     }
     _hue = (_hue + 0.002) % 1.0;
     // A real stretchy blob makes a soft squish/pop as it gets pulled further —
@@ -74,6 +87,7 @@ class _SlimeStretchToyState extends State<SlimeStretchToy>
 
   @override
   Widget build(BuildContext context) {
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return Listener(
       onPointerDown: (e) {
         _lastSoundAt = null;
@@ -266,11 +280,17 @@ class _CarTrackBuilderToyState extends State<CarTrackBuilderToy>
   final List<Offset> _track = <Offset>[];
   double _dist = 0; // arc-length position of the car along the track
   bool _drawing = false;
+  // Every other perpetual-motion toy in this file (SpinUniverse's idle
+  // spin, InfiniteMarbleRun's spawn pace, SlimeStretch's jiggle) already
+  // dampens for Reduce Motion; the car here loops the track forever at a
+  // flat 180px/s with zero accommodation, the one perpetual-loop toy left
+  // untouched by that lens.
+  bool _reduceMotion = false;
 
   @override
   void onTick(double dt) {
     if (_drawing || _track.length < 2) return;
-    _dist += 180 * dt;
+    _dist += (_reduceMotion ? 90 : 180) * dt;
     final total = _trackLength();
     if (total > 0) _dist %= total;
   }
@@ -285,6 +305,7 @@ class _CarTrackBuilderToyState extends State<CarTrackBuilderToy>
 
   @override
   Widget build(BuildContext context) {
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return Stack(
       children: <Widget>[
         Listener(
