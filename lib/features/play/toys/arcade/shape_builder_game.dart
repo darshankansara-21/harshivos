@@ -39,6 +39,19 @@ class _ShapeBuilderGameState extends State<ShapeBuilderGame> with _Emit {
   // silently in the `best` HUD number, never celebrated like every other
   // beat-your-own-record moment in the catalog.
   bool _beatBest = false;
+  // `_score` (figures built) permanently caps at the 5-figure `_target` the
+  // moment a run is won, so `_best` goes static forever after the first
+  // completed playthrough — the same "stat that can never move again" bug
+  // class already fixed in mini_golf's stroke count, jigsaw_four's rebuild
+  // time, slide_puzzle's move count, counting_baskets' miss count and
+  // star_path's round time. Tracks the whole 5-figure run's wall-clock
+  // build time and keeps a separate, lower-is-better personal best via
+  // `GameScores.submitLow`, giving a replaying child a real "build it
+  // faster" goal that keeps recurring after the first win.
+  static const String _timeId = '${_id}_time_ms';
+  int _roundStartMs = 0;
+  int _bestTimeMs = 0;
+  int _finishMs = 0;
   int _wrongFlash = -1;
   String? _banner;
   GameStatus _status = GameStatus.ready;
@@ -47,7 +60,12 @@ class _ShapeBuilderGameState extends State<ShapeBuilderGame> with _Emit {
   void initState() {
     super.initState();
     GameScores.instance.ensureLoaded().then((_) {
-      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+      if (mounted) {
+        setState(() {
+          _best = GameScores.instance.best(_id);
+          _bestTimeMs = GameScores.instance.bestLow(_timeId);
+        });
+      }
     });
   }
 
@@ -154,8 +172,20 @@ class _ShapeBuilderGameState extends State<ShapeBuilderGame> with _Emit {
             if (_score >= _target) {
               _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
               _status = GameStatus.won;
+              _finishMs = DateTime.now().millisecondsSinceEpoch - _roundStartMs;
+              final beatTime = _bestTimeMs > 0 && _finishMs < _bestTimeMs;
+              GameScores.instance.submitLow(_timeId, _finishMs).then((v) {
+                if (mounted) setState(() => _bestTimeMs = v);
+              });
               TonePlayer.instance.playCue(SoundCue.gameStart);
               emit(ExperienceEvent.gameCompleted);
+              // A faster all-time build is its own genuine achievement,
+              // distinct from — and able to keep recurring after — the
+              // five-figure win itself, so it gets its own milestone chime.
+              if (beatTime) {
+                TonePlayer.instance.playCue(SoundCue.milestone);
+                emit(ExperienceEvent.personalBest);
+              }
             } else {
               _fig++;
               _buildFigure();
@@ -187,6 +217,8 @@ class _ShapeBuilderGameState extends State<ShapeBuilderGame> with _Emit {
       _score = 0;
       _fig = 0;
       _beatBest = false;
+      _finishMs = 0;
+      _roundStartMs = DateTime.now().millisecondsSinceEpoch;
       _figOrder.shuffle(_rnd);
       _banner = null;
       _buildFigure();
@@ -205,6 +237,8 @@ class _ShapeBuilderGameState extends State<ShapeBuilderGame> with _Emit {
       onStart: () => setState(() {
         _figOrder.shuffle(_rnd);
         _buildFigure();
+        _finishMs = 0;
+        _roundStartMs = DateTime.now().millisecondsSinceEpoch;
         _status = GameStatus.playing;
       }),
       score: _score,
@@ -213,7 +247,16 @@ class _ShapeBuilderGameState extends State<ShapeBuilderGame> with _Emit {
       status: _status,
       banner: _banner ?? 'Place the piece',
       winEmoji: '🛠️',
-      winText: _winPraise,
+      // A fresh win that doesn't beat the all-time build-time record still
+      // deserves to see its own time and the record to chase, matching the
+      // star_path_game convention; a win mid-run reload with _finishMs still
+      // 0 (shouldn't normally happen) falls back to the plain praise line.
+      winText: _finishMs <= 0
+          ? _winPraise
+          : (_bestTimeMs > 0 && _finishMs < _bestTimeMs
+              ? '$_winPraise New fastest build: ${(_finishMs / 1000).toStringAsFixed(1)}s! 🏆'
+              : '$_winPraise ${(_finishMs / 1000).toStringAsFixed(1)}s'
+                  '${_bestTimeMs > 0 ? ' (best ${(_bestTimeMs / 1000).toStringAsFixed(1)}s)' : ''}'),
       accent: const Color(0xFFFFD166),
       onPlayAgain: _reset,
       child: LayoutBuilder(
