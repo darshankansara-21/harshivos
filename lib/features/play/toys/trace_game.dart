@@ -19,22 +19,40 @@ class TraceGame extends StatefulWidget {
 class _TraceGameState extends State<TraceGame> {
   static const String _id = 'trace_it';
   static const int _shapeCount = 5;
+  // Total distinct shapes the game can draw from. Only _shapeCount of these
+  // are traced per playthrough, picked randomly — so a child who plays
+  // several rounds in a row sees a different subset each time instead of
+  // the exact same circle->square->triangle->wave->star sequence forever.
+  static const int _shapePoolSize = 9;
+  final math.Random _rnd = math.Random();
   int _score = 0;
   int _best = 0;
   GameStatus _status = GameStatus.playing;
   late List<Offset> _pts;
   late List<bool> _lit;
-  // Shuffled once per playthrough so the shape order isn't the exact same
-  // circle->square->triangle->wave->star sequence every single game.
-  List<int> _order = List<int>.generate(_shapeCount, (i) => i)..shuffle();
+  late List<int> _order;
+
+  static const List<String> _winPraisePool = <String>[
+    'All shapes traced!',
+    'Steady hands! All done!',
+    'Beautifully traced!',
+    'Every shape complete!',
+  ];
+  late String _winPraise = _winPraisePool[0];
 
   @override
   void initState() {
     super.initState();
+    _order = _pickOrder();
     _load(0);
     GameScores.instance.ensureLoaded().then((_) {
       if (mounted) setState(() => _best = GameScores.instance.best(_id));
     });
+  }
+
+  List<int> _pickOrder() {
+    final pool = List<int>.generate(_shapePoolSize, (i) => i)..shuffle(_rnd);
+    return pool.take(_shapeCount).toList();
   }
 
   void _load(int level) {
@@ -71,11 +89,36 @@ class _TraceGameState extends State<TraceGame> {
           final x = 0.12 + k / 28 * 0.76;
           pts.add(Offset(x, 0.5 + math.sin(k / 28 * math.pi * 3) * 0.22));
         }
-      default: // star
+      case 4: // star
         for (var k = 0; k < 10; k++) {
           final r = k.isEven ? 0.36 : 0.15;
           final a = -math.pi / 2 + k / 10 * math.pi * 2;
           pts.add(Offset(0.5 + math.cos(a) * r, 0.5 + math.sin(a) * r));
+        }
+      case 5: // heart
+        for (var k = 0; k <= 32; k++) {
+          final t = k / 32 * math.pi * 2;
+          final x = 16 * math.pow(math.sin(t), 3);
+          final y = 13 * math.cos(t) -
+              5 * math.cos(2 * t) -
+              2 * math.cos(3 * t) -
+              math.cos(4 * t);
+          pts.add(Offset(0.5 + x / 34, 0.5 - y / 34));
+        }
+      case 6: // diamond
+        _line(pts, const Offset(0.5, 0.16), const Offset(0.82, 0.5));
+        _line(pts, const Offset(0.82, 0.5), const Offset(0.5, 0.84));
+        _line(pts, const Offset(0.5, 0.84), const Offset(0.18, 0.5));
+        _line(pts, const Offset(0.18, 0.5), const Offset(0.5, 0.16));
+      case 7: // arrow
+        _line(pts, const Offset(0.16, 0.5), const Offset(0.72, 0.5));
+        _line(pts, const Offset(0.72, 0.5), const Offset(0.5, 0.28));
+        _line(pts, const Offset(0.72, 0.5), const Offset(0.5, 0.72));
+      default: // zigzag
+        for (var k = 0; k <= 24; k++) {
+          final x = 0.14 + k / 24 * 0.72;
+          final y = k.isEven ? 0.32 : 0.68;
+          pts.add(Offset(x, y));
         }
     }
     return pts;
@@ -107,6 +150,7 @@ class _TraceGameState extends State<TraceGame> {
       });
       if (_score >= _shapeCount) {
         _status = GameStatus.won;
+        _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         TonePlayer.instance.playCue(SoundCue.success);
       } else {
         TonePlayer.instance.playCue(SoundCue.correct);
@@ -120,7 +164,7 @@ class _TraceGameState extends State<TraceGame> {
     setState(() {
       _score = 0;
       _status = GameStatus.playing;
-      _order = List<int>.generate(_shapeCount, (i) => i)..shuffle();
+      _order = _pickOrder();
       _load(0);
     });
   }
@@ -217,8 +261,8 @@ class _TraceGameState extends State<TraceGame> {
                   children: <Widget>[
                     const Text('🎉', style: TextStyle(fontSize: 72)),
                     const SizedBox(height: 8),
-                    const Text('All shapes traced!',
-                        style: TextStyle(
+                    Text(_winPraise,
+                        style: const TextStyle(
                             color: Colors.white,
                             fontSize: 26,
                             fontWeight: FontWeight.w800)),
