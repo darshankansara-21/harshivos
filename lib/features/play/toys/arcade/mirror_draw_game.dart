@@ -146,7 +146,13 @@ class _MirrorDrawGameState extends State<MirrorDrawGame> with _Emit {
   // specific dot directly rather than nearest-distance matching).
   void _lightDot(_MirrorDot d) {
     d.lit = true;
-    TonePlayer.instance.playCue(SoundCue.correct);
+    // Tracing a symmetric picture is a pen-on-paper motion, not a quiz
+    // "right answer" — use the dedicated `paper` grain cue (same one
+    // `memory_flip_game.dart` uses for its card-flip texture, and
+    // `letter_trace_game.dart` now uses for its own dot-tracing) instead of
+    // the generic ascending `correct` chime shared by 30+ unrelated
+    // quiz-style games.
+    TonePlayer.instance.playCue(SoundCue.paper);
     if (_dots.every((e) => e.lit)) {
       _score++;
       TonePlayer.instance.playCue(SoundCue.success);

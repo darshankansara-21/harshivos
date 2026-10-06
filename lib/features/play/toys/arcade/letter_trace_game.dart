@@ -178,7 +178,12 @@ class _LetterTraceGameState extends State<LetterTraceGame> with _Emit {
   // specific dot directly rather than nearest-distance matching).
   void _lightDot(_TraceDot best) {
     best.lit = true;
-    TonePlayer.instance.playCue(SoundCue.correct);
+    // Tracing a letter is a pen-on-paper motion, not a quiz "right answer" —
+    // use the dedicated `paper` grain cue (same one `memory_flip_game.dart`
+    // uses for its card-flip texture) instead of the generic ascending
+    // `correct` chime shared by 30+ unrelated quiz-style games, so every dot
+    // lit along the stroke actually sounds like writing.
+    TonePlayer.instance.playCue(SoundCue.paper);
     if (_dots.every((d) => d.lit)) {
       _score++;
       TonePlayer.instance.playCue(SoundCue.success);
