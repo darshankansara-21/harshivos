@@ -23,12 +23,21 @@ class _RainbowRainToyState extends State<RainbowRainToy>
   final math.Random _r = math.Random();
   double _intensity = 0.4; // 0..1, controlled by vertical drag
   double _spawnAcc = 0;
+  // Unlike every other sensory toy in this file, the ambient background rain
+  // spawns continuously forever at a baseline rate regardless of touch —
+  // the same unbroken Reduce-Motion gap already fixed in BubblePopToy
+  // (toys_water.dart) and the particle bursts in toys_particles.dart. Thin
+  // the baseline/intensity-driven spawn rate under Reduce Motion instead of
+  // leaving this toy as the one remaining gap.
+  bool _reduceMotion = false;
 
   @override
   void onTick(double dt) {
     final size = context.size ?? Size.zero;
     // Spawn drops proportional to intensity.
-    _spawnAcc += dt * (8 + _intensity * 90);
+    _spawnAcc += dt * (_reduceMotion
+        ? 3 + _intensity * 30
+        : 8 + _intensity * 90);
     while (_spawnAcc >= 1) {
       _spawnAcc -= 1;
       _drops.add(_Drop(
@@ -83,6 +92,7 @@ class _RainbowRainToyState extends State<RainbowRainToy>
     // half of the toy's promise (summon rain at the centre) is reachable;
     // the drag-to-change-weather half stays correctly out of reach, same as
     // every other continuous-drag sensory toy.
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return Semantics(
       button: true,
       label: 'Tap to summon rain drops, drag up or down to change the rain',
