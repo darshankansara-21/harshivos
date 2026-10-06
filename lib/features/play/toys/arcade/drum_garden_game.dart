@@ -90,8 +90,22 @@ class _DrumGardenGameState extends State<DrumGardenGame>
   // a floor as the tune grows, so an 8-note tune is genuinely faster — and
   // harder to track — to watch than a 1-note one, not just longer.
   double get _noteProgress => (_seq.length / _target).clamp(0.0, 1.0);
-  double get _firstShowDur => 0.5 - _noteProgress * 0.2;
-  double get _betweenShowDur => 0.62 - _noteProgress * 0.24;
+  // Every other high-risk arcade game already feeds career skill into its
+  // opening pace (rhythm_clap's `_careerPaceRamp`, echo_drums's own sibling
+  // fix of the same gap), but round 1 here always started at the same flat
+  // 0.5s/0.62s beginner tempo, no matter how long a tune the child has
+  // already completed across their whole career — the opener felt
+  // identically slow for a seasoned player and a first-timer. Nudge (never
+  // remove) the opening pace for a proven player, capped well short of the
+  // in-run floor already established below so it never feels unfair.
+  double get _careerPaceRamp {
+    if (_best >= 6) return 0.12;
+    if (_best >= 3) return 0.06;
+    return 0;
+  }
+  double get _firstShowDur => (0.5 - _noteProgress * 0.2 - _careerPaceRamp).clamp(0.3, 0.5);
+  double get _betweenShowDur =>
+      (0.62 - _noteProgress * 0.24 - _careerPaceRamp * 0.4).clamp(0.38, 0.62);
 
   @override
   void onTick(double dt) {

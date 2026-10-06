@@ -40,6 +40,21 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
   double _showDur = 0.5;
   double _gapDur = 0.18;
 
+  // Every other high-risk arcade game already feeds career skill into its
+  // opening pace (rhythm_clap's `_careerPaceRamp`, whack's
+  // `_careerDangerRamp`, space_dodge's `_careerWaveRamp`), but round 1 of
+  // Echo Drums always started at the same flat 0.5s/0.18s beginner tempo, no
+  // matter how long a phrase the child has already echoed across their whole
+  // career — the opener felt identically slow for a seasoned player and a
+  // first-timer. Nudge (never remove) the opening pace for a proven player,
+  // capped well short of the in-run floor already established in
+  // `_startShow()` so it never feels unfair.
+  double get _careerPaceRamp {
+    if (_best >= 6) return 0.12;
+    if (_best >= 3) return 0.06;
+    return 0;
+  }
+
   // Every correctly echoed round used to flash the identical "Nice echo!" —
   // up to seven times in a single winning run — reading as flat/robotic well
   // before the run ends, the same "child delight" gap already fixed in
@@ -89,8 +104,8 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
     // floor by the final (8-note) round — fast enough to feel like a real
     // escalation, never so fast the lights blur together.
     final progress = (_seq.length / _winLen).clamp(0.0, 1.0);
-    _showDur = 0.5 - progress * 0.2;
-    _gapDur = 0.18 - progress * 0.08;
+    _showDur = (0.5 - progress * 0.2 - _careerPaceRamp).clamp(0.3, 0.5);
+    _gapDur = (0.18 - progress * 0.08 - _careerPaceRamp * 0.4).clamp(0.1, 0.18);
     _showing = true;
     _showStep = 0;
     _showOn = true;
