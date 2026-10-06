@@ -27,6 +27,11 @@ class _BallSortGameState extends State<BallSortGame> with _Emit {
   int _best = 0;
   String? _banner;
   GameStatus _status = GameStatus.ready;
+  // Ball Sort has no win cap — the level counter climbs forever, same open-
+  // ended shape as Stack/Block Blast/Bubble Shooter, so crossing a prior
+  // all-time best mid-run is a real, distinct moment worth its own banner
+  // (not just the routine "Level N!" every solve already gets).
+  bool _beatBest = false;
 
   @override
   void initState() {
@@ -142,7 +147,15 @@ class _BallSortGameState extends State<BallSortGame> with _Emit {
         GameScores.instance.submit(_id, _score).then((b) {
           if (mounted) setState(() => _best = b);
         });
-        _banner = 'Level $_level!';
+        if (!_beatBest && _best > 0 && _score > _best) {
+          _beatBest = true;
+          // Takes priority over the routine "Level N!" banner below — a new
+          // all-time record is the bigger moment of the two.
+          _banner = 'New personal best! 🏆';
+          TonePlayer.instance.playCue(SoundCue.milestone);
+        } else {
+          _banner = 'Level $_level!';
+        }
         setState(_deal);
       }
     } else {
@@ -168,6 +181,7 @@ class _BallSortGameState extends State<BallSortGame> with _Emit {
       _level = 0;
       _score = 0;
       _banner = null;
+      _beatBest = false;
       _status = GameStatus.playing;
       _deal();
     });
