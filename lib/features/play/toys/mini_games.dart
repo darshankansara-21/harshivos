@@ -470,6 +470,16 @@ class _FruitCatchGameState extends State<FruitCatchGame>
   // motion" toggle never reached hand-rolled particle bursts like this
   // game's catch splash.
   bool _reduceMotion = false;
+  // Beating your own all-time best used to only ever surface quietly at the
+  // very end, as a passive "★ N" number in the header that ticks up mid-run
+  // with no fanfare — the single most replay-motivating moment (genuinely
+  // doing better than you ever have) was silent. Fire one unmissable
+  // celebration the instant this run's score first overtakes the prior
+  // record, same spirit as merge_game's milestone banner but for the
+  // session-best stat every game already tracks. Guarded so a brand-new
+  // player's very first catch (where `_best` is still 0) isn't falsely
+  // celebrated, and so it only fires once per run.
+  bool _beatBest = false;
 
   @override
   void initState() {
@@ -589,6 +599,14 @@ class _FruitCatchGameState extends State<FruitCatchGame>
     } else if (_combo >= 3) {
       _flash('Combo x$_combo!');
     }
+    if (!_beatBest && _best > 0 && _score > _best) {
+      _beatBest = true;
+      // Takes priority over the combo/bonus flash just set above — a new
+      // all-time record is the bigger moment of the two.
+      _banner = 'New personal best! 🏆';
+      _bannerT = 1.6;
+      TonePlayer.instance.playCue(SoundCue.milestone);
+    }
     if (_score >= _target) _end(GameStatus.won);
   }
 
@@ -633,6 +651,7 @@ class _FruitCatchGameState extends State<FruitCatchGame>
       _splash.clear();
       _score = 0;
       _combo = 0;
+      _beatBest = false;
       _banner = null;
       _bannerT = 0;
       _spawnIn = 0.6;
