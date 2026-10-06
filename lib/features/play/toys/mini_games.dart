@@ -2418,6 +2418,10 @@ class _RacingGameState extends State<RacingGame>
           final pickup = 12 + (finishPush * 10).round();
           _score += pickup;
           TonePlayer.instance.playCue(SoundCue.success);
+          // Layer the engine rev behind the success chime, same two-sound
+          // pattern coin/bowling use, so a boost actually sounds like the
+          // car accelerating, not just another generic pickup.
+          TonePlayer.instance.playCue(SoundCue.engine);
           emit(ExperienceEvent.bubblePopped);
           _flash('⚡ Boost! +$pickup');
           return true;
@@ -2482,11 +2486,22 @@ class _RacingGameState extends State<RacingGame>
     TonePlayer.instance.playClick(pitch: 1.2);
   }
 
+  // A racing game that only ever sounds like clicks, coins and crashes is
+  // missing the one cue that actually says "car" — `SoundCue.engine` (a
+  // buzzy stacked-sine rev synthesized specifically for this purpose in
+  // tone_player.dart) was defined but never referenced anywhere in the whole
+  // catalog. Give the race its own launch "vroom" at the green light,
+  // mirroring quick_tap's readyGo chirp and bowling's roll-start cue.
+  void _playStartVroom() {
+    TonePlayer.instance.playCue(SoundCue.engine);
+  }
+
   void _reset() {
     setState(() {
       _startRace();
       _status = GameStatus.playing;
     });
+    _playStartVroom();
   }
 
   @override
@@ -2517,7 +2532,10 @@ class _RacingGameState extends State<RacingGame>
           'Tap left/right to change lanes, grab 🪙 coins and ⚡ boosts, '
           'and dodge traffic — late-race pickups are worth more, while a shunt '
           'costs pace without ending the race.',
-      onStart: () => setState(() => _status = GameStatus.playing),
+      onStart: () {
+        setState(() => _status = GameStatus.playing);
+        _playStartVroom();
+      },
       onPlayAgain: _reset,
       child: LayoutBuilder(
         builder: (context, c) {
