@@ -197,6 +197,16 @@ class _MirrorDrawGameState extends State<MirrorDrawGame> with _Emit {
       if (_score >= _target) {
         _status = GameStatus.won;
         _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
+        // The winning (final) shape is exactly as likely to be the one that
+        // crosses `_best` as any other — but only the non-winning branch
+        // below ever played the milestone chime, so a perfect personal-best
+        // run silently skipped the one celebration it most deserved (the
+        // same win-branch-skips-personal-best bug already fixed in
+        // xylophone_tap_game/drum_garden_game).
+        if (crossedBest) {
+          TonePlayer.instance.playCue(SoundCue.milestone);
+          emit(ExperienceEvent.personalBest);
+        }
         TonePlayer.instance.playCue(SoundCue.success);
         emit(ExperienceEvent.gameCompleted);
       } else {
