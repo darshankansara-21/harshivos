@@ -29,6 +29,12 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
     'Perfect run!',
   ];
   String _winPraise = _winPraisePool.first;
+  // Every other physics game that ends a round at a fixed spot (mini_golf's
+  // cup sink, hoop_toss's peg) bursts a few shards of colour on success —
+  // Maze Marble's goal cup never did, despite sharing the exact same
+  // `_Shard` class and painter convention. Mirror it here.
+  final List<_Shard> _bits = <_Shard>[];
+  bool _reduceMotion = false;
 
   final List<_MazeWall> _walls = <_MazeWall>[];
   double _mx = 0.5, _my = 0.1, _vx = 0, _vy = 0;
@@ -85,6 +91,13 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
     if (_bannerT > 0) {
       _bannerT -= dt;
       if (_bannerT <= 0) _banner = null;
+    }
+    for (var i = _bits.length - 1; i >= 0; i--) {
+      final b = _bits[i];
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.life -= dt;
+      if (b.life <= 0) _bits.removeAt(i);
     }
     // Drag acts like tilting a tray: pull the marble toward the finger.
     if (_dragging) {
@@ -198,6 +211,13 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
 
   void _reachGoal() {
     _score++;
+    final bitCount = _reduceMotion ? 5 : 14;
+    for (var i = 0; i < bitCount; i++) {
+      final a = _rnd.nextDouble() * math.pi * 2;
+      final sp = 0.15 + _rnd.nextDouble() * 0.35;
+      _bits.add(_Shard(_goalX, _goalY, math.cos(a) * sp, math.sin(a) * sp,
+          const Color(0xFF2EC4B6)));
+    }
     TonePlayer.instance.playCue(SoundCue.success);
     emit(ExperienceEvent.bubblePopped);
     GameScores.instance.submit(_id, _score).then((b) {
@@ -222,6 +242,7 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
       _score = 0;
       _banner = null;
       _bannerT = 0;
+      _bits.clear();
       _buildLevel();
       _status = GameStatus.playing;
     });
@@ -252,6 +273,7 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
           if (w > 0) _aspect = h / w;
+          _reduceMotion = MediaQuery.disableAnimationsOf(context);
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
             onPanStart: (d) {
@@ -279,6 +301,7 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
                 dragging: _dragging,
                 tx: _tx,
                 ty: _ty,
+                bits: _bits,
               ),
               size: Size.infinite,
             ),
@@ -299,10 +322,12 @@ class _MazeMarblePainter extends CustomPainter {
     required this.dragging,
     required this.tx,
     required this.ty,
+    required this.bits,
   });
   final List<_MazeWall> walls;
   final double mx, my, goalX, goalY, tx, ty;
   final bool dragging;
+  final List<_Shard> bits;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -350,6 +375,12 @@ class _MazeMarblePainter extends CustomPainter {
       textDirection: TextDirection.ltr,
     )..layout();
     tp.paint(canvas, gc - Offset(tp.width / 2, tp.height / 2));
+
+    for (final s in bits) {
+      final k = (s.life / 0.5).clamp(0.0, 1.0);
+      canvas.drawCircle(Offset(s.x * w, s.y * h), 2 + 3 * k,
+          Paint()..color = s.color.withOpacity(k));
+    }
 
     // Drag hint line.
     if (dragging) {
