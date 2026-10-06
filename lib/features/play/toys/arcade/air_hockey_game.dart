@@ -270,7 +270,7 @@ class _AirHockeyGameState extends State<AirHockeyGame>
     if (_playerScore >= _target) {
       _status = GameStatus.won;
       _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
-      TonePlayer.instance.playCue(SoundCue.gameStart);
+      TonePlayer.instance.playCue(SoundCue.success);
       emit(ExperienceEvent.gameCompleted);
     } else if (_aiScore >= _target) {
       _status = GameStatus.over;

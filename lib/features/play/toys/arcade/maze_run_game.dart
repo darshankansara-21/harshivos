@@ -167,7 +167,7 @@ class _MazeRunGameState extends State<MazeRunGame> with _Emit {
         _banner = 'Maze master!';
         _status = GameStatus.won;
       });
-      TonePlayer.instance.playCue(SoundCue.gameStart);
+      TonePlayer.instance.playCue(SoundCue.success);
       emit(ExperienceEvent.gameCompleted);
     } else if (crossedBest) {
       _beatBest = true;

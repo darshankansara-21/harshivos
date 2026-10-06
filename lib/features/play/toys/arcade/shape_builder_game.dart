@@ -195,7 +195,7 @@ class _ShapeBuilderGameState extends State<ShapeBuilderGame> with _Emit {
               GameScores.instance.submitLow(_timeId, _finishMs).then((v) {
                 if (mounted) setState(() => _bestTimeMs = v);
               });
-              TonePlayer.instance.playCue(SoundCue.gameStart);
+              TonePlayer.instance.playCue(SoundCue.success);
               emit(ExperienceEvent.gameCompleted);
               // A faster all-time build is its own genuine achievement,
               // distinct from — and able to keep recurring after — the

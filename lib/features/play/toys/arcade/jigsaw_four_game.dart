@@ -181,7 +181,7 @@ class _JigsawFourGameState extends State<JigsawFourGame>
         if (_score >= _target) {
           _status = GameStatus.won;
           _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
-          TonePlayer.instance.playCue(SoundCue.gameStart);
+          TonePlayer.instance.playCue(SoundCue.success);
           emit(ExperienceEvent.gameCompleted);
           _finishMs = _elapsedMs.round();
           final beatTime = _bestTimeMs > 0 && _finishMs < _bestTimeMs;

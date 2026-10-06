@@ -179,7 +179,7 @@ class _TargetTossGameState extends State<TargetTossGame>
     if (_score >= _target) {
       _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
       _status = GameStatus.won;
-      TonePlayer.instance.playCue(SoundCue.gameStart);
+      TonePlayer.instance.playCue(SoundCue.success);
       emit(ExperienceEvent.gameCompleted);
     } else {
       _resetT = 0.5;

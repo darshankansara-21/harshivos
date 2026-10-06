@@ -162,7 +162,7 @@ class _ToneMatchGameState extends State<ToneMatchGame>
         if (_matched.length >= _tones.length) {
           _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
           _status = GameStatus.won;
-          TonePlayer.instance.playCue(SoundCue.gameStart);
+          TonePlayer.instance.playCue(SoundCue.success);
           emit(ExperienceEvent.gameCompleted);
         }
       } else {

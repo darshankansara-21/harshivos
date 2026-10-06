@@ -142,7 +142,7 @@ class _SoccerKickGameState extends State<SoccerKickGame>
       if (_score >= _target) {
         _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         _status = GameStatus.won;
-        TonePlayer.instance.playCue(SoundCue.gameStart);
+        TonePlayer.instance.playCue(SoundCue.success);
         emit(ExperienceEvent.gameCompleted);
         return;
       }

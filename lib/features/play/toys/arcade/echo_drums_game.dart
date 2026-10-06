@@ -176,7 +176,7 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
         if (_seq.length >= _winLen) {
           _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
           _status = GameStatus.won;
-          TonePlayer.instance.playCue(SoundCue.gameStart);
+          TonePlayer.instance.playCue(SoundCue.success);
           emit(ExperienceEvent.gameCompleted);
           // The win branch never used to call submit() at all, so the final
           // (longest, highest-scoring) phrase a child ever echoes was always

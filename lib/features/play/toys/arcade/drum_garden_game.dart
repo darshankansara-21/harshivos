@@ -158,7 +158,7 @@ class _DrumGardenGameState extends State<DrumGardenGame>
         if (_seq.length >= _target) {
           _status = GameStatus.won;
           _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
-          TonePlayer.instance.playCue(SoundCue.gameStart);
+          TonePlayer.instance.playCue(SoundCue.success);
           emit(ExperienceEvent.gameCompleted);
           // The win branch never called submit() at all, so the final
           // (longest) tune a child ever completes — the one that just won —

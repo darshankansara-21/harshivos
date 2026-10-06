@@ -161,7 +161,7 @@ class _FeelingsMatchGameState extends State<FeelingsMatchGame> with _Emit {
         Future.delayed(const Duration(milliseconds: 220), () {
           if (!mounted) return;
           setState(() => _status = GameStatus.won);
-          TonePlayer.instance.playCue(SoundCue.gameStart);
+          TonePlayer.instance.playCue(SoundCue.success);
           emit(ExperienceEvent.gameCompleted);
         });
       } else {

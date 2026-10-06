@@ -140,7 +140,7 @@ class _HoopTossGameState extends State<HoopTossGame>
       if (_score >= _target) {
         _status = GameStatus.won;
         _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
-        TonePlayer.instance.playCue(SoundCue.gameStart);
+        TonePlayer.instance.playCue(SoundCue.success);
         emit(ExperienceEvent.gameCompleted);
       }
     } else {

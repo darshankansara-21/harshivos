@@ -79,7 +79,7 @@ class _BeatBuilderGameState extends State<BeatBuilderGame>
         _winPending = false;
         _status = GameStatus.won;
         _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
-        TonePlayer.instance.playCue(SoundCue.gameStart);
+        TonePlayer.instance.playCue(SoundCue.success);
         emit(ExperienceEvent.gameCompleted);
       }
     }

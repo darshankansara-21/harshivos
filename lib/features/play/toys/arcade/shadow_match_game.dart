@@ -149,7 +149,7 @@ class _ShadowMatchGameState extends State<ShadowMatchGame>
       if (_score >= _target) {
         _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         _status = GameStatus.won;
-        TonePlayer.instance.playCue(SoundCue.gameStart);
+        TonePlayer.instance.playCue(SoundCue.success);
         emit(ExperienceEvent.gameCompleted);
       } else {
         _newRound();
