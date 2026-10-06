@@ -388,15 +388,36 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
           if (constraints.maxWidth > 0) {
             _aspect = constraints.maxHeight / constraints.maxWidth;
           }
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onPanUpdate: (d) =>
-                _steer(d.localPosition.dx, constraints.maxWidth),
-            onPanDown: (d) => _steer(d.localPosition.dx, constraints.maxWidth),
-            child: CustomPaint(
-              painter: _SpacePainter(
-                  _meteors, _stars, _shipX, _shipR, _shield, _shards),
-              size: Size.infinite,
+          // Like brick_break/air_hockey/maze_marble/balance_ball's drag
+          // surfaces, this horizontal drag-to-steer ship had zero Semantics
+          // — a previously stale record claiming it was exempt ("whole-
+          // screen reduce-motion-only trail") confused the one-off exhaust
+          // particles with the actual steering mechanic. The ship only
+          // ever moves horizontally (see _steer), so a fixed-size
+          // left/right nudge of its own position reproduces the same
+          // effect onPanUpdate drives every frame, clamped the same way.
+          void nudge(double dx) =>
+              setState(() => _shipX = (_shipX + dx).clamp(_shipR, 1 - _shipR));
+          return Semantics(
+            label: 'Meteor field. Drag or use the nudge actions to steer '
+                'your ship left and right and dodge the meteors.',
+            customSemanticsActions: <CustomSemanticsAction, VoidCallback>{
+              const CustomSemanticsAction(label: 'Nudge ship left'): () =>
+                  nudge(-0.12),
+              const CustomSemanticsAction(label: 'Nudge ship right'): () =>
+                  nudge(0.12),
+            },
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onPanUpdate: (d) =>
+                  _steer(d.localPosition.dx, constraints.maxWidth),
+              onPanDown: (d) =>
+                  _steer(d.localPosition.dx, constraints.maxWidth),
+              child: CustomPaint(
+                painter: _SpacePainter(
+                    _meteors, _stars, _shipX, _shipR, _shield, _shards),
+                size: Size.infinite,
+              ),
             ),
           );
         },
