@@ -22,6 +22,15 @@ class _WhackGameState extends State<WhackGame>
     'Reflexes on fire!',
   ];
   String _winPraise = _winPraisePool[0];
+  // Every sibling arcade game (basketball, soccer_kick, steady_hand,
+  // piano_tiles, block_blast, goal_keeper, ...) rotates its game-over line
+  // through the shared `_gentleTryAgainPool` so the catalog's most-seen
+  // screen — shown on every loss, and losses are the common outcome for a
+  // child still learning — never feels like a broken record. Whack's loss
+  // screen instead hard-coded the exact identical 'Out of lives! Reached
+  // Round N' text on every single run, forever. Pair the round number with
+  // a pooled variant like everywhere else.
+  String _overPraise = _gentleTryAgainPool[0];
   // Routine miss-reason banners fire many times per run (every unhit mole,
   // every bomb tap) — a flat identical phrase each time is the same
   // flat-repeated-praise/miss gap already fixed catalog-wide (catch_beat's
@@ -138,6 +147,7 @@ class _WhackGameState extends State<WhackGame>
     if (_lives <= 0) {
       final prev = GameScores.instance.best(_id);
       _status = GameStatus.over;
+      _overPraise = _gentleTryAgainPool[_rnd.nextInt(_gentleTryAgainPool.length)];
       emit(_score > prev
           ? ExperienceEvent.gameCompleted
           : ExperienceEvent.incorrectAnswer);
@@ -250,6 +260,7 @@ class _WhackGameState extends State<WhackGame>
       _roundTarget = 10;
       _dangerLevel = _careerDangerRamp;
       _beatBest = false;
+      _overPraise = _gentleTryAgainPool[0];
       _banner = 'Whack 35 points to win!';
       _bannerT = 1.4;
       _spawnIn = 0.7;
@@ -271,7 +282,7 @@ class _WhackGameState extends State<WhackGame>
       status: _status,
       banner: _banner,
       overEmoji: '🔨',
-      overText: 'Out of lives! Reached Round $_round',
+      overText: '$_overPraise Reached Round $_round.',
       winEmoji: '🏆',
       winText: _winPraise,
       accent: const Color(0xFF8D5A3B),
