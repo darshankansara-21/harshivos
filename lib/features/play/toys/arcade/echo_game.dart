@@ -41,6 +41,14 @@ class _EchoGameState extends State<EchoGame>
   double _showT = 0;
   bool _showing = false;
   int _best = 0;
+  // Every other scoring arcade game already celebrates the moment a run's
+  // score passes the child's all-time best with a banner + milestone chime
+  // + ExperienceEvent.personalBest — Echo's score is the sequence length
+  // (`_seq.length`), open-ended just like those games, but it only ever
+  // submitted the new best silently. Guard it the same way (reset in
+  // `_reset()`) so repeating one's own longest tune gets the same
+  // celebration every sibling game gives.
+  bool _beatBest = false;
   GameStatus _status = GameStatus.ready;
 
   @override
@@ -100,6 +108,15 @@ class _EchoGameState extends State<EchoGame>
     if (_seq[_inputAt] == pad) {
       _inputAt++;
       if (_inputAt >= _seq.length) {
+        // A child who completes a run that is itself a genuine all-time
+        // record still deserves the companion's loudest celebration, not
+        // just the routine round-clear chime.
+        final crossedBest = _seq.length > _best && !_beatBest && _best > 0;
+        if (crossedBest) {
+          _beatBest = true;
+          TonePlayer.instance.playCue(SoundCue.milestone);
+          emit(ExperienceEvent.personalBest);
+        }
         if (_seq.length >= _target) {
           _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
           setState(() => _status = GameStatus.won);
@@ -138,6 +155,7 @@ class _EchoGameState extends State<EchoGame>
     setState(() {
       _seq.clear();
       _wrongPad = -1;
+      _beatBest = false;
       _status = GameStatus.playing;
       _nextRound();
     });
