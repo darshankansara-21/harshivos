@@ -49,6 +49,14 @@ class _BeatBuilderGameState extends State<BeatBuilderGame>
   // overlay.
   bool _winPending = false;
   double _winDelayT = 0;
+  // Every other scoring arcade game (bubble_wrap/hoop_toss/echo...) already
+  // celebrates the moment a run's score passes the child's all-time best
+  // with a banner + milestone chime + ExperienceEvent.personalBest —
+  // `_active` (drums switched on) only ever submitted the new best silently
+  // here. Guard it the same way (reset in `_reset()`) so building a bigger
+  // groove than ever before gets the same celebration every sibling game
+  // gives.
+  bool _beatBest = false;
 
   @override
   void initState() {
@@ -109,9 +117,17 @@ class _BeatBuilderGameState extends State<BeatBuilderGame>
       if (_grid[idx]) {
         TonePlayer.instance.playNote(_rowNotes[row], seconds: 0.2);
       }
+      final crossedBest = _active > _best && !_beatBest && _best > 0;
       if (_active > _best) {
         _best = _active;
         GameScores.instance.submit(_id, _active);
+      }
+      if (crossedBest) {
+        _beatBest = true;
+        _banner = 'New personal best! 🏆';
+        _bannerT = 1.4;
+        TonePlayer.instance.playCue(SoundCue.milestone);
+        emit(ExperienceEvent.personalBest);
       }
       if (_active == _rowsN * _steps) {
         // Filling every step is the whole point of the sequencer, and the
@@ -119,6 +135,9 @@ class _BeatBuilderGameState extends State<BeatBuilderGame>
         // once — let the full groove actually loop around and play once
         // (one full bar, `_steps * _tempo`) before the win overlay appears,
         // instead of freezing the playhead the moment the last cell lands.
+        // Flashed last so it wins over the personal-best banner above when
+        // both land on the same tap — filling the whole grid is the bigger
+        // moment.
         _banner = 'Full groove! 🔥';
         _bannerT = 1.6;
         _winPending = true;
@@ -139,6 +158,7 @@ class _BeatBuilderGameState extends State<BeatBuilderGame>
       _bannerT = 0;
       _winPending = false;
       _winDelayT = 0;
+      _beatBest = false;
       _status = GameStatus.playing;
     });
   }

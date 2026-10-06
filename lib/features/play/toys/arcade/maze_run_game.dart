@@ -36,6 +36,14 @@ class _MazeRunGameState extends State<MazeRunGame> with _Emit {
   int _level = 1;
   int _solved = 0;
   int _best = 0;
+  // Every other scoring arcade game (bubble_wrap/hoop_toss/echo...) already
+  // celebrates the moment a run's score passes the child's all-time best
+  // with a banner + milestone chime + ExperienceEvent.personalBest — mazes
+  // solved this run (`_solved`) only ever submitted the new best silently.
+  // Guard it the same way (reset in `_reset()`) so beating one's own
+  // longest streak of solved mazes gets the same celebration every sibling
+  // game gives.
+  bool _beatBest = false;
   String? _banner;
   GameStatus _status = GameStatus.ready;
 
@@ -125,6 +133,7 @@ class _MazeRunGameState extends State<MazeRunGame> with _Emit {
     _level++;
     emit(ExperienceEvent.bubblePopped);
     TonePlayer.instance.playCue(SoundCue.success);
+    final crossedBest = _solved > _best && !_beatBest && _best > 0;
     GameScores.instance.submit(_id, _solved).then((b) {
       if (mounted) setState(() => _best = b);
     });
@@ -136,6 +145,17 @@ class _MazeRunGameState extends State<MazeRunGame> with _Emit {
       });
       TonePlayer.instance.playCue(SoundCue.gameStart);
       emit(ExperienceEvent.gameCompleted);
+    } else if (crossedBest) {
+      _beatBest = true;
+      // Flashed instead of the routine "Solved! Bigger maze…" line so
+      // beating a prior all-time solved count isn't lost under the usual
+      // per-maze phrase.
+      setState(() {
+        _banner = 'New personal best! 🏆';
+        _genMaze();
+      });
+      TonePlayer.instance.playCue(SoundCue.milestone);
+      emit(ExperienceEvent.personalBest);
     } else {
       setState(() {
         _banner = _nextMazePool[_rnd.nextInt(_nextMazePool.length)];
@@ -148,6 +168,7 @@ class _MazeRunGameState extends State<MazeRunGame> with _Emit {
     setState(() {
       _level = 1;
       _solved = 0;
+      _beatBest = false;
       _banner = null;
       _genMaze();
       _status = GameStatus.playing;
