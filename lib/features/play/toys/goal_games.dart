@@ -991,9 +991,27 @@ class _PathFinderGameState extends State<PathFinderGame> with _GoalEmit {
                     final completed = _path.take(_step).contains(cell);
                     final next = _step < _path.length && _path[_step] == cell;
                     final onPath = _path.contains(cell);
+                    // Sighted children get a visible "glowing path" hint for
+                    // free — every on-path tile sits at a subtly brighter
+                    // opacity than a dead-end tile, exactly as `introHow`
+                    // promises ("Follow the glowing path"), well before they
+                    // ever step on it. A screen-reader user only ever heard
+                    // 'Maze cell' for every tile but the single immediate
+                    // next step, so they had none of that route-tracing
+                    // visibility a sighted child already sees — tap order is
+                    // unaffected (still one tile at a time), this only
+                    // restores equal information about which tiles are
+                    // actually part of the glowing route.
+                    final String label = next
+                        ? 'Next path step'
+                        : completed
+                            ? 'Completed path step'
+                            : onPath
+                                ? 'Path tile'
+                                : 'Maze cell, not on the path';
                     return Semantics(
                       button: true,
-                      label: next ? 'Next path step' : 'Maze cell',
+                      label: label,
                       child: InkWell(
                         key: ValueKey('path-cell-$cell'),
                         onTap: () => _tap(cell),
