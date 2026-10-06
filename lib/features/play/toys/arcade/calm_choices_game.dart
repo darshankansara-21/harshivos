@@ -10,27 +10,31 @@ class CalmChoicesGame extends StatefulWidget {
 }
 
 class _CalmScene {
-  const _CalmScene(this.feeling, this.healthy, this.other1, this.other2);
+  const _CalmScene(this.feeling, this.healthy, this.other1, this.other2, this.other3);
   final String feeling;
   final String healthy;
   final String other1;
   final String other2;
+  // Third distractor, only shown once the active option count grows past 3
+  // (see _optionCount) — keeps later rounds genuinely harder than early
+  // ones, the same pattern KindnessMatchGame already uses.
+  final String other3;
 }
 
 class _CalmChoicesGameState extends State<CalmChoicesGame> with _Emit {
   static const String _id = 'calm_choices';
   static const int _target = 10;
   static const List<_CalmScene> _scenes = <_CalmScene>[
-    _CalmScene('When you feel angry…', 'Take slow deep breaths', 'Hit something', 'Yell at a friend'),
-    _CalmScene('When you feel sad…', 'Talk to someone you trust', 'Keep it all inside', 'Stay alone all day'),
-    _CalmScene('When you feel worried…', 'Think of a calm place', 'Worry even more', 'Panic'),
-    _CalmScene('When you feel overwhelmed…', 'Take a little break', 'Do everything at once', 'Give up'),
-    _CalmScene('When you feel scared…', 'Ask for a hug', 'Hide forever', "Pretend you're fine"),
-    _CalmScene('When you feel frustrated…', 'Try again slowly', 'Break your things', 'Scream'),
-    _CalmScene('When you feel very excited…', 'Take turns and share', 'Push to the front', 'Grab everything'),
-    _CalmScene('When you feel tired…', 'Rest quietly', 'Keep pushing hard', 'Get grumpy at everyone'),
-    _CalmScene('When your heart races…', 'Count to ten', 'Hold your breath', 'Run around wildly'),
-    _CalmScene('When you need space…', 'Go to a quiet corner', 'Shout at people', 'Throw things'),
+    _CalmScene('When you feel angry…', 'Take slow deep breaths', 'Hit something', 'Yell at a friend', 'Slam the door'),
+    _CalmScene('When you feel sad…', 'Talk to someone you trust', 'Keep it all inside', 'Stay alone all day', 'Pretend you feel fine'),
+    _CalmScene('When you feel worried…', 'Think of a calm place', 'Worry even more', 'Panic', 'Imagine the worst'),
+    _CalmScene('When you feel overwhelmed…', 'Take a little break', 'Do everything at once', 'Give up', 'Rush through it all'),
+    _CalmScene('When you feel scared…', 'Ask for a hug', 'Hide forever', "Pretend you're fine", 'Freeze up'),
+    _CalmScene('When you feel frustrated…', 'Try again slowly', 'Break your things', 'Scream', 'Storm off'),
+    _CalmScene('When you feel very excited…', 'Take turns and share', 'Push to the front', 'Grab everything', 'Interrupt everyone'),
+    _CalmScene('When you feel tired…', 'Rest quietly', 'Keep pushing hard', 'Get grumpy at everyone', 'Skip resting'),
+    _CalmScene('When your heart races…', 'Count to ten', 'Hold your breath', 'Run around wildly', 'Clench your fists'),
+    _CalmScene('When you need space…', 'Go to a quiet corner', 'Shout at people', 'Throw things', 'Push past everyone'),
   ];
   // Pool of full-game win phrases so a replaying child doesn't always see
   // the identical "Calm champion!" line on win screen.
@@ -73,10 +77,19 @@ class _CalmChoicesGameState extends State<CalmChoicesGame> with _Emit {
     return _bag.removeLast();
   }
 
+  // Real difficulty curve: the first few rounds offer only 3 choices (1
+  // healthy + 2 unhealthy), then from the halfway point on a 3rd unhealthy
+  // distractor joins the mix, so late rounds are genuinely harder to tell
+  // apart than round 1 instead of every round being identically easy —
+  // the same pattern KindnessMatchGame already uses.
+  int get _optionCount => (3 + _score ~/ 5).clamp(3, 4);
+
   void _newRound() {
     _wrong = -1;
     _scene = _scenes[_drawScene()];
-    _options = <String>[_scene.healthy, _scene.other1, _scene.other2]..shuffle(_rnd);
+    final List<String> distractors = <String>[_scene.other1, _scene.other2, _scene.other3]
+      ..shuffle(_rnd);
+    _options = <String>[_scene.healthy, ...distractors.take(_optionCount - 1)]..shuffle(_rnd);
   }
 
   void _pick(String choice, int idx) {
