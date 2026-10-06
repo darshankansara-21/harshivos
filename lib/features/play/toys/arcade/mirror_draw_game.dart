@@ -284,6 +284,33 @@ class _MirrorDrawPainter extends CustomPainter {
           ..color = Colors.white12
           ..strokeWidth = 1);
 
+    // Ink trail: connect consecutive lit dots on both the traced left half
+    // and its mirrored right half, so a real symmetric picture visibly takes
+    // shape as the child draws — same convention as
+    // `letter_trace_game.dart`'s stroke trail. Before this, lighting a dot
+    // only ever drew an isolated dot: the game's own intro promises "a
+    // symmetric picture appears as you draw", but no actual picture — no
+    // connected lines — ever formed, undercutting the whole "draw" pitch.
+    // `_dots` is built point-by-point along the half-figure polyline in
+    // `_newShape`, so consecutive list entries are always adjacent on the
+    // path (no per-segment grouping needed, unlike the multi-stroke
+    // letter glyphs).
+    final inkPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 9
+      ..strokeCap = StrokeCap.round
+      ..color = const Color(0xFFB197FC).withOpacity(0.85);
+    for (var i = 1; i < dots.length; i++) {
+      final prev = dots[i - 1], cur = dots[i];
+      if (prev.lit && cur.lit) {
+        final pLeft = Offset(prev.x * w, prev.y * h);
+        final cLeft = Offset(cur.x * w, cur.y * h);
+        canvas.drawLine(pLeft, cLeft, inkPaint);
+        canvas.drawLine(Offset(w - pLeft.dx, pLeft.dy),
+            Offset(w - cLeft.dx, cLeft.dy), inkPaint);
+      }
+    }
+
     for (var i = 0; i < dots.length; i++) {
       final d = dots[i];
       final left = Offset(d.x * w, d.y * h);
