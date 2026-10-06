@@ -62,8 +62,16 @@ class _FireflyCountGameState extends State<FireflyCountGame>
     });
   }
 
+  // This count-up escalation only ever read the current round's `_score`,
+  // so a veteran with a high all-time `_best` restarted every single
+  // playthrough at the identical easy 2-4-firefly round 1 — the same
+  // "flat-forever difficulty never fed by career `_best`" bug class already
+  // closed for pace/speed games catalog-wide. Capped small so round 1 stays
+  // genuinely countable even for a seasoned player.
+  int get _careerSkillRamp => (_best ~/ 3).clamp(0, 4);
+
   void _newRound() {
-    final maxN = (4 + _score ~/ 2).clamp(4, 9);
+    final maxN = (4 + (_score + _careerSkillRamp) ~/ 2).clamp(4, 9);
     _count = 2 + _rnd.nextInt(maxN - 1);
     _flies.clear();
     for (var i = 0; i < _count; i++) {

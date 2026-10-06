@@ -68,7 +68,7 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
     _correct = -1;
     _locked = false;
     _biggest = _rnd.nextBool();
-    final max = _maxForScore(_score);
+    final max = _maxForScore(_score + _careerSkillRamp);
     final set = <int>{};
     while (set.length < 3) {
       set.add(1 + _rnd.nextInt(max));
@@ -79,6 +79,15 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
   // Gentle ramp: early correct answers widen the number range only a little
   // (so the very first win doesn't suddenly throw a much bigger range at the
   // child), then the step grows round by round up to a steady pace.
+  //
+  // That ramp only ever read the current round's `_score`, so a veteran
+  // with a high all-time `_best` restarted every single playthrough at the
+  // identical easy 1-9 round 1 — the same "flat-forever difficulty never
+  // fed by career `_best`" bug class already closed for pace/speed games
+  // catalog-wide. `_careerSkillRamp` nudges the effective score a little
+  // from round 1 for a seasoned player, capped small so round 1 stays
+  // genuinely playable even for them.
+  int get _careerSkillRamp => (_best ~/ 3).clamp(0, 4);
   int _maxForScore(int score) {
     var max = 9;
     for (var i = 0; i < score; i++) {

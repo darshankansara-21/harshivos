@@ -86,7 +86,18 @@ class _FeelingsMatchGameState extends State<FeelingsMatchGame> with _Emit {
   // single round for all ten rounds with zero escalation. Widen the choice
   // set as the child progresses — up to all 8 faces by the final rounds —
   // so round 10 is a genuinely harder scan than round 1, not identical to it.
-  int get _optionCount => (3 + _score ~/ 3).clamp(3, _feelings.length);
+  //
+  // That escalation still only ever read the *current* round's `_score`,
+  // so a veteran with a high all-time `_best` restarted every single
+  // playthrough at the identical easy 3-face round 1 — the same
+  // "flat-forever difficulty never fed by career `_best`" bug class already
+  // closed for pace/speed games (soccer_kick's shot curve, air_hockey's AI)
+  // and for goal_games.dart's `_ChoiceGoalGame` trio (`_experienceRamp`), but
+  // never for this option-count ramp. Capped small so round 1 stays
+  // genuinely playable even for a seasoned player.
+  int get _careerSkillRamp => (_best ~/ 3).clamp(0, 4);
+  int get _optionCount =>
+      (3 + (_score + _careerSkillRamp) ~/ 3).clamp(3, _feelings.length);
 
   void _newRound() {
     _wrong = -1;

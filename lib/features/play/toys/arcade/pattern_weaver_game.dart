@@ -61,7 +61,7 @@ class _PatternWeaverGameState extends State<PatternWeaverGame>
     });
   }
 
-  int get _colorCount => _score >= 6 ? 4 : 3;
+  int get _colorCount => _effScore >= 6 ? 4 : 3;
 
   // The header promises "patterns get longer" across the whole ten-round
   // climb, but the old code only ever widened the period band once (at
@@ -69,7 +69,17 @@ class _PatternWeaverGameState extends State<PatternWeaverGame>
   // the same claimed-escalation-but-absent bug class as counting_baskets.
   // This steps the ceiling up every three correct answers so the longest
   // possible pattern keeps growing all the way to the target.
-  int get _maxPeriod => (2 + _score ~/ 3).clamp(2, 5);
+  int get _maxPeriod => (2 + _effScore ~/ 3).clamp(2, 5);
+
+  // Both ramps above only ever read the current round's `_score`, so a
+  // veteran with a high all-time `_best` restarted every single playthrough
+  // at the identical easy 2-colour, short-period round 1 — the same
+  // "flat-forever difficulty never fed by career `_best`" bug class already
+  // closed for pace/speed games catalog-wide. `_careerSkillRamp` nudges the
+  // effective score a little from round 1 for a seasoned player, capped
+  // small so round 1 stays genuinely playable even for them.
+  int get _careerSkillRamp => (_best ~/ 3).clamp(0, 4);
+  int get _effScore => _score + _careerSkillRamp;
 
   void _newRound() {
     final period = 2 + _rnd.nextInt(_maxPeriod - 1); // 2.._maxPeriod

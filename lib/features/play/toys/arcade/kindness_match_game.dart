@@ -93,7 +93,15 @@ class _KindnessMatchGameState extends State<KindnessMatchGame> with _Emit {
   // + 2 unkind), then from the halfway point on a 3rd unkind distractor
   // joins the mix, so late rounds are genuinely harder to tell apart than
   // round 1 instead of every round being identically easy.
-  int get _optionCount => (3 + _score ~/ 5).clamp(3, 4);
+  //
+  // That ramp only ever read the current round's `_score`, so a veteran
+  // with a high all-time `_best` restarted every single playthrough at the
+  // identical easy 3-option round 1 — the same "flat-forever difficulty
+  // never fed by career `_best`" bug class already closed for pace/speed
+  // games catalog-wide. Capped small so round 1 stays genuinely playable
+  // even for a seasoned player.
+  int get _careerSkillRamp => (_best ~/ 4).clamp(0, 3);
+  int get _optionCount => (3 + (_score + _careerSkillRamp) ~/ 5).clamp(3, 4);
 
   void _newRound() {
     _wrong = -1;

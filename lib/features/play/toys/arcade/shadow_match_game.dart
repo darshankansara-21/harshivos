@@ -91,7 +91,16 @@ class _ShadowMatchGameState extends State<ShadowMatchGame>
   // climbing to all 6 possible shapes by the final rounds, so the last
   // stretch before winning is a real step up from round 1 (was previously a
   // flat 4-option round every time despite the game claiming "gets trickier").
-  int get _optionCount => (4 + _score ~/ 4).clamp(4, 6);
+  //
+  // That escalation only ever read the current round's `_score`, so a
+  // veteran with a high all-time `_best` restarted every single playthrough
+  // at the identical easy 4-option round 1 — the same "flat-forever
+  // difficulty never fed by career `_best`" bug class already closed for
+  // pace/speed games catalog-wide. `_careerSkillRamp` nudges the effective
+  // score a little from round 1 for a seasoned player, capped small so
+  // round 1 stays genuinely playable even for them.
+  int get _careerSkillRamp => (_best ~/ 3).clamp(0, 4);
+  int get _optionCount => (4 + (_score + _careerSkillRamp) ~/ 4).clamp(4, 6);
 
   void _newRound() {
     _shape = _rnd.nextInt(6);
