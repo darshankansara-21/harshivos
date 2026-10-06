@@ -196,7 +196,7 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
             TonePlayer.instance.playCue(SoundCue.milestone);
             emit(ExperienceEvent.personalBest);
           }
-          TonePlayer.instance.playCue(SoundCue.gameStart);
+          TonePlayer.instance.playCue(SoundCue.success);
           emit(ExperienceEvent.gameCompleted);
         } else {
           _flashBanner(_nextConstellationPool[_rnd.nextInt(_nextConstellationPool.length)]);
