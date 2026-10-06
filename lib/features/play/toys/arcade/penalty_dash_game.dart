@@ -70,7 +70,19 @@ class _PenaltyDashGameState extends State<PenaltyDashGame>
     });
   }
 
-  double get _speed => 1.6 + _score * 0.12;
+  // Same "flat-forever opening pace never fed by career `_best`" bug class
+  // already fixed in space_dodge_game/whack_game/rhythm_clap_game/
+  // echo_drums_game/drum_garden_game/air_hockey_game: the marker/keeper
+  // slide speed only ramped within a single run (`_score * 0.12`), so a
+  // child who has already scored dozens of career goals still opens every
+  // fresh shootout at the exact same gentle 1.6 pace as a first-time
+  // player. Small capped career nudge (well short of the in-run ramp above)
+  // so a returning skilled player meets a slightly livelier keeper from
+  // shot one, while a fresh/low-`_best` child still gets the original easy
+  // opener.
+  double get _careerPaceRamp => (_best / (_target * 4)).clamp(0.0, 1.0) * 0.6;
+
+  double get _speed => 1.6 + _careerPaceRamp + _score * 0.12;
 
   @override
   void onTick(double dt) {
