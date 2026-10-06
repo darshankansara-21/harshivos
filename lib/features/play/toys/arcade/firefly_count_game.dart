@@ -27,6 +27,11 @@ class _FireflyCountGameState extends State<FireflyCountGame>
   ];
   String _winPraise = _winPraisePool[0];
   String _overPraise = _gentleTryAgainPool[0];
+  // Every routine wrong tap flashed the exact same "Count again…" banner
+  // (up to several times in one round); vary it like the win-screen praise.
+  static const List<String> _missPool = <String>[
+    'Count again…', 'Recount…', 'Try counting again…', 'One more count…',
+  ];
   final math.Random _rnd = math.Random();
   final List<_Fly> _flies = <_Fly>[];
   List<int> _options = <int>[2, 3, 4];
@@ -161,7 +166,7 @@ class _FireflyCountGameState extends State<FireflyCountGame>
         TonePlayer.instance.playCue(SoundCue.gameOver);
       } else {
         TonePlayer.instance.playCue(SoundCue.gentleRetry);
-        _banner = 'Count again…';
+        _banner = _missPool[_rnd.nextInt(_missPool.length)];
         _bannerT = 1.0;
       }
     }

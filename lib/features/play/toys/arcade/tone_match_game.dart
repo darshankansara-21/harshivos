@@ -25,6 +25,12 @@ class _ToneMatchGameState extends State<ToneMatchGame>
   static const List<String> _matchPool = <String>[
     'Matched!', 'Nice ears!', 'Good listening!', 'Found it!',
   ];
+  // Every routine mismatch flashed the exact same "Different notes —
+  // listen again" banner (up to several times in one round); vary it like
+  // the match-pool above.
+  static const List<String> _missPool = <String>[
+    'Different notes — listen again', 'Not a match — listen again', 'Try another bell', 'Listen again',
+  ];
 
   List<int> _tones = <int>[]; // tone index per bell
   final Set<int> _matched = <int>{};
@@ -159,7 +165,7 @@ class _ToneMatchGameState extends State<ToneMatchGame>
         // to infer failure from the banner text alone.
         TonePlayer.instance.playCue(SoundCue.gentleRetry);
         emit(ExperienceEvent.incorrectAnswer);
-        _banner = 'Different notes — listen again';
+        _banner = _missPool[_rnd.nextInt(_missPool.length)];
       }
     }
     setState(() {});

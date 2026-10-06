@@ -27,6 +27,11 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
   static const List<String> _correctPool = <String>[
     'Correct!', 'Sharp eyes!', 'Nice pick!', 'Got it!',
   ];
+  // Every routine wrong tap flashed the exact same "Look again…" banner (up
+  // to several times in one round); vary it like the correct-tap pool above.
+  static const List<String> _missPool = <String>[
+    'Look again…', 'Check again…', 'Take another look…', 'Try again…',
+  ];
 
   List<int> _nums = <int>[2, 5, 8];
   bool _biggest = true;
@@ -147,7 +152,7 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
         _banner = 'Out of lives!';
       } else {
         TonePlayer.instance.playCue(SoundCue.gentleRetry);
-        _banner = 'Look again…';
+        _banner = _missPool[_rnd.nextInt(_missPool.length)];
         // Unlike every other miss-flash in the catalog (a brief ~350-500ms
         // highlight), this one was only ever cleared by the next correct
         // answer's _newRound() call — so a child who missed then paused (or

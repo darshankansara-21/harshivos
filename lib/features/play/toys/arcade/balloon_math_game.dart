@@ -37,6 +37,11 @@ class _BalloonMathGameState extends State<BalloonMathGame>
   ];
   String _winPraise = _winPraisePool[0];
   String _overPraise = _gentleTryAgainPool[0];
+  // Every routine wrong pop flashed the exact same "Try again…" banner (up
+  // to several times in one round); vary it like the win-screen praise.
+  static const List<String> _missPool = <String>[
+    'Try again…', 'Almost…', 'Not quite…', 'So close…',
+  ];
   final math.Random _rnd = math.Random();
   final List<_Balloon> _balloons = <_Balloon>[];
   final List<_Shard> _bits = <_Shard>[];
@@ -175,7 +180,7 @@ class _BalloonMathGameState extends State<BalloonMathGame>
             emit(ExperienceEvent.incorrectAnswer);
           } else {
             TonePlayer.instance.playCue(SoundCue.gentleRetry);
-            _banner = 'Try again…';
+            _banner = _missPool[_rnd.nextInt(_missPool.length)];
             _bannerT = 1.0;
           }
         }

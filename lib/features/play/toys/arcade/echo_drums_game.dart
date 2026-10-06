@@ -23,6 +23,12 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
   ];
   String _winPraise = _winPraisePool[0];
   String _overPraise = _gentleTryAgainPool[0];
+  // Every routine wrong tap flashed the exact same "Oops — listen again"
+  // banner (up to several times in one round); vary it like the
+  // win-screen/over-screen pools above.
+  static const List<String> _missPool = <String>[
+    'Oops — listen again', 'Not quite — listen again', 'Try again — listen closely', 'Almost — listen again',
+  ];
 
   final List<int> _seq = <int>[];
   bool _showing = false;
@@ -206,7 +212,7 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
         TonePlayer.instance.playCue(SoundCue.gameOver);
       } else {
         TonePlayer.instance.playCue(SoundCue.gentleRetry);
-        _banner = 'Oops — listen again';
+        _banner = _missPool[_rnd.nextInt(_missPool.length)];
         _startShow();
       }
     }

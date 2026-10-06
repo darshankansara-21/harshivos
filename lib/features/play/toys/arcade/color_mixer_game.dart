@@ -48,6 +48,14 @@ class _ColorMixerGameState extends State<ColorMixerGame>
   ];
   String _winPraise = _winPraisePool[0];
   final math.Random _rnd = math.Random();
+  // Every routine "drifting away from the target" drop flashed the exact
+  // same "Getting colder — try Empty the bowl" banner (potentially many
+  // times in one round); vary it like the win-screen praise.
+  static const List<String> _colderPool = <String>[
+    'Getting colder — try Empty the bowl',
+    'Cooling off — try Empty the bowl',
+    'Drifting away — try Empty the bowl',
+  ];
   final List<int> _drops = <int>[];
   final List<int> _bag = <int>[];
   int _recipe = 0;
@@ -216,7 +224,7 @@ class _ColorMixerGameState extends State<ColorMixerGame>
         if (dist < prevDist - 0.01) {
           _banner = 'Getting warmer!';
         } else if (dist > prevDist + 0.01) {
-          _banner = 'Getting colder — try Empty the bowl';
+          _banner = _colderPool[_rnd.nextInt(_colderPool.length)];
           TonePlayer.instance.playCue(SoundCue.gentleRetry);
           emit(ExperienceEvent.incorrectAnswer);
         }

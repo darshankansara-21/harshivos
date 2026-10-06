@@ -24,6 +24,11 @@ class _HoopTossGameState extends State<HoopTossGame>
   ];
   String _winPraise = _winPraisePool.first;
   String _overPraise = _gentleTryAgainPool[0];
+  // Every routine near-miss flashed the exact same "Just missed!" banner
+  // (up to several times in one round); vary it like the win-screen praise.
+  static const List<String> _missPool = <String>[
+    'Just missed!', 'So close!', 'Almost there!', 'Nearly!',
+  ];
   // Every other aim-and-score game in the catalog (basketball, target_toss,
   // bug_catch, pinball, brick_break...) bursts a few shards of colour on a
   // successful hit; Hoop Toss only ever flashed the banner text + a sound,
@@ -145,7 +150,7 @@ class _HoopTossGameState extends State<HoopTossGame>
         emit(ExperienceEvent.incorrectAnswer);
       } else {
         TonePlayer.instance.playCue(SoundCue.gentleRetry);
-        _banner = 'Just missed!';
+        _banner = _missPool[_rnd.nextInt(_missPool.length)];
         _bannerT = 1.1;
       }
     }

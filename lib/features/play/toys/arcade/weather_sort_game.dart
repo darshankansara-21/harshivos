@@ -50,6 +50,12 @@ class _WeatherSortGameState extends State<WeatherSortGame>
   ];
   String _winPraise = _winPraisePool[0];
   String _overPraise = _gentleTryAgainPool[0];
+  // Every routine timeout flashed the exact same "Too slow — next one!"
+  // banner (up to several times in one round); vary it like the
+  // win-screen/over-screen pools above.
+  static const List<String> _missPool = <String>[
+    'Too slow — next one!', "Time's up — next one!", 'Just missed it — next one!', 'Next one!',
+  ];
   // full 12-item win sees real variety across all 18 items instead of
   // risking the same emoji (or even the same bin) several times in a row.
   final List<int> _bag = <int>[];
@@ -110,7 +116,7 @@ class _WeatherSortGameState extends State<WeatherSortGame>
       TonePlayer.instance.playCue(SoundCue.gameOver);
     } else {
       TonePlayer.instance.playCue(SoundCue.gentleRetry);
-      _banner = 'Too slow — next one!';
+      _banner = _missPool[_rnd.nextInt(_missPool.length)];
       _newItem();
     }
   }

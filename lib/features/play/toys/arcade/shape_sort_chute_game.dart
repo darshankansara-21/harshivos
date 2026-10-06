@@ -25,6 +25,12 @@ class _ShapeSortChuteGameState extends State<ShapeSortChuteGame>
   ];
   String _winPraise = _winPraisePool[0];
   String _overPraise = _gentleTryAgainPool[0];
+  // Every routine wrong-hole drop flashed the exact same "Wrong hole!"
+  // banner (up to several times in one round); vary it like the
+  // win-screen/over-screen pools above.
+  static const List<String> _missPool = <String>[
+    'Wrong hole!', 'Try another hole!', 'Not that one!', 'Different hole!',
+  ];
   List<int> _holes = <int>[0, 1, 2]; // shape index per hole (3 holes)
   int _shape = 0;
   double _x = 0.5, _y = 0.0, _fall = 0.28;
@@ -147,7 +153,7 @@ class _ShapeSortChuteGameState extends State<ShapeSortChuteGame>
         return;
       } else {
         TonePlayer.instance.playCue(SoundCue.gentleRetry);
-        _banner = 'Wrong hole!';
+        _banner = _missPool[_rnd.nextInt(_missPool.length)];
       }
     }
     _arrange();

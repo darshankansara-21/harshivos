@@ -22,6 +22,12 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
   static const List<String> _correctPool = <String>[
     'Correct!', 'Nice sum!', 'That adds up!', 'Spot on!',
   ];
+  // Every wrong pair routinely flashed the exact same "Not quite — try
+  // again" banner (up to several times in one round); vary it like the
+  // correct-tap/win-screen pools above.
+  static const List<String> _missPool = <String>[
+    'Not quite — try again', 'Almost — try again', 'Close! Try again', 'Not yet — try again',
+  ];
 
   List<int> _tiles = <int>[];
   int _sum = 5;
@@ -163,7 +169,7 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
           emit(ExperienceEvent.incorrectAnswer);
         } else {
           TonePlayer.instance.playCue(SoundCue.gentleRetry);
-          _banner = 'Not quite — try again';
+          _banner = _missPool[_rnd.nextInt(_missPool.length)];
           // Unlike every other miss-flash in the catalog (bigger_number,
           // feelings_match, calm_choices all auto-clear their red wrong-tile
           // flash after a short beat), this one was only ever cleared by the
