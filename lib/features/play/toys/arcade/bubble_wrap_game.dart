@@ -25,6 +25,11 @@ class _BubbleWrapGameState extends State<BubbleWrapGame>
   String? _banner;
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
+  // Mirrors stack_game/block_blast_game/brick_break_game's live "beat your
+  // own all-time best" celebration. Bubble Wrap never truly "wins" — sheets
+  // refill forever and `_total` climbs without a cap — so crossing a prior
+  // personal best mid-run deserves the same judgment-free moment.
+  bool _beatBest = false;
 
   @override
   void initState() {
@@ -85,6 +90,7 @@ class _BubbleWrapGameState extends State<BubbleWrapGame>
           const Color(0xFFBFE3FF)));
     }
     TonePlayer.instance.playCue(SoundCue.bubble);
+    final crossedBest = _total > _best && !_beatBest && _best > 0;
     if (_total > _best) {
       _best = _total;
       GameScores.instance.submit(_id, _total);
@@ -94,6 +100,13 @@ class _BubbleWrapGameState extends State<BubbleWrapGame>
       TonePlayer.instance.playCue(SoundCue.success);
       _flash('Sheet clear! 🎉 Fresh one coming…');
       _refillT = 1.0;
+    }
+    if (crossedBest) {
+      _beatBest = true;
+      // Flashed last so it wins over the sheet-clear banner above when both
+      // land on the same pop — a new all-time record is the bigger moment.
+      _flash('New personal best! 🏆');
+      TonePlayer.instance.playCue(SoundCue.milestone);
     }
   }
 
@@ -105,6 +118,7 @@ class _BubbleWrapGameState extends State<BubbleWrapGame>
       _banner = null;
       _bannerT = 0;
       _refillT = 0;
+      _beatBest = false;
       _status = GameStatus.playing;
     });
   }
