@@ -31,6 +31,14 @@ class _ShapeBuilderGameState extends State<ShapeBuilderGame> with _Emit {
   int _fig = 0;
   int _score = 0;
   int _best = 0;
+  // A run that quits after completing some figures but before the full
+  // 5-figure win still submits its partial `_score` (see below) — the same
+  // "stat that can never move" bug class already fixed catalog-wide (mini_
+  // golf/jigsaw_four/basketball/color_mixer/counting_baskets): without this
+  // flag, crossing a prior personal best mid-run was only ever reflected
+  // silently in the `best` HUD number, never celebrated like every other
+  // beat-your-own-record moment in the catalog.
+  bool _beatBest = false;
   int _wrongFlash = -1;
   String? _banner;
   GameStatus _status = GameStatus.ready;
@@ -131,10 +139,18 @@ class _ShapeBuilderGameState extends State<ShapeBuilderGame> with _Emit {
             _score++;
             TonePlayer.instance.playCue(SoundCue.success);
             emit(ExperienceEvent.bubblePopped);
-            _banner = 'Built it! 🛠️';
+            final crossedBest = _score > _best && !_beatBest && _best > 0;
             GameScores.instance.submit(_id, _score).then((b) {
               if (mounted) setState(() => _best = b);
             });
+            if (crossedBest) {
+              _beatBest = true;
+              _banner = 'New personal best! 🏆';
+              TonePlayer.instance.playCue(SoundCue.milestone);
+              emit(ExperienceEvent.personalBest);
+            } else {
+              _banner = 'Built it! 🛠️';
+            }
             if (_score >= _target) {
               _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
               _status = GameStatus.won;
@@ -170,6 +186,7 @@ class _ShapeBuilderGameState extends State<ShapeBuilderGame> with _Emit {
     setState(() {
       _score = 0;
       _fig = 0;
+      _beatBest = false;
       _figOrder.shuffle(_rnd);
       _banner = null;
       _buildFigure();
