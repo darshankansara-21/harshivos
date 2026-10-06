@@ -830,9 +830,21 @@ class NumberSplashGame extends StatelessWidget {
           final right = sub ? math.min(a, b) : b;
           final answer = sub ? left - right : left + right;
           final op = sub ? '−' : '+';
+          // Same flat-choice-count difficulty-curve gap already fixed in
+          // ColorQuestGame/ShapeScoutGame above, missed in this third sibling:
+          // a flat 4 distractors every round of every playthrough gave round
+          // 1 and round 8 the exact same lucky-guess odds. Grows from 3 up to
+          // 6 options as the round count climbs toward the 8-correct target,
+          // matching the siblings' curve. The candidate spread widens with
+          // the option count so there are always enough distinct, non-answer
+          // values nearby to fill the grid even for a small answer.
+          final optionCount = (3 + round ~/ 3).clamp(3, 6);
+          final spread = optionCount + 3;
           final values = <int>{answer};
-          while (values.length < 4) {
-            values.add(math.max(0, answer + random.nextInt(7) - 3));
+          while (values.length < optionCount) {
+            final offset = random.nextInt(spread * 2 + 1) - spread;
+            if (offset == 0) continue;
+            values.add(math.max(0, answer + offset));
           }
           final options = values.map((value) => '$value').toList()
             ..shuffle(random);
