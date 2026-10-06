@@ -61,6 +61,12 @@ class _PianoTilesGameState extends State<PianoTilesGame>
   String? _banner;
   double _bannerT = 0;
   int _lastMilestone = 0;
+  // Piano Tiles' score is an uncapped survival run (no win target, same
+  // shape as sky_hop/space_dodge/stack/whack), which already each give a
+  // live "New personal best! 🏆" banner the instant a run crosses the prior
+  // all-time best — this game, the Phase-5 benchmark, was missing that same
+  // celebration entirely.
+  bool _beatBest = false;
   GameStatus _status = GameStatus.ready;
 
   @override
@@ -135,6 +141,13 @@ class _PianoTilesGameState extends State<PianoTilesGame>
         _flash(_speed >= 0.9 ? '$_score tiles! Presto! 🎹' : '$_score tiles! 🎵');
         TonePlayer.instance.playCue(SoundCue.milestone);
       }
+      if (!_beatBest && _best > 0 && _score > _best) {
+        _beatBest = true;
+        // Takes priority over the milestone banner just set above — a new
+        // all-time record is the bigger moment of the two.
+        _flash('New personal best! 🏆');
+        TonePlayer.instance.playCue(SoundCue.milestone);
+      }
       GameScores.instance.submit(_id, _score).then((b) {
         if (mounted && b != _best) setState(() => _best = b);
       });
@@ -181,6 +194,7 @@ class _PianoTilesGameState extends State<PianoTilesGame>
       _banner = null;
       _bannerT = 0;
       _lastMilestone = 0;
+      _beatBest = false;
       _status = GameStatus.playing;
       for (var i = 0; i < 4; i++) {
         _rows.add(_spawnRow(-0.05 - i * _gap));
