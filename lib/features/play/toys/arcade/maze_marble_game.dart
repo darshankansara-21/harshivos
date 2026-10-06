@@ -60,6 +60,16 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
 
+  // Same "flat-forever opening board never fed by career `_best`" bug class
+  // already fixed catalog-wide (mini_golf's hole intro, ball_sort's opening
+  // colour count, bug_catch's pace): `_level` always restarted at 1 on every
+  // single play/reset, so a child who has already cleared boards 6/6 dozens
+  // of times before still opens every fresh run against the exact same
+  // widest-gap, fewest-wall board 1 as a first-time player. Capped well
+  // short of the full 6-board target so even a very high `_best` still opens
+  // on a clearable board, never the hardest one.
+  int get _careerSkillRamp => (_best ~/ 2).clamp(0, 3);
+
   @override
   void initState() {
     super.initState();
@@ -254,7 +264,7 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
 
   void _reset() {
     setState(() {
-      _level = 1;
+      _level = 1 + _careerSkillRamp;
       _score = 0;
       _banner = null;
       _bannerT = 0;
@@ -274,6 +284,12 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
           'Drag to roll the marble down through the gate in each wall and into '
           'the goal cup. Six boards to win!',
       onStart: () => setState(() {
+        // `_best` only finishes loading asynchronously after `initState`, so
+        // the very first play of a session (unlike every later `_reset()`
+        // replay) must pick up the career ramp here too, not just leave
+        // `_level` at its unramped field default until the first board
+        // clears.
+        _level = 1 + _careerSkillRamp;
         _buildLevel();
         _status = GameStatus.playing;
       }),
