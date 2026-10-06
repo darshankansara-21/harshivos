@@ -310,30 +310,34 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
           ),
           const SizedBox(width: 6),
           // The big "say it" button — the most important control on the screen.
-          GestureDetector(
-            onTap: _speakSentence,
-            onLongPress: _clear,
-            child: Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  colors: <Color>[Color(0xFF43E97B), Color(0xFF38B2F9)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                boxShadow: <BoxShadow>[
-                  BoxShadow(
-                    color: const Color(0xFF38B2F9).withOpacity(_strip.isEmpty ? 0 : 0.5),
-                    blurRadius: 18,
-                    spreadRadius: 1,
+          Semantics(
+            button: true,
+            label: 'Say it out loud. Long press to clear the sentence.',
+            child: GestureDetector(
+              onTap: _speakSentence,
+              onLongPress: _clear,
+              child: Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    colors: <Color>[Color(0xFF43E97B), Color(0xFF38B2F9)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                ],
-              ),
-              child: Opacity(
-                opacity: _strip.isEmpty ? 0.4 : 1,
-                child: const Icon(Icons.volume_up_rounded, color: Colors.white, size: 30),
+                  boxShadow: <BoxShadow>[
+                    BoxShadow(
+                      color: const Color(0xFF38B2F9).withOpacity(_strip.isEmpty ? 0 : 0.5),
+                      blurRadius: 18,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
+                child: Opacity(
+                  opacity: _strip.isEmpty ? 0.4 : 1,
+                  child: const Icon(Icons.volume_up_rounded, color: Colors.white, size: 30),
+                ),
               ),
             ),
           ),
@@ -428,7 +432,10 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
             itemBuilder: (context, i) {
               final item = items[i];
               final color = _colorFor(item.category);
-              return GestureDetector(
+              return Semantics(
+                button: true,
+                label: '${item.label}, favorite. Double tap to say. Long press to remove from favorites.',
+                child: GestureDetector(
                 onTap: () {
                   ref.read(talkRecentsProvider.notifier).record(item.label);
                   _addWord(_Word(item.label, item.emoji, color),
@@ -457,6 +464,7 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
                               fontSize: 16)),
                     ],
                   ),
+                ),
                 ),
               );
             },
@@ -492,29 +500,33 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
             itemBuilder: (context, i) {
               final item = items[i];
               final color = _colorFor(item.category);
-              return GestureDetector(
-                onTap: () {
-                  ref.read(talkRecentsProvider.notifier).record(item.label);
-                  _addWord(_Word(item.label, item.emoji, color),
-                      spokenText: item.phrase);
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.16),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: color.withOpacity(0.7), width: 1.4),
-                  ),
-                  child: Row(
-                    children: <Widget>[
-                      Text(item.emoji, style: const TextStyle(fontSize: 24)),
-                      const SizedBox(width: 8),
-                      Text(item.label,
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 16)),
-                    ],
+              return Semantics(
+                button: true,
+                label: '${item.label}, recent. Double tap to say.',
+                child: GestureDetector(
+                  onTap: () {
+                    ref.read(talkRecentsProvider.notifier).record(item.label);
+                    _addWord(_Word(item.label, item.emoji, color),
+                        spokenText: item.phrase);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.16),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: color.withOpacity(0.7), width: 1.4),
+                    ),
+                    child: Row(
+                      children: <Widget>[
+                        Text(item.emoji, style: const TextStyle(fontSize: 24)),
+                        const SizedBox(width: 8),
+                        Text(item.label,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 16)),
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -537,32 +549,37 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
           final cat = kTalkCategories[i];
           final selected = cat == _category;
           final color = _colorFor(cat);
-          return GestureDetector(
-            onTap: () {
-              HapticFeedback.selectionClick();
-              setState(() => _category = cat);
-            },
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              padding: const EdgeInsets.symmetric(horizontal: 18),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: selected ? color : Colors.white.withOpacity(0.10),
-                borderRadius: BorderRadius.circular(23),
-                border: Border.all(
-                  color: selected ? color : Colors.white24,
-                  width: 1.4,
+          return Semantics(
+            button: true,
+            selected: selected,
+            label: '$cat category',
+            child: GestureDetector(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                setState(() => _category = cat);
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding: const EdgeInsets.symmetric(horizontal: 18),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: selected ? color : Colors.white.withOpacity(0.10),
+                  borderRadius: BorderRadius.circular(23),
+                  border: Border.all(
+                    color: selected ? color : Colors.white24,
+                    width: 1.4,
+                  ),
+                  boxShadow: selected
+                      ? <BoxShadow>[BoxShadow(color: color.withOpacity(0.5), blurRadius: 16)]
+                      : const <BoxShadow>[],
                 ),
-                boxShadow: selected
-                    ? <BoxShadow>[BoxShadow(color: color.withOpacity(0.5), blurRadius: 16)]
-                    : const <BoxShadow>[],
-              ),
-              child: Text(
-                cat,
-                style: TextStyle(
-                  color: selected ? const Color(0xFF0B1026) : Colors.white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 16,
+                child: Text(
+                  cat,
+                  style: TextStyle(
+                    color: selected ? const Color(0xFF0B1026) : Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                  ),
                 ),
               ),
             ),
@@ -616,17 +633,22 @@ class _StripAction extends StatelessWidget {
   Widget build(BuildContext context) {
     return Tooltip(
       message: tip,
-      child: GestureDetector(
-        onTap: enabled ? onTap : null,
-        child: Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white.withOpacity(0.10),
-            border: Border.all(color: Colors.white24),
+      child: Semantics(
+        button: true,
+        enabled: enabled,
+        label: tip,
+        child: GestureDetector(
+          onTap: enabled ? onTap : null,
+          child: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withOpacity(0.10),
+              border: Border.all(color: Colors.white24),
+            ),
+            child: Icon(icon, color: enabled ? Colors.white : Colors.white30, size: 24),
           ),
-          child: Icon(icon, color: enabled ? Colors.white : Colors.white30, size: 24),
         ),
       ),
     );
@@ -640,23 +662,27 @@ class _CoreChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.12),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.4),
-        ),
-        child: Row(
-          children: <Widget>[
-            Text(word.emoji, style: const TextStyle(fontSize: 24)),
-            const SizedBox(width: 8),
-            Text(word.label,
-                style: const TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18)),
-          ],
+    return Semantics(
+      button: true,
+      label: '${word.label} word',
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.4),
+          ),
+          child: Row(
+            children: <Widget>[
+              Text(word.emoji, style: const TextStyle(fontSize: 24)),
+              const SizedBox(width: 8),
+              Text(word.label,
+                  style: const TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18)),
+            ],
+          ),
         ),
       ),
     );
@@ -672,30 +698,36 @@ class _StarterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: starter.speak
-                ? const <Color>[Color(0xFF43E97B), Color(0xFF38B2F9)]
-                : const <Color>[Color(0xFFFF8FB1), Color(0xFFB57BE0)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+    return Semantics(
+      button: true,
+      label: starter.speak
+          ? '${starter.label}. Double tap to say right away.'
+          : '${starter.label}. Double tap to start a sentence.',
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: starter.speak
+                  ? const <Color>[Color(0xFF43E97B), Color(0xFF38B2F9)]
+                  : const <Color>[Color(0xFFFF8FB1), Color(0xFFB57BE0)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
           ),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Row(
-          children: <Widget>[
-            Text(starter.emoji, style: const TextStyle(fontSize: 18)),
-            const SizedBox(width: 6),
-            Text(starter.label,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 15)),
-          ],
+          child: Row(
+            children: <Widget>[
+              Text(starter.emoji, style: const TextStyle(fontSize: 18)),
+              const SizedBox(width: 6),
+              Text(starter.label,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 15)),
+            ],
+          ),
         ),
       ),
     );
@@ -725,53 +757,60 @@ class _ItemTileState extends State<_ItemTile> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) => setState(() => _pressed = false),
-      onTapCancel: () => setState(() => _pressed = false),
-      onTap: widget.onTap,
-      onLongPress: widget.onFavorite,
-      child: AnimatedScale(
-        scale: _pressed ? 0.93 : 1.0,
-        duration: const Duration(milliseconds: 110),
-        curve: Curves.easeOut,
-        child: Stack(
-          children: <Widget>[
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              decoration: BoxDecoration(
-                color: widget.color.withOpacity(_pressed ? 0.26 : 0.12),
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(
-                  color: widget.color.withOpacity(_pressed ? 0.95 : 0.55),
-                  width: _pressed ? 2.2 : 1.6,
-                ),
-                boxShadow: _pressed
-                    ? <BoxShadow>[BoxShadow(color: widget.color.withOpacity(0.5), blurRadius: 22)]
-                    : const <BoxShadow>[],
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Text(widget.item.emoji, style: const TextStyle(fontSize: 52)),
-                  const SizedBox(height: 8),
-                  Text(
-                    widget.item.label,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18),
+    return Semantics(
+      button: true,
+      selected: widget.favorite,
+      label: widget.favorite
+          ? '${widget.item.label}, favorite. Double tap to say. Long press to toggle favorite.'
+          : '${widget.item.label}. Double tap to say. Long press to toggle favorite.',
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapUp: (_) => setState(() => _pressed = false),
+        onTapCancel: () => setState(() => _pressed = false),
+        onTap: widget.onTap,
+        onLongPress: widget.onFavorite,
+        child: AnimatedScale(
+          scale: _pressed ? 0.93 : 1.0,
+          duration: const Duration(milliseconds: 110),
+          curve: Curves.easeOut,
+          child: Stack(
+            children: <Widget>[
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                decoration: BoxDecoration(
+                  color: widget.color.withOpacity(_pressed ? 0.26 : 0.12),
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(
+                    color: widget.color.withOpacity(_pressed ? 0.95 : 0.55),
+                    width: _pressed ? 2.2 : 1.6,
                   ),
-                ],
+                  boxShadow: _pressed
+                      ? <BoxShadow>[BoxShadow(color: widget.color.withOpacity(0.5), blurRadius: 22)]
+                      : const <BoxShadow>[],
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Text(widget.item.emoji, style: const TextStyle(fontSize: 52)),
+                    const SizedBox(height: 8),
+                    Text(
+                      widget.item.label,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            if (widget.favorite)
-              const Positioned(
-                top: 8,
-                right: 10,
-                child: Icon(Icons.star_rounded,
-                    color: Color(0xFFFFD166), size: 22),
-              ),
-          ],
+              if (widget.favorite)
+                const Positioned(
+                  top: 8,
+                  right: 10,
+                  child: Icon(Icons.star_rounded,
+                      color: Color(0xFFFFD166), size: 22),
+                ),
+            ],
+          ),
         ),
       ),
     );
