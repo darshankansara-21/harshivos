@@ -187,7 +187,16 @@ class _MergeGameState extends State<MergeGame> with _Emit {
       winText: _winPraise,
       accent: const Color(0xFFF7B801),
       onPlayAgain: _reset,
-      child: GestureDetector(
+      child: Semantics(
+        label: 'Tile board. Swipe left, right, up or down to slide the '
+            'tiles.',
+        customSemanticsActions: <CustomSemanticsAction, VoidCallback>{
+          const CustomSemanticsAction(label: 'Slide left'): () => _move(0),
+          const CustomSemanticsAction(label: 'Slide right'): () => _move(1),
+          const CustomSemanticsAction(label: 'Slide up'): () => _move(2),
+          const CustomSemanticsAction(label: 'Slide down'): () => _move(3),
+        },
+        child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onHorizontalDragEnd: (d) =>
             _move((d.primaryVelocity ?? 0) < 0 ? 1 : 0),
@@ -251,6 +260,7 @@ class _MergeGameState extends State<MergeGame> with _Emit {
               ),
             ),
           ),
+        ),
         ),
       ),
     );

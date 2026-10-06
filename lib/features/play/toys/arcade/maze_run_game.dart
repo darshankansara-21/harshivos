@@ -175,7 +175,17 @@ class _MazeRunGameState extends State<MazeRunGame> with _Emit {
       winText: _winPraise,
       accent: const Color(0xFF7BD389),
       onPlayAgain: _reset,
-      child: GestureDetector(
+      child: Semantics(
+        label: _hasKey
+            ? 'Maze. Find the exit. Swipe or slide left, right, up or down.'
+            : 'Maze. Grab the key. Swipe or slide left, right, up or down.',
+        customSemanticsActions: <CustomSemanticsAction, VoidCallback>{
+          const CustomSemanticsAction(label: 'Slide left'): () => _slide(-1, 0),
+          const CustomSemanticsAction(label: 'Slide right'): () => _slide(1, 0),
+          const CustomSemanticsAction(label: 'Slide up'): () => _slide(0, -1),
+          const CustomSemanticsAction(label: 'Slide down'): () => _slide(0, 1),
+        },
+        child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onPanEnd: (d) {
           final v = d.velocity.pixelsPerSecond;
@@ -198,6 +208,7 @@ class _MazeRunGameState extends State<MazeRunGame> with _Emit {
             hasKey: _hasKey,
           ),
           size: Size.infinite,
+        ),
         ),
       ),
     );
