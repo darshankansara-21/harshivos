@@ -386,15 +386,39 @@ class _BrickBreakGameState extends State<BrickBreakGame>
         builder: (context, constraints) {
           final w = constraints.maxWidth;
           if (w > 0) _aspect = constraints.maxHeight / w;
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onPanUpdate: (d) => _aim(d.localPosition.dx, constraints.maxWidth),
-            onPanDown: (d) => _aim(d.localPosition.dx, constraints.maxWidth),
-            child: CustomPaint(
-              painter: _BrickPainter(_bricks, _cols, _paddleX,
-                  _effectivePaddleW, _bx, _by, _ballR, _started, _shards,
-                  _powerUps),
-              size: Size.infinite,
+          // Like air_hockey/maze_marble/balance_ball's whole-screen drag
+          // surfaces, this paddle-drag GestureDetector had zero Semantics —
+          // a screen-reader user couldn't discover or move the paddle at
+          // all. The paddle only ever moves horizontally (see _aim), so a
+          // fixed-size left/right nudge of its own position reproduces the
+          // same effect onPanUpdate drives every frame, clamped to the same
+          // half-paddle-width margins _aim already enforces.
+          void nudge(double dx) => setState(() {
+                _started = true;
+                _paddleX = (_paddleX + dx).clamp(
+                    _effectivePaddleW / 2, 1 - _effectivePaddleW / 2);
+              });
+          return Semantics(
+            label: 'Brick breaker court. Drag or use the nudge actions to '
+                'move the paddle and bounce the ball into the bricks.',
+            customSemanticsActions: <CustomSemanticsAction, VoidCallback>{
+              const CustomSemanticsAction(label: 'Nudge paddle left'): () =>
+                  nudge(-0.12),
+              const CustomSemanticsAction(label: 'Nudge paddle right'): () =>
+                  nudge(0.12),
+            },
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onPanUpdate: (d) =>
+                  _aim(d.localPosition.dx, constraints.maxWidth),
+              onPanDown: (d) =>
+                  _aim(d.localPosition.dx, constraints.maxWidth),
+              child: CustomPaint(
+                painter: _BrickPainter(_bricks, _cols, _paddleX,
+                    _effectivePaddleW, _bx, _by, _ballR, _started, _shards,
+                    _powerUps),
+                size: Size.infinite,
+              ),
             ),
           );
         },
