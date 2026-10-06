@@ -175,7 +175,26 @@ class _QuickTapGameState extends State<QuickTapGame>
       winText: _winPraise,
       accent: Colors.white,
       onPlayAgain: _reset,
-      child: GestureDetector(
+      // The whole-screen reaction zone used `onTapDown` (not `onTap`), the
+      // one GestureDetector callback Flutter's semantics layer never wires
+      // an action for — so, like stack_game's drop zone, a screen reader had
+      // zero actionable element here despite the colour change already
+      // having its own audible "go" cue. The label only ever states the
+      // same phase a sighted child already sees (wait/go/too-soon/result),
+      // never hinting at timing early, so the reaction-time challenge itself
+      // is unchanged.
+      child: Semantics(
+        button: true,
+        label: _phase == 1
+            ? 'Green — tap now!'
+            : _phase == 2
+                ? 'Too soon. Tap to try this round again.'
+                : _phase == 3
+                    ? 'Result: $_rating. Waiting for next round.'
+                    : 'Red — wait for green, then tap.',
+        onTap: _tap,
+        excludeSemantics: true,
+        child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTapDown: (_) => _tap(),
         child: AnimatedContainer(
@@ -199,6 +218,7 @@ class _QuickTapGameState extends State<QuickTapGame>
                       fontWeight: FontWeight.w700)),
             ],
           ),
+        ),
         ),
       ),
     );

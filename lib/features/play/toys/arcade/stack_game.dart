@@ -238,13 +238,27 @@ class _StackGameState extends State<StackGame>
       child: LayoutBuilder(
         builder: (context, c) {
           _view = Size(c.maxWidth, c.maxHeight);
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapDown: (_) => _drop(),
-            child: CustomPaint(
-              painter: _StackPainter(
-                  _tower, _curLeft, _curWidth, _bits, _dashActive > 0),
-              size: Size.infinite,
+          // The whole-screen tap zone was a bare GestureDetector with no
+          // Semantics at all — unlike every other tap-to-act game in this
+          // catalog (whack_game's holes, piano_song's keys), it exposed no
+          // actionable element to a screen reader, making the tap-to-drop
+          // mechanic silently unplayable by a blind child despite the game
+          // already being fully audio-complete (every drop has its own cue).
+          return Semantics(
+            button: true,
+            label: 'Tower, ${_tower.length} block'
+                '${_tower.length == 1 ? '' : 's'} high. Tap to drop the '
+                'moving block onto the stack.',
+            onTap: _drop,
+            excludeSemantics: true,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTapDown: (_) => _drop(),
+              child: CustomPaint(
+                painter: _StackPainter(
+                    _tower, _curLeft, _curWidth, _bits, _dashActive > 0),
+                size: Size.infinite,
+              ),
             ),
           );
         },
