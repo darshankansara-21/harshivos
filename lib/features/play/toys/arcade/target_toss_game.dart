@@ -31,6 +31,7 @@ class _TargetTossGameState extends State<TargetTossGame>
   int _score = 0;
   int _throws = 0;
   int _best = 0;
+  bool _beatBest = false;
   Offset? _aim;
   String? _banner;
   double _bannerT = 0;
@@ -152,9 +153,19 @@ class _TargetTossGameState extends State<TargetTossGame>
     emit(ExperienceEvent.bubblePopped);
     _flash(label);
     _tSpeed = 0.18 + (_score / _target) * 0.26;
+    // A bullseye-heavy run can clear the 24-point target with points to
+    // spare — surface that as a genuine personal best, matching the pattern
+    // every other variable-scoring game in the catalog already uses.
+    final crossedBest = _score > _best && !_beatBest && _best > 0;
     GameScores.instance.submit(_id, _score).then((b) {
       if (mounted) setState(() => _best = b);
     });
+    if (crossedBest) {
+      _beatBest = true;
+      _flash('New personal best! 🏆');
+      TonePlayer.instance.playCue(SoundCue.milestone);
+      emit(ExperienceEvent.personalBest);
+    }
     if (_score >= _target) {
       _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
       _status = GameStatus.won;
@@ -199,6 +210,7 @@ class _TargetTossGameState extends State<TargetTossGame>
       _tSpeed = 0.18;
       _tx = 0.5;
       _tDir = 1;
+      _beatBest = false;
       _bits.clear();
       _banner = null;
       _bannerT = 0;

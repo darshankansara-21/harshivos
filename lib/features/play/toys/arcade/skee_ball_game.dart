@@ -51,6 +51,7 @@ class _SkeeBallGameState extends State<SkeeBallGame>
   double _power = 0;
   double _startY = 0;
   int _score = 0, _best = 0;
+  bool _beatBest = false;
   String? _banner;
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
@@ -102,9 +103,20 @@ class _SkeeBallGameState extends State<SkeeBallGame>
     }
     _banner = label;
     _bannerT = 1.1;
+    // A perfect run that lands every roll in the bullseye can clear the
+    // 100-point target well past any prior best — give that moment the same
+    // milestone fanfare every other scoring game in the catalog gets instead
+    // of letting it pass as a routine "+pts" banner.
+    final crossedBest = _score > _best && !_beatBest && _best > 0;
     GameScores.instance.submit(_id, _score).then((b) {
       if (mounted) setState(() => _best = b);
     });
+    if (crossedBest) {
+      _beatBest = true;
+      _banner = 'New personal best! 🏆';
+      TonePlayer.instance.playCue(SoundCue.milestone);
+      emit(ExperienceEvent.personalBest);
+    }
     if (_score >= _target) {
       _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
       _status = GameStatus.won;
@@ -136,6 +148,7 @@ class _SkeeBallGameState extends State<SkeeBallGame>
       _score = 0;
       _ballY = 0.86;
       _rolling = false;
+      _beatBest = false;
       _banner = null;
       _bannerT = 0;
       _status = GameStatus.playing;

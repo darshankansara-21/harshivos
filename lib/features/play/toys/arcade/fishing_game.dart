@@ -41,6 +41,7 @@ class _FishingGameState extends State<FishingGame>
   double _bobT = 0; // bob animation
   int _score = 0;
   int _best = 0;
+  bool _beatBest = false;
   String? _banner;
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
@@ -136,9 +137,19 @@ class _FishingGameState extends State<FishingGame>
       TonePlayer.instance.playCue(SoundCue.success);
       emit(ExperienceEvent.bubblePopped);
       _flash(_biteGold ? 'Golden catch! +3 🐟' : 'Caught it! +1 🐟');
+      // A run heavy on golden fish can clear the 10-catch target with more
+      // total points than a prior run — celebrate that the same way every
+      // other variable-scoring game in the catalog does.
+      final crossedBest = _score > _best && !_beatBest && _best > 0;
       GameScores.instance.submit(_id, _score).then((b) {
         if (mounted) setState(() => _best = b);
       });
+      if (crossedBest) {
+        _beatBest = true;
+        _flash('New personal best! 🏆');
+        TonePlayer.instance.playCue(SoundCue.milestone);
+        emit(ExperienceEvent.personalBest);
+      }
       if (_score >= _target) {
         _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         _status = GameStatus.won;
@@ -157,6 +168,7 @@ class _FishingGameState extends State<FishingGame>
   void _reset() {
     setState(() {
       _score = 0;
+      _beatBest = false;
       _fish.clear();
       _bits.clear();
       _biteT = 0;

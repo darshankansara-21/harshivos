@@ -27,6 +27,7 @@ class _QuickTapGameState extends State<QuickTapGame>
   int _round = 0;
   int _score = 0;
   int _best = 0;
+  bool _beatBest = false;
   int _lastMs = 0;
   GameStatus _status = GameStatus.ready;
 
@@ -103,6 +104,11 @@ class _QuickTapGameState extends State<QuickTapGame>
     _round++;
     TonePlayer.instance.playCue(SoundCue.correct);
     emit(ExperienceEvent.bubblePopped);
+    // A streak of lightning-fast taps can beat a prior best's total well
+    // before the fifth round — surface that the moment it happens, same as
+    // every other variable-scoring game in the catalog, instead of only
+    // ever comparing totals silently on the win screen.
+    final crossedBest = _score > _best && !_beatBest && _best > 0;
     if (_round >= _rounds) {
       _status = GameStatus.won;
       _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
@@ -111,6 +117,11 @@ class _QuickTapGameState extends State<QuickTapGame>
       GameScores.instance.submit(_id, _score).then((b) {
         if (mounted) setState(() => _best = b);
       });
+      if (crossedBest) {
+        _beatBest = true;
+        TonePlayer.instance.playCue(SoundCue.milestone);
+        emit(ExperienceEvent.personalBest);
+      }
     } else {
       GameScores.instance.submit(_id, _score).then((b) {
         // Resolves after this frame's setState has already run, so updating
@@ -118,6 +129,12 @@ class _QuickTapGameState extends State<QuickTapGame>
         // stale on screen until some unrelated later interaction repainted.
         if (mounted && b != _best) setState(() => _best = b);
       });
+      if (crossedBest) {
+        _beatBest = true;
+        _rating = '$_rating · New best! 🏆';
+        TonePlayer.instance.playCue(SoundCue.milestone);
+        emit(ExperienceEvent.personalBest);
+      }
       _phase = 3;
       _resultT = 0.9;
     }
@@ -128,6 +145,7 @@ class _QuickTapGameState extends State<QuickTapGame>
     setState(() {
       _round = 0;
       _score = 0;
+      _beatBest = false;
       _lastMs = 0;
       _rating = '';
       _flashT = 0;
