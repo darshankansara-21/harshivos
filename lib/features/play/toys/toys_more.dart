@@ -446,44 +446,45 @@ class _SpinUniverseToyState extends State<SpinUniverseToy>
     _spin += (0.25 - _spin) * 0.4 * dt;
   }
 
+  void _tapNudge() {
+    TonePlayer.instance.haptic(HapticFeedback.selectionClick);
+    _spin = (_spin + 1.4).clamp(-9.0, 9.0);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onPanUpdate: (e) {
-        final size = context.size ?? Size.zero;
-        final c = size.center(Offset.zero);
-        final p = e.localPosition;
-        // Torque from the tangential component of the drag.
-        final tangent = Offset(-(p - c).dy, (p - c).dx);
-        final tl = tangent.distance;
-        if (tl > 0) {
-          final proj = (e.delta.dx * tangent.dx + e.delta.dy * tangent.dy) / (tl * tl);
-          _spin = (_spin + proj * 26).clamp(-9.0, 9.0);
-        }
-      },
-      // A plain tap previously only buzzed the haptic with zero visible
-      // effect — the galaxy's spin speed never changed, so a child's very
-      // first instinct (tap the screen) produced nothing locally
-      // attributable, the same "first 3 seconds" gap already fixed in
-      // RainbowRainToy/LavaLampToy. Give every tap a small, satisfying
-      // nudge to the spin (mirroring FidgetCubeToy's `_Spinner.onTap`
-      // precedent), so tapping alone — not just dragging — visibly speeds
-      // the galaxy up.
-      onTapDown: (_) {
-        TonePlayer.instance.haptic(HapticFeedback.selectionClick);
-        _spin = (_spin + 1.4).clamp(-9.0, 9.0);
-      },
-      child: Stack(
-        children: <Widget>[
-          CustomPaint(painter: _GalaxyPainter(_stars, _rot), size: Size.infinite),
-          // The onboarding hint is drawn only onto the canvas (invisible to
-          // screen readers); IgnorePointer keeps it from stealing touches.
-          Positioned.fill(
-            child: IgnorePointer(
-              child: Semantics(label: 'Drag or tap to spin the spiral galaxy'),
-            ),
-          ),
-        ],
+    // Same "describable but not actionable" gap as ParticleGalaxyToy/
+    // FireworksToy above — bridge the discrete tap-nudge half of the toy;
+    // drag-to-spin correctly stays continuous-only, same as every other
+    // continuous-drag sensory toy.
+    return Semantics(
+      button: true,
+      label: 'Drag or tap to spin the spiral galaxy',
+      onTap: _tapNudge,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onPanUpdate: (e) {
+          final size = context.size ?? Size.zero;
+          final c = size.center(Offset.zero);
+          final p = e.localPosition;
+          // Torque from the tangential component of the drag.
+          final tangent = Offset(-(p - c).dy, (p - c).dx);
+          final tl = tangent.distance;
+          if (tl > 0) {
+            final proj = (e.delta.dx * tangent.dx + e.delta.dy * tangent.dy) / (tl * tl);
+            _spin = (_spin + proj * 26).clamp(-9.0, 9.0);
+          }
+        },
+        // A plain tap previously only buzzed the haptic with zero visible
+        // effect — the galaxy's spin speed never changed, so a child's very
+        // first instinct (tap the screen) produced nothing locally
+        // attributable, the same "first 3 seconds" gap already fixed in
+        // RainbowRainToy/LavaLampToy. Give every tap a small, satisfying
+        // nudge to the spin (mirroring FidgetCubeToy's `_Spinner.onTap`
+        // precedent), so tapping alone — not just dragging — visibly speeds
+        // the galaxy up.
+        onTapDown: (_) => _tapNudge(),
+        child: CustomPaint(painter: _GalaxyPainter(_stars, _rot), size: Size.infinite),
       ),
     );
   }
@@ -611,19 +612,20 @@ class _InfiniteMarbleRunToyState extends State<InfiniteMarbleRunToy>
 
   @override
   Widget build(BuildContext context) {
-    return Listener(
-      onPointerDown: (e) { _spawn(e.localPosition.dx); TonePlayer.instance.haptic(HapticFeedback.lightImpact); },
-      child: Stack(
-        children: <Widget>[
-          CustomPaint(painter: _MarblePainter(_marbles, _pegs), size: Size.infinite),
-          // The onboarding hint is drawn only onto the canvas (invisible to
-          // screen readers); IgnorePointer keeps it from stealing touches.
-          Positioned.fill(
-            child: IgnorePointer(
-              child: Semantics(label: 'Tap to drop marbles into the peg field'),
-            ),
-          ),
-        ],
+    // Same "describable but not actionable" gap as the other sensory toys
+    // above — bridge the single discrete "tap drops a marble" action.
+    return Semantics(
+      button: true,
+      label: 'Tap to drop marbles into the peg field',
+      onTap: () {
+        final size = context.size ?? Size.zero;
+        _spawn(size.width / 2);
+        TonePlayer.instance.haptic(HapticFeedback.lightImpact);
+      },
+      excludeSemantics: true,
+      child: Listener(
+        onPointerDown: (e) { _spawn(e.localPosition.dx); TonePlayer.instance.haptic(HapticFeedback.lightImpact); },
+        child: CustomPaint(painter: _MarblePainter(_marbles, _pegs), size: Size.infinite),
       ),
     );
   }

@@ -89,32 +89,37 @@ class _ParticleGalaxyToyState extends State<ParticleGalaxyToy>
   @override
   Widget build(BuildContext context) {
     _reduceMotion = MediaQuery.disableAnimationsOf(context);
-    return Listener(
-      onPointerDown: (e) {
-        _attractor = e.localPosition;
-        _burst(e.localPosition);
+    // Same "describable but not actionable" gap already fixed across the
+    // arcade/mini/goal games: the onboarding hint below used to be a plain
+    // label with no `onTap`, so a screen reader could discover the galaxy
+    // but never actually burst it. One shared Semantics node bridges the
+    // discrete "tap bursts stars at a point" half of the toy; the
+    // continuous drag-to-attract half correctly stays out of reach, same
+    // as every other continuous-drag sensory toy.
+    return Semantics(
+      button: true,
+      label: 'Tap or drag to burst and attract stars',
+      onTap: () {
+        final size = context.size ?? Size.zero;
+        _burst(size.center(Offset.zero));
       },
-      onPointerMove: (e) => _attractor = e.localPosition,
-      onPointerUp: (_) => _attractor = null,
-      // Without this, a cancelled drag left `_attractor` pointed at a stale
-      // offset forever — the galaxy would keep pulling every star toward
-      // that dead spot indefinitely instead of resuming its calm ambient
-      // swirl, the same stuck-state gap class fixed in CalmCloudsToy.
-      onPointerCancel: (_) => _attractor = null,
-      child: Stack(
-        children: <Widget>[
-          CustomPaint(
-            painter: _GalaxyPainter(_stars),
-            size: Size.infinite,
-          ),
-          // The onboarding hint is drawn only onto the canvas (invisible to
-          // screen readers); IgnorePointer keeps it from stealing touches.
-          Positioned.fill(
-            child: IgnorePointer(
-              child: Semantics(label: 'Tap or drag to burst and attract stars'),
-            ),
-          ),
-        ],
+      excludeSemantics: true,
+      child: Listener(
+        onPointerDown: (e) {
+          _attractor = e.localPosition;
+          _burst(e.localPosition);
+        },
+        onPointerMove: (e) => _attractor = e.localPosition,
+        onPointerUp: (_) => _attractor = null,
+        // Without this, a cancelled drag left `_attractor` pointed at a stale
+        // offset forever — the galaxy would keep pulling every star toward
+        // that dead spot indefinitely instead of resuming its calm ambient
+        // swirl, the same stuck-state gap class fixed in CalmCloudsToy.
+        onPointerCancel: (_) => _attractor = null,
+        child: CustomPaint(
+          painter: _GalaxyPainter(_stars),
+          size: Size.infinite,
+        ),
       ),
     );
   }
@@ -229,23 +234,23 @@ class _FireworksToyState extends State<FireworksToy>
   @override
   Widget build(BuildContext context) {
     _reduceMotion = MediaQuery.disableAnimationsOf(context);
-    return Stack(
-      children: <Widget>[
-        GestureDetector(
-          onTapDown: (e) => _launch(e.localPosition),
-          child: CustomPaint(
-            painter: _FireworksPainter(_sparks, _shells),
-            size: Size.infinite,
-          ),
+    // Same "describable but not actionable" gap as ParticleGalaxyToy above —
+    // bridge the single discrete "tap launches a shell" action.
+    return Semantics(
+      button: true,
+      label: 'Tap to launch a firework',
+      onTap: () {
+        final size = context.size ?? Size.zero;
+        _launch(Offset(size.width / 2, size.height * 0.3));
+      },
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTapDown: (e) => _launch(e.localPosition),
+        child: CustomPaint(
+          painter: _FireworksPainter(_sparks, _shells),
+          size: Size.infinite,
         ),
-        // The onboarding hint is drawn only onto the canvas (invisible to
-        // screen readers); IgnorePointer keeps it from stealing taps.
-        Positioned.fill(
-          child: IgnorePointer(
-            child: Semantics(label: 'Tap to launch a firework'),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
