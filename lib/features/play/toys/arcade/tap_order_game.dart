@@ -72,8 +72,14 @@ class _TapOrderGameState extends State<TapOrderGame> with _Emit {
       TonePlayer.instance.playCue(SoundCue.gentleRetry);
       emit(ExperienceEvent.incorrectAnswer);
       setState(() => _wrongCell = cell);
+      // Guard on `_wrongCell == cell`, not just `mounted` — a second wrong
+      // tap on a different cell before this timer fires would otherwise let
+      // the stale first timer clear the newer cell's highlight early, same
+      // index-specific-clear convention every sibling wrong-flash timer in
+      // the catalog already follows (add_it_up/bigger_number's `_wrong == i`,
+      // odd_one_out/shadow_match/weather_sort's `_wrongFlash == idx`, etc.).
       Future<void>.delayed(const Duration(milliseconds: 250), () {
-        if (mounted) setState(() => _wrongCell = -1);
+        if (mounted && _wrongCell == cell) setState(() => _wrongCell = -1);
       });
     }
   }
