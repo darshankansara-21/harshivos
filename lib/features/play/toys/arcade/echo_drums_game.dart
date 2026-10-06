@@ -188,6 +188,14 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
           GameScores.instance.submit(_id, _score).then((b) {
             if (mounted) setState(() => _best = b);
           });
+          // The winning round is a child's longest, highest-scoring phrase —
+          // it deserves the same personal-best milestone celebration the
+          // routine round-clear branch below already gives, not silence.
+          if (_score > _best && !_beatBest && _best > 0) {
+            _beatBest = true;
+            TonePlayer.instance.playCue(SoundCue.milestone);
+            emit(ExperienceEvent.personalBest);
+          }
         } else {
           TonePlayer.instance.playCue(SoundCue.success);
           emit(ExperienceEvent.bubblePopped);
