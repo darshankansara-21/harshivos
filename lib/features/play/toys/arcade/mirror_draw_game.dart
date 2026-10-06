@@ -114,6 +114,15 @@ class _MirrorDrawGameState extends State<MirrorDrawGame> with _Emit {
   // convention as `letter_trace_game.dart`.
   int get _nextDotIdx => _dots.indexWhere((d) => !d.lit);
 
+  // Catch tolerance for lighting the next dot. Flat at 0.06 on both axes
+  // regardless of score meant picture 1 and picture 5 of the same
+  // playthrough were exactly as forgiving to trace — no real difficulty
+  // curve at all, the same flat-pacing gap just fixed in
+  // `letter_trace_game.dart`'s `_catchTolerance`. Narrows a little as
+  // `_score` climbs across the five pictures, clamped so the last picture
+  // still stays comfortably tappable for small fingers.
+  double get _catchTolerance => (0.06 - _score * 0.004).clamp(0.045, 0.06);
+
   void _touch(double nx, double ny) {
     if (_status != GameStatus.playing || nx > 0.5) return;
     final idx = _nextDotIdx;
@@ -126,7 +135,8 @@ class _MirrorDrawGameState extends State<MirrorDrawGame> with _Emit {
     // gap class just fixed in `letter_trace_game.dart`, and just as fatal to
     // this game's own "trace the dots" pitch (a child could "finish" a
     // picture without ever drawing its real symmetric shape).
-    if ((next.x - nx).abs() < 0.06 && (next.y - ny).abs() * _aspect < 0.06) {
+    final tol = _catchTolerance;
+    if ((next.x - nx).abs() < tol && (next.y - ny).abs() * _aspect < tol) {
       _lightDot(next);
     }
   }
