@@ -40,6 +40,12 @@ class _ShapeSortChuteGameState extends State<ShapeSortChuteGame>
   // than every sibling sort/aim game. Mirror the established convention.
   final List<_Shard> _bits = <_Shard>[];
   bool _reduceMotion = false;
+  // Same pattern as ball_sort/sorting_train/counting_baskets: a simple
+  // incrementing score toward a fixed target is a judgment-free "beat your
+  // own best" moment, fired once per run the first time it happens — this
+  // file was missing that lens entirely, flatly repeating the routine
+  // "Wrong hole!"/good-sort flash even on an all-time-record-breaking sort.
+  bool _beatBest = false;
 
   @override
   void initState() {
@@ -100,6 +106,14 @@ class _ShapeSortChuteGameState extends State<ShapeSortChuteGame>
       GameScores.instance.submit(_id, _score).then((b) {
         if (mounted) setState(() => _best = b);
       });
+      if (!_beatBest && _best > 0 && _score > _best) {
+        _beatBest = true;
+        // Takes priority over the good-sort flash this method already set
+        // above — a new all-time record is the bigger moment of the two.
+        _banner = 'New personal best! 🏆';
+        TonePlayer.instance.playCue(SoundCue.milestone);
+        emit(ExperienceEvent.personalBest);
+      }
       if (_score >= _target) {
         _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         _status = GameStatus.won;
@@ -134,6 +148,7 @@ class _ShapeSortChuteGameState extends State<ShapeSortChuteGame>
       _lives = 3;
       _banner = null;
       _bits.clear();
+      _beatBest = false;
       _arrange();
       _status = GameStatus.playing;
     });
