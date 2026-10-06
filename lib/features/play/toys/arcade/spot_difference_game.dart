@@ -75,13 +75,15 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with _Emit {
     } else {
       _wrongFlash = idx;
       _lives--;
+      // Every wrong tap deserves the companion's gentle encouraging
+      // reaction, not just the one that happens to end the game.
+      emit(ExperienceEvent.incorrectAnswer);
       if (_lives <= 0) {
         // The life-ending miss is the real end of the run — it must sound
         // distinct from a routine miss, never just the same gentle-retry cue.
         _status = GameStatus.over;
         _banner = 'Out of lives!';
         TonePlayer.instance.playCue(SoundCue.gameOver);
-        emit(ExperienceEvent.incorrectAnswer);
       } else {
         TonePlayer.instance.playCue(SoundCue.gentleRetry);
         _banner = 'Look closely…';

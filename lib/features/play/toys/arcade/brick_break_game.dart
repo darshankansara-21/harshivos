@@ -117,6 +117,9 @@ class _BrickBreakGameState extends State<BrickBreakGame>
   void _loseLife() {
     _lives--;
     _combo = 0;
+    // Every lost ball deserves the companion's gentle encouraging
+    // reaction, not just the one that happens to end the game.
+    emit(ExperienceEvent.incorrectAnswer);
     if (_lives <= 0) {
       _status = GameStatus.over;
       TonePlayer.instance.playCue(SoundCue.gameOver);

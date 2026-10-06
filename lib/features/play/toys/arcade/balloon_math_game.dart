@@ -148,6 +148,9 @@ class _BalloonMathGameState extends State<BalloonMathGame>
           }
         } else {
           _lives--;
+          // Every wrong pop deserves the companion's gentle encouraging
+          // reaction, not just the one that happens to end the game.
+          emit(ExperienceEvent.incorrectAnswer);
           if (_lives <= 0) {
             // The life-ending miss must sound distinct from a routine miss,
             // never just the same gentle-retry cue as every other pop.

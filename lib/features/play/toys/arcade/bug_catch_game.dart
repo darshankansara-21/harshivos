@@ -160,6 +160,9 @@ class _BugCatchGameState extends State<BugCatchGame>
           }
         } else {
           _lives--;
+          // Every wrong catch deserves the companion's gentle encouraging
+          // reaction, not just the one that happens to end the game.
+          emit(ExperienceEvent.incorrectAnswer);
           if (_lives <= 0) {
             // Distinct terminal cue — the catching run really ends here.
             _status = GameStatus.over;

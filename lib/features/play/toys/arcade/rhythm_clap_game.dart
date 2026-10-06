@@ -77,12 +77,14 @@ class _RhythmClapGameState extends State<RhythmClapGame>
         _missed[i] = true; // resolved as a miss, NOT a hit — keep the two
         // visually distinct so a missed beat never looks like a success.
         _lives--;
+        // Every missed beat deserves the companion's gentle encouraging
+        // reaction, not just the one that happens to end the game.
+        emit(ExperienceEvent.incorrectAnswer);
         if (_lives <= 0) {
           // The run-ending miss needs its own distinct cue, not the routine
           // gentle-retry sound used for every other missed beat.
           _status = GameStatus.over;
           TonePlayer.instance.playCue(SoundCue.gameOver);
-          emit(ExperienceEvent.incorrectAnswer);
         } else {
           TonePlayer.instance.playCue(SoundCue.gentleRetry);
         }

@@ -116,10 +116,12 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
     } else {
       _wrong = i;
       _lives--;
+      // Every wrong tap deserves the companion's gentle encouraging
+      // reaction, not just the one that happens to end the game.
+      emit(ExperienceEvent.incorrectAnswer);
       if (_lives <= 0) {
         _status = GameStatus.over;
         TonePlayer.instance.playCue(SoundCue.gameOver);
-        emit(ExperienceEvent.incorrectAnswer);
         _banner = 'Out of lives!';
       } else {
         TonePlayer.instance.playCue(SoundCue.gentleRetry);

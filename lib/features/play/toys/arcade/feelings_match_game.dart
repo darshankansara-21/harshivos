@@ -127,13 +127,15 @@ class _FeelingsMatchGameState extends State<FeelingsMatchGame> with _Emit {
     } else {
       _wrong = idx;
       _lives--;
+      // Every wrong tap deserves the companion's gentle encouraging
+      // reaction, not just the one that happens to end the game.
+      emit(ExperienceEvent.incorrectAnswer);
       if (_lives <= 0) {
         // The life-ending miss must sound distinct from a routine miss,
         // never just the same gentle-retry cue as every other wrong tap.
         _status = GameStatus.over;
         _banner = 'Out of lives!';
         TonePlayer.instance.playCue(SoundCue.gameOver);
-        emit(ExperienceEvent.incorrectAnswer);
       } else {
         TonePlayer.instance.playCue(SoundCue.gentleRetry);
         _banner = 'That one is ${f.name}. Try again!';

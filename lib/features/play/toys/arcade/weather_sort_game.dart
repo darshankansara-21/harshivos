@@ -100,10 +100,12 @@ class _WeatherSortGameState extends State<WeatherSortGame>
   void _timeOut() {
     _wrongFlash = -1;
     _lives--;
+    // Every timed-out item deserves the companion's gentle encouraging
+    // reaction, not just the one that happens to end the game.
+    emit(ExperienceEvent.incorrectAnswer);
     if (_lives <= 0) {
       _status = GameStatus.over;
       TonePlayer.instance.playCue(SoundCue.gameOver);
-      emit(ExperienceEvent.incorrectAnswer);
     } else {
       TonePlayer.instance.playCue(SoundCue.gentleRetry);
       _banner = 'Too slow — next one!';
@@ -174,12 +176,14 @@ class _WeatherSortGameState extends State<WeatherSortGame>
     } else {
       _wrongFlash = bin;
       _lives--;
+      // Every wrong bin deserves the companion's gentle encouraging
+      // reaction, not just the one that happens to end the game.
+      emit(ExperienceEvent.incorrectAnswer);
       if (_lives <= 0) {
         // Final miss ends the round — give it its own distinct cue instead
         // of reusing the routine gentle-retry miss sound.
         _status = GameStatus.over;
         TonePlayer.instance.playCue(SoundCue.gameOver);
-        emit(ExperienceEvent.incorrectAnswer);
       } else {
         TonePlayer.instance.playCue(SoundCue.gentleRetry);
         // The red flash is a momentary "that's wrong" cue, not a permanent

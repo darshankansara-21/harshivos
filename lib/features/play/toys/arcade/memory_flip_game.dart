@@ -141,6 +141,9 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
   void _loseLife(String missMessage) {
     _streak = 0;
     _lives--;
+    // Every wrong match or timeout deserves the companion's gentle
+    // encouraging reaction, not just the one that happens to end the game.
+    emit(ExperienceEvent.incorrectAnswer);
     if (_lives <= 0) {
       _status = GameStatus.over;
       TonePlayer.instance.playCue(SoundCue.gameOver);

@@ -161,13 +161,15 @@ class _DrumGardenGameState extends State<DrumGardenGame>
       }
     } else {
       _lives--;
+      // Every wrong tap deserves the companion's gentle encouraging
+      // reaction, not just the one that happens to end the game.
+      emit(ExperienceEvent.incorrectAnswer);
       if (_lives <= 0) {
         // Out of lives ends the run — give it its own distinct game-over cue
         // instead of reusing the routine wrong-tap retry sound.
         _status = GameStatus.over;
         _flash('Out of lives!');
         TonePlayer.instance.playCue(SoundCue.gameOver);
-        emit(ExperienceEvent.incorrectAnswer);
       } else {
         _flash('Listen again · ${'💛' * _lives}');
         _replaySequence();

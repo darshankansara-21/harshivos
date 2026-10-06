@@ -120,6 +120,9 @@ class _CatchBeatGameState extends State<CatchBeatGame>
         o.dead = true;
         _combo = 0;
         _lives--;
+        // Every missed orb deserves the companion's gentle encouraging
+        // reaction, not just the one that happens to end the game.
+        emit(ExperienceEvent.incorrectAnswer);
         if (_lives <= 0) {
           // Out of lives is the real end of the run — it must sound distinct
           // from a routine miss, never just the same gentle-retry cue.
