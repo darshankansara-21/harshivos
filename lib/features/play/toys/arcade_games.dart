@@ -77,7 +77,6 @@ part 'arcade/bigger_number_game.dart';
 part 'arcade/balance_ball_game.dart';
 part 'arcade/calm_choices_game.dart';
 
-
 /// Wraps a shell overlay's content (win/lose and start-screen cards) so very
 /// large accessibility text-scale settings make it scroll instead of
 /// silently overflowing the screen — confirmed via a real `RenderFlex`
@@ -208,236 +207,267 @@ class _ShellState extends State<_Shell> {
       playing: status == GameStatus.playing,
       bed: WonderMusicBed.arcade,
       child: Stack(
-      fit: StackFit.expand,
-      children: <Widget>[
-        child,
-        SafeArea(
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: Padding(
-              padding: const EdgeInsets.only(top: 72),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Semantics(
-                    container: true,
-                    liveRegion: true,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.4),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        best > 0
-                            ? '$title   $scoreText   ★ $best'
-                            : '$title   $scoreText',
-                        style: TextStyle(
-                          color: accent,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
+        fit: StackFit.expand,
+        children: <Widget>[
+          child,
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 72),
+                // This floating HUD pill sits directly over the live gameplay
+                // (unlike the win/lose/start cards below, which already get
+                // `_overlayScroll`'s scroll-to-fit safety net) with no bottom
+                // bound on its available height — so a long title + a long
+                // banner (e.g. 'New personal best! 🏆' stacked under a title
+                // with a non-zero best score) can each wrap to two lines at a
+                // large accessibility text scale and together genuinely
+                // overflow the screen (confirmed via a real ~4px `RenderFlex`
+                // overflow at `TextScaler.linear(2.5)` on a small device,
+                // intermittent because it depends on which banner text is
+                // showing at the time). A persistent score/status badge is
+                // secondary HUD chrome, not primary reading content, so cap
+                // its own text scale rather than letting it grow unbounded —
+                // every other piece of on-screen text (instructions, win/lose
+                // text, overlay cards) still honours the full system scale.
+                child: MediaQuery(
+                  data: MediaQuery.of(context).copyWith(
+                    textScaler: MediaQuery.textScalerOf(context)
+                        .clamp(maxScaleFactor: 1.3),
                   ),
-                  if (banner != null) ...<Widget>[
-                    const SizedBox(height: 6),
-                    // Many games repurpose this pill for live status (lives
-                    // remaining, round/level progress, "out of lives!" etc.)
-                    // via setState — previously a screen-reader user had no
-                    // way to know it had changed short of re-focusing it
-                    // manually. `liveRegion: true` mirrors the score pill
-                    // above so TalkBack/VoiceOver re-announces it on change.
-                    Semantics(
-                      container: true,
-                      liveRegion: true,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: accent.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Text(banner,
-                            style: const TextStyle(
-                                color: Colors.black,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w900)),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ),
-        if (status == GameStatus.won || status == GameStatus.over)
-          Positioned.fill(
-            child: ColoredBox(
-              color: Colors.black.withOpacity(0.6),
-              child: _overlayScroll(Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    // Invisible one-shot announcer: the overlay's own Text
-                    // widgets are individually focusable (so a screen-reader
-                    // user can still re-read them), but nothing previously
-                    // told TalkBack/VoiceOver the win/lose screen had just
-                    // appeared — a sighted child sees it instantly, a blind
-                    // child using a screen reader would only discover it by
-                    // manually swiping around. A plain-English merged
-                    // sentence read once on appearance fixes that gap.
-                    Semantics(
-                      liveRegion: true,
-                      label: status == GameStatus.won
-                          ? '${winText ?? 'You did it!'} Score $score.'
-                              '${best > 0 ? ' Best $best.' : ''}'
-                              '${rankByScore && score > 0 && score > _runStartBest ? ' New best!' : ''}'
-                          : '$overText Score $score.'
-                              '${best > 0 ? ' Best $best.' : ''}',
-                      child: const SizedBox.shrink(),
-                    ),
-                    Text(status == GameStatus.won ? (winEmoji ?? '🎉') : overEmoji,
-                        style: const TextStyle(fontSize: 72)),
-                    const SizedBox(height: 8),
-                    Text(
-                        status == GameStatus.won
-                            ? (winText ?? 'You did it!')
-                            : overText,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 28,
-                            fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 6),
-                    Text(best > 0 ? 'Score $score   ·   Best $best' : 'Score $score',
-                        style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700)),
-                    if (rankByScore && score > 0 && score > _runStartBest) ...<Widget>[
-                      const SizedBox(height: 10),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFD166),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: const Text('🏆 New best!',
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Semantics(
+                        container: true,
+                        liveRegion: true,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.4),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            best > 0
+                                ? '$title   $scoreText   ★ $best'
+                                : '$title   $scoreText',
                             style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w900)),
-                      ),
-                    ],
-                    const SizedBox(height: 18),
-                    FilledButton.icon(
-                      onPressed: onPlayAgain,
-                      icon: const Icon(Icons.refresh_rounded),
-                      label: const Text('Play again'),
-                    ),
-                    const SizedBox(height: 8),
-                    Builder(
-                      builder: (context) => TextButton.icon(
-                        onPressed: () => Navigator.of(context).maybePop(),
-                        icon: const Icon(Icons.grid_view_rounded,
-                            color: Colors.white70, size: 20),
-                        label: const Text('Back to games',
-                            style: TextStyle(color: Colors.white70)),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        if (status == GameStatus.ready && onStart != null)
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: <Color>[
-                    Colors.black.withOpacity(0.55),
-                    accent.withOpacity(0.28),
-                  ],
-                ),
-              ),
-              child: _overlayScroll(Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    // The start card's icon is the game's OWN emoji (every
-                    // title is authored as 'emoji Name'), not `overEmoji` —
-                    // that param is the lose/encourage screen's icon, which
-                    // for several games (e.g. memory_flip's '💔', add_it_up's
-                    // '💔') is a genuinely bad first impression before a
-                    // child has even pressed Play, and for the many games
-                    // left at the shell's default '💪' showed a generic,
-                    // off-theme icon instead of the game's own. Mirrors
-                    // `_GoalShell`'s existing correct pattern.
-                    Text(title.split(' ').first,
-                        style: const TextStyle(fontSize: 76)),
-                    const SizedBox(height: 6),
-                    Text(title,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 30,
-                            fontWeight: FontWeight.w900)),
-                    if (introHow != null) ...<Widget>[
-                      const SizedBox(height: 10),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 32),
-                        child: Text(introHow,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 17,
-                                fontWeight: FontWeight.w600,
-                                height: 1.35)),
-                      ),
-                    ],
-                    if (best > 0) ...<Widget>[
-                      const SizedBox(height: 12),
-                      Text('Best  ★ $best',
-                          style: TextStyle(
                               color: accent,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800)),
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (banner != null) ...<Widget>[
+                        const SizedBox(height: 6),
+                        // Many games repurpose this pill for live status (lives
+                        // remaining, round/level progress, "out of lives!" etc.)
+                        // via setState — previously a screen-reader user had no
+                        // way to know it had changed short of re-focusing it
+                        // manually. `liveRegion: true` mirrors the score pill
+                        // above so TalkBack/VoiceOver re-announces it on change.
+                        Semantics(
+                          container: true,
+                          liveRegion: true,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: accent.withOpacity(0.9),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Text(banner,
+                                style: const TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w900)),
+                          ),
+                        ),
+                      ],
                     ],
-                    const SizedBox(height: 22),
-                    FilledButton.icon(
-                      onPressed: () {
-                        TonePlayer.instance.playCue(SoundCue.gameStart);
-                        onStart();
-                      },
-                      style: FilledButton.styleFrom(
-                        backgroundColor: accent,
-                        foregroundColor: Colors.black,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 30, vertical: 14),
-                        textStyle: const TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.w900),
-                      ),
-                      icon: const Icon(Icons.play_arrow_rounded, size: 28),
-                      label: const Text('Play'),
-                    ),
-                    const SizedBox(height: 8),
-                    Builder(
-                      builder: (context) => TextButton(
-                        onPressed: () => Navigator.of(context).maybePop(),
-                        child: const Text('Back to games',
-                            style: TextStyle(color: Colors.white60)),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
           ),
-      ],
-    ),
+          if (status == GameStatus.won || status == GameStatus.over)
+            Positioned.fill(
+              child: ColoredBox(
+                color: Colors.black.withOpacity(0.6),
+                child: _overlayScroll(
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      // Invisible one-shot announcer: the overlay's own Text
+                      // widgets are individually focusable (so a screen-reader
+                      // user can still re-read them), but nothing previously
+                      // told TalkBack/VoiceOver the win/lose screen had just
+                      // appeared — a sighted child sees it instantly, a blind
+                      // child using a screen reader would only discover it by
+                      // manually swiping around. A plain-English merged
+                      // sentence read once on appearance fixes that gap.
+                      Semantics(
+                        liveRegion: true,
+                        label: status == GameStatus.won
+                            ? '${winText ?? 'You did it!'} Score $score.'
+                                '${best > 0 ? ' Best $best.' : ''}'
+                                '${rankByScore && score > 0 && score > _runStartBest ? ' New best!' : ''}'
+                            : '$overText Score $score.'
+                                '${best > 0 ? ' Best $best.' : ''}',
+                        child: const SizedBox.shrink(),
+                      ),
+                      Text(
+                          status == GameStatus.won
+                              ? (winEmoji ?? '🎉')
+                              : overEmoji,
+                          style: const TextStyle(fontSize: 72)),
+                      const SizedBox(height: 8),
+                      Text(
+                          status == GameStatus.won
+                              ? (winText ?? 'You did it!')
+                              : overText,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 28,
+                              fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 6),
+                      Text(
+                          best > 0
+                              ? 'Score $score   ·   Best $best'
+                              : 'Score $score',
+                          style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700)),
+                      if (rankByScore &&
+                          score > 0 &&
+                          score > _runStartBest) ...<Widget>[
+                        const SizedBox(height: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFD166),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Text('🏆 New best!',
+                              style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900)),
+                        ),
+                      ],
+                      const SizedBox(height: 18),
+                      FilledButton.icon(
+                        onPressed: onPlayAgain,
+                        icon: const Icon(Icons.refresh_rounded),
+                        label: const Text('Play again'),
+                      ),
+                      const SizedBox(height: 8),
+                      Builder(
+                        builder: (context) => TextButton.icon(
+                          onPressed: () => Navigator.of(context).maybePop(),
+                          icon: const Icon(Icons.grid_view_rounded,
+                              color: Colors.white70, size: 20),
+                          label: const Text('Back to games',
+                              style: TextStyle(color: Colors.white70)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          if (status == GameStatus.ready && onStart != null)
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: <Color>[
+                      Colors.black.withOpacity(0.55),
+                      accent.withOpacity(0.28),
+                    ],
+                  ),
+                ),
+                child: _overlayScroll(
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      // The start card's icon is the game's OWN emoji (every
+                      // title is authored as 'emoji Name'), not `overEmoji` —
+                      // that param is the lose/encourage screen's icon, which
+                      // for several games (e.g. memory_flip's '💔', add_it_up's
+                      // '💔') is a genuinely bad first impression before a
+                      // child has even pressed Play, and for the many games
+                      // left at the shell's default '💪' showed a generic,
+                      // off-theme icon instead of the game's own. Mirrors
+                      // `_GoalShell`'s existing correct pattern.
+                      Text(title.split(' ').first,
+                          style: const TextStyle(fontSize: 76)),
+                      const SizedBox(height: 6),
+                      Text(title,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 30,
+                              fontWeight: FontWeight.w900)),
+                      if (introHow != null) ...<Widget>[
+                        const SizedBox(height: 10),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 32),
+                          child: Text(introHow,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w600,
+                                  height: 1.35)),
+                        ),
+                      ],
+                      if (best > 0) ...<Widget>[
+                        const SizedBox(height: 12),
+                        Text('Best  ★ $best',
+                            style: TextStyle(
+                                color: accent,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800)),
+                      ],
+                      const SizedBox(height: 22),
+                      FilledButton.icon(
+                        onPressed: () {
+                          TonePlayer.instance.playCue(SoundCue.gameStart);
+                          onStart();
+                        },
+                        style: FilledButton.styleFrom(
+                          backgroundColor: accent,
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 30, vertical: 14),
+                          textStyle: const TextStyle(
+                              fontSize: 20, fontWeight: FontWeight.w900),
+                        ),
+                        icon: const Icon(Icons.play_arrow_rounded, size: 28),
+                        label: const Text('Play'),
+                      ),
+                      const SizedBox(height: 8),
+                      Builder(
+                        builder: (context) => TextButton(
+                          onPressed: () => Navigator.of(context).maybePop(),
+                          child: const Text('Back to games',
+                              style: TextStyle(color: Colors.white60)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
