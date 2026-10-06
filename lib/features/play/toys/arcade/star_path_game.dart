@@ -61,6 +61,19 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
   int _linked = 1; // stars connected so far (first is the start)
   int _score = 0;
   int _best = 0;
+  // `_score` (constellations completed) always tops out at `_target` the
+  // moment a round is actually finished, so `_best` goes permanently static
+  // at 5 after the first full round — it can never again reflect a
+  // genuinely better round, the exact "stat that can never move again" bug
+  // class already fixed in mini_golf/jigsaw_four/counting_baskets/
+  // slide_puzzle. Track how long the whole five-constellation round took
+  // and keep a separate, lower-is-better personal best for it via
+  // `GameScores.submitLow`, so a faster, steadier trace (not just "did you
+  // finish") is the thing that can actually be beaten run after run.
+  static const String _timeId = '${_id}_time_ms';
+  int _roundStartMs = 0;
+  int _bestTimeMs = 0;
+  int _finishMs = 0;
   String? _banner;
   GameStatus _status = GameStatus.ready;
 
@@ -71,7 +84,12 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
     _shapeIdx = _order[0];
     _stars = _shapes[_shapeIdx];
     GameScores.instance.ensureLoaded().then((_) {
-      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+      if (mounted) {
+        setState(() {
+          _best = GameScores.instance.best(_id);
+          _bestTimeMs = GameScores.instance.bestLow(_timeId);
+        });
+      }
     });
   }
 
@@ -139,6 +157,19 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
         if (_score >= _target) {
           _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
           _status = GameStatus.won;
+          _finishMs = DateTime.now().millisecondsSinceEpoch - _roundStartMs;
+          final beatTime = _bestTimeMs > 0 && _finishMs < _bestTimeMs;
+          GameScores.instance.submitLow(_timeId, _finishMs).then((v) {
+            if (mounted) setState(() => _bestTimeMs = v);
+          });
+          // A faster all-time round is its own genuine achievement, distinct
+          // from — and able to keep recurring after — the five-constellation
+          // completion flag, so it gets its own milestone chime rather than
+          // being silently absorbed into the routine win fanfare.
+          if (beatTime) {
+            TonePlayer.instance.playCue(SoundCue.milestone);
+            emit(ExperienceEvent.personalBest);
+          }
           TonePlayer.instance.playCue(SoundCue.gameStart);
           emit(ExperienceEvent.gameCompleted);
         } else {
@@ -159,6 +190,8 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
       _stars = _shapes[_shapeIdx];
       _linked = 1;
       _banner = null;
+      _finishMs = 0;
+      _roundStartMs = DateTime.now().millisecondsSinceEpoch;
       _status = GameStatus.playing;
     });
   }
@@ -173,6 +206,8 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
           'the next star to connect it. Five to win!',
       onStart: () => setState(() {
         _linked = 1;
+        _finishMs = 0;
+        _roundStartMs = DateTime.now().millisecondsSinceEpoch;
         _status = GameStatus.playing;
       }),
       score: _score,
@@ -184,7 +219,15 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
               ? 'Connect the stars  ·  $_linked/${_stars.length}'
               : 'Trace the star paths'),
       winEmoji: '⭐',
-      winText: _winPraise,
+      // Mirrors mini_golf/jigsaw_four's roundWinText convention: show this
+      // round's own time plus (once one exists) the all-time best, and call
+      // out a genuine new record distinctly from a routine finish.
+      winText: _finishMs <= 0
+          ? _winPraise
+          : (_bestTimeMs > 0 && _finishMs < _bestTimeMs
+              ? '$_winPraise New fastest: ${(_finishMs / 1000).toStringAsFixed(1)}s! 🏆'
+              : '$_winPraise ${(_finishMs / 1000).toStringAsFixed(1)}s'
+                  '${_bestTimeMs > 0 ? ' (best ${(_bestTimeMs / 1000).toStringAsFixed(1)}s)' : ''}'),
       accent: const Color(0xFFFFE066),
       onPlayAgain: _reset,
       child: LayoutBuilder(
