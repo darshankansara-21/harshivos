@@ -200,10 +200,21 @@ class _TicTacToeGameState extends State<TicTacToeGame> with _Emit {
                     // the cell's own mark (star/paw/empty) announced, since
                     // the raw GestureDetector grid otherwise exposes no
                     // screen-reader information about the board at all.
+                    // Every other grid-tap game in the catalog (tap_order,
+                    // block_blast, ball_sort...) wires an explicit `onTap`
+                    // into its cell Semantics and sets `excludeSemantics:
+                    // true` — this board relied only on the GestureDetector's
+                    // own implicit tap-down semantics bridge, with no
+                    // `excludeSemantics` to stop the child's raw gesture
+                    // semantics node from also surfacing underneath. Matching
+                    // the established pattern makes a TalkBack/VoiceOver
+                    // double-tap reliably land on `_tap`.
                     Semantics(
                       label: 'Row ${i ~/ 3 + 1} column ${i % 3 + 1}: '
                           '${_b[i] == 1 ? 'star, taken by you' : _b[i] == 2 ? 'paw, taken by Pico' : 'empty'}',
                       button: _b[i] == 0,
+                      onTap: _b[i] == 0 ? () => _tap(i) : null,
+                      excludeSemantics: true,
                       child: GestureDetector(
                         onTapDown: (_) => _tap(i),
                         child: Container(
