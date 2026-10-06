@@ -8,7 +8,8 @@ class WeatherSortGame extends StatefulWidget {
   State<WeatherSortGame> createState() => _WeatherSortGameState();
 }
 
-class _WeatherSortGameState extends State<WeatherSortGame> with _Emit {
+class _WeatherSortGameState extends State<WeatherSortGame>
+    with TickerProviderStateMixin, ToyTicker, _Emit {
   static const String _id = 'weather_sort';
   static const int _target = 12;
   static const List<String> _bins = <String>['☀️', '🌧️', '❄️'];
@@ -60,6 +61,18 @@ class _WeatherSortGameState extends State<WeatherSortGame> with _Emit {
   int _wrongFlash = -1;
   String? _banner;
   GameStatus _status = GameStatus.ready;
+  // Every other sort was answerable at a dead-calm, infinite pace — zero
+  // challenge curve, the same flat-forever gap already fixed across
+  // letter_trace/mirror_draw/shape_builder/color_mixer. Unlike those games'
+  // tap-tolerance, there's no shrinkable domain here (always exactly 3
+  // weather bins), so the honest escalation is a per-item think-time window
+  // that narrows as `_score` climbs — same additive, score-gated shape, just
+  // along the time axis instead of space. A timeout costs a life exactly
+  // like a wrong tap (never a different, harsher penalty) and is always
+  // visibly countered by the on-screen timer bar below, never a silent clock.
+  double _timeLeft = 0;
+  double get _timeLimit =>
+      (6.0 - _score * (6.0 - 3.0) / _target).clamp(3.0, 6.0);
 
   @override
   void initState() {
@@ -68,6 +81,27 @@ class _WeatherSortGameState extends State<WeatherSortGame> with _Emit {
     GameScores.instance.ensureLoaded().then((_) {
       if (mounted) setState(() => _best = GameScores.instance.best(_id));
     });
+  }
+
+  @override
+  void onTick(double dt) {
+    if (_status != GameStatus.playing) return;
+    _timeLeft -= dt;
+    if (_timeLeft <= 0) _timeOut();
+  }
+
+  void _timeOut() {
+    _wrongFlash = -1;
+    _lives--;
+    if (_lives <= 0) {
+      _status = GameStatus.over;
+      TonePlayer.instance.playCue(SoundCue.gameOver);
+      emit(ExperienceEvent.incorrectAnswer);
+    } else {
+      TonePlayer.instance.playCue(SoundCue.gentleRetry);
+      _banner = 'Too slow — next one!';
+      _newItem();
+    }
   }
 
   int _drawFlatIndex() {
@@ -89,6 +123,7 @@ class _WeatherSortGameState extends State<WeatherSortGame> with _Emit {
       flat -= _items[bin].length;
     }
     _wrongFlash = -1;
+    _timeLeft = _timeLimit;
   }
 
   void _pick(int bin) {
@@ -151,7 +186,8 @@ class _WeatherSortGameState extends State<WeatherSortGame> with _Emit {
     return _Shell(
       title: '🌦️ Weather Sort',
       introHow:
-          'Look at the item, then tap the weather it belongs to — sunny, rainy or snowy!',
+          'Look at the item, then tap the weather it belongs to — sunny, rainy '
+          'or snowy! Answer before the bar runs out.',
       onStart: () => setState(() {
         _bag.clear();
         _newItem();
@@ -186,6 +222,28 @@ class _WeatherSortGameState extends State<WeatherSortGame> with _Emit {
                 child: Text(_item, style: const TextStyle(fontSize: 56)),
               ),
             ),
+            // Decorative think-time countdown — purely visual, never the
+            // only cue a timeout is coming; the banner/lives text above
+            // already tells a screen-reader user everything a timeout needs.
+            if (_status == GameStatus.playing)
+              ExcludeSemantics(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                      value: (_timeLeft / _timeLimit).clamp(0.0, 1.0),
+                      minHeight: 8,
+                      backgroundColor: Colors.white24,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        _timeLeft < _timeLimit * 0.3
+                            ? const Color(0xFFE23B3B)
+                            : const Color(0xFF66D9E8),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: <Widget>[
