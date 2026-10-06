@@ -1611,6 +1611,10 @@ class _SnakeGameState extends State<SnakeGame>
   int _aiReinforcementsSpawned = 0;
   int _score = 0;
   int _best = 0;
+  // Same pattern as FruitCatchGame/BalloonPopGame/StarTapGame: a simple
+  // incrementing score toward a fixed target is a judgment-free "beat your
+  // own best" moment, fired once per run the first time it happens.
+  bool _beatBest = false;
   int _combo = 0;
   double _comboT = 0;
   double _bannerT = 0;
@@ -1648,6 +1652,7 @@ class _SnakeGameState extends State<SnakeGame>
     _boost = false;
     _boostAcc = 0;
     _score = 0;
+    _beatBest = false;
     _combo = 0;
     _comboT = 0;
     _particles.clear();
@@ -1781,6 +1786,13 @@ class _SnakeGameState extends State<SnakeGame>
           }
           TonePlayer.instance.playCue(SoundCue.snakeEat);
         }
+        if (!_beatBest && _best > 0 && _score > _best) {
+          _beatBest = true;
+          // Takes priority over the combo/golden flash just set above — a
+          // new all-time record is the bigger moment of the two.
+          _flash('New personal best! 🏆');
+          TonePlayer.instance.playCue(SoundCue.milestone);
+        }
         emit(ExperienceEvent.bubblePopped);
         GameScores.instance.submit(_id, _score).then((b) {
           if (mounted && b != _best) setState(() => _best = b);
@@ -1825,6 +1837,11 @@ class _SnakeGameState extends State<SnakeGame>
         _score += 3;
         _flash(_rivalDownPool[_rnd.nextInt(_rivalDownPool.length)]);
         TonePlayer.instance.playCue(SoundCue.success);
+        if (!_beatBest && _best > 0 && _score > _best) {
+          _beatBest = true;
+          _flash('New personal best! 🏆');
+          TonePlayer.instance.playCue(SoundCue.milestone);
+        }
         // A rival going down is a great mid-run moment, not the actual end
         // of the game — _finish (below) already fires the full "You did
         // it!" celebration once the run really ends, so this only gets the
@@ -2328,6 +2345,11 @@ class _RacingGameState extends State<RacingGame>
   int _finishPlace = 0;
   int _score = 0;
   int _best = 0;
+  // Same pattern as FruitCatchGame/SnakeGame: pickups only ever add to
+  // `_score` during the race, so a live "beat your own best" check is a
+  // genuine judgment-free win the moment it happens, well before the
+  // final placement bonus/win screen at `_finish`.
+  bool _beatBest = false;
   double _bannerT = 0;
   String? _banner;
   GameStatus _status = GameStatus.ready;
@@ -2392,6 +2414,7 @@ class _RacingGameState extends State<RacingGame>
     _shuntT = 0;
     _finishPlace = 0;
     _score = 0;
+    _beatBest = false;
     _spawnIn = 0.9;
     _t = 0;
     _banner = null;
@@ -2488,6 +2511,7 @@ class _RacingGameState extends State<RacingGame>
           TonePlayer.instance.playCue(SoundCue.engine);
           emit(ExperienceEvent.bubblePopped);
           _flash('⚡ Boost! +$pickup');
+          _checkBeatBest();
           return true;
         }
         if (c.coin) {
@@ -2496,6 +2520,7 @@ class _RacingGameState extends State<RacingGame>
           TonePlayer.instance.playCue(SoundCue.coin);
           emit(ExperienceEvent.bubblePopped);
           _flash('💰 +$pickup');
+          _checkBeatBest();
           return true;
         }
         if (_boostT > 0) {
@@ -2503,6 +2528,7 @@ class _RacingGameState extends State<RacingGame>
           _score += 5;
           TonePlayer.instance.playCue(SoundCue.crash);
           _flash(_smashPool[_rnd.nextInt(_smashPool.length)]);
+          _checkBeatBest();
           return true;
         }
         // A knock is not fatal: near the finish, it hurts more, but momentum is
@@ -2542,6 +2568,18 @@ class _RacingGameState extends State<RacingGame>
   void _flash(String s) {
     _banner = s;
     _bannerT = 0.9;
+  }
+
+  // Takes priority over the boost/coin/barge flash just set by the caller —
+  // a new all-time record is the bigger moment of the two. `_best` only
+  // ever updates once, at `_finish`, so this is safe to compare against
+  // throughout the whole race.
+  void _checkBeatBest() {
+    if (!_beatBest && _best > 0 && _score > _best) {
+      _beatBest = true;
+      _flash('New personal best! 🏆');
+      TonePlayer.instance.playCue(SoundCue.milestone);
+    }
   }
 
   void _move(int delta) {
@@ -2793,6 +2831,11 @@ class _BowlingGameState extends State<BowlingGame>
   int _pinsBeforeBall = 0; // standing pins when the current ball was thrown
   int _score = 0;
   int _best = 0;
+  // Same pattern as FruitCatchGame/SnakeGame/RacingGame: the 10-frame total
+  // only ever accumulates and `_best` is a prior full-game total, so the
+  // instant the running total passes it is a genuine judgment-free win,
+  // worth celebrating well before frame 10 actually ends the game.
+  bool _beatBest = false;
   double _bannerT = 0;
   String? _banner;
   GameStatus _status = GameStatus.ready;
@@ -3027,6 +3070,9 @@ class _BowlingGameState extends State<BowlingGame>
       _flash(knockedThisBall > 0 ? '$knockedThisBall down!' : 'Good try');
       _nextFrame();
     }
+    // Takes priority over whichever flash was just set above — a new
+    // all-time running total is the bigger moment of the two.
+    _checkBeatBest();
     setState(() {});
   }
 
@@ -3054,6 +3100,14 @@ class _BowlingGameState extends State<BowlingGame>
     _bannerT = 1.4;
   }
 
+  void _checkBeatBest() {
+    if (!_beatBest && _best > 0 && _score > _best) {
+      _beatBest = true;
+      _flash('New personal best! 🏆');
+      TonePlayer.instance.playCue(SoundCue.milestone);
+    }
+  }
+
   void _start() {
     setState(() => _status = GameStatus.playing);
   }
@@ -3061,6 +3115,7 @@ class _BowlingGameState extends State<BowlingGame>
   void _reset() {
     setState(() {
       _score = 0;
+      _beatBest = false;
       _frame = 1;
       _ballInFrame = 1;
       _f10Bonus = false;
