@@ -3484,7 +3484,11 @@ class _BowlingGameState extends State<BowlingGame>
       _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
       // The real end of the 10-frame game: this is the one moment that
       // should earn the companion's full "You did it!" celebration, not the
-      // individual strikes/spares along the way.
+      // individual strikes/spares along the way. The strikes/spares above
+      // only ever play the lighter SoundCue.completion — without this, an
+      // ordinary (non-strike/spare) closing ball ended the whole game with
+      // no win sound at all.
+      TonePlayer.instance.playCue(SoundCue.success);
       emit(ExperienceEvent.gameCompleted);
       GameScores.instance.submit(_id, _score).then((b) {
         if (mounted) setState(() => _best = b);
