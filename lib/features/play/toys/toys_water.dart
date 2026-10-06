@@ -170,8 +170,19 @@ class _WaterRipplesToyState extends State<WaterRipplesToy>
     with TickerProviderStateMixin, ToyTicker {
   final List<_Ripple> _ripples = <_Ripple>[];
   double _hue = 0.55;
+  // Unlike BubblePopToy (its sibling sensory toy in this same file), which
+  // already thins its spawn rate and caps the on-screen particle count under
+  // the OS Reduce Motion setting, a drag here could keep dropping a new
+  // expanding ripple ring every ~28px of finger movement with no ceiling at
+  // all — an unbroken stream of continuous ambient motion (plus a sound cue
+  // per drop), exactly what Reduce Motion exists to calm down. Widen the
+  // minimum drag distance between drops and cap concurrent ripples the same
+  // way, instead of leaving this toy as the one remaining gap.
+  bool _reduceMotion = false;
 
   void _drop(Offset p) {
+    final cap = _reduceMotion ? 3 : 14;
+    if (_ripples.length >= cap) _ripples.removeAt(0);
     _ripples.add(_Ripple(center: p, hue: _hue));
     _hue = (_hue + 0.03) % 1.0;
     TonePlayer.instance.haptic(HapticFeedback.selectionClick);
@@ -191,12 +202,16 @@ class _WaterRipplesToyState extends State<WaterRipplesToy>
 
   @override
   Widget build(BuildContext context) {
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
+    final minDragDistance = _reduceMotion ? 70.0 : 28.0;
     return Stack(
       children: <Widget>[
         Listener(
           onPointerDown: (e) => _drop(e.localPosition),
           onPointerMove: (e) {
-            if (_ripples.isEmpty || (_ripples.last.center - e.localPosition).distance > 28) {
+            if (_ripples.isEmpty ||
+                (_ripples.last.center - e.localPosition).distance >
+                    minDragDistance) {
               _drop(e.localPosition);
             }
           },
