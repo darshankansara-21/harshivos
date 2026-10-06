@@ -112,29 +112,43 @@ class _RecommendedChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => openToy(context, toy),
-      child: Container(
-        width: 150,
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(22),
+    // Unlike the main toybox grid below (`_ToyTile`, which already uses the
+    // shared `GlassCard` — InkWell-backed haptic + tone + press-glow
+    // feedback and full screen-reader semantics), this "Picked for you"
+    // carousel — the very first row of tiles a child sees — used a bare
+    // `GestureDetector`. A raw `GestureDetector`'s `onTap` never gets a
+    // semantics node on its own, so a screen-reader user had no way to even
+    // discover these chips exist, let alone activate one, and every child
+    // lost the same press haptic/chime/scale-down confirmation every other
+    // tappable card in the app gives (the exact gap `GlassCard`'s own doc
+    // comment calls out as essential for Harshiv, who can't rely on sound
+    // alone). Reusing `GlassCard` here closes that gap and keeps every
+    // tappable surface in the hub behaving identically.
+    return SizedBox(
+      width: 150,
+      child: Semantics(
+        button: true,
+        label: '${toy.title}, recommended. Tap to play.',
+        child: GlassCard(
+          onTap: () => openToy(context, toy),
+          padding: const EdgeInsets.all(14),
+          borderRadius: 22,
           gradient: LinearGradient(
             colors: toy.gradient,
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: <Widget>[
-            Text(toy.emoji, style: const TextStyle(fontSize: 34)),
-            Text(toy.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-          ],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: <Widget>[
+              Text(toy.emoji, style: const TextStyle(fontSize: 34)),
+              Text(toy.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+            ],
+          ),
         ),
       ),
     );
