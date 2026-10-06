@@ -31,6 +31,14 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
   // for fresh numbers. Flash both tapped tiles green for a beat first.
   int _correctA = -1;
   int _correctB = -1;
+  // A correct tap left the board fully tappable for the 220ms confirm beat
+  // below (win or round-advance), so a fast extra tap during that window
+  // could lose the last life and flip the status to GameStatus.over —
+  // only for the already-queued delayed callback to then force it back to
+  // GameStatus.won (or silently deal fresh tiles into an ended game) a
+  // beat later. Lock input for that one beat, same convention as
+  // weather_sort_game's `_locked`.
+  bool _locked = false;
   int _score = 0;
   int _lives = 3;
   int _best = 0;
@@ -60,6 +68,7 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
     _wrong = -1;
     _correctA = -1;
     _correctB = -1;
+    _locked = false;
     _newTarget();
   }
 
@@ -74,7 +83,7 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
   }
 
   void _tap(int k) {
-    if (_status != GameStatus.playing) return;
+    if (_status != GameStatus.playing || _locked) return;
     _wrong = -1;
     if (_selected == -1) {
       _selected = k;
@@ -86,6 +95,7 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
         final a = _selected, b = k;
         _correctA = a;
         _correctB = b;
+        _locked = true;
         _selected = -1;
         TonePlayer.instance.playCue(SoundCue.correct);
         emit(ExperienceEvent.bubblePopped);
@@ -130,6 +140,7 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
               }
               _correctA = -1;
               _correctB = -1;
+              _locked = false;
               _newTarget();
             });
           });

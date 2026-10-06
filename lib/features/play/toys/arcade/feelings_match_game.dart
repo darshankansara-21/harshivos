@@ -51,6 +51,13 @@ class _FeelingsMatchGameState extends State<FeelingsMatchGame> with _Emit {
   int _correct = -1;
   int _best = 0;
   bool _beatBest = false;
+  // A correct tap left the faces fully tappable for the 220ms confirm beat
+  // below (win or round-advance), so a fast extra tap during that window
+  // could lose the last life and flip the status to GameStatus.over — only
+  // for the already-queued delayed callback to then force it back to
+  // GameStatus.won a beat later. Lock input for that one beat, same
+  // convention as weather_sort_game's `_locked`.
+  bool _locked = false;
   String? _banner;
   GameStatus _status = GameStatus.ready;
 
@@ -83,6 +90,7 @@ class _FeelingsMatchGameState extends State<FeelingsMatchGame> with _Emit {
   void _newRound() {
     _wrong = -1;
     _correct = -1;
+    _locked = false;
     _prompt = _feelings[_drawPrompt()];
     final count = _optionCount;
     final set = <_Feeling>{_prompt};
@@ -93,10 +101,11 @@ class _FeelingsMatchGameState extends State<FeelingsMatchGame> with _Emit {
   }
 
   void _pick(_Feeling f, int idx) {
-    if (_status != GameStatus.playing) return;
+    if (_status != GameStatus.playing || _locked) return;
     if (f.name == _prompt.name) {
       _score++;
       _correct = idx;
+      _locked = true;
       TonePlayer.instance.playCue(SoundCue.correct);
       emit(ExperienceEvent.bubblePopped);
       _banner = '${_prompt.face} ${_prompt.name}!';

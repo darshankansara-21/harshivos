@@ -39,6 +39,13 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
   // correct answer is visibly confirmed, not just announced in text a
   // child might not be looking at.
   int _correct = -1;
+  // A correct tap left the tiles fully tappable for the 220ms confirm beat
+  // below (win or round-advance), so a fast extra tap during that window
+  // could lose the last life and flip the status to GameStatus.over — only
+  // for the already-queued delayed callback to then force it back to
+  // GameStatus.won a beat later. Lock input for that one beat, same
+  // convention as weather_sort_game's `_locked`.
+  bool _locked = false;
   String? _banner;
   GameStatus _status = GameStatus.ready;
 
@@ -53,6 +60,7 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
   void _newRound() {
     _wrong = -1;
     _correct = -1;
+    _locked = false;
     _biggest = _rnd.nextBool();
     final max = _maxForScore(_score);
     final set = <int>{};
@@ -82,10 +90,11 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
   }
 
   void _tap(int i) {
-    if (_status != GameStatus.playing) return;
+    if (_status != GameStatus.playing || _locked) return;
     if (_nums[i] == _answer) {
       _score++;
       _correct = i;
+      _locked = true;
       TonePlayer.instance.playCue(SoundCue.correct);
       emit(ExperienceEvent.bubblePopped);
       _banner = _correctPool[_rnd.nextInt(_correctPool.length)];

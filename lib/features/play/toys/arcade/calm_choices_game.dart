@@ -62,6 +62,13 @@ class _CalmChoicesGameState extends State<CalmChoicesGame> with _Emit {
   // tile-level feedback — the options just silently swapped for the next
   // scene. Flash the tapped option green for a beat first, same convention.
   int _correct = -1;
+  // A correct pick left the options fully tappable for the 220ms confirm
+  // beat below (win or round-advance), so a fast extra tap during that
+  // window could lose the last life and flip the status to
+  // GameStatus.over — only for the already-queued delayed callback to then
+  // force it back to GameStatus.won a beat later. Lock input for that one
+  // beat, same convention as weather_sort_game's `_locked`.
+  bool _locked = false;
   String? _banner;
   GameStatus _status = GameStatus.ready;
 
@@ -92,6 +99,7 @@ class _CalmChoicesGameState extends State<CalmChoicesGame> with _Emit {
   void _newRound() {
     _wrong = -1;
     _correct = -1;
+    _locked = false;
     _scene = _scenes[_drawScene()];
     final List<String> distractors = <String>[_scene.other1, _scene.other2, _scene.other3]
       ..shuffle(_rnd);
@@ -99,10 +107,11 @@ class _CalmChoicesGameState extends State<CalmChoicesGame> with _Emit {
   }
 
   void _pick(String choice, int idx) {
-    if (_status != GameStatus.playing) return;
+    if (_status != GameStatus.playing || _locked) return;
     if (choice == _scene.healthy) {
       _score++;
       _correct = idx;
+      _locked = true;
       TonePlayer.instance.playCue(SoundCue.calm);
       emit(ExperienceEvent.bubblePopped);
       _banner = _helpsPool[_rnd.nextInt(_helpsPool.length)];
