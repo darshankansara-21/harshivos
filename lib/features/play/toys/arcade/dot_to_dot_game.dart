@@ -36,12 +36,27 @@ class _DotToDotGameState extends State<DotToDotGame>
   String? _banner;
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
+  // `_score` (pictures completed) is already tracked via `GameScores.submit`,
+  // but a run that finishes all five pictures with zero wrong-dot taps is
+  // genuinely more skillful than one that scrapes through with a dozen
+  // misses — and nothing tracked that. Same "stat that can never move" /
+  // "real avoidable mistake isn't tracked" bug class already fixed in
+  // count_pop/counting_baskets/basketball/color_mixer/mini_golf/jigsaw_four
+  // via a separate, lower-is-better `GameScores.submitLow` personal best.
+  static const String _missesId = '${_id}_wrong_taps';
+  int _runWrongTaps = 0;
+  int _bestWrongTaps = 0;
 
   @override
   void initState() {
     super.initState();
     GameScores.instance.ensureLoaded().then((_) {
-      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+      if (mounted) {
+        setState(() {
+          _best = GameScores.instance.best(_id);
+          _bestWrongTaps = GameScores.instance.bestLow(_missesId);
+        });
+      }
     });
   }
 
@@ -136,6 +151,20 @@ class _DotToDotGameState extends State<DotToDotGame>
         if (_score >= _target) {
           _status = GameStatus.won;
           _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
+          // A full five-picture run that beats the fewest-wrong-dot-taps
+          // record is the real "did you trace it cleaner" moment this stat
+          // is for — same milestone chime + companion celebration every
+          // other beat-your-best moment in the catalog gets, layered onto
+          // (not replacing) the win fanfare.
+          final beatWrongTaps =
+              _bestWrongTaps > 0 && _runWrongTaps < _bestWrongTaps;
+          GameScores.instance.submitLow(_missesId, _runWrongTaps).then((v) {
+            if (mounted) setState(() => _bestWrongTaps = v);
+          });
+          if (beatWrongTaps) {
+            TonePlayer.instance.playCue(SoundCue.milestone);
+            emit(ExperienceEvent.personalBest);
+          }
           TonePlayer.instance.playCue(SoundCue.gameStart);
           emit(ExperienceEvent.gameCompleted);
         } else {
@@ -155,6 +184,7 @@ class _DotToDotGameState extends State<DotToDotGame>
       if (((d.dx - nx) * w).abs() < hitPx && ((d.dy - ny) * h).abs() < hitPx) {
         _wrongDot = i;
         _wrongFlashT = 0.3;
+        _runWrongTaps++;
         TonePlayer.instance.playCue(SoundCue.gentleRetry);
         emit(ExperienceEvent.incorrectAnswer);
         setState(() {});
@@ -173,6 +203,7 @@ class _DotToDotGameState extends State<DotToDotGame>
       _bannerT = 0;
       _wrongDot = -1;
       _wrongFlashT = 0;
+      _runWrongTaps = 0;
       _buildFigure();
       _status = GameStatus.playing;
     });
@@ -188,6 +219,7 @@ class _DotToDotGameState extends State<DotToDotGame>
       introHow:
           'Tap the numbered dots in order — 1, 2, 3… — to draw the hidden picture!',
       onStart: () => setState(() {
+        _runWrongTaps = 0;
         _buildFigure();
         _status = GameStatus.playing;
       }),
@@ -197,7 +229,10 @@ class _DotToDotGameState extends State<DotToDotGame>
       status: _status,
       banner: _banner ?? 'Tap dot ${_next + 1}',
       winEmoji: '🔢',
-      winText: _winPraise,
+      winText: _bestWrongTaps > 0 && _runWrongTaps < _bestWrongTaps
+          ? '$_winPraise New best run: $_runWrongTaps wrong taps! 🏆'
+          : '$_winPraise $_runWrongTaps wrong taps'
+              '${_bestWrongTaps > 0 ? ' (best $_bestWrongTaps)' : ''}',
       accent: const Color(0xFFFFD166),
       onPlayAgain: _reset,
       child: LayoutBuilder(
