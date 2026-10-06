@@ -99,6 +99,16 @@ class _ColorMixerGameState extends State<ColorMixerGame> with _Emit {
   double _dist(List<double> a, List<double> b) => math.sqrt(
       math.pow(a[0] - b[0], 2) + math.pow(a[1] - b[1], 2) + math.pow(a[2] - b[2], 2));
 
+  // The colour-distance match threshold was a flat 0.14 on every one of the
+  // 8 wins of every playthrough — a blind-guess "close enough" window that
+  // never actually tightened, the same flat-tolerance gap class already
+  // fixed in letter_trace/mirror_draw/shape_builder. Narrows from a
+  // forgiving 0.14 down to a floor of 0.08 as `_score` climbs toward
+  // `_target`, so later matches genuinely demand a closer mix — pure
+  // tap/pour logic unaffected, scoring/win condition untouched.
+  double get _matchThreshold =>
+      (0.14 - _score * (0.14 - 0.08) / _target).clamp(0.08, 0.14);
+
   void _addDrop(int i) {
     if (_status != GameStatus.playing) return;
     setState(() {
@@ -114,7 +124,7 @@ class _ColorMixerGameState extends State<ColorMixerGame> with _Emit {
       TonePlayer.instance.playPop(0.6 + _drops.length * 0.03);
       final mix = _mixOf(_drops);
       final dist = _dist(mix, t);
-      if (_drops.length >= 2 && dist < 0.14) {
+      if (_drops.length >= 2 && dist < _matchThreshold) {
         _score++;
         _banner = 'Matched ${_recipeName[_recipe]}! 🎨';
         emit(ExperienceEvent.bubblePopped);
