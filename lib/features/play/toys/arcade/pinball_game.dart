@@ -57,6 +57,13 @@ class _PinballGameState extends State<PinballGame>
   // crossing a prior personal best mid-run is a real, judgment-free moment
   // worth its own banner, exactly like its open-ended arcade siblings.
   bool _beatBest = false;
+  // Pinball has no win screen — every single run, no matter how long the
+  // ball survives, ends on the exact same flat "Table over!" literal
+  // (optionally with an extra-ball count tacked on). Every other over-screen
+  // in the catalog already varies via the shared `_gentleTryAgainPool`
+  // (air_hockey/whack/goal_keeper/etc.) — pinball was the one arcade game
+  // left reading like a broken record on its most-seen screen.
+  String _overPraise = _gentleTryAgainPool[0];
   double _leftT = 0; // 0 down .. 1 fully flipped
   double _rightT = 0;
   // Real pinball flippers stay raised as long as the button is held, not
@@ -297,6 +304,7 @@ class _PinballGameState extends State<PinballGame>
     _comboT = 0;
     if (_balls <= 0) {
       _status = GameStatus.over;
+      _overPraise = _gentleTryAgainPool[_rnd.nextInt(_gentleTryAgainPool.length)];
       emit(_score > 0
           ? ExperienceEvent.gameCompleted
           : ExperienceEvent.incorrectAnswer);
@@ -393,6 +401,7 @@ class _PinballGameState extends State<PinballGame>
       _nextExtraBallAt = _extraBallScore;
       _extraBallsEarned = 0;
       _beatBest = false;
+      _overPraise = _gentleTryAgainPool[0];
       _combo = 0;
       _comboT = 0;
       _banner = null;
@@ -422,8 +431,8 @@ class _PinballGameState extends State<PinballGame>
               : 'Balls: $_balls'),
       overEmoji: '🎱',
       overText: _extraBallsEarned > 0
-          ? 'Table over! Earned $_extraBallsEarned extra ball${_extraBallsEarned > 1 ? 's' : ''}'
-          : 'Table over!',
+          ? '$_overPraise Earned $_extraBallsEarned extra ball${_extraBallsEarned > 1 ? 's' : ''}'
+          : _overPraise,
       accent: const Color(0xFFFFC857),
       introHow: 'Pull down in the bottom-right chute to load the plunger, '
           'then let go — pull farther for a stronger launch. Hold the left '
