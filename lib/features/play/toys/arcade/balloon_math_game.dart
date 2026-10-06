@@ -57,6 +57,10 @@ class _BalloonMathGameState extends State<BalloonMathGame>
   String? _banner;
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
+  // Small, capped career head start so a veteran with a high all-time
+  // `_best` meets a slightly livelier opening drift than a first-time
+  // player, while round 1 still stays calm for a fresh/low-`_best` child.
+  double get _careerPaceRamp => (_best / _target).clamp(0.0, 1.0) * 0.4;
 
   @override
   void initState() {
@@ -104,7 +108,15 @@ class _BalloonMathGameState extends State<BalloonMathGame>
     // reading the sum/difference genuinely gets harder to keep up with as the
     // child approaches the win target, same escalation convention the rest
     // of the catalog already uses.
-    final driftSpeed = 0.12 + (_score / _target) * 0.09;
+    //
+    // Only ever read this run's own `_score` (always 0 right after
+    // `_reset()`), so a veteran with a high all-time `_best` met the
+    // identical calm 0.12 drift as a first-timer every single playthrough —
+    // the same "flat-forever difficulty never fed by career `_best`" bug
+    // class already closed catalog-wide. `_careerPaceRamp` seeds a small,
+    // capped head start off career `_best` instead.
+    final driftSpeed =
+        0.12 + ((_score / _target).clamp(0.0, 1.0) + _careerPaceRamp) * 0.09;
     for (final b in _balloons) {
       b.y -= dt * driftSpeed;
       b.x += math.sin(_t * 1.5 + b.sway) * dt * 0.02;
