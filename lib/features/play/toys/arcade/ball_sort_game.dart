@@ -146,6 +146,19 @@ class _BallSortGameState extends State<BallSortGame> with _Emit {
         setState(_deal);
       }
     } else {
+      // Every other puzzle/question game in the catalog pairs an invalid
+      // attempt with a quiet `gentleRetry` cue (add_it_up, block_blast,
+      // merge, tic_tac_toe, etc.) — this was the one tap-a-tube game left
+      // completely silent on a blocked pour (wrong colour on top, or the
+      // target tube already full), so a child attempting an invalid move
+      // got no feedback at all, not even a sound, that anything happened.
+      // Only flash it as a genuine blocked-pour, not plain reselection: a
+      // tap on an empty tube (no pour was even attempted) or a tap that
+      // simply swaps which non-empty tube is selected next is a normal,
+      // silent part of play, same as `_selected == i` deselecting above.
+      if (ball != -1 && _tubes[i].isNotEmpty) {
+        TonePlayer.instance.playCue(SoundCue.gentleRetry);
+      }
       setState(() => _selected = _tubes[i].isNotEmpty ? i : -1);
     }
   }
