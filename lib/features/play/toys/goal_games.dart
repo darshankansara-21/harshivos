@@ -154,7 +154,21 @@ class _GoalShellState extends State<_GoalShell> {
             alignment: Alignment.topCenter,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 72, 16, 0),
-              child: Column(
+              // See _Shell's matching comment in arcade_games.dart: this
+              // floating HUD column sits directly over live gameplay with no
+              // bottom bound on its available height, so a long title+score
+              // pill plus a long goal/status pill can each wrap to two lines
+              // at a large accessibility text scale and together genuinely
+              // overflow the screen. Cap this secondary HUD chrome's own
+              // text scale rather than letting it grow unbounded — every
+              // other piece of on-screen text still honours the full
+              // system scale.
+              child: MediaQuery(
+                data: MediaQuery.of(context).copyWith(
+                  textScaler: MediaQuery.textScalerOf(context)
+                      .clamp(maxScaleFactor: 1.3),
+                ),
+                child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
                   Semantics(
@@ -224,6 +238,7 @@ class _GoalShellState extends State<_GoalShell> {
                     ),
                   ],
                 ],
+                ),
               ),
             ),
           ),

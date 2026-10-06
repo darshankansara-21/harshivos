@@ -206,61 +206,75 @@ class _GameShellState extends State<_GameShell> {
               alignment: Alignment.topCenter,
               child: Padding(
                 padding: const EdgeInsets.only(top: 72),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Semantics(
-                      container: true,
-                      liveRegion: true,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.4),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          best > 0
-                              ? '$title   $scoreText   ★ $best'
-                              : '$title   $scoreText',
-                          style: TextStyle(
-                            color: accent,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
+                  // See _Shell's matching comment in arcade_games.dart: this
+                  // floating HUD pill sits directly over live gameplay with no
+                  // bottom bound on its available height, so a long title + a
+                  // long banner can each wrap to two lines at a large
+                  // accessibility text scale and together genuinely overflow
+                  // the screen. Cap this secondary HUD chrome's own text scale
+                  // rather than letting it grow unbounded — every other piece
+                  // of on-screen text still honours the full system scale.
+                  child: MediaQuery(
+                    data: MediaQuery.of(context).copyWith(
+                      textScaler: MediaQuery.textScalerOf(context)
+                          .clamp(maxScaleFactor: 1.3),
                     ),
-                    if (banner != null) ...<Widget>[
-                      const SizedBox(height: 6),
-                      // See _Shell's matching comment in arcade_games.dart:
-                      // this pill is also reused for live status (lives,
-                      // round progress, "out of lives!") via setState, which
-                      // was previously silent to assistive tech on change.
-                      Semantics(
-                        container: true,
-                        liveRegion: true,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: accent.withOpacity(0.9),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Text(
-                            banner,
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w900,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        Semantics(
+                          container: true,
+                          liveRegion: true,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.4),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              best > 0
+                                  ? '$title   $scoreText   ★ $best'
+                                  : '$title   $scoreText',
+                              style: TextStyle(
+                                color: accent,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  ],
+                        if (banner != null) ...<Widget>[
+                          const SizedBox(height: 6),
+                          // See _Shell's matching comment in arcade_games.dart:
+                          // this pill is also reused for live status (lives,
+                          // round progress, "out of lives!") via setState, which
+                          // was previously silent to assistive tech on change.
+                          Semantics(
+                            container: true,
+                            liveRegion: true,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: accent.withOpacity(0.9),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Text(
+                                banner,
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                 ),
-              ),
             ),
           ),
           if (status == GameStatus.won || status == GameStatus.over)
