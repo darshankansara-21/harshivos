@@ -24,6 +24,13 @@ class _FishingGameState extends State<FishingGame>
     'Reel master!', 'Big catch!', 'Fishing pro!', 'Reel deal!',
   ];
   String _winPraise = _winPraisePool[0];
+  // A missed bite has no life cost here (unlike most tap-the-moment games),
+  // so a child can watch many bites slip away in one playthrough — the exact
+  // flat-repeated-banner shape fixed catalog-wide elsewhere, just missed in
+  // this file since the miss never ends the run.
+  static const List<String> _missPool = <String>[
+    'It got away…', 'So close!', 'Slipped off the hook…', 'Almost had it!',
+  ];
   final List<_Fish> _fish = <_Fish>[];
   final List<_Shard> _bits = <_Shard>[];
   bool _reduceMotion = false;
@@ -95,7 +102,7 @@ class _FishingGameState extends State<FishingGame>
     if (_biteT > 0) {
       _biteT -= dt;
       if (_biteT <= 0) {
-        _flash('It got away…');
+        _flash(_missPool[_rnd.nextInt(_missPool.length)]);
         TonePlayer.instance.playCue(SoundCue.gentleRetry);
         emit(ExperienceEvent.incorrectAnswer);
       }
