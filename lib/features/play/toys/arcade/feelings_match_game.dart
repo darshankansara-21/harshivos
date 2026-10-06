@@ -166,7 +166,7 @@ class _FeelingsMatchGameState extends State<FeelingsMatchGame> with _Emit {
       title: '😊 Feelings Match',
       introHow:
           'Read the feeling word, then tap the face that shows it. Learn your '
-          'feelings — ten right to win!',
+          'feelings — ten right to win, with 3 💛 hearts so a few misses are okay!',
       onStart: () => setState(() {
         _bag.clear();
         _newRound();

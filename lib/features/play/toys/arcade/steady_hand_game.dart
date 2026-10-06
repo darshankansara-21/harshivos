@@ -156,7 +156,8 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
       title: '🖐️ Steady Hand',
       introHow:
           'Grab the dot at the start and drag it along the path to the end '
-          'without touching the walls. Three paths to win!',
+          'without touching the walls. Three paths to win! Touching a wall '
+          'costs one of your 3 lives.',
       onStart: () => setState(() {
         _startLevel();
         _status = GameStatus.playing;

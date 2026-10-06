@@ -187,7 +187,8 @@ class _BalloonMathGameState extends State<BalloonMathGame>
     return _Shell(
       title: '🎈 Balloon Math',
       introHow:
-          'Work out the sum, then pop the balloon with the right answer before it floats away!',
+          'Work out the sum, then pop the balloon with the right answer before it floats away! '
+          'A wrong pop costs one of your 3 lives.',
       onStart: () => setState(() {
         _newProblem();
         _status = GameStatus.playing;

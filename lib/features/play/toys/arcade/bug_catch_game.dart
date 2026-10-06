@@ -197,7 +197,8 @@ class _BugCatchGameState extends State<BugCatchGame>
     return _Shell(
       title: '🐞 Bug Catch',
       introHow:
-          'Catch only the colour of bug you are asked for! Tap them before they scurry off the screen.',
+          'Catch only the colour of bug you are asked for! Tap them before they scurry off the screen. '
+          'Catching the wrong colour costs one of your 3 lives.',
       onStart: () => setState(() {
         _targetColor = _rnd.nextInt(_colors.length);
         _status = GameStatus.playing;

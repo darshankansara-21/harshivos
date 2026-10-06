@@ -141,7 +141,8 @@ class _FireflyCountGameState extends State<FireflyCountGame>
     return _Shell(
       title: '✨ Firefly Count',
       introHow:
-          'Count the glowing fireflies, then tap the number that matches. Get ten right!',
+          'Count the glowing fireflies, then tap the number that matches. Get ten right! '
+          'A wrong answer costs one of your 3 lives.',
       onStart: () => setState(() {
         _newRound();
         _status = GameStatus.playing;

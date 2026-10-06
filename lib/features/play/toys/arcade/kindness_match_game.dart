@@ -170,7 +170,7 @@ class _KindnessMatchGameState extends State<KindnessMatchGame> with _Emit {
       title: '💛 Kindness Match',
       introHow:
           'Read what happens, then tap the kind thing to say or do. Ten kind '
-          'choices to win!',
+          'choices to win — you have 3 💛 hearts, so a few wrong guesses are okay!',
       onStart: () => setState(() {
         _bag.clear();
         _newRound();

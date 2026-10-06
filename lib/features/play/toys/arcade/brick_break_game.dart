@@ -360,7 +360,8 @@ class _BrickBreakGameState extends State<BrickBreakGame>
     return _Shell(
       title: '🧱 Brick Break',
       introHow: 'Move the paddle to bounce the ball and smash every brick! '
-          'Golden bricks need two hits. Catch falling capsules for a helpful boost.',
+          'Golden bricks need two hits. Catch falling capsules for a helpful boost. '
+          'Missing the ball costs one of your 3 lives.',
       onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,

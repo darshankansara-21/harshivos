@@ -208,7 +208,8 @@ class _CatchBeatGameState extends State<CatchBeatGame>
     return _Shell(
       title: '🎶 Catch the Beat',
       introHow:
-          'Orbs fall in four lanes. Tap a lane right when its orb hits the glowing line. Keep your combo!',
+          'Orbs fall in four lanes. Tap a lane right when its orb hits the glowing line. '
+          'Keep your combo — missing costs one of your 3 lives!',
       onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,

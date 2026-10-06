@@ -170,7 +170,8 @@ class _PatternWeaverGameState extends State<PatternWeaverGame>
     return _Shell(
       title: '🧶 Pattern Weaver',
       introHow:
-          'Look at the repeating colours, then tap the one that comes next in the pattern!',
+          'Look at the repeating colours, then tap the one that comes next in the pattern! '
+          'A wrong tap costs one of your 3 lives.',
       onStart: () => setState(() {
         _newRound();
         _status = GameStatus.playing;

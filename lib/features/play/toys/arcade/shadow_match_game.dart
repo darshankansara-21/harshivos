@@ -133,7 +133,8 @@ class _ShadowMatchGameState extends State<ShadowMatchGame> with _Emit {
     return _Shell(
       title: '🫥 Shadow Match',
       introHow:
-          'A bright shape is on top. Tap the shadow underneath that has the same shape!',
+          'A bright shape is on top. Tap the shadow underneath that has the same shape! '
+          'A wrong tap costs one of your 3 lives.',
       onStart: () => setState(() {
         _newRound();
         _status = GameStatus.playing;

@@ -198,7 +198,8 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
       title: '🪘 Echo Drums',
       introHow:
           'Watch the drums light up in order, then tap them back from memory. '
-          'The phrase grows each round — echo eight to win!',
+          'The phrase grows each round — echo eight to win! A wrong tap costs '
+          'one of your 3 lives.',
       onStart: () => setState(() {
         _begin();
         _status = GameStatus.playing;

@@ -160,7 +160,8 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
       title: '➕ Add It Up',
       introHow:
           'Tap two number tiles that add up to the target number at the top. '
-          'Ten correct sums to win!',
+          'Ten correct sums to win — you have 3 💛 hearts, so a few wrong '
+          'guesses are okay!',
       onStart: () => setState(() {
         _deal();
         _status = GameStatus.playing;

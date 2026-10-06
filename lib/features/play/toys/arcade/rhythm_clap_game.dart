@@ -141,7 +141,8 @@ class _RhythmClapGameState extends State<RhythmClapGame>
     return _Shell(
       title: '👏 Rhythm Clap',
       introHow:
-          'A line sweeps across the beats. Tap the big pad right as it reaches each glowing beat!',
+          'A line sweeps across the beats. Tap the big pad right as it reaches each glowing beat! '
+          'A missed beat costs one of your 3 lives.',
       onStart: () => setState(() {
         _newBar();
         _status = GameStatus.playing;

@@ -119,7 +119,8 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with _Emit {
     return _Shell(
       title: '🔍 Spot the Difference',
       introHow:
-          'One tile is a slightly different colour from the rest. Tap the odd one out!',
+          'One tile is a slightly different colour from the rest. Tap the odd one out! '
+          'A wrong tap costs one of your 3 lives.',
       onStart: () => setState(() {
         _newRound();
         _status = GameStatus.playing;

@@ -204,7 +204,8 @@ class _DrumGardenGameState extends State<DrumGardenGame>
     return _Shell(
       title: '🥁 Drum Garden',
       introHow:
-          'Tap the singing pads to make music, then repeat the tune you hear. It grows each round!',
+          'Tap the singing pads to make music, then repeat the tune you hear. '
+          'It grows each round! A wrong tap costs one of your 3 lives.',
       onStart: () => setState(() {
         _status = GameStatus.playing;
         _phase = 0;
