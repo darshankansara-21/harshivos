@@ -60,12 +60,32 @@ class _BallSortGameState extends State<BallSortGame> with _Emit {
     super.dispose();
   }
 
+  // Mirrors the catalog-wide career-skill-ramp pattern already closed on
+  // ~20 other games (slide_puzzle's scramble depth, mini_golf's hole
+  // difficulty, bug_catch's pace): `_level`/`_deal()` always reopened flat
+  // at the easiest 3-colour deal regardless of how many levels a child has
+  // ever cleared before, the one open-ended puzzle in the catalog still
+  // missing this. Capped well under the level needed to hit the catalog's
+  // 6-colour ceiling so a proven solver still has real room to climb
+  // within a run.
+  int get _careerSkillRamp => (_best ~/ 3).clamp(0, 4);
+
   @override
   void initState() {
     super.initState();
     _deal();
     GameScores.instance.ensureLoaded().then((_) {
-      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+      if (!mounted) return;
+      setState(() {
+        _best = GameScores.instance.best(_id);
+        // Only re-deal if the player hasn't already started poking at the
+        // board dealt above before this async load resolved — re-dealing
+        // mid-play would silently swap the puzzle out from under them.
+        if (_status == GameStatus.ready) {
+          _level = _careerSkillRamp;
+          _deal();
+        }
+      });
     });
   }
 
@@ -206,7 +226,7 @@ class _BallSortGameState extends State<BallSortGame> with _Emit {
 
   void _reset() {
     setState(() {
-      _level = 0;
+      _level = _careerSkillRamp;
       _score = 0;
       _banner = null;
       _bannerTimer?.cancel();
