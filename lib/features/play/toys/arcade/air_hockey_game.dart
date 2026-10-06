@@ -295,7 +295,30 @@ class _AirHockeyGameState extends State<AirHockeyGame>
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
           if (w > 0) _aspect = h / w;
-          return GestureDetector(
+          // Like maze_marble's free-form drag-to-roll surface, this
+          // whole-screen drag-to-position mallet had zero Semantics — a
+          // screen-reader user couldn't discover or move the mallet at
+          // all. A fixed-size nudge of the mallet's own position produces
+          // the same "slide that way" effect the real onPanUpdate drives
+          // every frame, clamped to the same bottom-half play area.
+          void nudge(double dx, double dy) => setState(() {
+                _ppx = (_ppx + dx).clamp(_paddleR, 1 - _paddleR);
+                _ppy = (_ppy + dy).clamp(0.52, 1 - _paddleR);
+              });
+          return Semantics(
+            label: 'Air hockey table. Drag or use the nudge actions to '
+                'slide your mallet and slam the puck into the top goal.',
+            customSemanticsActions: <CustomSemanticsAction, VoidCallback>{
+              const CustomSemanticsAction(label: 'Nudge left'): () =>
+                  nudge(-0.12, 0),
+              const CustomSemanticsAction(label: 'Nudge right'): () =>
+                  nudge(0.12, 0),
+              const CustomSemanticsAction(label: 'Nudge up'): () =>
+                  nudge(0, -0.12),
+              const CustomSemanticsAction(label: 'Nudge down'): () =>
+                  nudge(0, 0.12),
+            },
+            child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onPanStart: (d) => _movePaddle(d.localPosition, w, h),
             onPanUpdate: (d) => _movePaddle(d.localPosition, w, h),
@@ -315,6 +338,7 @@ class _AirHockeyGameState extends State<AirHockeyGame>
                 bits: _bits,
               ),
               size: Size.infinite,
+            ),
             ),
           );
         },
