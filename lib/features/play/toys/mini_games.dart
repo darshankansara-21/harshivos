@@ -2649,6 +2649,16 @@ class _RacingGameState extends State<RacingGame>
   // genuine judgment-free win the moment it happens, well before the
   // final placement bonus/win screen at `_finish`.
   bool _beatBest = false;
+  // A real race is won or lost on time, not pickup points — CLAUDE.md's
+  // "Racing like a real race" directive calls this out directly, and the
+  // `_score` pill never actually measured it. Mirrors star_path/piano_song/
+  // shape_builder's lower-is-better `GameScores.submitLow` fastest-run
+  // record: only an outright P1 finish counts as a genuine completed race,
+  // so the clock only ever submits on that path (see `_finish`).
+  static const String _timeId = '${_id}_time_ms';
+  int _raceStartMs = 0;
+  int _bestTimeMs = 0;
+  int _finishMs = 0;
   double _bannerT = 0;
   String? _banner;
   GameStatus _status = GameStatus.ready;
@@ -2693,11 +2703,18 @@ class _RacingGameState extends State<RacingGame>
     super.initState();
     _startRace();
     GameScores.instance.ensureLoaded().then((_) {
-      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+      if (mounted) {
+        setState(() {
+          _best = GameScores.instance.best(_id);
+          _bestTimeMs = GameScores.instance.bestLow(_timeId);
+        });
+      }
     });
   }
 
   void _startRace() {
+    _raceStartMs = DateTime.now().millisecondsSinceEpoch;
+    _finishMs = 0;
     _cars.clear();
     _rivals
       ..clear()
@@ -2863,6 +2880,22 @@ class _RacingGameState extends State<RacingGame>
     _status = _finishPlace == 1 ? GameStatus.won : GameStatus.over;
     if (_status == GameStatus.won) {
       _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
+      // A P1 finish is the only one that represents an honest, complete
+      // race time — a shunt-shortened or still-mid-pack P2-P4 run never
+      // ran the real distance to the flag, so only this path ever submits
+      // to the clock.
+      _finishMs = DateTime.now().millisecondsSinceEpoch - _raceStartMs;
+      final beatTime = _bestTimeMs > 0 && _finishMs < _bestTimeMs;
+      GameScores.instance.submitLow(_timeId, _finishMs).then((v) {
+        if (mounted) setState(() => _bestTimeMs = v);
+      });
+      if (beatTime) {
+        // Distinct from the routine win fanfare below: a genuinely faster
+        // all-time race is its own achievement, recurring race after race
+        // long after the pickup-score `_best` has plateaued near its
+        // practical ceiling.
+        TonePlayer.instance.playCue(SoundCue.milestone);
+      }
     }
     _score += <int>[60, 30, 15, 5][(_finishPlace - 1).clamp(0, 3)];
     TonePlayer.instance
@@ -2939,7 +2972,16 @@ class _RacingGameState extends State<RacingGame>
       overText:
           _finishPlace > 0 ? 'Finished P$_finishPlace' : 'Race on!',
       winEmoji: '🏆',
-      winText: _winPraise,
+      // Mirrors star_path/piano_song/shape_builder's roundWinText
+      // convention: show this race's own time plus (once one exists) the
+      // all-time best, and call out a genuine new record distinctly from a
+      // routine P1 finish.
+      winText: _finishMs <= 0
+          ? _winPraise
+          : (_bestTimeMs > 0 && _finishMs < _bestTimeMs
+              ? '$_winPraise New fastest: ${(_finishMs / 1000).toStringAsFixed(1)}s! 🏆'
+              : '$_winPraise ${(_finishMs / 1000).toStringAsFixed(1)}s'
+                  '${_bestTimeMs > 0 ? ' (best ${(_bestTimeMs / 1000).toStringAsFixed(1)}s)' : ''}'),
       accent: const Color(0xFFFF6B6B),
       introHow: 'Reach the 🏁 chequered flag ahead of 3 rivals.\n'
           'Tap left/right to change lanes, grab 🪙 coins and ⚡ boosts, '
