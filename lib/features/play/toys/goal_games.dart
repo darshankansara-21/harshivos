@@ -862,6 +862,13 @@ class _PathFinderGameState extends State<PathFinderGame> with _GoalEmit {
     'Treasure found!', 'Path master!', 'Maze champion!', 'Great navigating!',
   ];
   String _winPraise = _winPraisePool[0];
+  // Every correct step (up to 16 per round) flashed the exact same flat
+  // 'Keep going!' literal — the same robotic-repetition gap already fixed
+  // catalog-wide elsewhere (e.g. _ChoiceGoalGameState's _correctPool above).
+  // A small pool + _rnd pick keeps each step feeling distinct.
+  static const List<String> _stepPraisePool = <String>[
+    'Keep going!', 'Nice step!', 'On track!', 'Great eye!',
+  ];
 
   @override
   void initState() {
@@ -920,7 +927,9 @@ class _PathFinderGameState extends State<PathFinderGame> with _GoalEmit {
     }
     setState(() {
       _step++;
-      _message = _step == _path.length ? 'Treasure found!' : 'Keep going!';
+      _message = _step == _path.length
+          ? 'Treasure found!'
+          : _stepPraisePool[_rnd.nextInt(_stepPraisePool.length)];
       if (_step == _path.length) {
         _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         _status = GameStatus.won;
