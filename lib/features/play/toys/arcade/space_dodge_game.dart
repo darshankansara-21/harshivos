@@ -74,6 +74,20 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
 
   static const double _shipR = 0.045;
 
+  // Same "flat-forever difficulty never fed by career `_best`" bug class
+  // already fixed in air_hockey/goal_keeper/snake/racing/whack (batches
+  // 395-397): every replay opened at the identical wave-1 meteor pace
+  // regardless of how many times this child has already cleared the
+  // 180-point galaxy. A small, capped head start on the wave counter (which
+  // drives both speed and the seeker/splitter unlock gates) keeps a
+  // seasoned pilot's opener a bit livelier without ever starting as hard as
+  // the late-game ramp a fresh run would eventually reach on its own.
+  int get _careerWaveRamp {
+    if (_best >= 140) return 2;
+    if (_best >= 70) return 1;
+    return 0;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -343,7 +357,7 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
       _bonus = 0;
       _lives = _startingLives;
       _lastMilestone = 0;
-      _wave = 1;
+      _wave = 1 + _careerWaveRamp;
       _invulnerable = false;
       _hitCooldown = 0;
       _shield = false;
