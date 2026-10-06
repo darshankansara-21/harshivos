@@ -243,12 +243,20 @@ class _SkyHopGameState extends State<SkyHopGame>
       winText: _winPraise,
       accent: const Color(0xFFFFD166),
       onPlayAgain: _reset,
-      child: GestureDetector(
+      child: Semantics(
+        button: true,
+        label: !_started
+            ? 'Tap to flap and start flying.'
+            : 'Score $_score of $_goalScore. Tap to flap.',
+        onTap: _flap,
+        excludeSemantics: true,
+        child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTapDown: (_) => _flap(),
         child: CustomPaint(
           painter: _SkyHopPainter(_pipes, _birdY, _gap, _started, _bits, _vy),
           size: Size.infinite,
+        ),
         ),
       ),
     );

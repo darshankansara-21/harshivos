@@ -181,7 +181,13 @@ class _PenaltyDashGameState extends State<PenaltyDashGame>
       winText: _winPraise,
       accent: const Color(0xFF80ED99),
       onPlayAgain: _reset,
-      child: GestureDetector(
+      child: Semantics(
+        button: true,
+        label: 'Goals $_score of $_target. Tap to shoot when the striker is '
+            'clear of the keeper and between the posts.',
+        onTap: _shoot,
+        excludeSemantics: true,
+        child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTapDown: (_) => _shoot(),
         child: CustomPaint(
@@ -193,6 +199,7 @@ class _PenaltyDashGameState extends State<PenaltyDashGame>
             bits: _bits,
           ),
           size: Size.infinite,
+        ),
         ),
       ),
     );

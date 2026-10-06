@@ -189,7 +189,15 @@ class _FishingGameState extends State<FishingGame>
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
-          return GestureDetector(
+          return Semantics(
+            button: true,
+            label: _biteT > 0
+                ? 'A bite! Tap to reel it in.'
+                : 'Caught $_score of $_target. Tap the water to move your '
+                    'bobber.',
+            onTap: () => _tap(Offset(_hookX * w, _biteT > 0 ? _hookY * h : h * 0.3), w, h),
+            excludeSemantics: true,
+            child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTapDown: (d) => _tap(d.localPosition, w, h),
             child: CustomPaint(
@@ -204,6 +212,7 @@ class _FishingGameState extends State<FishingGame>
                 bits: _bits,
               ),
               size: Size.infinite,
+            ),
             ),
           );
         },

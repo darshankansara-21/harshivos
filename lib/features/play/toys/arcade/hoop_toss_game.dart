@@ -165,7 +165,13 @@ class _HoopTossGameState extends State<HoopTossGame>
       winText: _winPraise,
       accent: const Color(0xFFFFD166),
       onPlayAgain: _reset,
-      child: GestureDetector(
+      child: Semantics(
+        button: true,
+        label: 'Ringers $_score of $_target. Tap to toss the ring when the '
+            'sliding peg is under it.',
+        onTap: _toss,
+        excludeSemantics: true,
+        child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTapDown: (_) => _toss(),
         child: CustomPaint(
@@ -176,6 +182,7 @@ class _HoopTossGameState extends State<HoopTossGame>
               flying: _flying,
               bits: _bits),
           size: Size.infinite,
+        ),
         ),
       ),
     );
