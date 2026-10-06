@@ -22,12 +22,20 @@ class _BubblePopToyState extends State<BubblePopToy>
   final List<_Pop> _pops = <_Pop>[];
   final math.Random _r = math.Random();
   double _spawnAcc = 0;
+  // Unlike every other continuous-particle sensory toy (ParticleGalaxyToy /
+  // FireworksToy already gate their burst sizes on this), BubblePopToy kept
+  // spawning a dense, unbroken stream of up to 90 bubbles regardless of the
+  // OS Reduce Motion setting — exactly the kind of constant ambient motion
+  // that setting exists to calm down. Thin the spawn rate and the on-screen
+  // cap under Reduce Motion instead of leaving this toy as the one gap.
+  bool _reduceMotion = false;
 
   @override
   void onTick(double dt) {
     final size = context.size ?? Size.zero;
-    _spawnAcc += dt * 6;
-    while (_spawnAcc >= 1 && _bubbles.length < 90) {
+    final cap = _reduceMotion ? 28 : 90;
+    _spawnAcc += dt * (_reduceMotion ? 2 : 6);
+    while (_spawnAcc >= 1 && _bubbles.length < cap) {
       _spawnAcc -= 1;
       final radius = 16 + _r.nextDouble() * 38;
       _bubbles.add(_Bubble(
@@ -63,6 +71,7 @@ class _BubblePopToyState extends State<BubblePopToy>
 
   @override
   Widget build(BuildContext context) {
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return Stack(
       children: <Widget>[
         Listener(
