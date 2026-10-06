@@ -27,6 +27,7 @@ class _SoccerKickGameState extends State<SoccerKickGame>
   bool _dragging = false;
   double _aimX = 0.5, _aimY = 0.84;
   int _score = 0, _misses = 0, _best = 0;
+  bool _beatBest = false;
   String? _banner;
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
@@ -108,9 +109,22 @@ class _SoccerKickGameState extends State<SoccerKickGame>
       }
       _banner = 'GOAL!  ⚽';
       _bannerT = 1.3;
+      // Every sibling aim-into-a-goal scorer (basketball, block_blast,
+      // skee_ball, dot_to_dot) gives a mid-run score crossing the prior
+      // all-time best its own milestone fanfare — this one tracked `_best`
+      // but never checked for or celebrated the crossing, leaving every
+      // record-breaking goal as flat as a routine one.
+      final crossedBest = _score > _best && !_beatBest && _best > 0;
       GameScores.instance.submit(_id, _score).then((b) {
         if (mounted) setState(() => _best = b);
       });
+      if (crossedBest) {
+        _beatBest = true;
+        _banner = 'New personal best! 🏆';
+        _bannerT = 1.3;
+        TonePlayer.instance.playCue(SoundCue.milestone);
+        emit(ExperienceEvent.personalBest);
+      }
       if (_score >= _target) {
         _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         _status = GameStatus.won;
@@ -194,6 +208,7 @@ class _SoccerKickGameState extends State<SoccerKickGame>
     setState(() {
       _score = 0;
       _misses = 0;
+      _beatBest = false;
       _banner = null;
       _bannerT = 0;
       _bits.clear();

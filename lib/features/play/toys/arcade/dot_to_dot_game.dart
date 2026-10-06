@@ -29,6 +29,7 @@ class _DotToDotGameState extends State<DotToDotGame>
   int _fig = 0;
   int _score = 0;
   int _best = 0;
+  bool _beatBest = false;
   double _pulse = 0;
   int _wrongDot = -1;
   double _wrongFlashT = 0;
@@ -117,9 +118,21 @@ class _DotToDotGameState extends State<DotToDotGame>
         emit(ExperienceEvent.bubblePopped);
         _banner = 'Picture done! 🎉';
         _bannerT = 1.2;
+        // Finishing a picture that pushes the session past every prior
+        // best deserves the same milestone fanfare every other scoring
+        // game in the catalog gives that moment, instead of letting it
+        // pass as a routine "Picture done!" banner.
+        final crossedBest = _score > _best && !_beatBest && _best > 0;
         GameScores.instance.submit(_id, _score).then((b) {
           if (mounted) setState(() => _best = b);
         });
+        if (crossedBest) {
+          _beatBest = true;
+          _banner = 'New personal best! 🏆';
+          _bannerT = 1.2;
+          TonePlayer.instance.playCue(SoundCue.milestone);
+          emit(ExperienceEvent.personalBest);
+        }
         if (_score >= _target) {
           _status = GameStatus.won;
           _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
@@ -155,6 +168,7 @@ class _DotToDotGameState extends State<DotToDotGame>
       _score = 0;
       _fig = 0;
       _bits.clear();
+      _beatBest = false;
       _banner = null;
       _bannerT = 0;
       _wrongDot = -1;
