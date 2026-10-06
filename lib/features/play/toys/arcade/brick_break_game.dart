@@ -26,6 +26,18 @@ class _BrickBreakGameState extends State<BrickBreakGame>
     with TickerProviderStateMixin, ToyTicker, _Emit {
   static const String _id = 'brick_break';
   static const int _cols = 6;
+  // Most bricks are 1-HP, so a non-combo destroy is the dominant routine
+  // event — it could fire the exact same "Nice hit!" banner dozens of times
+  // in a single run, the same flat-repeated-praise gap already fixed in
+  // sky_hop/echo_drums. A small pool keeps every destroy feeling fresh
+  // without touching scoring, physics, or combo logic at all.
+  static const List<String> _hitPraise = <String>[
+    'Nice hit!',
+    'Nice shot!',
+    'Clean break!',
+    'Smashed it!',
+    'Good aim!',
+  ];
   final math.Random _rnd = math.Random();
   int _rowCount = 4;
   List<int> _bricks = List<int>.filled(_cols * 4, 1);
@@ -226,7 +238,9 @@ class _BrickBreakGameState extends State<BrickBreakGame>
               cx, cy, math.cos(a) * sp, math.sin(a) * sp - 0.1, col));
         }
         if (remaining <= 0) {
-          _flash(_combo > 1 ? 'Combo x$_combo!' : 'Nice hit!');
+          _flash(_combo > 1
+              ? 'Combo x$_combo!'
+              : _hitPraise[_rnd.nextInt(_hitPraise.length)]);
           TonePlayer.instance.playCue(SoundCue.brick);
           // A destroyed brick has a chance to drop a helpful capsule — turns
           // clearing the field into a real risk/reward decision, not just aim.
