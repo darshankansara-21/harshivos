@@ -494,6 +494,21 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> with _GoalEmit {
   int _wrong = 0;
   int _streak = 0;
   int _wrongIndex = -1;
+  // Unlike every wrong tap (a red flash on the missed tile, held for
+  // 450ms), a correct tap gave the tapped tile zero visual acknowledgment
+  // at all — `_round` is swapped out for a brand-new round in the very same
+  // setState, so the tile a child just correctly identified disappears
+  // instantly under a fresh set of options with nothing but a sound and a
+  // message line marking the win. `_correctIndex` mirrors `_wrongIndex`'s
+  // pattern: lit for a brief moment on the tapped tile before `_advanceRound`
+  // swaps the board out from under it.
+  int _correctIndex = -1;
+  // Guards against a second tap landing on the just-answered round during
+  // the brief correct-flash window above — `_round`/`_score` don't change
+  // until `_advanceRound` fires, so without this a fast double-tap on the
+  // same tile (or a different tile, now unintentionally re-checked against
+  // the stale `_round.answer`) could score twice for one correct answer.
+  bool _awaitingNextRound = false;
   // `_score`/`_best` both cap flat at `_target` the moment a run is won (the
   // same "stat that can never move" shape as counting_baskets/count_pop),
   // so they can't carry a skill signal across playthroughs — but this
@@ -535,7 +550,7 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> with _GoalEmit {
   }
 
   void _choose(int index) {
-    if (_status != GameStatus.playing) return;
+    if (_status != GameStatus.playing || _awaitingNextRound) return;
     if (index != _round.answer) {
       setState(() {
         _wrong++;
@@ -560,8 +575,10 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> with _GoalEmit {
     }
     TonePlayer.instance.playCue(SoundCue.correct);
     final quick = DateTime.now().difference(_shownAt).inMilliseconds < 2200;
+    var justWon = false;
     setState(() {
       _wrongIndex = -1;
+      _correctIndex = index;
       _score++;
       _roundNumber++;
       _streak++;
@@ -576,19 +593,20 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> with _GoalEmit {
           _winPraise = pool[_random.nextInt(pool.length)];
         }
         _status = GameStatus.won;
+        justWon = true;
         TonePlayer.instance.playCue(SoundCue.success);
       } else {
-        _round = widget.buildRound(_roundNumber + _experienceRamp, _random);
-        _shownAt = DateTime.now();
+        // Hold this round on screen a beat longer so the green flash on the
+        // tapped tile is actually visible — `_advanceRound` swaps in the
+        // next round once the flash has had time to register.
+        _awaitingNextRound = true;
       }
     });
-    emit(_status == GameStatus.won
-        ? ExperienceEvent.gameCompleted
-        : ExperienceEvent.correctAnswer);
+    emit(justWon ? ExperienceEvent.gameCompleted : ExperienceEvent.correctAnswer);
     GameScores.instance.submit(widget.id, _score).then((best) {
       if (mounted && best != _best) setState(() => _best = best);
     });
-    if (_status == GameStatus.won) {
+    if (justWon) {
       // Grows every completed run, never capped by `_target` the way
       // `_score`/`_best` are — the real "has this child played this before"
       // signal `_experienceRamp` above reads back.
@@ -597,7 +615,19 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> with _GoalEmit {
           .then((v) {
         if (mounted) setState(() => _timesWon = v);
       });
+    } else {
+      Future.delayed(const Duration(milliseconds: 260), _advanceRound);
     }
+  }
+
+  void _advanceRound() {
+    if (!mounted || _status != GameStatus.playing) return;
+    setState(() {
+      _correctIndex = -1;
+      _awaitingNextRound = false;
+      _round = widget.buildRound(_roundNumber + _experienceRamp, _random);
+      _shownAt = DateTime.now();
+    });
   }
 
   void _reset() {
@@ -607,6 +637,8 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> with _GoalEmit {
       _wrong = 0;
       _streak = 0;
       _wrongIndex = -1;
+      _correctIndex = -1;
+      _awaitingNextRound = false;
       _message = null;
       _status = GameStatus.playing;
       _round = widget.buildRound(_roundNumber + _experienceRamp, _random);
@@ -677,6 +709,7 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> with _GoalEmit {
                     final swatch =
                         _round.colors != null ? _round.colors![index] : null;
                     final isWrong = index == _wrongIndex;
+                    final isCorrect = index == _correctIndex;
                     return Semantics(
                       button: true,
                       label: _round.options[index],
@@ -697,13 +730,24 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> with _GoalEmit {
                           child: Container(
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(20),
+                              // Mirrors the red `isWrong` flash below so a
+                              // correct tap gets the same kind of immediate,
+                              // on-tile visual acknowledgment as a miss does
+                              // — previously only the miss branch had one,
+                              // so the one moment a child does the exactly
+                              // right thing got no distinct visual response
+                              // at all before the board changed under it.
                               border: isWrong
                                   ? Border.all(
                                       color: Colors.redAccent, width: 4)
-                                  : (swatch != null
+                                  : isCorrect
                                       ? Border.all(
-                                          color: Colors.white24, width: 2)
-                                      : null),
+                                          color: const Color(0xFF80ED99),
+                                          width: 4)
+                                      : (swatch != null
+                                          ? Border.all(
+                                              color: Colors.white24, width: 2)
+                                          : null),
                             ),
                             alignment: Alignment.center,
                             // A pure color swatch with no label is unplayable
