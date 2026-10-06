@@ -113,6 +113,7 @@ class _LetterTraceGameState extends State<LetterTraceGame> with _Emit {
   String _glyph = 'A';
   int _score = 0;
   int _best = 0;
+  bool _beatBest = false;
   String? _banner;
   GameStatus _status = GameStatus.ready;
   // height/width of the drawing canvas, refreshed every touch so the hit-test
@@ -203,16 +204,28 @@ class _LetterTraceGameState extends State<LetterTraceGame> with _Emit {
       _score++;
       TonePlayer.instance.playCue(SoundCue.success);
       emit(ExperienceEvent.bubblePopped);
+      // A run abandoned mid-way (quitting after e.g. 3 of 5 letters) still
+      // silently persisted a new best - the same "stat that can never move"
+      // bug class already fixed catalog-wide. Celebrate the moment a prior
+      // personal best is actually crossed.
+      final crossedBest = _score > _best && !_beatBest && _best > 0;
       GameScores.instance.submit(_id, _score).then((b) {
         if (mounted) setState(() => _best = b);
       });
+      if (crossedBest) _beatBest = true;
       if (_score >= _target) {
         _status = GameStatus.won;
         _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
       } else {
-        _banner = _nextLetterPool[_rnd.nextInt(_nextLetterPool.length)];
+        _banner = crossedBest
+            ? 'New personal best! 🏆'
+            : _nextLetterPool[_rnd.nextInt(_nextLetterPool.length)];
+        if (crossedBest) {
+          TonePlayer.instance.playCue(SoundCue.milestone);
+          emit(ExperienceEvent.personalBest);
+        }
         _newGlyph();
       }
     } else {
@@ -224,6 +237,7 @@ class _LetterTraceGameState extends State<LetterTraceGame> with _Emit {
   void _reset() {
     setState(() {
       _score = 0;
+      _beatBest = false;
       _bag.clear();
       _banner = null;
       _newGlyph();

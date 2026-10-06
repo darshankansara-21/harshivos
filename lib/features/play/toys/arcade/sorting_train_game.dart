@@ -77,6 +77,7 @@ class _SortingTrainGameState extends State<SortingTrainGame>
   double _bob = 0;
   int _score = 0;
   int _best = 0;
+  bool _beatBest = false;
   int _wrongFlash = -1;
   double _wrongT = 0;
   String? _banner;
@@ -134,11 +135,25 @@ class _SortingTrainGameState extends State<SortingTrainGame>
       }
       TonePlayer.instance.playCue(SoundCue.success);
       emit(ExperienceEvent.bubblePopped);
-      _banner = _loadedPool[_rnd.nextInt(_loadedPool.length)];
-      _bannerT = 1.0;
+      // A run abandoned mid-way (e.g. quitting after 3 of 5 wagons loaded)
+      // still silently persisted a new best - the same "stat that can never
+      // move" bug class already fixed catalog-wide. Celebrate the moment a
+      // prior personal best is actually crossed, same as mirror_draw/
+      // letter_trace below.
+      final crossedBest = _score > _best && !_beatBest && _best > 0;
       GameScores.instance.submit(_id, _score).then((b) {
         if (mounted) setState(() => _best = b);
       });
+      if (crossedBest) {
+        _beatBest = true;
+        _banner = 'New personal best! 🏆';
+        _bannerT = 1.0;
+        TonePlayer.instance.playCue(SoundCue.milestone);
+        emit(ExperienceEvent.personalBest);
+      } else {
+        _banner = _loadedPool[_rnd.nextInt(_loadedPool.length)];
+        _bannerT = 1.0;
+      }
       if (_score >= _target) {
         _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         _status = GameStatus.won;
@@ -161,6 +176,7 @@ class _SortingTrainGameState extends State<SortingTrainGame>
   void _reset() {
     setState(() {
       _score = 0;
+      _beatBest = false;
       _bag.clear();
       _item = _drawItem();
       _bits.clear();

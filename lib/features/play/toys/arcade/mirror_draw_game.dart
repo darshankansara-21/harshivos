@@ -59,6 +59,7 @@ class _MirrorDrawGameState extends State<MirrorDrawGame> with _Emit {
   int _shapeIdx = 0;
   int _score = 0;
   int _best = 0;
+  bool _beatBest = false;
   String? _banner;
   GameStatus _status = GameStatus.ready;
   // Height/width ratio of the last-seen canvas. The dots are drawn as a
@@ -157,16 +158,28 @@ class _MirrorDrawGameState extends State<MirrorDrawGame> with _Emit {
       _score++;
       TonePlayer.instance.playCue(SoundCue.success);
       emit(ExperienceEvent.bubblePopped);
+      // A run abandoned mid-way (quitting after e.g. 3 of 5 shapes) still
+      // silently persisted a new best - the same "stat that can never move"
+      // bug class already fixed catalog-wide. Celebrate the moment a prior
+      // personal best is actually crossed.
+      final crossedBest = _score > _best && !_beatBest && _best > 0;
       GameScores.instance.submit(_id, _score).then((v) {
         if (mounted) setState(() => _best = v);
       });
+      if (crossedBest) _beatBest = true;
       if (_score >= _target) {
         _status = GameStatus.won;
         _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
       } else {
-        _banner = _nextShapePool[_rnd.nextInt(_nextShapePool.length)];
+        _banner = crossedBest
+            ? 'New personal best! 🏆'
+            : _nextShapePool[_rnd.nextInt(_nextShapePool.length)];
+        if (crossedBest) {
+          TonePlayer.instance.playCue(SoundCue.milestone);
+          emit(ExperienceEvent.personalBest);
+        }
         _newShape();
       }
     }
@@ -176,6 +189,7 @@ class _MirrorDrawGameState extends State<MirrorDrawGame> with _Emit {
   void _reset() {
     setState(() {
       _score = 0;
+      _beatBest = false;
       _bag.clear();
       _banner = null;
       _newShape();
