@@ -263,7 +263,10 @@ class _WeatherSortGameState extends State<WeatherSortGame>
                   shape: BoxShape.circle,
                 ),
                 alignment: Alignment.center,
-                child: Text(_item, style: const TextStyle(fontSize: 56)),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(_item, style: const TextStyle(fontSize: 56)),
+                ),
               ),
             ),
             // Decorative think-time countdown — purely visual, never the
@@ -312,8 +315,11 @@ class _WeatherSortGameState extends State<WeatherSortGame>
                               color: Colors.white.withOpacity(0.3), width: 2),
                         ),
                         alignment: Alignment.center,
-                        child:
-                            Text(_bins[i], style: const TextStyle(fontSize: 44)),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(_bins[i],
+                              style: const TextStyle(fontSize: 44)),
+                        ),
                       ),
                     ),
                   ),
