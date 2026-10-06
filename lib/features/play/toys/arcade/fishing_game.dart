@@ -140,7 +140,10 @@ class _FishingGameState extends State<FishingGame>
       }
     } else {
       _hookX = (p.dx / w).clamp(0.05, 0.95);
-      TonePlayer.instance.playPop(0.5);
+      // Casting across the water surface gets its own ripple identity
+      // (SoundCue.ripple was defined but never wired up anywhere) instead of
+      // the generic tuned pop every other game's direct tap shares.
+      TonePlayer.instance.playCue(SoundCue.ripple);
     }
   }
 
