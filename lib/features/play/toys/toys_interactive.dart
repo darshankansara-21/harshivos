@@ -22,6 +22,12 @@ class _CalmCloudsToyState extends State<CalmCloudsToy>
   final math.Random _r = math.Random();
   int? _dragging;
   bool _seeded = false;
+  // Every other toy in this catalog caps its unbroken ambient motion stream
+  // (BubblePopToy's bubbles, RainbowRainToy's drops, InfiniteMarbleRunToy's
+  // marbles, WaterRipplesToy's ripples) for Reduce Motion — this toy's
+  // clouds drifted across the sky forever at full speed regardless, the
+  // one ambient-motion toy that slipped through that sweep.
+  bool _reduceMotion = false;
 
   void _seed(Size size) {
     for (var i = 0; i < 7; i++) {
@@ -38,10 +44,11 @@ class _CalmCloudsToyState extends State<CalmCloudsToy>
   void onTick(double dt) {
     final size = context.size ?? Size.zero;
     if (!_seeded && size != Size.zero) _seed(size);
+    final driftScale = _reduceMotion ? 0.2 : 1.0;
     for (var i = 0; i < _clouds.length; i++) {
       if (i == _dragging) continue;
       final c = _clouds[i];
-      c.pos = Offset((c.pos.dx + c.drift * dt) % (size.width + 200) - 0, c.pos.dy);
+      c.pos = Offset((c.pos.dx + c.drift * driftScale * dt) % (size.width + 200) - 0, c.pos.dy);
       if (c.pos.dx > size.width + 120) c.pos = Offset(-120, c.pos.dy);
     }
   }
@@ -58,6 +65,7 @@ class _CalmCloudsToyState extends State<CalmCloudsToy>
 
   @override
   Widget build(BuildContext context) {
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return Stack(
       children: <Widget>[
         Listener(
@@ -138,6 +146,11 @@ class _MusicGardenToyState extends State<MusicGardenToy>
     with TickerProviderStateMixin, ToyTicker {
   final List<_Flower> _flowers = <_Flower>[];
   bool _seeded = false;
+  // Same unbroken-ambient-motion gap as CalmCloudsToy above: the flowers'
+  // idle sway never stopped for Reduce Motion. Bloom's quick decay stays at
+  // full speed since it's a direct, user-triggered tap response, not
+  // ambient motion.
+  bool _reduceMotion = false;
 
   void _seed(Size size) {
     const cols = 5, rows = 6;
@@ -164,7 +177,7 @@ class _MusicGardenToyState extends State<MusicGardenToy>
     if (!_seeded && size != Size.zero) _seed(size);
     for (final f in _flowers) {
       if (f.bloom > 0) f.bloom = (f.bloom - dt * 1.4).clamp(0.0, 1.0);
-      f.sway += dt;
+      f.sway += dt * (_reduceMotion ? 0.15 : 1.0);
     }
   }
 
@@ -181,6 +194,7 @@ class _MusicGardenToyState extends State<MusicGardenToy>
 
   @override
   Widget build(BuildContext context) {
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return Stack(
       children: <Widget>[
         Listener(
