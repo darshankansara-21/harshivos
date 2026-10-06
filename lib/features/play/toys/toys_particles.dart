@@ -64,11 +64,19 @@ class _ParticleGalaxyToyState extends State<ParticleGalaxyToy>
     final center = size.center(Offset.zero);
     _stars.removeWhere((s) => !s.ambient && s.life <= 0);
     for (final s in _stars) {
-      // Gentle galactic swirl around the centre.
+      // Gentle galactic swirl around the centre. Unlike every other
+      // ambient/idle-looping toy in the catalog (CalmCloudsToy,
+      // SpinUniverseToy, InfiniteMarbleRunToy, etc.), the 140 ambient
+      // background stars here kept swirling at full speed regardless of the
+      // OS Reduce Motion setting — only burst particle *count* respected it.
+      // Thin the ambient swirl's angular push the same way those siblings
+      // cap their idle motion, leaving burst stars (the deliberate, brief
+      // tap response) untouched.
       final toCenter = center - s.pos;
       final dist = toCenter.distance.clamp(20.0, 4000.0);
       final tangent = Offset(-toCenter.dy, toCenter.dx) / dist;
-      s.vel += tangent * (s.ambient ? 18 : 30) * dt;
+      final double swirl = s.ambient ? (_reduceMotion ? 3.6 : 18.0) : 30.0;
+      s.vel += tangent * swirl * dt;
       if (_attractor != null) {
         final toA = _attractor! - s.pos;
         s.vel += toA / toA.distance.clamp(40.0, 4000.0) * 600 * dt;
