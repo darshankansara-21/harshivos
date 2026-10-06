@@ -879,6 +879,17 @@ class _BalloonPopGameState extends State<BalloonPopGame>
   // ticking up mid-run. Guarded so it fires once per run and never on a
   // brand-new player's first pop (where `_best` is still 0).
   bool _beatBest = false;
+  // Same career-ramp bug class fixed catalog-wide (fruit_catch, sky_hop,
+  // stack, target_toss, basketball, ...): both the spawn cadence and the
+  // balloon rise speed below only ever scaled with the CURRENT run's
+  // `_score`, so every replay — even by a child who has already popped
+  // hundreds of balloons — started at the exact same gentle opening pace.
+  // This getter folds in the player's career `_best` (capped) so returning
+  // players get a noticeably livelier opener instead of a flat-forever one.
+  // Both call sites below read it live every tick, so there is no stale
+  // field to reset in `onStart`/`_reset`.
+  double _careerPaceRamp(int target) =>
+      (_best / target).clamp(0.0, 1.0) * 0.1;
 
   @override
   void initState() {
@@ -905,8 +916,9 @@ class _BalloonPopGameState extends State<BalloonPopGame>
     }
     _spawnIn -= dt;
     if (_spawnIn <= 0) {
-      _spawnIn =
-          math.max(0.3, 0.6 - _score * 0.008) * (0.7 + _rnd.nextDouble() * 0.6);
+      final ramp = _careerPaceRamp(_target);
+      _spawnIn = math.max(0.3, 0.6 - _score * 0.008 - ramp * 0.6) *
+          (0.7 + _rnd.nextDouble() * 0.6);
       final r = _rnd.nextDouble();
       final kind = r < 0.1 ? 2 : (r < 0.22 ? 1 : 0);
       final color = kind == 1
@@ -920,6 +932,7 @@ class _BalloonPopGameState extends State<BalloonPopGame>
           0.16 +
               _rnd.nextDouble() * 0.12 +
               _score * 0.004 +
+              ramp +
               (kind == 1 ? 0.1 : 0),
           _rnd.nextDouble() * 6.28,
           color,
@@ -1265,6 +1278,14 @@ class _StarTapGameState extends State<StarTapGame>
   // overtakes the prior record, guarded against a brand-new player's first
   // star (where `_best` is still 0).
   bool _beatBest = false;
+  // Same career-ramp bug class fixed across the arcade catalog (fruit_catch,
+  // balloon_pop, sky_hop, stack, ...): `_spawnStar` below only ever shrank
+  // the star's visible window using the CURRENT run's `_score`, so even a
+  // child with a huge career `_best` always got the exact same slow,
+  // generous opening star on every replay. Capped so it never makes the
+  // opener punishing for a brand-new player (`_best` is 0 until a first run
+  // completes).
+  double get _careerPaceRamp => (_best / _target).clamp(0.0, 1.0) * 0.45;
 
   @override
   void initState() {
@@ -1315,12 +1336,14 @@ class _StarTapGameState extends State<StarTapGame>
       _kind = 0;
     }
     // Special stars are faster; everything speeds up as the score climbs.
-    _lifeMax = math.max(0.6, (1.5 - _score * 0.05)) * (_kind >= 1 ? 0.7 : 1);
+    _lifeMax = math.max(0.6, (1.5 - _score * 0.05 - _careerPaceRamp)) *
+        (_kind >= 1 ? 0.7 : 1);
     _life = _lifeMax;
     // A red decoy appears once a child is doing well; tapping it costs a
     // point, so the game becomes about looking, not just fast tapping.
-    final decoyChance =
-        _score >= 6 ? math.min(0.55, 0.18 + _score * 0.03) : 0.0;
+    final decoyChance = _score >= 6 || _careerPaceRamp > 0
+        ? math.min(0.55, 0.18 + _score * 0.03 + _careerPaceRamp * 0.3)
+        : 0.0;
     if (decoyChance > 0 && _rnd.nextDouble() < decoyChance) {
       var d = _rnd.nextInt(_cells);
       if (d == _active) d = (d + 1) % _cells;
