@@ -13,7 +13,12 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
   static const String _id = 'star_path';
   static const int _target = 5;
 
-  // Ordered constellations in a centred [0,1] field.
+  // Pool of constellations in a centred [0,1] field. A child who completes a
+  // five-shape round and plays again used to see the exact same five shapes
+  // every single time (just re-shuffled order) since the pool size equalled
+  // the win target — the same shallow-pool gap fixed in trace_game.dart's
+  // shape pool. Expanded from 5 to 9 so `_pickOrder()` below can draw a
+  // different 5-of-9 subset each playthrough.
   static const List<List<List<double>>> _shapes = <List<List<double>>>[
     // Kite
     <List<double>>[[0.5, 0.15], [0.78, 0.45], [0.5, 0.85], [0.22, 0.45], [0.5, 0.15]],
@@ -25,7 +30,16 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
     <List<double>>[[0.22, 0.5], [0.5, 0.3], [0.7, 0.5], [0.5, 0.7], [0.22, 0.5], [0.85, 0.35]],
     // House
     <List<double>>[[0.3, 0.75], [0.3, 0.45], [0.5, 0.25], [0.7, 0.45], [0.7, 0.75], [0.3, 0.75]],
+    // Zigzag / lightning bolt
+    <List<double>>[[0.4, 0.12], [0.58, 0.12], [0.42, 0.46], [0.6, 0.46], [0.32, 0.88]],
+    // Boat
+    <List<double>>[[0.18, 0.78], [0.34, 0.38], [0.5, 0.78], [0.66, 0.3], [0.82, 0.78]],
+    // Letter N
+    <List<double>>[[0.25, 0.8], [0.25, 0.2], [0.65, 0.8], [0.65, 0.2]],
+    // Heart
+    <List<double>>[[0.3, 0.3], [0.5, 0.48], [0.7, 0.3], [0.86, 0.48], [0.5, 0.88], [0.14, 0.48], [0.3, 0.3]],
   ];
+  static const int _shapesPerRound = 5;
 
   final math.Random _rnd = math.Random();
   static const List<String> _winPraisePool = <String>[
@@ -40,7 +54,7 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
     'Nicely traced! New shape',
     'Well connected! Keep going',
   ];
-  late List<int> _order; // shuffled shape indices, replayed each pass
+  late List<int> _order; // this round's shape indices, a random subset of the pool
   int _orderPos = 0;
   late List<List<double>> _stars;
   int _shapeIdx = 0;
@@ -53,7 +67,7 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
   @override
   void initState() {
     super.initState();
-    _order = _shuffledOrder();
+    _order = _pickOrder();
     _shapeIdx = _order[0];
     _stars = _shapes[_shapeIdx];
     GameScores.instance.ensureLoaded().then((_) {
@@ -61,10 +75,16 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
     });
   }
 
-  // A fresh shuffle each call; re-rolls if it would repeat the shape just
-  // shown so two constellations never land back-to-back.
-  List<int> _shuffledOrder() {
-    final order = List<int>.generate(_shapes.length, (i) => i)..shuffle(_rnd);
+  // Draws a fresh random subset of `_shapesPerRound` shapes from the full
+  // pool (not just a reshuffle of the same fixed set), so a replaying child
+  // sees a genuinely different handful of constellations each playthrough
+  // rather than the identical five shapes in a new order every time.
+  // Re-rolls if it would repeat the shape just shown so two constellations
+  // never land back-to-back.
+  List<int> _pickOrder() {
+    final order = (List<int>.generate(_shapes.length, (i) => i)..shuffle(_rnd))
+        .take(_shapesPerRound)
+        .toList();
     if (order.first == _shapeIdx) {
       final i = 1 + _rnd.nextInt(order.length - 1);
       final tmp = order[0];
@@ -77,7 +97,7 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
   void _newShape() {
     _orderPos++;
     if (_orderPos >= _order.length) {
-      _order = _shuffledOrder();
+      _order = _pickOrder();
       _orderPos = 0;
     }
     _shapeIdx = _order[_orderPos];
@@ -121,7 +141,7 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
   void _reset() {
     setState(() {
       _score = 0;
-      _order = List<int>.generate(_shapes.length, (i) => i)..shuffle(_rnd);
+      _order = _pickOrder();
       _orderPos = 0;
       _shapeIdx = _order[0];
       _stars = _shapes[_shapeIdx];
