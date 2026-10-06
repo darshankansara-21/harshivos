@@ -1,7 +1,8 @@
 part of '../arcade_games.dart';
 
 /// Tone Match — the bells all look the same. Tap one to hear its note, then find
-/// the bell that plays the same note. Match all four pairs by ear to win.
+/// the bell that plays the same note. Match every pair by ear to win; a proven
+/// ear earns a couple of extra pairs for a genuinely harder board.
 class ToneMatchGame extends StatefulWidget {
   const ToneMatchGame({super.key});
   @override
@@ -11,10 +12,26 @@ class ToneMatchGame extends StatefulWidget {
 class _ToneMatchGameState extends State<ToneMatchGame>
     with TickerProviderStateMixin, ToyTicker, _Emit {
   static const String _id = 'tone_match';
-  static const List<int> _toneNotes = <int>[0, 4, 7, 12];
+  // Raw pentatonic-scale indices (each wraps via `% pentatonic.length`, see
+  // TonePlayer.playNote) chosen so every entry's wrapped index is distinct —
+  // no two bells can ever sound identical. The first 4 are the original
+  // chord tones (unison/third/fifth/octave); the 2 added for the career-
+  // ramp below keep that same spaced, pleasant chord-tone feel.
+  static const List<int> _toneNotes = <int>[0, 4, 7, 12, 3, 9];
   static const List<Color> _toneColors = <Color>[
     Color(0xFFE63946), Color(0xFF48CAE4), Color(0xFFFFD166), Color(0xFF9B5DE5),
+    Color(0xFF06D6A0), Color(0xFFFF9E00),
   ];
+  // Unlike every other memory-style game in the catalog (jigsaw_four's board
+  // size, skee_ball's scoring bands, tap_order's shuffle), Tone Match dealt
+  // the exact same fixed 4 pairs forever — a returning child with a high
+  // all-time `_best` heard the identical 8-bell board as a first-timer, with
+  // zero long-term challenge curve. Mirror the established capped
+  // career-skill-ramp pattern: a proven ear earns 1-2 extra pairs (using the
+  // 2 additional distinct tones above), so mastery is rewarded with a
+  // genuinely harder memory task, not just the same board forever.
+  int get _careerSkillRamp => (_best ~/ 3).clamp(0, 2);
+  int get _pairCount => 4 + _careerSkillRamp;
   final math.Random _rnd = math.Random();
   static const List<String> _winPraisePool = <String>[
     'Good ears!', 'Perfect pitch!', 'Sound master!', 'Great listening!',
@@ -63,7 +80,8 @@ class _ToneMatchGameState extends State<ToneMatchGame>
   }
 
   void _deal() {
-    _tones = <int>[0, 0, 1, 1, 2, 2, 3, 3]..shuffle(_rnd);
+    _tones = <int>[for (var i = 0; i < _pairCount; i++) ...<int>[i, i]]
+      ..shuffle(_rnd);
     _matched.clear();
     _revealed.clear();
     _hideT = 0;
@@ -198,14 +216,19 @@ class _ToneMatchGameState extends State<ToneMatchGame>
       title: '🔔 Tone Match',
       introHow:
           'The bells look the same. Tap one to hear its note, then find the '
-          'bell that sounds the same. Match all four pairs to win!',
+          'bell that sounds the same. Match every pair to win!',
       onStart: () => setState(() {
         _deal();
         _status = GameStatus.playing;
       }),
       score: _score,
       best: _best,
-      target: 4,
+      // The actual dealt board size, not the live `_pairCount` getter — the
+      // board itself is locked in at the last `_deal()` call, but `_best`
+      // (and so `_pairCount`) can keep climbing mid-run the moment this run
+      // itself sets a new record, which would otherwise make the HUD target
+      // silently drift away from how many pairs this board actually needs.
+      target: _tones.length ~/ 2,
       status: _status,
       banner: _banner ?? 'Find the matching sounds',
       winEmoji: '🔔',
