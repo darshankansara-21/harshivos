@@ -22,6 +22,23 @@ class _WhackGameState extends State<WhackGame>
     'Reflexes on fire!',
   ];
   String _winPraise = _winPraisePool[0];
+  // Routine miss-reason banners fire many times per run (every unhit mole,
+  // every bomb tap) — a flat identical phrase each time is the same
+  // flat-repeated-praise/miss gap already fixed catalog-wide (catch_beat's
+  // 'Missed!', brick_break's 'Nice hit!', etc.). The `$_lives left` suffix
+  // in `_loseLife` already varies, but the reason text itself never did.
+  static const List<String> _missPool = <String>[
+    'Missed it!',
+    'So close!',
+    'Too slow!',
+    'Next one!',
+  ];
+  static const List<String> _bombPool = <String>[
+    'Ouch! Avoid 💣',
+    'Oops, a bomb!',
+    'Bombs hurt!',
+    'Watch for bombs!',
+  ];
   final math.Random _rnd = math.Random();
   final List<double> _mole = List<double>.filled(_holes, 0); // seconds left
   final List<bool> _isBomb = List<bool>.filled(_holes, false);
@@ -60,7 +77,7 @@ class _WhackGameState extends State<WhackGame>
         if (_mole[i] <= 0) {
           if (!_isBomb[i]) {
             _combo = 0;
-            _loseLife('Missed it!');
+            _loseLife(_missPool[_rnd.nextInt(_missPool.length)]);
           }
           _isBomb[i] = false;
         }
@@ -156,7 +173,7 @@ class _WhackGameState extends State<WhackGame>
         // pre-penalty score — one point higher than what the child actually
         // ends up seeing on the game-over screen.
         _score = math.max(0, _score - 1);
-        _loseLife('Ouch! Avoid 💣');
+        _loseLife(_bombPool[_rnd.nextInt(_bombPool.length)]);
         return;
       }
       _combo++;
