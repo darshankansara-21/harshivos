@@ -161,6 +161,7 @@ class _BlockBlastGameState extends State<BlockBlastGame>
     _sel = -1;
     TonePlayer.instance.playCue(SoundCue.stack);
     _clearLines();
+    _checkBeatBest();
     emit(ExperienceEvent.bubblePopped);
     if (_hand.every((h) => h == null)) _refill();
     GameScores.instance.submit(_id, _score).then((b) {
@@ -222,6 +223,20 @@ class _BlockBlastGameState extends State<BlockBlastGame>
     _score += gain;
     _banner = mult > 1 ? 'Clear +$gain! Combo x$mult 🔥' : 'Clear +$gain!';
     TonePlayer.instance.playCue(mult > 1 ? SoundCue.milestone : SoundCue.success);
+  }
+
+  // Score also climbs from plain placements (`_score += p.cells.length` in
+  // `_place`), not only from line clears — this used to live inside
+  // `_clearLines()` and returned early before ever reaching it whenever a
+  // placement didn't complete a full row/column, so a child who crossed
+  // their own all-time best purely through placement points (never once
+  // clearing a line before the board filled up) silently never got the
+  // celebration every other open-ended-score game in the catalog gives.
+  // Called once per placement after all of this turn's scoring is final, so
+  // it can never disagree with (or double-fire alongside) a clear's own
+  // combo banner — this check runs last and simply overrides it when both
+  // happen on the same tap.
+  void _checkBeatBest() {
     if (_status == GameStatus.playing &&
         !_beatBest &&
         _best > 0 &&
