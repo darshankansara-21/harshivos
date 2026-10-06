@@ -1538,6 +1538,12 @@ class _SnakeGameState extends State<SnakeGame>
   static const List<String> _rivalInPool = <String>[
     'Rival incoming!', 'Another worm joins!', 'New rival ahead!', 'Watch out, newcomer!',
   ];
+  // Golden orbs respawn after every catch, so a long run can eat several
+  // with a sub-3 combo — the same flat-repeated-banner gap as above, just
+  // on the low-combo branch of the golden-orb flash below.
+  static const List<String> _goldenPool = <String>[
+    'Golden! +3', 'Shiny! +3', 'Gold orb! +3', 'Sparkly! +3',
+  ];
 
   Offset _head = Offset.zero;
   double _angle = 0;
@@ -1712,7 +1718,9 @@ class _SnakeGameState extends State<SnakeGame>
         if (golden) {
           _length += 5;
           _score += 3 + comboBonus;
-          _flash(_combo >= 3 ? 'Golden! Combo x$_combo' : 'Golden! +3');
+          _flash(_combo >= 3
+              ? 'Golden! Combo x$_combo'
+              : _goldenPool[_rnd.nextInt(_goldenPool.length)]);
           TonePlayer.instance.playCue(SoundCue.coin);
         } else {
           _length += 2;
@@ -2241,6 +2249,13 @@ class _RacingGameState extends State<RacingGame>
   ];
   String _winPraise = _winPraisePool[0];
   final math.Random _rnd = math.Random();
+  // While boosted, barging through several traffic cars in a row used to
+  // flash the exact same 'Smash! +5' literal every single time — the same
+  // flat-repeated-banner gap fixed on the golden-orb/rival-takedown events
+  // above, just missed in this file.
+  static const List<String> _smashPool = <String>[
+    'Smash! +5', 'Barge! +5', 'Crunch! +5', 'Plow through! +5',
+  ];
   final List<_Racer> _cars = <_Racer>[];
   // The rival pack we are racing against.
   final List<double> _rivals = <double>[]; // metres travelled
@@ -2438,7 +2453,7 @@ class _RacingGameState extends State<RacingGame>
           // Boosting barges traffic aside instead of losing pace.
           _score += 5;
           TonePlayer.instance.playCue(SoundCue.crash);
-          _flash('Smash! +5');
+          _flash(_smashPool[_rnd.nextInt(_smashPool.length)]);
           return true;
         }
         // A knock is not fatal: near the finish, it hurts more, but momentum is
