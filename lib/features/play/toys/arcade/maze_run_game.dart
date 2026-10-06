@@ -36,6 +36,15 @@ class _MazeRunGameState extends State<MazeRunGame> with _Emit {
   int _level = 1;
   int _solved = 0;
   int _best = 0;
+  // Same "flat-forever opening maze never fed by career `_best`" bug class
+  // already fixed catalog-wide (maze_marble's opening board, mini_golf's
+  // hole intro, ball_sort's opening colour count): `_level` always
+  // restarted at 1 on every single play/reset, so a child who has already
+  // solved 5/5 mazes dozens of times before still opens every fresh run
+  // against the exact same smallest 5x6 maze as a first-time player.
+  // Capped well short of the full 5-maze target so even a very high
+  // `_best` still opens on a clearable maze, never the hardest one.
+  int get _careerSkillRamp => (_best ~/ 2).clamp(0, 2);
   // Every other scoring arcade game (bubble_wrap/hoop_toss/echo...) already
   // celebrates the moment a run's score passes the child's all-time best
   // with a banner + milestone chime + ExperienceEvent.personalBest — mazes
@@ -190,7 +199,7 @@ class _MazeRunGameState extends State<MazeRunGame> with _Emit {
 
   void _reset() {
     setState(() {
-      _level = 1;
+      _level = 1 + _careerSkillRamp;
       _solved = 0;
       _beatBest = false;
       _banner = null;
@@ -209,6 +218,11 @@ class _MazeRunGameState extends State<MazeRunGame> with _Emit {
       introHow:
           'Swipe up, down, left or right to slide the dot. Grab the key, then reach the glowing exit!',
       onStart: () => setState(() {
+        // `_best` only finishes loading asynchronously after `initState`, so
+        // the very first play of a session (unlike every later `_reset()`
+        // replay) must pick up the career ramp here too, not just leave
+        // `_level` at its unramped field default until the first maze clears.
+        _level = 1 + _careerSkillRamp;
         _genMaze();
         _status = GameStatus.playing;
       }),
