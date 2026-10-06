@@ -42,6 +42,11 @@ class _CalmChoicesGameState extends State<CalmChoicesGame> with _Emit {
   ];
   String _winPraise = _winPraisePool[0];
   final math.Random _rnd = math.Random();
+  // Every healthy choice routinely flashed the exact same "That helps 💙"
+  // banner (up to ten times in one round); vary it like the win praise.
+  static const List<String> _helpsPool = <String>[
+    'That helps 💙', 'Good choice!', 'Calm choice!', 'Nice pick!',
+  ];
   final List<int> _bag = <int>[];
 
   _CalmScene _scene = _scenes.first;
@@ -80,7 +85,7 @@ class _CalmChoicesGameState extends State<CalmChoicesGame> with _Emit {
       _score++;
       TonePlayer.instance.playCue(SoundCue.calm);
       emit(ExperienceEvent.bubblePopped);
-      _banner = 'That helps 💙';
+      _banner = _helpsPool[_rnd.nextInt(_helpsPool.length)];
       GameScores.instance.submit(_id, _score).then((v) {
         if (mounted) setState(() => _best = v);
       });

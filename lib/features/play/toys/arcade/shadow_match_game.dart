@@ -24,6 +24,11 @@ class _ShadowMatchGameState extends State<ShadowMatchGame> with _Emit {
     'Sharp eyes!', 'Shadow sleuth!', 'Great matching!', 'Keen eye!',
   ];
   String _winPraise = _winPraisePool[0];
+  // Every correct pick routinely flashed the exact same "Match! 🌟" banner
+  // (up to ten times in one round); vary it like the win-screen praise.
+  static const List<String> _matchPool = <String>[
+    'Match! 🌟', 'Nice eye!', 'Got it!', 'Shadow found!',
+  ];
   int _shape = 0;
   Color _shapeColor = _tint[0];
   List<int> _options = <int>[0, 1, 2, 3];
@@ -77,7 +82,7 @@ class _ShadowMatchGameState extends State<ShadowMatchGame> with _Emit {
       _score++;
       TonePlayer.instance.playCue(SoundCue.success);
       emit(ExperienceEvent.bubblePopped);
-      _banner = 'Match! 🌟';
+      _banner = _matchPool[_rnd.nextInt(_matchPool.length)];
       GameScores.instance.submit(_id, _score).then((b) {
         if (mounted) setState(() => _best = b);
       });

@@ -16,6 +16,11 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
     'Great maths!', 'Number whiz!', 'Sum master!', 'Math star!',
   ];
   String _winPraise = _winPraisePool[0];
+  // Every correct tap routinely flashed the exact same "Correct!" banner
+  // (up to ten times in one round); vary it like the win-screen praise.
+  static const List<String> _correctPool = <String>[
+    'Correct!', 'Nice sum!', 'That adds up!', 'Spot on!',
+  ];
 
   List<int> _tiles = <int>[];
   int _sum = 5;
@@ -78,7 +83,7 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
         _selected = -1;
         TonePlayer.instance.playCue(SoundCue.correct);
         emit(ExperienceEvent.bubblePopped);
-        _banner = 'Correct!';
+        _banner = _correctPool[_rnd.nextInt(_correctPool.length)];
         GameScores.instance.submit(_id, _score).then((v) {
           if (mounted) setState(() => _best = v);
         });

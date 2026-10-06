@@ -24,6 +24,11 @@ class _OddOneOutGameState extends State<OddOneOutGame> with _Emit {
     'Detail detective!',
   ];
   String _winPraise = _winPraisePool.first;
+  // Every correct tap routinely flashed the exact same "You found it!"
+  // banner (up to ten times in one round); vary it like the win praise.
+  static const List<String> _foundPool = <String>[
+    'You found it!', 'Sharp eyes!', 'Spotted it!', 'Nice find!',
+  ];
 
   int _cols = 2;
   int _oddIndex = 0;
@@ -112,7 +117,7 @@ class _OddOneOutGameState extends State<OddOneOutGame> with _Emit {
       _score++;
       TonePlayer.instance.playCue(SoundCue.correct);
       emit(ExperienceEvent.bubblePopped);
-      _banner = 'You found it!';
+      _banner = _foundPool[_rnd.nextInt(_foundPool.length)];
       GameScores.instance.submit(_id, _score).then((v) {
         if (mounted) setState(() => _best = v);
       });

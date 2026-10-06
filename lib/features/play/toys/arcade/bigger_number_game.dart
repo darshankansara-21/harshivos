@@ -21,6 +21,11 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
   ];
   String _winPraise = _winPraisePool[0];
   final math.Random _rnd = math.Random();
+  // Every correct tap routinely flashed the exact same "Correct!" banner
+  // (up to twelve times in one round); vary it like the win-screen praise.
+  static const List<String> _correctPool = <String>[
+    'Correct!', 'Sharp eyes!', 'Nice pick!', 'Got it!',
+  ];
 
   List<int> _nums = <int>[2, 5, 8];
   bool _biggest = true;
@@ -73,7 +78,7 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
       _score++;
       TonePlayer.instance.playCue(SoundCue.correct);
       emit(ExperienceEvent.bubblePopped);
-      _banner = 'Correct!';
+      _banner = _correctPool[_rnd.nextInt(_correctPool.length)];
       GameScores.instance.submit(_id, _score).then((v) {
         if (mounted) setState(() => _best = v);
       });

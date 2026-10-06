@@ -20,6 +20,11 @@ class _ToneMatchGameState extends State<ToneMatchGame>
     'Good ears!', 'Perfect pitch!', 'Sound master!', 'Great listening!',
   ];
   String _winPraise = _winPraisePool[0];
+  // Every matched pair routinely flashed the exact same "Matched!" banner
+  // (up to four times in one round); vary it like the win-screen praise.
+  static const List<String> _matchPool = <String>[
+    'Matched!', 'Nice ears!', 'Good listening!', 'Found it!',
+  ];
 
   List<int> _tones = <int>[]; // tone index per bell
   final Set<int> _matched = <int>{};
@@ -72,7 +77,7 @@ class _ToneMatchGameState extends State<ToneMatchGame>
         _score++;
         emit(ExperienceEvent.bubblePopped);
         TonePlayer.instance.playCue(SoundCue.success);
-        _banner = 'Matched!';
+        _banner = _matchPool[_rnd.nextInt(_matchPool.length)];
         GameScores.instance.submit(_id, _score).then((v) {
           if (mounted) setState(() => _best = v);
         });

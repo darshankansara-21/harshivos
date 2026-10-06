@@ -40,6 +40,11 @@ class _KindnessMatchGameState extends State<KindnessMatchGame> with _Emit {
     'Big heart!',
   ];
   String _winPraise = _winPraisePool.first;
+  // Every kind choice routinely flashed the exact same "That was kind 💛"
+  // banner (up to ten times in one round); vary it like the win praise.
+  static const List<String> _kindPool = <String>[
+    'That was kind 💛', 'Kind choice!', 'So thoughtful!', 'Good heart!',
+  ];
   final List<int> _bag = <int>[];
 
   _KindScene _scene = _scenes.first;
@@ -80,7 +85,7 @@ class _KindnessMatchGameState extends State<KindnessMatchGame> with _Emit {
       _score++;
       TonePlayer.instance.playCue(SoundCue.correct);
       emit(ExperienceEvent.bubblePopped);
-      _banner = 'That was kind 💛';
+      _banner = _kindPool[_rnd.nextInt(_kindPool.length)];
       GameScores.instance.submit(_id, _score).then((v) {
         if (mounted) setState(() => _best = v);
       });

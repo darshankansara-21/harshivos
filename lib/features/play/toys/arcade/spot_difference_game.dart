@@ -16,6 +16,11 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with _Emit {
     'Eagle eyes!', 'Sharp spotter!', 'Great eyes!', 'Detail detective!',
   ];
   String _winPraise = _winPraisePool[0];
+  // Every correct pick routinely flashed the exact same "Spotted it! 🔍"
+  // banner (up to ten times in one round); vary it like the win praise.
+  static const List<String> _spottedPool = <String>[
+    'Spotted it! 🔍', 'Sharp eyes!', 'Found it!', 'Nice spot!',
+  ];
   int _cols = 3, _rows = 3;
   int _odd = 0;
   Color _base = const Color(0xFF66D9E8);
@@ -55,7 +60,7 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with _Emit {
       _score++;
       TonePlayer.instance.playCue(SoundCue.success);
       emit(ExperienceEvent.bubblePopped);
-      _banner = 'Spotted it! 🔍';
+      _banner = _spottedPool[_rnd.nextInt(_spottedPool.length)];
       GameScores.instance.submit(_id, _score).then((b) {
         if (mounted) setState(() => _best = b);
       });

@@ -23,6 +23,11 @@ class _SortingTrainGameState extends State<SortingTrainGame>
     'All aboard!', 'Train master!', 'Perfect loading!', 'Conductor champ!',
   ];
   String _winPraise = _winPraisePool[0];
+  // Every correct wagon-load routinely flashed the exact same "Loaded! 🚃"
+  // banner (up to ten times in one round); vary it like the win praise.
+  static const List<String> _loadedPool = <String>[
+    'Loaded! 🚃', 'All aboard! 🚂', 'Right wagon! 🚃', 'Nice match! 🚃',
+  ];
   final List<_Shard> _bits = <_Shard>[];
   // Screen-reader users can't see the parcel/wagon colours, so describe each
   // by its paired colour+shape (matching _shapeForColor in the painter,
@@ -110,7 +115,7 @@ class _SortingTrainGameState extends State<SortingTrainGame>
       }
       TonePlayer.instance.playCue(SoundCue.success);
       emit(ExperienceEvent.bubblePopped);
-      _banner = 'Loaded! 🚃';
+      _banner = _loadedPool[_rnd.nextInt(_loadedPool.length)];
       _bannerT = 1.0;
       GameScores.instance.submit(_id, _score).then((b) {
         if (mounted) setState(() => _best = b);
