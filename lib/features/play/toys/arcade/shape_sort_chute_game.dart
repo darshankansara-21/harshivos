@@ -20,7 +20,10 @@ class _ShapeSortChuteGameState extends State<ShapeSortChuteGame>
     Color(0xFFFF8ED8), // star
   ];
   final math.Random _rnd = math.Random();
-
+  static const List<String> _winPraisePool = <String>[
+    'Good sorting!', 'Sorting star!', 'Shape expert!', 'Great sorting!',
+  ];
+  String _winPraise = _winPraisePool[0];
   List<int> _holes = <int>[0, 1, 2]; // shape index per hole (3 holes)
   int _shape = 0;
   double _x = 0.5, _y = 0.0, _fall = 0.28;
@@ -73,6 +76,7 @@ class _ShapeSortChuteGameState extends State<ShapeSortChuteGame>
         if (mounted) setState(() => _best = b);
       });
       if (_score >= _target) {
+        _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         _status = GameStatus.won;
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
@@ -129,7 +133,7 @@ class _ShapeSortChuteGameState extends State<ShapeSortChuteGame>
       overEmoji: '💪',
       overText: 'Out of lives — nice try!',
       winEmoji: '🔻',
-      winText: 'Good sorting!',
+      winText: _winPraise,
       accent: const Color(0xFF4CC9F0),
       onPlayAgain: _reset,
       child: LayoutBuilder(

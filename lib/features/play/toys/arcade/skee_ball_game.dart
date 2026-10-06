@@ -41,6 +41,11 @@ class _SkeeBallGameState extends State<SkeeBallGame>
 
   double _ballY = 0.86;
   double _targetY = 0.86;
+  final math.Random _rnd = math.Random();
+  static const List<String> _winPraisePool = <String>[
+    'Nice rolling!', 'Alley ace!', 'Ramp master!', 'Great rolling!',
+  ];
+  String _winPraise = _winPraisePool[0];
   bool _rolling = false;
   bool _dragging = false;
   double _power = 0;
@@ -101,6 +106,7 @@ class _SkeeBallGameState extends State<SkeeBallGame>
       if (mounted) setState(() => _best = b);
     });
     if (_score >= _target) {
+      _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
       _status = GameStatus.won;
       TonePlayer.instance.playCue(SoundCue.gameStart);
       emit(ExperienceEvent.gameCompleted);
@@ -141,7 +147,7 @@ class _SkeeBallGameState extends State<SkeeBallGame>
       status: _status,
       banner: _banner ?? (_dragging ? 'Power: ${(_power * 100).round()}%' : 'Drag up to roll'),
       winEmoji: '🎳',
-      winText: 'Nice rolling!',
+      winText: _winPraise,
       accent: const Color(0xFFFFD166),
       onPlayAgain: _reset,
       child: LayoutBuilder(

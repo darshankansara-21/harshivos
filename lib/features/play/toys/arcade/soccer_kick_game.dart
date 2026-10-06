@@ -17,7 +17,10 @@ class _SoccerKickGameState extends State<SoccerKickGame>
   static const double _goalL = 0.26;
   static const double _goalR = 0.74;
   final math.Random _rnd = math.Random();
-
+  static const List<String> _winPraisePool = <String>[
+    'Full time!', 'Golden boot!', 'Top scorer!', 'Match winner!',
+  ];
+  String _winPraise = _winPraisePool[0];
   double _bx = 0.5, _by = 0.84, _bvx = 0, _bvy = 0, _spin = 0;
   double _keeperX = 0.5, _keeperTarget = 0.5;
   bool _flying = false;
@@ -88,6 +91,7 @@ class _SoccerKickGameState extends State<SoccerKickGame>
         if (mounted) setState(() => _best = b);
       });
       if (_score >= _target) {
+        _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         _status = GameStatus.won;
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
@@ -184,7 +188,7 @@ class _SoccerKickGameState extends State<SoccerKickGame>
       overEmoji: '💪',
       overText: 'Out of shots — nice try!',
       winEmoji: '⚽',
-      winText: 'Full time!',
+      winText: _winPraise,
       accent: const Color(0xFF80ED99),
       onPlayAgain: _reset,
       child: LayoutBuilder(

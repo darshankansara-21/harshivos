@@ -9,6 +9,10 @@ class TicTacToeGame extends StatefulWidget {
 class _TicTacToeGameState extends State<TicTacToeGame> with _Emit {
   static const String _id = 'tictactoe';
   final math.Random _rnd = math.Random();
+  static const List<String> _winPraisePool = <String>[
+    'You win!', 'Three in a row!', 'Victory!', 'Great game!',
+  ];
+  String _winPraise = _winPraisePool[0];
   final List<int> _b = List<int>.filled(9, 0); // 0 empty, 1 player, 2 ai
   List<int> _winLine = const <int>[];
   int _best = 0; // wins
@@ -87,6 +91,7 @@ class _TicTacToeGameState extends State<TicTacToeGame> with _Emit {
 
   void _finish(int w) {
     if (w == 1) {
+      _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
       _status = GameStatus.won;
       TonePlayer.instance.playCue(SoundCue.success);
       emit(ExperienceEvent.gameCompleted);
@@ -146,7 +151,7 @@ class _TicTacToeGameState extends State<TicTacToeGame> with _Emit {
       overEmoji: '🐾',
       overText: _overText,
       winEmoji: '⭐',
-      winText: 'You win!',
+      winText: _winPraise,
       accent: const Color(0xFF43E97B),
       rankByScore: false,
       onPlayAgain: _reset,

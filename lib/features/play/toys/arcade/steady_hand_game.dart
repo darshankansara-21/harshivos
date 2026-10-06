@@ -25,6 +25,11 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
   int _score = 0;
   int _lives = 3;
   int _best = 0;
+  final math.Random _rnd = math.Random();
+  static const List<String> _winPraisePool = <String>[
+    'So steady!', 'Rock steady!', 'Calm hands!', 'Precision master!',
+  ];
+  String _winPraise = _winPraisePool[0];
   bool _holding = false;
   double _dotX = 0.12, _dotY = 0.8;
   String? _banner;
@@ -113,6 +118,7 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
       if (mounted) setState(() => _best = v);
     });
     if (_score >= _target) {
+      _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
       _status = GameStatus.won;
       TonePlayer.instance.playCue(SoundCue.gameStart);
       emit(ExperienceEvent.gameCompleted);
@@ -155,7 +161,7 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
       overEmoji: '💪',
       overText: 'Out of lives — nice try!',
       winEmoji: '🖐️',
-      winText: 'So steady!',
+      winText: _winPraise,
       accent: const Color(0xFF4CC9F0),
       onPlayAgain: _reset,
       child: LayoutBuilder(

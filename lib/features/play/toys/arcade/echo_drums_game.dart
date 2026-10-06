@@ -18,6 +18,10 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
     Color(0xFFE63946), Color(0xFF48CAE4), Color(0xFFFFD166), Color(0xFF80ED99),
   ];
   final math.Random _rnd = math.Random();
+  static const List<String> _winPraisePool = <String>[
+    'Good listening!', 'Golden ears!', 'Rhythm master!', 'Echo champion!',
+  ];
+  String _winPraise = _winPraisePool[0];
 
   final List<int> _seq = <int>[];
   bool _showing = false;
@@ -137,6 +141,7 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
       _inputIdx++;
       if (_inputIdx >= _seq.length) {
         if (_seq.length >= _winLen) {
+          _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
           _status = GameStatus.won;
           TonePlayer.instance.playCue(SoundCue.gameStart);
           emit(ExperienceEvent.gameCompleted);
@@ -206,7 +211,7 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
       overEmoji: '💪',
       overText: 'Out of lives — nice try!',
       winEmoji: '🪘',
-      winText: 'Good listening!',
+      winText: _winPraise,
       accent: const Color(0xFFFFD166),
       onPlayAgain: _reset,
       child: Container(

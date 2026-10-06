@@ -11,6 +11,10 @@ class _MergeGameState extends State<MergeGame> with _Emit {
   static const int _n = 4;
   static const int _target = 64;
   final math.Random _rnd = math.Random();
+  static const List<String> _winPraisePool = <String>[
+    'Merge master!', 'Tile titan!', 'Number crusher!', 'Merge champion!',
+  ];
+  String _winPraise = _winPraisePool[0];
   late List<List<int>> _g;
   int _maxTile = 2;
   int _milestone = 0;
@@ -54,7 +58,10 @@ class _MergeGameState extends State<MergeGame> with _Emit {
           _maxTile = merged;
           _milestone = merged;
         }
-        if (merged >= _target) _status = GameStatus.won;
+        if (merged >= _target) {
+          _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
+          _status = GameStatus.won;
+        }
         i++;
       } else {
         out.add(nums[i]);
@@ -177,7 +184,7 @@ class _MergeGameState extends State<MergeGame> with _Emit {
       // coin combo, etc). Fold it into the permanent overText instead.
       overText: 'Board full! Highest tile: $_maxTile',
       winEmoji: '🏆',
-      winText: 'Merge master!',
+      winText: _winPraise,
       accent: const Color(0xFFF7B801),
       onPlayAgain: _reset,
       child: GestureDetector(

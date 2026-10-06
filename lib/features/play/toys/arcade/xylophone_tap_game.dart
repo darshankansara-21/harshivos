@@ -36,7 +36,10 @@ class _XylophoneTapGameState extends State<XylophoneTapGame> with _Emit {
   ];
   static const int _target = 3;
   final math.Random _rnd = math.Random();
-
+  static const List<String> _winPraisePool = <String>[
+    'All 3 tunes played!', 'Melody master!', 'Perfect performance!', 'Musical star!',
+  ];
+  String _winPraise = _winPraisePool[0];
   late List<int> _order; // shuffled tune order for this playthrough
   int _orderPos = 0;
   int _pos = 0;
@@ -82,6 +85,7 @@ class _XylophoneTapGameState extends State<XylophoneTapGame> with _Emit {
           if (mounted) setState(() => _best = v);
         });
         if (_score >= _target) {
+          _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
           _status = GameStatus.won;
           TonePlayer.instance.playCue(SoundCue.gameStart);
           emit(ExperienceEvent.gameCompleted);
@@ -126,7 +130,7 @@ class _XylophoneTapGameState extends State<XylophoneTapGame> with _Emit {
       status: _status,
       banner: _banner ?? progress,
       winEmoji: '🎵',
-      winText: 'All 3 tunes played!',
+      winText: _winPraise,
       accent: const Color(0xFFFFD166),
       onPlayAgain: _start,
       child: Container(

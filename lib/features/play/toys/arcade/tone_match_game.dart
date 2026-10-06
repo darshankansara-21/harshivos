@@ -16,6 +16,10 @@ class _ToneMatchGameState extends State<ToneMatchGame>
     Color(0xFFE63946), Color(0xFF48CAE4), Color(0xFFFFD166), Color(0xFF9B5DE5),
   ];
   final math.Random _rnd = math.Random();
+  static const List<String> _winPraisePool = <String>[
+    'Good ears!', 'Perfect pitch!', 'Sound master!', 'Great listening!',
+  ];
+  String _winPraise = _winPraisePool[0];
 
   List<int> _tones = <int>[]; // tone index per bell
   final Set<int> _matched = <int>{};
@@ -73,6 +77,7 @@ class _ToneMatchGameState extends State<ToneMatchGame>
           if (mounted) setState(() => _best = v);
         });
         if (_matched.length >= _tones.length) {
+          _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
           _status = GameStatus.won;
           TonePlayer.instance.playCue(SoundCue.gameStart);
           emit(ExperienceEvent.gameCompleted);
@@ -118,7 +123,7 @@ class _ToneMatchGameState extends State<ToneMatchGame>
       status: _status,
       banner: _banner ?? 'Find the matching sounds',
       winEmoji: '🔔',
-      winText: 'Good ears!',
+      winText: _winPraise,
       accent: const Color(0xFFFFD166),
       onPlayAgain: _reset,
       child: Container(

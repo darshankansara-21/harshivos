@@ -20,6 +20,10 @@ class _ShapeBuilderGameState extends State<ShapeBuilderGame> with _Emit {
   static const String _id = 'shape_builder';
   static const int _target = 5;
   final math.Random _rnd = math.Random();
+  static const List<String> _winPraisePool = <String>[
+    'Master builder!', 'Construction champ!', 'Great building!', 'Shape master!',
+  ];
+  String _winPraise = _winPraisePool[0];
   List<_BuildSlot> _slots = <_BuildSlot>[];
   List<int> _order = <int>[];
   final List<int> _figOrder = <int>[0, 1, 2, 3, 4];
@@ -121,6 +125,7 @@ class _ShapeBuilderGameState extends State<ShapeBuilderGame> with _Emit {
               if (mounted) setState(() => _best = b);
             });
             if (_score >= _target) {
+              _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
               _status = GameStatus.won;
               TonePlayer.instance.playCue(SoundCue.gameStart);
               emit(ExperienceEvent.gameCompleted);
@@ -180,7 +185,7 @@ class _ShapeBuilderGameState extends State<ShapeBuilderGame> with _Emit {
       status: _status,
       banner: _banner ?? 'Place the piece',
       winEmoji: '🛠️',
-      winText: 'Master builder!',
+      winText: _winPraise,
       accent: const Color(0xFFFFD166),
       onPlayAgain: _reset,
       child: LayoutBuilder(

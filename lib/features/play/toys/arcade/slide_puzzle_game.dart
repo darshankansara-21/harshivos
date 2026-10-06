@@ -12,7 +12,10 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame> with _Emit {
   static const String _id = 'slide_puzzle';
   static const int _target = 3;
   final math.Random _rnd = math.Random();
-
+  static const List<String> _winPraisePool = <String>[
+    'Puzzle master!', 'Sliding star!', 'Puzzle pro!', 'Great solving!',
+  ];
+  String _winPraise = _winPraisePool[0];
   // Position -> tile value; 0 is the empty space. Solved = [1..8, 0].
   List<int> _tiles = <int>[1, 2, 3, 4, 5, 6, 7, 8, 0];
   int _score = 0;
@@ -93,6 +96,7 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame> with _Emit {
         if (mounted) setState(() => _best = b);
       });
       if (_score >= _target) {
+        _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         _status = GameStatus.won;
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
@@ -134,7 +138,7 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame> with _Emit {
               ? 'Board ${_score + 1}  ·  $_moves moves'
               : 'Slide the numbers into order'),
       winEmoji: '🔀',
-      winText: 'Puzzle master!',
+      winText: _winPraise,
       accent: const Color(0xFF4CC9F0),
       onPlayAgain: _reset,
       child: LayoutBuilder(

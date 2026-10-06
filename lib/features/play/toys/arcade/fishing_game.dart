@@ -20,6 +20,10 @@ class _FishingGameState extends State<FishingGame>
   static const int _target = 10;
   static const double _waterTop = 0.42;
   final math.Random _rnd = math.Random();
+  static const List<String> _winPraisePool = <String>[
+    'Reel master!', 'Big catch!', 'Fishing pro!', 'Reel deal!',
+  ];
+  String _winPraise = _winPraisePool[0];
   final List<_Fish> _fish = <_Fish>[];
   final List<_Shard> _bits = <_Shard>[];
   bool _reduceMotion = false;
@@ -129,6 +133,7 @@ class _FishingGameState extends State<FishingGame>
         if (mounted) setState(() => _best = b);
       });
       if (_score >= _target) {
+        _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         _status = GameStatus.won;
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
@@ -168,7 +173,7 @@ class _FishingGameState extends State<FishingGame>
       banner: _banner ??
           (_biteT > 0 ? 'A bite! Tap now!' : 'Caught $_score/$_target'),
       winEmoji: '🎣',
-      winText: 'Reel master!',
+      winText: _winPraise,
       accent: const Color(0xFF2FA7C4),
       onPlayAgain: _reset,
       child: LayoutBuilder(

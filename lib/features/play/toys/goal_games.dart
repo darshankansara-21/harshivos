@@ -403,7 +403,7 @@ class _ChoiceGoalGame extends StatefulWidget {
     required this.background,
     required this.buildRound,
     this.winEmoji,
-    this.winText,
+    this.winTextPool,
   });
 
   final String id;
@@ -416,7 +416,10 @@ class _ChoiceGoalGame extends StatefulWidget {
   // generic '🎉 Goal complete!' (this game family is no-fail, so there is no
   // lose screen to theme).
   final String? winEmoji;
-  final String? winText;
+  // A small pool of themed praise phrases, picked at random the moment the
+  // win condition fires — the across-restarts sibling of the arcade win-text
+  // variety fix (same lens as the arcade `_winPraisePool` pattern).
+  final List<String>? winTextPool;
 
   @override
   State<_ChoiceGoalGame> createState() => _ChoiceGoalGameState();
@@ -433,6 +436,7 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> with _GoalEmit {
   int _wrongIndex = -1;
   DateTime _shownAt = DateTime.now();
   String? _message;
+  String? _winPraise;
   GameStatus _status = GameStatus.ready;
   late _ChoiceRound _round;
 
@@ -485,6 +489,10 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> with _GoalEmit {
               ? 'Streak x$_streak! 🔥'
               : 'Correct!';
       if (_score >= _target) {
+        final pool = widget.winTextPool;
+        if (pool != null && pool.isNotEmpty) {
+          _winPraise = pool[_random.nextInt(pool.length)];
+        }
         _status = GameStatus.won;
         TonePlayer.instance.playCue(SoundCue.success);
       } else {
@@ -531,7 +539,7 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> with _GoalEmit {
       message: _message,
       onReset: _reset,
       winEmoji: widget.winEmoji,
-      winText: widget.winText,
+      winText: _winPraise ?? (widget.winTextPool?.isNotEmpty == true ? widget.winTextPool![0] : null),
       child: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -726,7 +734,9 @@ class ColorQuestGame extends StatelessWidget {
         accent: const Color(0xFFFFD166),
         background: const <Color>[Color(0xFF28205A), Color(0xFF111836)],
         winEmoji: '🎨',
-        winText: 'Color Quest complete!',
+        winTextPool: const <String>[
+          'Color Quest complete!', 'Color champion!', 'Rainbow master!', 'Great colors!',
+        ],
         buildRound: (round, random) {
           final choices = List<String>.of(_colors)..shuffle(random);
           final options = choices.take(4).toList();
@@ -752,7 +762,9 @@ class ShapeScoutGame extends StatelessWidget {
         accent: const Color(0xFF4CC9F0),
         background: const <Color>[Color(0xFF123A52), Color(0xFF081D2E)],
         winEmoji: '🔷',
-        winText: 'Shape Scout champion!',
+        winTextPool: const <String>[
+          'Shape Scout champion!', 'Shape master!', 'Great matching!', 'Sharp eyes!',
+        ],
         buildRound: (round, random) {
           final choices = List<String>.of(_shapes)..shuffle(random);
           final options = choices.take(4).toList();
@@ -773,7 +785,9 @@ class NumberSplashGame extends StatelessWidget {
         accent: const Color(0xFF43E97B),
         background: const <Color>[Color(0xFF174D3A), Color(0xFF092A28)],
         winEmoji: '➕',
-        winText: 'Number Splash master!',
+        winTextPool: const <String>[
+          'Number Splash master!', 'Math whiz!', 'Number star!', 'Great counting!',
+        ],
         buildRound: (round, random) {
           final hi = 5 + round ~/ 3;
           final a = 1 + random.nextInt(hi);
@@ -812,6 +826,10 @@ class _PathFinderGameState extends State<PathFinderGame> with _GoalEmit {
   int _best = 0;
   String? _message;
   GameStatus _status = GameStatus.ready;
+  static const List<String> _winPraisePool = <String>[
+    'Treasure found!', 'Path master!', 'Maze champion!', 'Great navigating!',
+  ];
+  String _winPraise = _winPraisePool[0];
 
   @override
   void initState() {
@@ -872,6 +890,7 @@ class _PathFinderGameState extends State<PathFinderGame> with _GoalEmit {
       _step++;
       _message = _step == _path.length ? 'Treasure found!' : 'Keep going!';
       if (_step == _path.length) {
+        _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         _status = GameStatus.won;
         _level++;
       }
@@ -909,7 +928,7 @@ class _PathFinderGameState extends State<PathFinderGame> with _GoalEmit {
       message: _message,
       onReset: _reset,
       winEmoji: '🗺️',
-      winText: 'Treasure found!',
+      winText: _winPraise,
       child: ColoredBox(
         color: const Color(0xFF10283A),
         child: SafeArea(

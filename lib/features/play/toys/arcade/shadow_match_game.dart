@@ -20,6 +20,10 @@ class _ShadowMatchGameState extends State<ShadowMatchGame> with _Emit {
     Color(0xFFFF9E00),
   ];
   final math.Random _rnd = math.Random();
+  static const List<String> _winPraisePool = <String>[
+    'Sharp eyes!', 'Shadow sleuth!', 'Great matching!', 'Keen eye!',
+  ];
+  String _winPraise = _winPraisePool[0];
   int _shape = 0;
   Color _shapeColor = _tint[0];
   List<int> _options = <int>[0, 1, 2, 3];
@@ -78,6 +82,7 @@ class _ShadowMatchGameState extends State<ShadowMatchGame> with _Emit {
         if (mounted) setState(() => _best = b);
       });
       if (_score >= _target) {
+        _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         _status = GameStatus.won;
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
@@ -136,7 +141,7 @@ class _ShadowMatchGameState extends State<ShadowMatchGame> with _Emit {
       overEmoji: '💪',
       overText: 'Out of lives — nice try!',
       winEmoji: '🫥',
-      winText: 'Sharp eyes!',
+      winText: _winPraise,
       accent: const Color(0xFFB197FC),
       onPlayAgain: _reset,
       child: LayoutBuilder(

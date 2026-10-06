@@ -12,6 +12,10 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with _Emit {
   static const String _id = 'spot_difference';
   static const int _target = 10;
   final math.Random _rnd = math.Random();
+  static const List<String> _winPraisePool = <String>[
+    'Eagle eyes!', 'Sharp spotter!', 'Great eyes!', 'Detail detective!',
+  ];
+  String _winPraise = _winPraisePool[0];
   int _cols = 3, _rows = 3;
   int _odd = 0;
   Color _base = const Color(0xFF66D9E8);
@@ -56,6 +60,7 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with _Emit {
         if (mounted) setState(() => _best = b);
       });
       if (_score >= _target) {
+        _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         _status = GameStatus.won;
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
@@ -122,7 +127,7 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with _Emit {
       overEmoji: '💪',
       overText: 'Out of lives — nice try!',
       winEmoji: '🔍',
-      winText: 'Eagle eyes!',
+      winText: _winPraise,
       accent: const Color(0xFF66D9E8),
       onPlayAgain: _reset,
       child: LayoutBuilder(

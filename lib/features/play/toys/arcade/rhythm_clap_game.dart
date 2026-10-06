@@ -14,6 +14,10 @@ class _RhythmClapGameState extends State<RhythmClapGame>
   static const int _target = 16;
   static const double _window = 0.06;
   final math.Random _rnd = math.Random();
+  static const List<String> _winPraisePool = <String>[
+    'In the groove!', 'Perfect rhythm!', 'Beat master!', 'On the beat!',
+  ];
+  String _winPraise = _winPraisePool[0];
   final List<_Shard> _bits = <_Shard>[];
   bool _reduceMotion = false;
   List<double> _markers = <double>[0.2, 0.4, 0.6, 0.8];
@@ -107,6 +111,7 @@ class _RhythmClapGameState extends State<RhythmClapGame>
           if (mounted) setState(() => _best = b);
         });
         if (_score >= _target) {
+          _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
           _status = GameStatus.won;
           TonePlayer.instance.playCue(SoundCue.gameStart);
           emit(ExperienceEvent.gameCompleted);
@@ -149,7 +154,7 @@ class _RhythmClapGameState extends State<RhythmClapGame>
       overEmoji: '💪',
       overText: 'Out of lives — nice try!',
       winEmoji: '👏',
-      winText: 'In the groove!',
+      winText: _winPraise,
       accent: const Color(0xFFFFD166),
       onPlayAgain: _reset,
       child: LayoutBuilder(

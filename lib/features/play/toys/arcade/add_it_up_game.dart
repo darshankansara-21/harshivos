@@ -12,6 +12,10 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
   static const String _id = 'add_it_up';
   static const int _target = 10;
   final math.Random _rnd = math.Random();
+  static const List<String> _winPraisePool = <String>[
+    'Great maths!', 'Number whiz!', 'Sum master!', 'Math star!',
+  ];
+  String _winPraise = _winPraisePool[0];
 
   List<int> _tiles = <int>[];
   int _sum = 5;
@@ -79,6 +83,7 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
           if (mounted) setState(() => _best = v);
         });
         if (_score >= _target) {
+          _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
           _status = GameStatus.won;
           TonePlayer.instance.playCue(SoundCue.gameStart);
           emit(ExperienceEvent.gameCompleted);
@@ -135,7 +140,7 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
       overEmoji: '💔',
       overText: 'Out of lives — nice try!',
       winEmoji: '➕',
-      winText: 'Great maths!',
+      winText: _winPraise,
       accent: const Color(0xFF80ED99),
       onPlayAgain: _reset,
       child: Container(

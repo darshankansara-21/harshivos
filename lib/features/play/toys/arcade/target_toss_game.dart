@@ -15,6 +15,10 @@ class _TargetTossGameState extends State<TargetTossGame>
   static const double _ballR = 0.035;
   static const double _targetY = 0.22;
   final math.Random _rnd = math.Random();
+  static const List<String> _winPraisePool = <String>[
+    'Sharp shooter!', 'Bullseye boss!', 'Toss champion!', 'Great aim!',
+  ];
+  String _winPraise = _winPraisePool[0];
   final List<_Shard> _bits = <_Shard>[];
   bool _reduceMotion = false;
   double _bx = 0.5, _by = 0.86, _vx = 0, _vy = 0;
@@ -152,6 +156,7 @@ class _TargetTossGameState extends State<TargetTossGame>
       if (mounted) setState(() => _best = b);
     });
     if (_score >= _target) {
+      _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
       _status = GameStatus.won;
       TonePlayer.instance.playCue(SoundCue.gameStart);
       emit(ExperienceEvent.gameCompleted);
@@ -209,7 +214,7 @@ class _TargetTossGameState extends State<TargetTossGame>
       status: _status,
       banner: _banner ?? 'Points $_score/$_target · tosses $_throws',
       winEmoji: '🎯',
-      winText: 'Sharp shooter!',
+      winText: _winPraise,
       accent: const Color(0xFFE23B5B),
       onPlayAgain: _reset,
       child: LayoutBuilder(

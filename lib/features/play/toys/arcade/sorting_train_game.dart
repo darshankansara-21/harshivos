@@ -19,6 +19,10 @@ class _SortingTrainGameState extends State<SortingTrainGame>
     Color(0xFF66D9E8),
   ];
   final math.Random _rnd = math.Random();
+  static const List<String> _winPraisePool = <String>[
+    'All aboard!', 'Train master!', 'Perfect loading!', 'Conductor champ!',
+  ];
+  String _winPraise = _winPraisePool[0];
   final List<_Shard> _bits = <_Shard>[];
   // Screen-reader users can't see the parcel/wagon colours, so describe each
   // by its paired colour+shape (matching _shapeForColor in the painter,
@@ -112,6 +116,7 @@ class _SortingTrainGameState extends State<SortingTrainGame>
         if (mounted) setState(() => _best = b);
       });
       if (_score >= _target) {
+        _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         _status = GameStatus.won;
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
@@ -156,7 +161,7 @@ class _SortingTrainGameState extends State<SortingTrainGame>
       status: _status,
       banner: _banner ?? 'Load $_score/$_target parcels',
       winEmoji: '🚂',
-      winText: 'All aboard!',
+      winText: _winPraise,
       accent: const Color(0xFF63E6BE),
       onPlayAgain: _reset,
       child: LayoutBuilder(

@@ -28,6 +28,10 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
   ];
 
   final math.Random _rnd = math.Random();
+  static const List<String> _winPraisePool = <String>[
+    'Stargazer!', 'Star mapper!', 'Constellation champ!', 'Night sky master!',
+  ];
+  String _winPraise = _winPraisePool[0];
   late List<int> _order; // shuffled shape indices, replayed each pass
   int _orderPos = 0;
   late List<List<double>> _stars;
@@ -93,6 +97,7 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
           if (mounted) setState(() => _best = v);
         });
         if (_score >= _target) {
+          _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
           _status = GameStatus.won;
           TonePlayer.instance.playCue(SoundCue.gameStart);
           emit(ExperienceEvent.gameCompleted);
@@ -139,7 +144,7 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
               ? 'Connect the stars  ·  $_linked/${_stars.length}'
               : 'Trace the star paths'),
       winEmoji: '⭐',
-      winText: 'Stargazer!',
+      winText: _winPraise,
       accent: const Color(0xFFFFE066),
       onPlayAgain: _reset,
       child: LayoutBuilder(

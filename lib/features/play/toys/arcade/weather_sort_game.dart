@@ -44,6 +44,10 @@ class _WeatherSortGameState extends State<WeatherSortGame> with _Emit {
   };
   static const List<String> _binNames = <String>['sunny', 'rainy', 'snowy'];
   final math.Random _rnd = math.Random();
+  static const List<String> _winPraisePool = <String>[
+    'Weather wise!', 'Forecast star!', 'Sorting champ!', 'Great sorting!',
+  ];
+  String _winPraise = _winPraisePool[0];
   // Flattened (bin, item) draw order — shuffled bag with no repeat so a
   // full 12-item win sees real variety across all 18 items instead of
   // risking the same emoji (or even the same bin) several times in a row.
@@ -98,6 +102,7 @@ class _WeatherSortGameState extends State<WeatherSortGame> with _Emit {
         if (mounted) setState(() => _best = b);
       });
       if (_score >= _target) {
+        _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         _status = GameStatus.won;
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
@@ -160,7 +165,7 @@ class _WeatherSortGameState extends State<WeatherSortGame> with _Emit {
       overEmoji: '💪',
       overText: 'Out of lives — nice try!',
       winEmoji: '🌦️',
-      winText: 'Weather wise!',
+      winText: _winPraise,
       accent: const Color(0xFF66D9E8),
       onPlayAgain: _reset,
       child: Padding(
