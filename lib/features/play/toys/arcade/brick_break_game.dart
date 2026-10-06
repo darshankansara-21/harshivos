@@ -76,10 +76,22 @@ class _BrickBreakGameState extends State<BrickBreakGame>
   }
 
   void _buildBricks() {
+    // The shared `introHow` card tells every child "Golden bricks need two
+    // hits" before their very first serve, but the full-density pattern
+    // below never actually turns one on until level 4+ (deliberately, so row
+    // count/speed/heavy-bricks escalate one at a time — see _nextLevel). A
+    // child playing only their first level or two would never see the
+    // mechanic the intro just promised them, a concrete clarity gap. Seed
+    // exactly one easy preview golden brick at level 2 — low enough stakes
+    // (speed/rows are still their gentlest) that it just teaches the
+    // "needs a second hit" idea honestly, without front-loading the later
+    // escalation the rest of the pattern is intentionally paced around.
+    final previewIdx =
+        _level == 2 ? (_rowCount - 1) * _cols + _cols ~/ 2 : -1;
     _bricks = List<int>.generate(_cols * _rowCount, (index) {
       final row = index ~/ _cols;
       final isHeavy = _level > 3 && row >= _rowCount - 2 && (index + _level) % 4 == 0;
-      return isHeavy ? 2 : 1;
+      return (isHeavy || index == previewIdx) ? 2 : 1;
     });
   }
 
