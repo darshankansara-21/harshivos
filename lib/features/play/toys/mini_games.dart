@@ -2978,11 +2978,21 @@ enum _BowlPhase { aim, rolling, settle }
 
 class _BowlPin {
   _BowlPin(this.x, this.y);
-  final double x; // normalized canvas x (0..1)
+  final double x; // normalized canvas x (0..1), original racked position
   final double y; // normalized canvas y (0..1); smaller = farther away
   bool down = false;
   double fallT = 0; // 0 = standing, grows to 1 while toppling
   double fallDir = 1; // topple direction (sign of x offset from ball)
+  // Real impact momentum: a knocked pin inherits a share of whatever hit it
+  // (ball or a toppling neighbour) and slides while it falls, instead of
+  // toppling in place. `ox`/`oy` is the accumulated slide offset from the
+  // original racked `x`/`y`, driven by `vx`/`vy` with friction each tick —
+  // this is what lets a chain reaction's speed/direction/reach actually
+  // depend on the real strike, rather than an instant fixed-radius check.
+  double vx = 0;
+  double vy = 0;
+  double ox = 0;
+  double oy = 0;
 }
 
 class _BowlingGameState extends State<BowlingGame>
@@ -3114,10 +3124,24 @@ class _BowlingGameState extends State<BowlingGame>
       p.life -= dt;
       if (p.life <= 0) _confetti.removeAt(i);
     }
-    // Advance any toppling pins.
+    // Advance any toppling pins: progress the lie-down animation and slide
+    // them along their inherited momentum (with friction) so a chain
+    // reaction keeps unfolding — and can still reach a fresh neighbour —
+    // for as long as a pin is actually moving, not just during the single
+    // tick the ball passed through.
     for (final p in _pins) {
-      if (p.down && p.fallT < 1) p.fallT = (p.fallT + dt * 3.2).clamp(0.0, 1.0);
+      if (p.down && p.fallT < 1) {
+        p.fallT = (p.fallT + dt * 3.2).clamp(0.0, 1.0);
+        p.ox += p.vx * dt;
+        p.oy += p.vy * dt;
+        p.vx *= (1 - dt * 2.4);
+        p.vy *= (1 - dt * 2.4);
+      }
     }
+    // Run every tick regardless of phase (rolling or settling): a pin that
+    // topples near the end of the ball's roll should still be able to slide
+    // into and knock a neighbour during the settle beat, same as real pins.
+    _propagateTopple();
     if (_phase != _BowlPhase.rolling) {
       if (_phase == _BowlPhase.settle) {
         _settleT -= dt;
@@ -3141,11 +3165,13 @@ class _BowlingGameState extends State<BowlingGame>
     }
 
     _checkPinHits();
-    _propagateTopple();
 
     if (_ballY <= _yFar + 0.01 || _vy > -0.02) {
       _phase = _BowlPhase.settle;
-      _settleT = 0.7; // let pins finish toppling before scoring
+      // Momentum-driven chains can take a beat longer to finish propagating
+      // than the old instant same-tick check did, so give them a touch more
+      // time before scoring than the previous fixed 0.7s.
+      _settleT = 1.0;
     }
   }
 
@@ -3155,6 +3181,14 @@ class _BowlingGameState extends State<BowlingGame>
       if ((p.x - _ballX).abs() < 0.05 && (p.y - _ballY).abs() < 0.055) {
         p.down = true;
         p.fallDir = (p.x >= _ballX) ? 1 : -1;
+        // The pin inherits a damped share of the ball's own velocity plus a
+        // push in its topple direction, so how far/fast it slides — and
+        // whether that reaches a neighbour at all — tracks the real impact
+        // (a dead-centre hit drives pins straight back; a glancing hit
+        // sends them sliding sideways) instead of an instant fixed-radius
+        // same-tick check.
+        p.vx = _vx * 0.6 + p.fallDir * 0.12;
+        p.vy = _vy.abs() * 0.5;
         _vx += p.fallDir * 0.04; // ball deflects a touch
         _vy *= 0.9;
         TonePlayer.instance.playThock();
@@ -3162,24 +3196,31 @@ class _BowlingGameState extends State<BowlingGame>
     }
   }
 
-  // A toppling pin knocks over close standing neighbours — how strikes happen.
-  // The rack's row spacing (see rowsY in _rack) is exactly 0.05, so a strict
-  // `< 0.05` cutoff here lands right on a floating-point coin-flip: some row
-  // pairs round down (propagate fine) and others round up (never propagate),
-  // silently breaking the front-to-back chain reaction for roughly half the
-  // pins. Use a visibly looser 0.052 so every genuine row-to-row neighbour
-  // reliably topples regardless of rounding direction.
+  // A toppling pin knocks over a standing neighbour it slides into — how
+  // real strike chains happen. Checked every tick against each pin's live
+  // slid position (`x + ox`, `y + oy`), so the chain's reach and timing
+  // depend on the actual momentum each pin inherited rather than an instant
+  // same-tick double pass over the pins' original racked positions. The
+  // rack's row spacing (see rowsY in _rack) is exactly 0.05, so a strict
+  // `< 0.05` cutoff would land right on a floating-point coin-flip; use a
+  // visibly looser 0.052 so every genuine row-to-row neighbour reliably
+  // topples regardless of rounding direction.
   void _propagateTopple() {
-    for (var pass = 0; pass < 2; pass++) {
-      for (final f in _pins) {
-        if (!f.down) continue;
-        for (final s in _pins) {
-          if (s.down) continue;
-          if ((s.x - f.x).abs() < 0.055 && (s.y - f.y).abs() < 0.052) {
-            s.down = true;
-            s.fallDir = (s.x >= f.x) ? 1 : -1;
-            TonePlayer.instance.playThock();
-          }
+    for (final f in _pins) {
+      if (!f.down) continue;
+      final fx = f.x + f.ox;
+      final fy = f.y + f.oy;
+      for (final s in _pins) {
+        if (s.down) continue;
+        if ((s.x - fx).abs() < 0.055 && (s.y - fy).abs() < 0.052) {
+          s.down = true;
+          s.fallDir = (s.x >= f.x) ? 1 : -1;
+          // Inherit a damped share of the striking pin's own momentum so
+          // the chain's speed/direction keeps tracking the original
+          // impact as it propagates outward.
+          s.vx = f.vx * 0.7 + s.fallDir * 0.08;
+          s.vy = f.vy * 0.6;
+          TonePlayer.instance.playThock();
         }
       }
     }
@@ -3558,10 +3599,12 @@ class _BowlPainter extends CustomPainter {
     final sorted = List<_BowlPin>.from(pins)
       ..sort((a, b) => a.y.compareTo(b.y));
     for (final p in sorted) {
-      final c = Offset(sx(p.x), sy(p.y));
       final s = scaleFor(p.y);
       if (p.down) {
-        // Toppled pin: lie down + fade.
+        // Toppled pin: lie down, slide along its inherited momentum, and
+        // fade — the slide is what visually sells a chain reaction as real
+        // physics rather than every knocked pin just rotating in place.
+        final c = Offset(sx(p.x + p.ox), sy(p.y + p.oy));
         canvas.save();
         canvas.translate(c.dx, c.dy);
         canvas.rotate(p.fallDir * p.fallT * 1.4);
@@ -3569,7 +3612,7 @@ class _BowlPainter extends CustomPainter {
         _drawPin(canvas, Offset.zero, s, o);
         canvas.restore();
       } else {
-        _drawPin(canvas, c, s, 1);
+        _drawPin(canvas, Offset(sx(p.x), sy(p.y)), s, 1);
       }
     }
 
