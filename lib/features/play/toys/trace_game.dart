@@ -124,23 +124,30 @@ class _TraceGameState extends State<TraceGame> {
     return pts;
   }
 
+  // Index of the one dot the child must trace to next, in path order. `_pts`
+  // is generated point-by-point along the shape's outline, so "first unlit
+  // point in list order" is exactly "next point on the path".
+  int get _nextDotIdx => _lit.indexWhere((e) => !e);
+
   void _drag(Offset local, Size size) {
     if (_status != GameStatus.playing) return;
+    // Only the next dot on the path can be lit — matching every unlit dot in
+    // reach (the prior behaviour) let a quick scribble or a straight-line
+    // drag across the shape light far-apart dots out of sequence, skipping
+    // the actual outline entirely and defeating the fine-motor tracing this
+    // game explicitly promises ("rewards steady tracing, not speed or
+    // reflex"). Same sequential-order fix already applied to the sibling
+    // `letter_trace_game.dart`.
+    final idx = _nextDotIdx;
+    if (idx < 0) return;
     // Compare in real pixel space (not normalized x/y) so the hit radius is a
     // true circle matching the dots the painter actually draws — normalized
     // (dx/width, dy/height) distance distorts into an ellipse whenever
     // width != height, the same aspect-ratio hit-test bug fixed repeatedly
     // elsewhere in the catalog (space_dodge, letter_trace, steady_hand, etc.).
-    var changed = false;
-    for (var k = 0; k < _pts.length; k++) {
-      if (_lit[k]) continue;
-      final dot = Offset(_pts[k].dx * size.width, _pts[k].dy * size.height);
-      if ((dot - local).distance < 32) {
-        _lit[k] = true;
-        changed = true;
-      }
-    }
-    if (!changed) return;
+    final dot = Offset(_pts[idx].dx * size.width, _pts[idx].dy * size.height);
+    if ((dot - local).distance >= 32) return;
+    _lit[idx] = true;
     final done = _lit.where((e) => e).length;
     TonePlayer.instance.playPop(0.4 + done / _pts.length * 0.5);
     if (_lit.every((e) => e)) {
@@ -197,7 +204,7 @@ class _TraceGameState extends State<TraceGame> {
                   builder: (ctx, s, child) =>
                       Transform.scale(scale: s, child: child),
                   child: CustomPaint(
-                    painter: _TracePainter(_pts, _lit),
+                    painter: _TracePainter(_pts, _lit, _nextDotIdx),
                     size: Size.infinite,
                   ),
                 ),
@@ -293,12 +300,29 @@ class _TraceGameState extends State<TraceGame> {
 }
 
 class _TracePainter extends CustomPainter {
-  _TracePainter(this.pts, this.lit);
+  _TracePainter(this.pts, this.lit, this.nextIdx);
   final List<Offset> pts;
   final List<bool> lit;
+  final int nextIdx;
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Ink trail: connect consecutive lit dots so the shape visibly gets
+    // "drawn" in order, matching `letter_trace_game.dart`'s ink-trail
+    // convention now that tracing is enforced path-order here too.
+    final inkPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 7
+      ..strokeCap = StrokeCap.round
+      ..color = const Color(0xFF06D6A0).withOpacity(0.7);
+    for (var i = 1; i < pts.length; i++) {
+      if (lit[i - 1] && lit[i]) {
+        canvas.drawLine(
+            Offset(pts[i - 1].dx * size.width, pts[i - 1].dy * size.height),
+            Offset(pts[i].dx * size.width, pts[i].dy * size.height),
+            inkPaint);
+      }
+    }
     for (var i = 0; i < pts.length; i++) {
       final c = Offset(pts[i].dx * size.width, pts[i].dy * size.height);
       if (lit[i]) {
@@ -309,6 +333,21 @@ class _TracePainter extends CustomPainter {
               ..color = const Color(0x3306D6A0)
               ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4));
         canvas.drawCircle(c, 11, Paint()..color = const Color(0xFF06D6A0));
+      } else if (i == nextIdx) {
+        // Tracing is now enforced in path order, so the one dot a touch will
+        // actually light needs to read as visibly "next" — a plain identical
+        // ring for every remaining dot gave no clue which one the enforced
+        // order wants, undercutting the whole fix (same reasoning already
+        // applied to `letter_trace_game.dart`'s next-dot highlight).
+        canvas.drawCircle(
+            c, 14, Paint()..color = Colors.white.withOpacity(0.3));
+        canvas.drawCircle(
+            c,
+            9,
+            Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 3
+              ..color = Colors.white);
       } else {
         canvas.drawCircle(c, 9, Paint()..color = Colors.white24);
         canvas.drawCircle(
