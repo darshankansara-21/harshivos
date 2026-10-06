@@ -541,6 +541,7 @@ class _InfiniteMarbleRunToyState extends State<InfiniteMarbleRunToy>
   final math.Random _r = math.Random();
   double _spawnAcc = 0;
   bool _seeded = false;
+  bool _reduceMotion = false;
 
   void _seed(Size size) {
     const rows = 9;
@@ -564,9 +565,11 @@ class _InfiniteMarbleRunToyState extends State<InfiniteMarbleRunToy>
     if (size == Size.zero) return;
     if (!_seeded) _seed(size);
 
-    // A steady gentle rain of marbles keeps it "infinite".
-    _spawnAcc += dt * 1.6;
-    while (_spawnAcc >= 1 && _marbles.length < 70) {
+    // A steady gentle rain of marbles keeps it "infinite" — thinned under
+    // Reduce Motion so the ambient stream doesn't overwhelm.
+    _spawnAcc += dt * (_reduceMotion ? 0.6 : 1.6);
+    final cap = _reduceMotion ? 25 : 70;
+    while (_spawnAcc >= 1 && _marbles.length < cap) {
       _spawnAcc -= 1;
       _spawn(size.width * (0.2 + _r.nextDouble() * 0.6));
     }
@@ -614,6 +617,7 @@ class _InfiniteMarbleRunToyState extends State<InfiniteMarbleRunToy>
   Widget build(BuildContext context) {
     // Same "describable but not actionable" gap as the other sensory toys
     // above — bridge the single discrete "tap drops a marble" action.
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return Semantics(
       button: true,
       label: 'Tap to drop marbles into the peg field',
