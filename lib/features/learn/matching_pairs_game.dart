@@ -227,7 +227,14 @@ class _CardView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final showFace = card.flipped || card.matched;
-    return GestureDetector(
+    return Semantics(
+      button: true,
+      label: card.matched
+          ? '${card.emoji} card, matched'
+          : showFace
+              ? '${card.emoji} card, face up'
+              : 'Face-down card',
+      child: GestureDetector(
       onTap: onTap,
       child: AnimatedScale(
         scale: card.matched ? 1.05 : 1.0,
@@ -253,6 +260,7 @@ class _CardView extends StatelessWidget {
                     color: Colors.white.withOpacity(0.5), size: 40),
           ),
         ),
+      ),
       ),
     );
   }

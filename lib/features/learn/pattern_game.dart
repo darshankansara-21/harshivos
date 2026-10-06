@@ -21,6 +21,15 @@ class _PatternGameScreenState extends State<PatternGameScreen> {
     '🔴', '🔵', '🟡', '🟢', '🟣', '🟠',
   ];
 
+  static const Map<String, String> _tokenNames = <String, String>{
+    '🔴': 'red circle',
+    '🔵': 'blue circle',
+    '🟡': 'yellow circle',
+    '🟢': 'green circle',
+    '🟣': 'purple circle',
+    '🟠': 'orange circle',
+  };
+
   final math.Random _rnd = math.Random();
   final CompanionController _companion = CompanionController();
 
@@ -186,7 +195,10 @@ class _PatternGameScreenState extends State<PatternGameScreen> {
                     alignment: WrapAlignment.center,
                     children: <Widget>[
                       for (final c in _choices)
-                        GestureDetector(
+                        Semantics(
+                          button: true,
+                          label: _tokenNames[c] ?? 'choice',
+                          child: GestureDetector(
                           onTap: () => _pick(c),
                           child: Container(
                             width: 92,
@@ -199,6 +211,7 @@ class _PatternGameScreenState extends State<PatternGameScreen> {
                             ),
                             child:
                                 Text(c, style: const TextStyle(fontSize: 52)),
+                          ),
                           ),
                         ),
                     ],

@@ -133,7 +133,10 @@ class _EmotionMatchGameState extends State<EmotionMatchGame>
                     alignment: WrapAlignment.center,
                     children: <Widget>[
                       for (final c in _choices)
-                        GestureDetector(
+                        Semantics(
+                          button: true,
+                          label: '${c.$2} face',
+                          child: GestureDetector(
                           onTap: () => _pick(c),
                           child: Container(
                             width: 110,
@@ -145,6 +148,7 @@ class _EmotionMatchGameState extends State<EmotionMatchGame>
                               border: Border.all(color: Colors.white24),
                             ),
                             child: Text(c.$1, style: const TextStyle(fontSize: 64)),
+                          ),
                           ),
                         ),
                     ],

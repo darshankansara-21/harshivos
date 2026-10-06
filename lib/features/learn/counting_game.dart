@@ -178,7 +178,10 @@ class _CountingGameScreenState extends State<CountingGameScreen> {
                     alignment: WrapAlignment.center,
                     children: <Widget>[
                       for (final n in _choices)
-                        GestureDetector(
+                        Semantics(
+                          button: true,
+                          label: 'Answer $n',
+                          child: GestureDetector(
                           onTap: () => _pick(n),
                           child: Container(
                             width: 76,
@@ -201,6 +204,7 @@ class _CountingGameScreenState extends State<CountingGameScreen> {
                                     fontSize: 34,
                                     fontWeight: FontWeight.w900)),
                           ),
+                        ),
                         ),
                     ],
                   ),

@@ -231,7 +231,10 @@ class _LearningGameScreenState extends ConsumerState<LearningGameScreen> {
               style:
                   TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 20)),
           const SizedBox(height: 6),
-          GestureDetector(
+          Semantics(
+            button: true,
+            label: 'Play the sound for ${_target.label}',
+            child: GestureDetector(
             onTap: _speakPrompt,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -248,8 +251,8 @@ class _LearningGameScreenState extends ConsumerState<LearningGameScreen> {
                 const Icon(Icons.volume_up_rounded, color: Colors.white54),
               ],
             ),
-          ),
-          SizedBox(
+            ),
+          ),          SizedBox(
             height: 26,
             child: _justWrong
                 ? const Text('Try again — you can do it! 💪',
@@ -367,7 +370,10 @@ class _ChoiceTileState extends State<_ChoiceTile> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Semantics(
+      button: true,
+      label: widget.item.label,
+      child: GestureDetector(
       onTapDown: (_) => setState(() => _pressed = true),
       onTapUp: (_) => setState(() => _pressed = false),
       onTapCancel: () => setState(() => _pressed = false),
@@ -389,6 +395,7 @@ class _ChoiceTileState extends State<_ChoiceTile> {
           ),
           child: Text(widget.item.emoji, style: const TextStyle(fontSize: 60)),
         ),
+      ),
       ),
     );
   }
@@ -715,9 +722,13 @@ class _SortingGameScreenState extends ConsumerState<SortingGameScreen> {
         children: <Widget>[
           _ProgressDots(total: _roundsTarget, done: _round),
           const Spacer(),
-          GestureDetector(
+          Semantics(
+            button: true,
+            label: 'Play the sound for this picture',
+            child: GestureDetector(
             onTap: _speakPrompt,
             child: Text(_current.emoji, style: const TextStyle(fontSize: 96)),
+            ),
           ),
           const SizedBox(height: 8),
           Text('Where does it go?',
@@ -814,7 +825,10 @@ class _SortBin extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Semantics(
+      button: true,
+      label: label,
+      child: GestureDetector(
       onTap: onTap,
       child: Container(
         height: 132,
@@ -831,6 +845,7 @@ class _SortBin extends StatelessWidget {
                 color: Colors.white,
                 fontSize: 22,
                 fontWeight: FontWeight.w800)),
+      ),
       ),
     );
   }
