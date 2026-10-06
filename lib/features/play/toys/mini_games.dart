@@ -1133,6 +1133,16 @@ class _StarTapGameState extends State<StarTapGame>
   final List<_StarPop> _pops = <_StarPop>[];
   final List<Offset> _bgStars = <Offset>[];
   GameStatus _status = GameStatus.ready;
+  // Every sibling tap/catch game in the catalog (fruit_catch's splash,
+  // balloon_pop's pop, snake's orb burst, bowling's confetti) celebrates a
+  // successful hit with a small particle burst — Star Catch only ever showed
+  // a floating "+N" text, making its own "good catch" moment read flatter
+  // than every neighbouring game despite being a pure reaction-tap game
+  // built entirely around that one feeling. Reuses the catalog's shared
+  // `_Particle` class and the same fractional-coordinate convention as
+  // `_SplashPainter`.
+  final List<_Particle> _particles = <_Particle>[];
+  bool _reduceMotion = false;
   // Same "beat your own all-time best" live-celebration pattern added to
   // fruit_catch/balloon_pop: fires once per run the instant the score first
   // overtakes the prior record, guarded against a brand-new player's first
@@ -1149,6 +1159,31 @@ class _StarTapGameState extends State<StarTapGame>
     GameScores.instance.ensureLoaded().then((_) {
       if (mounted) setState(() => _best = GameScores.instance.best(_id));
     });
+  }
+
+  // Cell index -> fractional (0..1) centre, matching the GridView.count
+  // layout built below (24/92/24/40 padding, 3 columns, 16px spacing).
+  Offset _cellCenter(int i, double w, double h) {
+    const cols = 3;
+    final rows = (_cells / cols).ceil();
+    final gridW = w - 48, gridH = h - 132;
+    final cw = (gridW - 16 * (cols - 1)) / cols;
+    final ch = (gridH - 16 * (rows - 1)) / rows;
+    final col = i % cols, row = i ~/ cols;
+    final cx = 24 + col * (cw + 16) + cw / 2;
+    final cy = 92 + row * (ch + 16) + ch / 2;
+    return Offset(cx / w, cy / h);
+  }
+
+  void _burst(Offset fracPos, Color color) {
+    final n = _reduceMotion ? 4 : 14;
+    for (var i = 0; i < n; i++) {
+      final a = _rnd.nextDouble() * math.pi * 2;
+      final sp = 0.3 + _rnd.nextDouble() * 0.5;
+      _particles.add(_Particle(fracPos,
+          Offset(math.cos(a) * sp, math.sin(a) * sp), color,
+          0.4 + _rnd.nextDouble() * 0.3));
+    }
   }
 
   void _spawnStar() {
@@ -1191,6 +1226,12 @@ class _StarTapGameState extends State<StarTapGame>
     }
     if (_shootT > 0) _shootT -= dt;
     _pops.removeWhere((p) => p.t <= 0);
+    for (var i = _particles.length - 1; i >= 0; i--) {
+      final p = _particles[i];
+      p.pos += p.vel * dt * 0.4;
+      p.life -= dt;
+      if (p.life <= 0) _particles.removeAt(i);
+    }
     _life -= dt;
     if (_life <= 0) {
       // A star that fades away unclaimed is the same silent-setback gap as
@@ -1202,6 +1243,8 @@ class _StarTapGameState extends State<StarTapGame>
       _spawnStar();
     }
   }
+
+  Size? _lastSize;
 
   void _tapCell(int i) {
     if (_status != GameStatus.playing) return;
@@ -1221,6 +1264,13 @@ class _StarTapGameState extends State<StarTapGame>
       final gain = base + (_combo >= 5 ? 1 : 0) + (quick ? 1 : 0);
       _score += gain;
       _pops.add(_StarPop(i, '+$gain'));
+      final size = _lastSize;
+      if (size != null) {
+        final glow = _kind == 2
+            ? const Color(0xFFB388FF)
+            : (_kind == 1 ? const Color(0xFFFFE066) : const Color(0xFFFFD166));
+        _burst(_cellCenter(i, size.width, size.height), glow);
+      }
       TonePlayer.instance
           .playCue(_kind >= 1 ? SoundCue.coin : SoundCue.correct);
       emit(ExperienceEvent.bubblePopped);
@@ -1291,6 +1341,7 @@ class _StarTapGameState extends State<StarTapGame>
       _banner = null;
       _bannerT = 0;
       _pops.clear();
+      _particles.clear();
       _decoy = -1;
       _status = GameStatus.playing;
       _spawnStar();
@@ -1300,6 +1351,7 @@ class _StarTapGameState extends State<StarTapGame>
   @override
   Widget build(BuildContext context) {
     drainCompanion(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _GameShell(
       title: '⭐ Star Catch',
       winEmoji: '⭐',
@@ -1315,52 +1367,62 @@ class _StarTapGameState extends State<StarTapGame>
       banner: _banner,
       accent: const Color(0xFFFFD166),
       onPlayAgain: _reset,
-      child: Stack(
-        fit: StackFit.expand,
-        children: <Widget>[
-          CustomPaint(painter: _NightSkyPainter(_bgStars, _t, _shootT)),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 92, 24, 40),
-            child: GridView.count(
-              crossAxisCount: 3,
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
-              physics: const NeverScrollableScrollPhysics(),
-              children: <Widget>[
-                for (var i = 0; i < _cells; i++)
-                  Semantics(
-                    button: true,
-                    // States only what a sighted child already sees in this
-                    // cell this frame (empty / the lit star's own kind / the
-                    // red decoy) — never which cell will light up next —
-                    // preserving the real reaction-speed challenge for
-                    // screen-reader users.
-                    label: i == _active
-                        ? (_kind == 2
-                            ? 'Rainbow star, worth 5. Tap to catch!'
-                            : _kind == 1
-                                ? 'Shooting star, worth 3. Tap to catch!'
-                                : 'Star. Tap to catch!')
-                        : i == _decoy
-                            ? 'Red decoy. Do not tap.'
-                            : 'Empty.',
-                    onTap: () => _tapCell(i),
-                    excludeSemantics: true,
-                    child: GestureDetector(
-                      onTapDown: (_) => _tapCell(i),
-                      child: _StarCell(
-                        active: i == _active,
-                        decoy: i == _decoy,
-                        kind: _kind,
-                        lifeFraction: _lifeMax > 0 ? (_life / _lifeMax) : 0,
-                        pop: _popFor(i),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          _lastSize = Size(constraints.maxWidth, constraints.maxHeight);
+          return Stack(
+            fit: StackFit.expand,
+            children: <Widget>[
+              CustomPaint(painter: _NightSkyPainter(_bgStars, _t, _shootT)),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 92, 24, 40),
+                child: GridView.count(
+                  crossAxisCount: 3,
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 16,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: <Widget>[
+                    for (var i = 0; i < _cells; i++)
+                      Semantics(
+                        button: true,
+                        // States only what a sighted child already sees in this
+                        // cell this frame (empty / the lit star's own kind / the
+                        // red decoy) — never which cell will light up next —
+                        // preserving the real reaction-speed challenge for
+                        // screen-reader users.
+                        label: i == _active
+                            ? (_kind == 2
+                                ? 'Rainbow star, worth 5. Tap to catch!'
+                                : _kind == 1
+                                    ? 'Shooting star, worth 3. Tap to catch!'
+                                    : 'Star. Tap to catch!')
+                            : i == _decoy
+                                ? 'Red decoy. Do not tap.'
+                                : 'Empty.',
+                        onTap: () => _tapCell(i),
+                        excludeSemantics: true,
+                        child: GestureDetector(
+                          onTapDown: (_) => _tapCell(i),
+                          child: _StarCell(
+                            active: i == _active,
+                            decoy: i == _decoy,
+                            kind: _kind,
+                            lifeFraction: _lifeMax > 0 ? (_life / _lifeMax) : 0,
+                            pop: _popFor(i),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ],
+                  ],
+                ),
+              ),
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: CustomPaint(painter: _SplashPainter(_particles)),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
