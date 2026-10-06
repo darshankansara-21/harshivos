@@ -9,7 +9,8 @@ class OddOneOutGame extends StatefulWidget {
   State<OddOneOutGame> createState() => _OddOneOutGameState();
 }
 
-class _OddOneOutGameState extends State<OddOneOutGame> with _Emit {
+class _OddOneOutGameState extends State<OddOneOutGame>
+    with TickerProviderStateMixin, ToyTicker, _Emit {
   static const String _id = 'odd_one_out';
   static const int _target = 10;
   static const List<Color> _palette = <Color>[
@@ -38,6 +39,13 @@ class _OddOneOutGameState extends State<OddOneOutGame> with _Emit {
   int _wrong = -1;
   String? _banner;
   GameStatus _status = GameStatus.ready;
+  // Every sibling tap/sort game in the catalog (fruit_catch, balloon_pop,
+  // star_tap, shape_sort_chute...) bursts a few shards of colour on a
+  // correct hit; this grid only ever advanced silently to the next round,
+  // making the one feeling this whole game is built around — finding the
+  // odd tile — land flatter than every other reaction-tap sibling.
+  final List<_Shard> _bits = <_Shard>[];
+  bool _reduceMotion = false;
 
   @override
   void initState() {
@@ -45,6 +53,27 @@ class _OddOneOutGameState extends State<OddOneOutGame> with _Emit {
     GameScores.instance.ensureLoaded().then((_) {
       if (mounted) setState(() => _best = GameScores.instance.best(_id));
     });
+  }
+
+  @override
+  void onTick(double dt) {
+    for (var i = _bits.length - 1; i >= 0; i--) {
+      final b = _bits[i];
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.vy += 0.5 * dt;
+      b.life -= dt;
+      if (b.life <= 0) _bits.removeAt(i);
+    }
+  }
+
+  void _burst(double x, double y, Color color) {
+    final n = _reduceMotion ? 4 : 12;
+    for (var i = 0; i < n; i++) {
+      final a = _rnd.nextDouble() * math.pi * 2;
+      final sp = 0.15 + _rnd.nextDouble() * 0.3;
+      _bits.add(_Shard(x, y, math.cos(a) * sp, math.sin(a) * sp, color));
+    }
   }
 
   int get _count => _cols * _cols;
@@ -118,6 +147,8 @@ class _OddOneOutGameState extends State<OddOneOutGame> with _Emit {
       TonePlayer.instance.playCue(SoundCue.correct);
       emit(ExperienceEvent.bubblePopped);
       _banner = _foundPool[_rnd.nextInt(_foundPool.length)];
+      final gx = i % _cols, gy = i ~/ _cols;
+      _burst((gx + 0.5) / _cols, 0.14 + (gy + 0.5) / _cols * 0.82, _oddColor);
       GameScores.instance.submit(_id, _score).then((v) {
         if (mounted) setState(() => _best = v);
       });
@@ -157,6 +188,7 @@ class _OddOneOutGameState extends State<OddOneOutGame> with _Emit {
       _score = 0;
       _lives = 3;
       _banner = null;
+      _bits.clear();
       _newRound();
       _status = GameStatus.playing;
     });
@@ -165,6 +197,7 @@ class _OddOneOutGameState extends State<OddOneOutGame> with _Emit {
   @override
   Widget build(BuildContext context) {
     drain(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _Shell(
       title: '🧐 Odd One Out',
       introHow:
@@ -235,6 +268,7 @@ class _OddOneOutGameState extends State<OddOneOutGame> with _Emit {
                     baseColor: _baseColor,
                     oddColor: _oddColor,
                     wrong: _wrong,
+                    bits: _bits,
                   ),
                   size: Size.infinite,
                 ),
@@ -258,9 +292,11 @@ class _OddOneOutPainter extends CustomPainter {
     required this.baseColor,
     required this.oddColor,
     required this.wrong,
+    required this.bits,
   });
   final int cols, count, oddIndex, baseShape, oddShape, wrong;
   final Color baseColor, oddColor;
+  final List<_Shard> bits;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -290,6 +326,12 @@ class _OddOneOutPainter extends CustomPainter {
       final isOdd = i == oddIndex;
       _paintPolyShape(canvas, c, r, isOdd ? oddShape : baseShape,
           Paint()..color = isOdd ? oddColor : baseColor);
+    }
+
+    for (final b in bits) {
+      final k = (b.life / 0.5).clamp(0.0, 1.0);
+      canvas.drawCircle(Offset(b.x * w, b.y * h), 2 + 3 * k,
+          Paint()..color = b.color.withOpacity(k));
     }
   }
 
