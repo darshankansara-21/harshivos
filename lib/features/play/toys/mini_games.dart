@@ -786,6 +786,13 @@ class _BalloonPopGameState extends State<BalloonPopGame>
   double _bannerT = 0;
   String? _banner;
   GameStatus _status = GameStatus.ready;
+  // Same "beat your own all-time best" live-celebration pattern just added
+  // to fruit_catch: the moment a run's score first overtakes the prior
+  // record is the single most replay-motivating event this game has, and it
+  // used to be entirely silent — only visible as the header's quiet "★ N"
+  // ticking up mid-run. Guarded so it fires once per run and never on a
+  // brand-new player's first pop (where `_best` is still 0).
+  bool _beatBest = false;
 
   @override
   void initState() {
@@ -894,6 +901,14 @@ class _BalloonPopGameState extends State<BalloonPopGame>
         } else if (_combo >= 4) {
           _flash('Combo x$_combo!');
         }
+        if (!_beatBest && _best > 0 && _score > _best) {
+          _beatBest = true;
+          // Takes priority over the combo/bonus flash just set above — a
+          // new all-time record is the bigger moment of the two.
+          _banner = 'New personal best! 🏆';
+          _bannerT = 1.6;
+          TonePlayer.instance.playCue(SoundCue.milestone);
+        }
         if (_score >= _target) _end(GameStatus.won);
         return;
       }
@@ -937,6 +952,7 @@ class _BalloonPopGameState extends State<BalloonPopGame>
       _pop.clear();
       _score = 0;
       _combo = 0;
+      _beatBest = false;
       _banner = null;
       _bannerT = 0;
       _spawnIn = 0.4;
@@ -1117,6 +1133,11 @@ class _StarTapGameState extends State<StarTapGame>
   final List<_StarPop> _pops = <_StarPop>[];
   final List<Offset> _bgStars = <Offset>[];
   GameStatus _status = GameStatus.ready;
+  // Same "beat your own all-time best" live-celebration pattern added to
+  // fruit_catch/balloon_pop: fires once per run the instant the score first
+  // overtakes the prior record, guarded against a brand-new player's first
+  // star (where `_best` is still 0).
+  bool _beatBest = false;
 
   @override
   void initState() {
@@ -1220,6 +1241,14 @@ class _StarTapGameState extends State<StarTapGame>
         _wave = newWave;
         _shootT = 1.0;
       }
+      if (!_beatBest && _best > 0 && _score > _best) {
+        _beatBest = true;
+        // Takes priority over the combo/wave flash just set above — a new
+        // all-time record is the bigger moment of the two.
+        _banner = 'New personal best! 🏆';
+        _bannerT = 1.6;
+        TonePlayer.instance.playCue(SoundCue.milestone);
+      }
       if (_score >= _target) {
         _end(GameStatus.won);
         return;
@@ -1258,6 +1287,7 @@ class _StarTapGameState extends State<StarTapGame>
       _combo = 0;
       _wave = 0;
       _shootT = 0;
+      _beatBest = false;
       _banner = null;
       _bannerT = 0;
       _pops.clear();
