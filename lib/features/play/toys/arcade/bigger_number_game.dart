@@ -203,18 +203,29 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
             colors: <Color>[Color(0xFF2A2412), Color(0xFF141006)],
           ),
         ),
+        // The original `Spacer`-based Column assumed the title Text and tile
+        // Row would always fit comfortably in the available height, which
+        // broke down at large accessibility text scales (confirmed via a
+        // real `RenderFlex` overflow of 184px at `TextScaler.linear(2.5)` on
+        // a small device — `Spacer`s squeeze to zero while the scaled Text
+        // keeps growing). `_overlayScroll` already solves exactly this for
+        // the win/lose/start cards; reuse it here with fixed gaps (`Spacer`
+        // doesn't work inside its unbounded-height scroll view) so this
+        // screen now scrolls instead of overflowing, while still centering
+        // normally at default text scale.
         child: SafeArea(
-          child: Column(
+          child: _overlayScroll(Column(
+            mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              const Spacer(flex: 2),
               Text(
                 _status == GameStatus.playing
                     ? (_biggest ? 'Tap the BIGGEST' : 'Tap the SMALLEST')
                     : 'Biggest or smallest?',
+                textAlign: TextAlign.center,
                 style: const TextStyle(
                     color: Colors.white, fontSize: 30, fontWeight: FontWeight.w900),
               ),
-              const Spacer(),
+              const SizedBox(height: 56),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: <Widget>[
@@ -240,19 +251,28 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
                             border: Border.all(color: Colors.white24, width: 2),
                           ),
                           alignment: Alignment.center,
-                          child: Text('${_nums[i]}',
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 40,
-                                  fontWeight: FontWeight.w900)),
+                          // The tile's 92x110 box is fixed size, but its
+                          // number Text still scales with the ambient
+                          // accessibility text scale — at 2.5x a 2-digit
+                          // number no longer fits the 92px width and would
+                          // silently clip. FittedBox shrinks it back down to
+                          // fit instead, same safety net `_overlayScroll`
+                          // gives the overlay text.
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text('${_nums[i]}',
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 40,
+                                    fontWeight: FontWeight.w900)),
+                          ),
                         ),
                       ),
                     ),
                 ],
               ),
-              const Spacer(flex: 3),
             ],
-          ),
+          )),
         ),
       ),
     );
