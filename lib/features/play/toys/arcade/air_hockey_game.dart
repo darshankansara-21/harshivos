@@ -16,6 +16,15 @@ class _AirHockeyGameState extends State<AirHockeyGame>
   static const double _paddleR = 0.075;
   static const double _goalL = 0.33;
   static const double _goalR = 0.67;
+  // Pool of full-game win phrases so a replaying child doesn't always see
+  // the identical "You win the match!" line on win screen.
+  static const List<String> _winPraisePool = <String>[
+    'You win the match!',
+    'Champion of the rink!',
+    'Clean sweep!',
+    'Puck master!',
+  ];
+  String _winPraise = _winPraisePool[0];
   final math.Random _rnd = math.Random();
   final List<_Shard> _bits = <_Shard>[];
   bool _reduceMotion = false;
@@ -221,6 +230,7 @@ class _AirHockeyGameState extends State<AirHockeyGame>
     }
     if (_playerScore >= _target) {
       _status = GameStatus.won;
+      _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
       TonePlayer.instance.playCue(SoundCue.gameStart);
       emit(ExperienceEvent.gameCompleted);
     } else if (_aiScore >= _target) {
@@ -278,7 +288,7 @@ class _AirHockeyGameState extends State<AirHockeyGame>
       overEmoji: '🏒',
       overText: 'Good game! Lost $_playerScore–$_aiScore',
       winEmoji: '🏆',
-      winText: 'You win the match!',
+      winText: _winPraise,
       accent: const Color(0xFF28C2D1),
       onPlayAgain: _reset,
       child: LayoutBuilder(

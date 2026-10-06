@@ -26,6 +26,15 @@ class _JigsawFourGameState extends State<JigsawFourGame> with _Emit {
     <int>[3, 2], // 6
     <int>[3, 3], // 9
   ];
+  // Pool of full-game win phrases so a replaying child doesn't always see
+  // the identical "Great fitting!" line on win screen.
+  static const List<String> _winPraisePool = <String>[
+    'Great fitting!',
+    'Puzzle master!',
+    'Piece perfect!',
+    'All pictures complete!',
+  ];
+  String _winPraise = _winPraisePool[0];
   final math.Random _rnd = math.Random();
 
   final List<_JigPiece> _pieces = <_JigPiece>[];
@@ -98,6 +107,7 @@ class _JigsawFourGameState extends State<JigsawFourGame> with _Emit {
         });
         if (_score >= _target) {
           _status = GameStatus.won;
+          _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
           TonePlayer.instance.playCue(SoundCue.gameStart);
           emit(ExperienceEvent.gameCompleted);
         } else {
@@ -156,7 +166,7 @@ class _JigsawFourGameState extends State<JigsawFourGame> with _Emit {
               ? 'Picture ${_score + 1}  ·  $left pieces to place'
               : 'Rebuild the pictures'),
       winEmoji: '🧩',
-      winText: 'Great fitting!',
+      winText: _winPraise,
       accent: const Color(0xFF48CAE4),
       onPlayAgain: _reset,
       child: LayoutBuilder(

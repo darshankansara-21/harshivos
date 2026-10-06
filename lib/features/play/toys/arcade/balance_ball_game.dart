@@ -13,6 +13,16 @@ class _BalanceBallGameState extends State<BalanceBallGame>
     with TickerProviderStateMixin, ToyTicker, _Emit {
   static const String _id = 'balance_ball';
   static const int _target = 20; // seconds to survive
+  // Pool of full-game win phrases so a replaying child doesn't always see
+  // the identical "Balance master!" line on win screen.
+  static const List<String> _winPraisePool = <String>[
+    'Balance master!',
+    'Steady as a rock!',
+    'Perfectly poised!',
+    'Rock-steady champion!',
+  ];
+  String _winPraise = _winPraisePool[0];
+  final math.Random _rnd = math.Random();
 
   double _t = 0;
   double _tilt = 0; // player target tilt
@@ -77,6 +87,7 @@ class _BalanceBallGameState extends State<BalanceBallGame>
       });
       if (_score >= _target) {
         _status = GameStatus.won;
+        _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
       }
@@ -122,7 +133,7 @@ class _BalanceBallGameState extends State<BalanceBallGame>
       overEmoji: '⚖️',
       overText: 'It rolled off!',
       winEmoji: '🏆',
-      winText: 'Balance master!',
+      winText: _winPraise,
       accent: const Color(0xFF48CAE4),
       onPlayAgain: _reset,
       child: LayoutBuilder(

@@ -25,6 +25,15 @@ class _BugCatchGameState extends State<BugCatchGame>
     Color(0xFF66D9E8),
   ];
   static const List<String> _names = <String>['red', 'yellow', 'green', 'blue'];
+  // Pool of full-game win phrases so a replaying child doesn't always see
+  // the identical "Bug buster!" line on win screen.
+  static const List<String> _winPraisePool = <String>[
+    'Bug buster!',
+    'Sharp-eyed catcher!',
+    'Bug whisperer!',
+    'Catch champion!',
+  ];
+  String _winPraise = _winPraisePool[0];
   final math.Random _rnd = math.Random();
   final List<_Bug> _bugs = <_Bug>[];
   final List<_Shard> _bits = <_Shard>[];
@@ -145,6 +154,7 @@ class _BugCatchGameState extends State<BugCatchGame>
           });
           if (_score >= _target) {
             _status = GameStatus.won;
+            _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
             TonePlayer.instance.playCue(SoundCue.gameStart);
             emit(ExperienceEvent.gameCompleted);
           }
@@ -200,7 +210,7 @@ class _BugCatchGameState extends State<BugCatchGame>
       overEmoji: '💪',
       overText: 'Out of lives — nice try!',
       winEmoji: '🐞',
-      winText: 'Bug buster!',
+      winText: _winPraise,
       accent: _colors[_targetColor],
       onPlayAgain: _reset,
       child: LayoutBuilder(

@@ -15,6 +15,16 @@ class _BeatBuilderGameState extends State<BeatBuilderGame>
   static const int _steps = 8;
   static const double _tempo = 0.26;
   static const List<int> _rowNotes = <int>[0, 3, 7, 11];
+  // Pool of full-game win phrases so a replaying child doesn't always see
+  // the identical "Nice groove!" line on win screen.
+  static const List<String> _winPraisePool = <String>[
+    'Nice groove!',
+    'Full groove master!',
+    'Beat machine!',
+    'That really slaps!',
+  ];
+  String _winPraise = _winPraisePool[0];
+  final math.Random _rnd = math.Random();
   static const List<Color> _rowColors = <Color>[
     Color(0xFFFF6B6B),
     Color(0xFFFFD166),
@@ -85,6 +95,7 @@ class _BeatBuilderGameState extends State<BeatBuilderGame>
         _banner = 'Full groove! 🔥';
         _bannerT = 1.6;
         _status = GameStatus.won;
+        _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
       }
@@ -119,7 +130,7 @@ class _BeatBuilderGameState extends State<BeatBuilderGame>
       status: _status,
       banner: _banner ?? 'Beat: $_active drums on',
       winEmoji: '🎛️',
-      winText: 'Nice groove!',
+      winText: _winPraise,
       accent: const Color(0xFF66D9E8),
       onPlayAgain: _reset,
       child: LayoutBuilder(

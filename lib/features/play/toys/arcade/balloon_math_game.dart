@@ -27,6 +27,15 @@ class _BalloonMathGameState extends State<BalloonMathGame>
     Color(0xFF66D9E8),
     Color(0xFFB197FC),
   ];
+  // Pool of full-game win phrases so a replaying child doesn't always see
+  // the identical "Math whiz!" line on win screen.
+  static const List<String> _winPraisePool = <String>[
+    'Math whiz!',
+    'Number ninja!',
+    'Sum solver supreme!',
+    'Perfect ten!',
+  ];
+  String _winPraise = _winPraisePool[0];
   final math.Random _rnd = math.Random();
   final List<_Balloon> _balloons = <_Balloon>[];
   final List<_Shard> _bits = <_Shard>[];
@@ -131,6 +140,7 @@ class _BalloonMathGameState extends State<BalloonMathGame>
           });
           if (_score >= _target) {
             _status = GameStatus.won;
+            _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
             TonePlayer.instance.playCue(SoundCue.gameStart);
             emit(ExperienceEvent.gameCompleted);
           } else {
@@ -190,7 +200,7 @@ class _BalloonMathGameState extends State<BalloonMathGame>
       overEmoji: '💪',
       overText: 'Out of lives — nice try!',
       winEmoji: '🎈',
-      winText: 'Math whiz!',
+      winText: _winPraise,
       accent: const Color(0xFFFF6B6B),
       onPlayAgain: _reset,
       child: LayoutBuilder(

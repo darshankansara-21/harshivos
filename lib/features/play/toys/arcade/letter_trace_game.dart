@@ -19,6 +19,15 @@ class _TraceDot {
 class _LetterTraceGameState extends State<LetterTraceGame> with _Emit {
   static const String _id = 'letter_trace';
   static const int _target = 5;
+  // Pool of full-game win phrases so a replaying child doesn't always see
+  // the identical "Great writing!" line on win screen.
+  static const List<String> _winPraisePool = <String>[
+    'Great writing!',
+    'Perfect penmanship!',
+    'Letters mastered!',
+    'Five traced beautifully!',
+  ];
+  String _winPraise = _winPraisePool[0];
   final math.Random _rnd = math.Random();
 
   // Each glyph is a set of straight strokes in a [0,1] box (x right, y down).
@@ -165,6 +174,7 @@ class _LetterTraceGameState extends State<LetterTraceGame> with _Emit {
       });
       if (_score >= _target) {
         _status = GameStatus.won;
+        _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
       } else {
@@ -208,7 +218,7 @@ class _LetterTraceGameState extends State<LetterTraceGame> with _Emit {
               ? 'Trace the "$_glyph"  ·  $lit/${_dots.length}'
               : 'Trace the dotted letters'),
       winEmoji: '✍️',
-      winText: 'Great writing!',
+      winText: _winPraise,
       accent: const Color(0xFF80ED99),
       onPlayAgain: _reset,
       child: LayoutBuilder(

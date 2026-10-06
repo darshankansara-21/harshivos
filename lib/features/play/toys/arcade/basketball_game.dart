@@ -13,6 +13,15 @@ class _BasketballGameState extends State<BasketballGame>
   static const double _ballR = 0.05;
   static const double _hoopY = 0.30;
   static const double _rimHalf = 0.075;
+  // Pool of full-game win phrases so a replaying child doesn't always see
+  // the identical "Nothing but net!" line on win screen.
+  static const List<String> _winPraisePool = <String>[
+    'Nothing but net!',
+    'Hoops legend!',
+    'All net, all day!',
+    'Buckets for days!',
+  ];
+  String _winPraise = _winPraisePool[0];
   final math.Random _rnd = math.Random();
   final List<_Shard> _bits = <_Shard>[];
   bool _reduceMotion = false;
@@ -204,6 +213,7 @@ class _BasketballGameState extends State<BasketballGame>
     });
     if (_score >= _target) {
       _status = GameStatus.won;
+      _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
       TonePlayer.instance.playCue(SoundCue.gameStart);
       emit(ExperienceEvent.gameCompleted);
     } else {
@@ -271,7 +281,7 @@ class _BasketballGameState extends State<BasketballGame>
       status: _status,
       banner: _banner ?? (_shots > 0 ? 'Baskets $_score/$_target · shots $_shots' : 'Aim and shoot!'),
       winEmoji: '🏀',
-      winText: 'Nothing but net!',
+      winText: _winPraise,
       accent: const Color(0xFFFF9E00),
       onPlayAgain: _reset,
       child: LayoutBuilder(

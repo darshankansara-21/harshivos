@@ -32,6 +32,15 @@ class _CalmChoicesGameState extends State<CalmChoicesGame> with _Emit {
     _CalmScene('When your heart races…', 'Count to ten', 'Hold your breath', 'Run around wildly'),
     _CalmScene('When you need space…', 'Go to a quiet corner', 'Shout at people', 'Throw things'),
   ];
+  // Pool of full-game win phrases so a replaying child doesn't always see
+  // the identical "Calm champion!" line on win screen.
+  static const List<String> _winPraisePool = <String>[
+    'Calm champion!',
+    'Healthy-choices hero!',
+    'Calm and in control!',
+    'Ten calm choices!',
+  ];
+  String _winPraise = _winPraisePool[0];
   final math.Random _rnd = math.Random();
   final List<int> _bag = <int>[];
 
@@ -77,6 +86,7 @@ class _CalmChoicesGameState extends State<CalmChoicesGame> with _Emit {
       });
       if (_score >= _target) {
         _status = GameStatus.won;
+        _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
       } else {
@@ -138,7 +148,7 @@ class _CalmChoicesGameState extends State<CalmChoicesGame> with _Emit {
       overEmoji: '💪',
       overText: 'Out of lives — nice try!',
       winEmoji: '🌈',
-      winText: 'Calm champion!',
+      winText: _winPraise,
       accent: const Color(0xFF89F7FE),
       onPlayAgain: _reset,
       child: Container(

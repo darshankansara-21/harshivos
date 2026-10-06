@@ -14,6 +14,15 @@ class _BalloonBounceGameState extends State<BalloonBounceGame>
   static const String _id = 'balloon_bounce';
   static const int _target = 20;
   static const double _r = 0.1;
+  // Pool of full-game win phrases so a replaying child doesn't always see
+  // the identical "Bounce champion!" line on win screen.
+  static const List<String> _winPraisePool = <String>[
+    'Bounce champion!',
+    'Keepy-uppy master!',
+    'Floaty legend!',
+    'Twenty in a row!',
+  ];
+  String _winPraise = _winPraisePool[0];
   final math.Random _rnd = math.Random();
 
   double _x = 0.5, _y = 0.4, _vx = 0.1, _vy = 0;
@@ -107,6 +116,7 @@ class _BalloonBounceGameState extends State<BalloonBounceGame>
       });
       if (_score >= _target) {
         _status = GameStatus.won;
+        _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
       }
@@ -145,7 +155,7 @@ class _BalloonBounceGameState extends State<BalloonBounceGame>
       overEmoji: '🎈',
       overText: 'It floated down!',
       winEmoji: '🏆',
-      winText: 'Bounce champion!',
+      winText: _winPraise,
       accent: const Color(0xFFFF5DA2),
       onPlayAgain: _reset,
       child: LayoutBuilder(

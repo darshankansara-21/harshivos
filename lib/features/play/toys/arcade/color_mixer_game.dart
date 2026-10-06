@@ -37,6 +37,15 @@ class _ColorMixerGameState extends State<ColorMixerGame> with _Emit {
   static const List<String> _recipeName = <String>[
     'Orange', 'Green', 'Purple', 'Brown', 'Pink', 'Sky blue',
   ];
+  // Pool of full-game win phrases so a replaying child doesn't always see
+  // the identical "Master mixer!" line on win screen.
+  static const List<String> _winPraisePool = <String>[
+    'Master mixer!',
+    'Color genius!',
+    'Perfect palette!',
+    'True colour champion!',
+  ];
+  String _winPraise = _winPraisePool[0];
   final math.Random _rnd = math.Random();
   final List<int> _drops = <int>[];
   final List<int> _bag = <int>[];
@@ -115,6 +124,7 @@ class _ColorMixerGameState extends State<ColorMixerGame> with _Emit {
         });
         if (_score >= _target) {
           _status = GameStatus.won;
+          _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
           TonePlayer.instance.playCue(SoundCue.gameStart);
           emit(ExperienceEvent.gameCompleted);
         } else {
@@ -167,7 +177,7 @@ class _ColorMixerGameState extends State<ColorMixerGame> with _Emit {
       status: _status,
       banner: _banner ?? 'Make ${_recipeName[_recipe]}',
       winEmoji: '🎨',
-      winText: 'Master mixer!',
+      winText: _winPraise,
       accent: const Color(0xFFE0407A),
       onPlayAgain: _reset,
       child: Padding(

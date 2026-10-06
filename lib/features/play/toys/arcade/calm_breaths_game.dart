@@ -16,6 +16,17 @@ class _CalmBreathsGameState extends State<CalmBreathsGame>
   // One breath: inhale 4s, hold 2s, exhale 4s.
   static const double _inhale = 4, _hold = 2, _exhale = 4;
   static const double _cycle = _inhale + _hold + _exhale;
+  // Pool of calm, low-key completion phrases — intentionally gentle (no
+  // exclamation-mark hype) to match this exercise's quiet "calmCompleted"
+  // tone instead of an excited "You did it!" celebration.
+  static const List<String> _winPraisePool = <String>[
+    'So calm 💙',
+    'Beautifully calm',
+    'Peaceful and still',
+    'Nice and steady 💙',
+  ];
+  String _winPraise = _winPraisePool[0];
+  final math.Random _rnd = math.Random();
 
   double _t = 0;
   int _score = 0;
@@ -61,6 +72,7 @@ class _CalmBreathsGameState extends State<CalmBreathsGame>
       });
       if (_score >= _target) {
         _status = GameStatus.won;
+        _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         // No loud win fanfare here — five slow breaths ending in an excited
         // "You did it!" celebration burst would undercut the whole point of
         // a calming exercise. `calmCompleted` settles the companion instead
@@ -98,7 +110,7 @@ class _CalmBreathsGameState extends State<CalmBreathsGame>
       rankByScore: false,
       banner: _status == GameStatus.playing ? _phase : 'Breathe along with the circle',
       winEmoji: '🫧',
-      winText: 'So calm 💙',
+      winText: _winPraise,
       accent: const Color(0xFF89F7FE),
       onPlayAgain: _reset,
       child: CustomPaint(

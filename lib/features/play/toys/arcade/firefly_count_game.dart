@@ -17,6 +17,15 @@ class _FireflyCountGameState extends State<FireflyCountGame>
     with TickerProviderStateMixin, ToyTicker, _Emit {
   static const String _id = 'firefly_count';
   static const int _target = 10;
+  // Pool of full-game win phrases so a replaying child doesn't always see
+  // the identical "Counting star!" line on win screen.
+  static const List<String> _winPraisePool = <String>[
+    'Counting star!',
+    'Number whiz!',
+    'Sharp counting!',
+    'Ten for ten!',
+  ];
+  String _winPraise = _winPraisePool[0];
   final math.Random _rnd = math.Random();
   final List<_Fly> _flies = <_Fly>[];
   List<int> _options = <int>[2, 3, 4];
@@ -88,6 +97,7 @@ class _FireflyCountGameState extends State<FireflyCountGame>
       });
       if (_score >= _target) {
         _status = GameStatus.won;
+        _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
       } else {
@@ -144,7 +154,7 @@ class _FireflyCountGameState extends State<FireflyCountGame>
       overEmoji: '💪',
       overText: 'Out of lives — nice try!',
       winEmoji: '✨',
-      winText: 'Counting star!',
+      winText: _winPraise,
       accent: const Color(0xFFFFD166),
       onPlayAgain: _reset,
       child: LayoutBuilder(

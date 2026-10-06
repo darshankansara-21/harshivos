@@ -28,6 +28,15 @@ class _FeelingsMatchGameState extends State<FeelingsMatchGame> with _Emit {
     _Feeling('Silly', '😜'),
     _Feeling('Loving', '🥰'),
   ];
+  // Pool of full-game win phrases so a replaying child doesn't always see
+  // the identical "Feelings friend!" line on win screen.
+  static const List<String> _winPraisePool = <String>[
+    'Feelings friend!',
+    'Emotion expert!',
+    'Feelings genius!',
+    'Ten right in a row!',
+  ];
+  String _winPraise = _winPraisePool[0];
   final math.Random _rnd = math.Random();
   final List<int> _bag = <int>[];
 
@@ -89,6 +98,7 @@ class _FeelingsMatchGameState extends State<FeelingsMatchGame> with _Emit {
       });
       if (_score >= _target) {
         _status = GameStatus.won;
+        _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
       } else {
@@ -150,7 +160,7 @@ class _FeelingsMatchGameState extends State<FeelingsMatchGame> with _Emit {
       overEmoji: '💪',
       overText: 'Out of lives — nice try!',
       winEmoji: '😊',
-      winText: 'Feelings friend!',
+      winText: _winPraise,
       accent: const Color(0xFFFFB5E8),
       onPlayAgain: _reset,
       child: Container(

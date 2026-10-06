@@ -11,6 +11,15 @@ class BiggerNumberGame extends StatefulWidget {
 class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
   static const String _id = 'bigger_number';
   static const int _target = 12;
+  // Pool of full-game win phrases so a replaying child doesn't always see
+  // the identical "Number star!" line on win screen.
+  static const List<String> _winPraisePool = <String>[
+    'Number star!',
+    'Number genius!',
+    'Sharp number eyes!',
+    'Twelve for twelve!',
+  ];
+  String _winPraise = _winPraisePool[0];
   final math.Random _rnd = math.Random();
 
   List<int> _nums = <int>[2, 5, 8];
@@ -70,6 +79,7 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
       });
       if (_score >= _target) {
         _status = GameStatus.won;
+        _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
       } else {
@@ -131,7 +141,7 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
       overEmoji: '💪',
       overText: 'Out of lives — nice try!',
       winEmoji: '🥇',
-      winText: 'Number star!',
+      winText: _winPraise,
       accent: const Color(0xFFFFD166),
       onPlayAgain: _reset,
       child: Container(
