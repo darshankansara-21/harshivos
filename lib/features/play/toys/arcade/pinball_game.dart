@@ -79,21 +79,53 @@ class _PinballGameState extends State<PinballGame>
   // table's chained-shot bonus.
   int _combo = 0;
   double _comboT = 0;
+  // Real pinball never auto-fires the ball — you pull the plunger yourself
+  // and how far you pull it decides the shot's power. Parking the ball here
+  // instead of launching it immediately is the single biggest authentic-feel
+  // gap CLAUDE.md's "must feel like real pinball" directive calls out: every
+  // ball (including the very first) used to leave the chute on its own with
+  // a fixed, randomized strength the child never controlled.
+  static const double _plungerLaneX0 = 0.74; // normalized left edge of chute
+  static const double _plungerLaneY0 = 0.55; // normalized top edge of chute
+  bool _awaitingLaunch = true;
+  double _plungerPull = 0; // 0 (parked) .. 1 (fully pulled back)
+  int? _plungerPointer;
+  double _plungerStartY = 0;
+  // A child who never discovers the pull-back gesture must still get to
+  // play — same "never a dead end" accessibility convention as bowling's
+  // plain-tap-still-bowls fallback. After a short idle wait with no charge
+  // in progress, auto-fire a medium-strength shot.
+  double _launchIdleT = 0;
 
   @override
   void initState() {
     super.initState();
-    _launch();
+    _parkBall();
     GameScores.instance.ensureLoaded().then((_) {
       if (mounted) setState(() => _best = GameScores.instance.best(_id));
     });
   }
 
-  void _launch() {
+  void _parkBall() {
     _bx = 0.86;
     _by = 0.84;
-    _vx = -0.10 - _rnd.nextDouble() * 0.08;
-    _vy = -0.80;
+    _vx = 0;
+    _vy = 0;
+    _awaitingLaunch = true;
+    _plungerPull = 0;
+    _plungerPointer = null;
+    _launchIdleT = 0;
+  }
+
+  void _firePlunger(double power) {
+    final p = power.clamp(0.0, 1.0);
+    _awaitingLaunch = false;
+    _plungerPull = 0;
+    _plungerPointer = null;
+    _launchIdleT = 0;
+    _vy = -(0.55 + p * 0.55);
+    _vx = -(0.08 + _rnd.nextDouble() * 0.05) * (0.6 + p * 0.6);
+    TonePlayer.instance.playCue(SoundCue.metal);
   }
 
   @override
@@ -129,6 +161,18 @@ class _PinballGameState extends State<PinballGame>
       s.vy += 0.5 * dt;
       s.life -= dt;
       if (s.life <= 0) _sparks.removeAt(i);
+    }
+
+    if (_awaitingLaunch) {
+      // Ball sits parked in the chute until the plunger fires it. No charge
+      // currently in progress and the child has waited a bit — auto-fire a
+      // medium shot so a less dextrous (or just-exploring) child is never
+      // stuck staring at a motionless ball.
+      if (_plungerPointer == null) {
+        _launchIdleT += dt;
+        if (_launchIdleT > 1.8) _firePlunger(0.5);
+      }
+      return;
     }
 
     _vy += 0.85 * dt; // gentle gravity
@@ -255,7 +299,7 @@ class _PinballGameState extends State<PinballGame>
       // gap just fixed in fruit_catch/balloon_pop.
       TonePlayer.instance.playCue(SoundCue.crash);
       _flash('Ball ${4 - _balls}');
-      _launch();
+      _parkBall();
     }
   }
 
@@ -298,6 +342,36 @@ class _PinballGameState extends State<PinballGame>
     _rightHeldPointers.remove(pointerId);
   }
 
+  // Routes a touch to either the plunger chute (bottom-right corner, only
+  // while a ball is parked awaiting launch) or an ordinary flipper press.
+  void _handlePointerDown(int pointerId, double nx, double ny) {
+    if (_awaitingLaunch &&
+        nx >= _plungerLaneX0 &&
+        ny >= _plungerLaneY0 &&
+        _plungerPointer == null) {
+      _plungerPointer = pointerId;
+      _plungerStartY = ny;
+      _plungerPull = 0;
+      return;
+    }
+    _pointerDown(pointerId, nx < 0.5);
+  }
+
+  void _handlePointerMove(int pointerId, double ny) {
+    if (pointerId != _plungerPointer) return;
+    // Pulling down (finger moves down the chute) charges the plunger,
+    // mirroring a real spring-loaded launcher.
+    _plungerPull = ((ny - _plungerStartY) / 0.22).clamp(0.0, 1.0);
+  }
+
+  void _handlePointerUp(int pointerId) {
+    if (pointerId == _plungerPointer) {
+      _firePlunger(_plungerPull);
+      return;
+    }
+    _pointerUp(pointerId);
+  }
+
   void _reset() {
     setState(() {
       _score = 0;
@@ -314,7 +388,7 @@ class _PinballGameState extends State<PinballGame>
       _rightHeldPointers.clear();
       _leftT = 0;
       _rightT = 0;
-      _launch();
+      _parkBall();
     });
   }
 
@@ -327,25 +401,34 @@ class _PinballGameState extends State<PinballGame>
       score: _score,
       best: _best,
       status: _status,
-      banner: _banner ?? 'Balls: $_balls',
+      banner: _banner ??
+          (_awaitingLaunch
+              ? 'Pull back the bottom-right chute ⬇ to launch!'
+              : 'Balls: $_balls'),
       overEmoji: '🎱',
       overText: _extraBallsEarned > 0
           ? 'Table over! Earned $_extraBallsEarned extra ball${_extraBallsEarned > 1 ? 's' : ''}'
           : 'Table over!',
       accent: const Color(0xFFFFC857),
-      introHow:
-          'Hold the left or right side to flip — keep holding to catch the ball. Bounce the bumpers and keep the ball alive!',
+      introHow: 'Pull down in the bottom-right chute to load the plunger, '
+          'then let go — pull farther for a stronger launch. Hold the left '
+          'or right side to flip — keep holding to catch the ball. Bounce '
+          'the bumpers and keep the ball alive!',
       onStart: () => setState(() => _status = GameStatus.playing),
       onPlayAgain: _reset,
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth;
-          if (w > 0) _aspect = c.maxHeight / w;
+          final h = c.maxHeight;
+          if (w > 0) _aspect = h / w;
           return Listener(
             behavior: HitTestBehavior.opaque,
-            onPointerDown: (e) => _pointerDown(e.pointer, e.localPosition.dx < w / 2),
-            onPointerUp: (e) => _pointerUp(e.pointer),
-            onPointerCancel: (e) => _pointerUp(e.pointer),
+            onPointerDown: (e) => _handlePointerDown(e.pointer,
+                e.localPosition.dx / w, e.localPosition.dy / h),
+            onPointerMove: (e) =>
+                _handlePointerMove(e.pointer, e.localPosition.dy / h),
+            onPointerUp: (e) => _handlePointerUp(e.pointer),
+            onPointerCancel: (e) => _handlePointerUp(e.pointer),
             child: CustomPaint(
               painter: _PinballPainter(
                 bx: _bx,
@@ -359,6 +442,10 @@ class _PinballGameState extends State<PinballGame>
                 right: _right,
                 top: _top,
                 sparks: _sparks,
+                plungerLaneX0: _plungerLaneX0,
+                plungerLaneY0: _plungerLaneY0,
+                awaitingLaunch: _awaitingLaunch,
+                plungerPull: _plungerPull,
               ),
               size: Size.infinite,
             ),
@@ -382,8 +469,14 @@ class _PinballPainter extends CustomPainter {
     required this.right,
     required this.top,
     required this.sparks,
+    required this.plungerLaneX0,
+    required this.plungerLaneY0,
+    required this.awaitingLaunch,
+    required this.plungerPull,
   });
   final double bx, by, rB, leftT, rightT, left, right, top;
+  final double plungerLaneX0, plungerLaneY0, plungerPull;
+  final bool awaitingLaunch;
   final List<_Bumper> bumpers;
   final int flashBumper;
   final List<_Shard> sparks;
@@ -411,6 +504,32 @@ class _PinballPainter extends CustomPainter {
     canvas.drawLine(
         Offset(sx(right), sy(top)), Offset(sx(right), sy(0.9)), wall);
     canvas.drawLine(Offset(sx(left), sy(top)), Offset(sx(right), sy(top)), wall);
+
+    // Plunger chute: a walled-off lane in the bottom-right corner with a
+    // spring that visibly compresses as the child pulls back, so the launch
+    // mechanic reads as a real spring-loaded plunger, not an invisible
+    // gesture zone.
+    canvas.drawLine(Offset(sx(plungerLaneX0), sy(plungerLaneY0)),
+        Offset(sx(plungerLaneX0), sy(0.9)), wall);
+    if (awaitingLaunch) {
+      final springTop = plungerLaneY0 + 0.30 + plungerPull * 0.08;
+      final laneMidX = (plungerLaneX0 + right) / 2;
+      final springPaint = Paint()
+        ..color = const Color(0xFFB8B8C8)
+        ..strokeWidth = 6
+        ..strokeCap = StrokeCap.round;
+      const coils = 5;
+      for (var i = 0; i < coils; i++) {
+        final t0 = i / coils, t1 = (i + 1) / coils;
+        final y0 = springTop + (0.9 - springTop) * t0;
+        final y1 = springTop + (0.9 - springTop) * t1;
+        final zig = i.isEven ? -0.018 : 0.018;
+        canvas.drawLine(Offset(sx(laneMidX + zig), sy(y0)),
+            Offset(sx(laneMidX - zig), sy(y1)), springPaint);
+      }
+      canvas.drawCircle(Offset(sx(laneMidX), sy(springTop)), 7,
+          Paint()..color = const Color(0xFFFFC857));
+    }
 
     for (var i = 0; i < bumpers.length; i++) {
       final b = bumpers[i];
