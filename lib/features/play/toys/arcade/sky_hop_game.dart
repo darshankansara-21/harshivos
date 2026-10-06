@@ -21,6 +21,16 @@ class _SkyHopGameState extends State<SkyHopGame>
   static const double _gap = 0.28; // fraction of height
   static const int _goalScore = 18;
   static const double _basePipeSpeed = 0.42;
+  // Pool of full-game win phrases so a replaying child doesn't always see
+  // the identical "Sky clear!" line on win screen (across-restarts sibling
+  // of the per-pipe-clear praise-variety fix already applied in this file).
+  static const List<String> _winPraisePool = <String>[
+    'Sky clear!',
+    'Flight complete!',
+    'Perfect flapper!',
+    'Soaring champion!',
+  ];
+  String _winPraise = _winPraisePool[0];
   final math.Random _rnd = math.Random();
   final List<_Pipe> _pipes = <_Pipe>[];
   final List<_Shard> _bits = <_Shard>[];
@@ -85,6 +95,7 @@ class _SkyHopGameState extends State<SkyHopGame>
     _spawnIn -= dt;
     if (_score >= _goalScore && _status == GameStatus.playing) {
       _status = GameStatus.won;
+      _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
       _banner = 'Sky clear!';
       _bannerT = 1.4;
       TonePlayer.instance.playCue(SoundCue.success);
@@ -209,7 +220,7 @@ class _SkyHopGameState extends State<SkyHopGame>
           ? 'Splash! Best coin streak x$_bestCoinCombo'
           : 'Splash!',
       winEmoji: '🏆',
-      winText: 'Sky clear!',
+      winText: _winPraise,
       accent: const Color(0xFFFFD166),
       onPlayAgain: _reset,
       child: GestureDetector(

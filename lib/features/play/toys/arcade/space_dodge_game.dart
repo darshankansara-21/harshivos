@@ -19,6 +19,16 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
   static const String _id = 'space_dodge';
   static const int _startingLives = 3;
   static const int _goalScore = 180;
+  // Pool of full-game win phrases so a replaying child doesn't always see
+  // the identical "Galaxy clear!" line on win screen (across-restarts sibling
+  // of the per-wave praise-variety fixes elsewhere in this sprint).
+  static const List<String> _winPraisePool = <String>[
+    'Galaxy clear!',
+    'Ace pilot!',
+    'Meteor storm survived!',
+    'Clean flight!',
+  ];
+  String _winPraise = _winPraisePool[0];
   final math.Random _rnd = math.Random();
   final List<_Meteor> _meteors = <_Meteor>[];
   final List<Offset> _stars = <Offset>[];
@@ -110,6 +120,7 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
     _score = (_elapsed * 5).round() + _bonus;
     if (_score >= _goalScore && _status == GameStatus.playing) {
       _status = GameStatus.won;
+      _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
       TonePlayer.instance.playCue(SoundCue.success);
       emit(ExperienceEvent.gameCompleted);
       GameScores.instance.submit(_id, _score).then((b) {
@@ -343,7 +354,7 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
       // field they got) vanishes the instant the ship is lost.
       overText: 'Mission failed! Reached Wave $_wave',
       winEmoji: '🎉',
-      winText: 'Galaxy clear!',
+      winText: _winPraise,
       accent: const Color(0xFF9B5DE5),
       onPlayAgain: _reset,
       child: LayoutBuilder(

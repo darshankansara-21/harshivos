@@ -1429,6 +1429,17 @@ class _SnakeGameState extends State<SnakeGame>
   static const double _spacing = 2.6; // path sample distance
   static const double _seg = 8; // body segment spacing
   static const double _baseSpeed = 165;
+  // Pool of full-game win phrases so a replaying child doesn't always see
+  // the identical "Longest snake in the arena!" line (across-restarts
+  // sibling of the per-round praise-variety fixes applied elsewhere this
+  // sprint).
+  static const List<String> _winPraisePool = <String>[
+    'Longest snake in the arena!',
+    'Top of the leaderboard!',
+    'Slither champion!',
+    'Unstoppable glide!',
+  ];
+  String _winPraise = _winPraisePool[0];
   final math.Random _rnd = math.Random();
 
   Offset _head = Offset.zero;
@@ -1757,6 +1768,9 @@ class _SnakeGameState extends State<SnakeGame>
   void _finish(GameStatus status) {
     final prev = GameScores.instance.best(_id);
     _status = status;
+    if (status == GameStatus.won) {
+      _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
+    }
     TonePlayer.instance.playCue(
         status == GameStatus.won ? SoundCue.success : SoundCue.gameOver);
     emit(status == GameStatus.won || _score > prev
@@ -1800,7 +1814,7 @@ class _SnakeGameState extends State<SnakeGame>
       overEmoji: '🐍',
       overText: _overReason,
       winEmoji: '🏆',
-      winText: 'Longest snake in the arena!',
+      winText: _winPraise,
       accent: const Color(0xFF06D6A0),
       introHow: 'Glide your snake to eat glowing orbs and grow — hold to boost!\n'
           'Gold orbs are worth more, and luring a rival into your body '
@@ -2119,6 +2133,16 @@ class _RacingGameState extends State<RacingGame>
   static const List<String> _traffic = <String>['🚗', '🚙', '🚕', '🚚'];
   static const double _raceLen = 1000; // metres to the chequered flag
   static const int _fieldSize = 4; // you + 3 rivals
+  // Pool of win phrases so a replaying child doesn't always see the same
+  // "P1 — you won the race!" line (across-restarts sibling of the per-round
+  // praise-variety fixes applied elsewhere this sprint).
+  static const List<String> _winPraisePool = <String>[
+    'P1 — you won the race!',
+    'Champion driver!',
+    'First across the line!',
+    'Pole position pro!',
+  ];
+  String _winPraise = _winPraisePool[0];
   final math.Random _rnd = math.Random();
   final List<_Racer> _cars = <_Racer>[];
   // The rival pack we are racing against.
@@ -2336,6 +2360,9 @@ class _RacingGameState extends State<RacingGame>
     // it!" win celebration; finishing P2-P4 is a real race result, not a
     // win, so it gets the honest "Finished P#" banner via GameStatus.over.
     _status = _finishPlace == 1 ? GameStatus.won : GameStatus.over;
+    if (_status == GameStatus.won) {
+      _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
+    }
     _score += <int>[60, 30, 15, 5][(_finishPlace - 1).clamp(0, 3)];
     TonePlayer.instance
         .playCue(_finishPlace == 1 ? SoundCue.success : SoundCue.gameOver);
@@ -2387,7 +2414,7 @@ class _RacingGameState extends State<RacingGame>
       overText:
           _finishPlace > 0 ? 'Finished P$_finishPlace' : 'Race on!',
       winEmoji: '🏆',
-      winText: 'P1 — you won the race!',
+      winText: _winPraise,
       accent: const Color(0xFFFF6B6B),
       introHow: 'Reach the 🏁 chequered flag ahead of 3 rivals.\n'
           'Tap left/right to change lanes, grab 🪙 coins and ⚡ boosts, '
@@ -2562,6 +2589,16 @@ class _BowlingGameState extends State<BowlingGame>
   final List<_BowlPin> _pins = <_BowlPin>[];
   final List<_Particle> _confetti = <_Particle>[];
   final math.Random _rnd = math.Random();
+  // Pool of win phrases so a replaying child doesn't always see the same
+  // "Great bowling!" line on win screen (across-restarts sibling of the
+  // per-round praise-variety fixes applied elsewhere this sprint).
+  static const List<String> _winPraisePool = <String>[
+    'Great bowling!',
+    'Perfect game feel!',
+    'Pin-crushing champion!',
+    'Strike master!',
+  ];
+  String _winPraise = _winPraisePool[0];
   _BowlPhase _phase = _BowlPhase.aim;
   double _ballX = 0.5;
   double _ballY = _yFoul;
@@ -2817,6 +2854,7 @@ class _BowlingGameState extends State<BowlingGame>
   void _nextFrame() {
     if (_frame >= 10) {
       _status = GameStatus.won;
+      _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
       // The real end of the 10-frame game: this is the one moment that
       // should earn the companion's full "You did it!" celebration, not the
       // individual strikes/spares along the way.
@@ -2866,7 +2904,7 @@ class _BowlingGameState extends State<BowlingGame>
       status: _status,
       banner: _banner,
       winEmoji: '🎳',
-      winText: 'Great bowling!',
+      winText: _winPraise,
       accent: const Color(0xFF4CC9F0),
       introHow: 'Flick the ball up the lane to knock the pins down.\n'
           'Ten frames — go for a STRIKE!',

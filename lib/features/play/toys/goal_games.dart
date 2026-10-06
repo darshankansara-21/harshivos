@@ -1021,6 +1021,16 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
   final math.Random _random = math.Random();
   final List<_Spark> _sparks = <_Spark>[];
   bool _reduceMotion = false;
+  // Pool of win phrases so a replaying child doesn't always see the same
+  // "Saved the match!" line on win screen (across-restarts sibling of the
+  // per-round praise-variety fixes applied elsewhere this sprint).
+  static const List<String> _winPraisePool = <String>[
+    'Saved the match!',
+    'Golden gloves!',
+    'Shutout hero!',
+    'Wall between the posts!',
+  ];
+  String _winPraise = _winPraisePool[0];
 
   double _keeperX = 0.5;
   double _keeperTargetX = 0.5;
@@ -1181,6 +1191,9 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
   void _finish(GameStatus status) {
     _phase = 2;
     _status = status;
+    if (status == GameStatus.won) {
+      _winPraise = _winPraisePool[_random.nextInt(_winPraisePool.length)];
+    }
     _submit();
     TonePlayer.instance.playCue(
         status == GameStatus.won ? SoundCue.success : SoundCue.gameOver);
@@ -1220,7 +1233,7 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
       message: _message ?? 'Lives ${'🧤' * _lives}${'·' * (5 - _lives)}',
       onReset: _reset,
       winEmoji: '🧤',
-      winText: 'Saved the match!',
+      winText: _winPraise,
       overEmoji: '🥅',
       overText: 'Out of lives!',
       child: LayoutBuilder(

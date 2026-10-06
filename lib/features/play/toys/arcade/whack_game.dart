@@ -11,6 +11,17 @@ class _WhackGameState extends State<WhackGame>
   static const String _id = 'whack';
   static const int _holes = 9;
   static const int _winTarget = 35;
+  // Shown once on the full-game win screen; a small pool keeps a child who
+  // replays the SAME game many times from seeing the identical phrase every
+  // time they finally win (the across-restarts sibling of the per-round
+  // praise-variety fixes applied to sky_hop/echo_drums/brick_break).
+  static const List<String> _winPraisePool = <String>[
+    'Whack champion!',
+    'Mole master!',
+    'Golden hammer!',
+    'Reflexes on fire!',
+  ];
+  String _winPraise = _winPraisePool[0];
   final math.Random _rnd = math.Random();
   final List<double> _mole = List<double>.filled(_holes, 0); // seconds left
   final List<bool> _isBomb = List<bool>.filled(_holes, false);
@@ -102,6 +113,7 @@ class _WhackGameState extends State<WhackGame>
   void _checkWin() {
     if (_status != GameStatus.playing || _score < _winTarget) return;
     _status = GameStatus.won;
+    _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
     _banner = 'Whack complete! $_score points!';
     _bannerT = 1.8;
     TonePlayer.instance.playCue(SoundCue.success);
@@ -208,7 +220,7 @@ class _WhackGameState extends State<WhackGame>
       overEmoji: '🔨',
       overText: 'Out of lives! Reached Round $_round',
       winEmoji: '🏆',
-      winText: 'Whack champion!',
+      winText: _winPraise,
       accent: const Color(0xFF8D5A3B),
       onPlayAgain: _reset,
       child: DecoratedBox(
