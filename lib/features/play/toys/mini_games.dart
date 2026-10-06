@@ -647,6 +647,25 @@ class _FruitCatchGameState extends State<FruitCatchGame>
     setState(() => _basketX = (px / width).clamp(0.06, 0.94));
   }
 
+  // Screen-reader bridge: every other whole-screen continuous-drag game in
+  // this catalog (BalloonPopGame's _popNearestSafe, GoalKeeperGame's
+  // _diveToTarget) already offers a single-tap stand-in for the drag a
+  // sighted child uses, but this game's basket-drag only ever had the bare
+  // GestureDetector with no Semantics wrapper at all — a screen-reader user
+  // got no actionable element and no way to play. Snaps the basket under
+  // whichever safe faller (never a bomb) is closest to the catch line, the
+  // same "most urgent" choice a sighted child's eye is drawn to.
+  void _moveToNearestCatchable() {
+    if (_status != GameStatus.playing) return;
+    _Faller? target;
+    for (final f in _items) {
+      if (f.kind == 2) continue;
+      if (target == null || f.y > target.y) target = f;
+    }
+    if (target == null) return;
+    setState(() => _basketX = target!.x.clamp(0.06, 0.94));
+  }
+
   void _reset() {
     setState(() {
       _items.clear();
@@ -682,7 +701,13 @@ class _FruitCatchGameState extends State<FruitCatchGame>
         builder: (context, c) {
           final w = c.maxWidth;
           final h = c.maxHeight;
-          return GestureDetector(
+          return Semantics(
+            button: true,
+            label: 'Catch $_score of $_target. Move the basket to the '
+                'nearest fruit, avoiding bombs.',
+            onTap: _moveToNearestCatchable,
+            excludeSemantics: true,
+            child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTapDown: (d) => _moveTo(d.localPosition.dx, w),
             onHorizontalDragUpdate: (d) => _moveTo(d.localPosition.dx, w),
@@ -714,6 +739,7 @@ class _FruitCatchGameState extends State<FruitCatchGame>
                   ),
                 ],
               ),
+            ),
             ),
           );
         },
