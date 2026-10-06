@@ -75,6 +75,23 @@ mixin _CompanionEmitter<T extends StatefulWidget> on State<T> {
 
 enum GameStatus { ready, playing, won, over }
 
+/// Wraps a shell overlay's content (win/lose and start-screen cards) so very
+/// large accessibility text-scale settings make it scroll instead of
+/// silently overflowing the screen — confirmed via a real `RenderFlex`
+/// overflow of 1175px at `TextScaler.linear(2.5)` on a small device, since
+/// the previous bare `Center` gave the inner `Column` unbounded height to
+/// grow into. Still centers normally at default text scale.
+Widget _overlayScroll(Widget child) {
+  return LayoutBuilder(
+    builder: (context, constraints) => SingleChildScrollView(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minHeight: constraints.maxHeight),
+        child: Center(child: child),
+      ),
+    ),
+  );
+}
+
 /// Shared chrome for the goal-based mini games: a score + best pill, an
 /// optional target, a transient combo banner, and win / game-over overlays
 /// with an instant "Play again". Games fill the immersive toy canvas; the
@@ -250,8 +267,7 @@ class _GameShellState extends State<_GameShell> {
             Positioned.fill(
               child: ColoredBox(
                 color: Colors.black.withOpacity(0.6),
-                child: Center(
-                  child: Column(
+                child: _overlayScroll(Column(
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
                       // See _Shell's matching comment in arcade_games.dart:
@@ -341,8 +357,7 @@ class _GameShellState extends State<_GameShell> {
                     ],
                   ),
                 ),
-                child: Center(
-                  child: Column(
+                child: _overlayScroll(Column(
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
                       // The start card's icon is the game's OWN emoji (every

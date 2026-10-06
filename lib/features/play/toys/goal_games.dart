@@ -31,6 +31,23 @@ mixin _GoalEmit<T extends StatefulWidget> on State<T> {
   }
 }
 
+/// Wraps a shell overlay's content (win/lose and start-screen cards) so very
+/// large accessibility text-scale settings make it scroll instead of
+/// silently overflowing the screen — confirmed via a real `RenderFlex`
+/// overflow of 1175px at `TextScaler.linear(2.5)` on a small device, since
+/// the previous bare `Center` gave the inner `Column` unbounded height to
+/// grow into. Still centers normally at default text scale.
+Widget _overlayScroll(Widget child) {
+  return LayoutBuilder(
+    builder: (context, constraints) => SingleChildScrollView(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minHeight: constraints.maxHeight),
+        child: Center(child: child),
+      ),
+    ),
+  );
+}
+
 class _GoalShell extends StatefulWidget {
   const _GoalShell({
     required this.title,
@@ -215,8 +232,7 @@ class _GoalShellState extends State<_GoalShell> {
           Positioned.fill(
             child: ColoredBox(
               color: Colors.black.withOpacity(0.72),
-              child: Center(
-                child: Column(
+              child: _overlayScroll(Column(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
                     // See _Shell's matching comment in arcade_games.dart: a
@@ -323,8 +339,7 @@ class _GoalShellState extends State<_GoalShell> {
                   ],
                 ),
               ),
-              child: Center(
-                child: Column(
+              child: _overlayScroll(Column(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
                     Text(title.split(' ').first,

@@ -78,6 +78,23 @@ part 'arcade/balance_ball_game.dart';
 part 'arcade/calm_choices_game.dart';
 
 
+/// Wraps a shell overlay's content (win/lose and start-screen cards) so very
+/// large accessibility text-scale settings make it scroll instead of
+/// silently overflowing the screen — confirmed via a real `RenderFlex`
+/// overflow of 1175px at `TextScaler.linear(2.5)` on a small device, since
+/// the previous bare `Center` gave the inner `Column` unbounded height to
+/// grow into. Still centers normally at default text scale.
+Widget _overlayScroll(Widget child) {
+  return LayoutBuilder(
+    builder: (context, constraints) => SingleChildScrollView(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minHeight: constraints.maxHeight),
+        child: Center(child: child),
+      ),
+    ),
+  );
+}
+
 /// Shared chrome for the arcade games — score + best pill, optional target, a
 /// transient combo banner, and win / game-over overlays with instant replay.
 /// Mirrors the Play game shell so every game feels part of one world.
@@ -259,8 +276,7 @@ class _ShellState extends State<_Shell> {
           Positioned.fill(
             child: ColoredBox(
               color: Colors.black.withOpacity(0.6),
-              child: Center(
-                child: Column(
+              child: _overlayScroll(Column(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
                     // Invisible one-shot announcer: the overlay's own Text
@@ -348,8 +364,7 @@ class _ShellState extends State<_Shell> {
                   ],
                 ),
               ),
-              child: Center(
-                child: Column(
+              child: _overlayScroll(Column(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
                     // The start card's icon is the game's OWN emoji (every
