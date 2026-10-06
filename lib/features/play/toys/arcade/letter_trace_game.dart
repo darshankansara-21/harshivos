@@ -94,6 +94,14 @@ class _LetterTraceGameState extends State<LetterTraceGame> with _Emit {
     ],
   };
   late final List<String> _pool = _glyphs.keys.toList();
+  // Shuffled no-repeat bag of glyph indices. With 11 glyphs and a win target
+  // of only 5, plain `Random.nextInt()` with replacement risked the same
+  // letter repeating 2-3 times in one playthrough while most of the other 10
+  // never appeared at all — the same gap class already fixed in this tier's
+  // own sibling files (`mirror_draw_game`'s `_bag`, `sorting_train_game`'s
+  // `_bag`, `color_mixer_game`'s `_bag`) and catalog-wide in dot_to_dot /
+  // kindness_match / weather_sort, just missed here.
+  final List<int> _bag = <int>[];
 
   // The catch radius around the next dot narrows a little each letter so the
   // challenge actually ramps toward the target instead of staying identical
@@ -120,8 +128,15 @@ class _LetterTraceGameState extends State<LetterTraceGame> with _Emit {
     });
   }
 
+  String _drawGlyph() {
+    if (_bag.isEmpty) {
+      _bag.addAll(List<int>.generate(_pool.length, (i) => i)..shuffle(_rnd));
+    }
+    return _pool[_bag.removeLast()];
+  }
+
   void _newGlyph() {
-    _glyph = _pool[_rnd.nextInt(_pool.length)];
+    _glyph = _drawGlyph();
     _dots.clear();
     // Map glyph box into a centred region of the screen.
     const ox = 0.3, oy = 0.28, sw = 0.4, sh = 0.5;
@@ -209,6 +224,7 @@ class _LetterTraceGameState extends State<LetterTraceGame> with _Emit {
   void _reset() {
     setState(() {
       _score = 0;
+      _bag.clear();
       _banner = null;
       _newGlyph();
       _status = GameStatus.playing;
