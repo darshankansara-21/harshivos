@@ -167,6 +167,12 @@ class _BasketballGameState extends State<BasketballGame>
       _flying = false;
       _streak = 0;
       _resetT = 0.4;
+      // Every miss used to be completely silent and invisible to Hari/Pico —
+      // a shot sailing wide or short got zero audio feedback and no
+      // companion emit at all, unlike every other shot-based mistake in the
+      // catalog (target_toss/skee_ball-style gentleRetry + incorrectAnswer).
+      TonePlayer.instance.playCue(SoundCue.gentleRetry);
+      emit(ExperienceEvent.incorrectAnswer);
       _flash('Miss — try again');
     }
   }
