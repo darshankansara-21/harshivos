@@ -22,6 +22,22 @@ class _PenaltyDashGameState extends State<PenaltyDashGame>
     'Clinical finish!',
   ];
   String _winPraise = _winPraisePool.first;
+  // The routine (non-fatal) miss banner was a flat, always-identical 'Saved!'
+  // or 'Wide!' literal — the exact same flat-repeated-miss-text gap already
+  // fixed in whack_game.dart/catch_beat_game.dart. Up to 4 misses can fire
+  // this per playthrough, every playthrough, forever.
+  static const List<String> _savedPool = <String>[
+    'Saved!',
+    'Great stop!',
+    'Keeper got it!',
+    'Denied!',
+  ];
+  static const List<String> _widePool = <String>[
+    'Wide!',
+    'Just off target!',
+    'Not this time!',
+    'So close!',
+  ];
   // Mirrors hoop_toss_game.dart's fix: every other aim-and-score game in the
   // catalog bursts a few shards of colour on a successful hit, but a GOAL
   // here only ever flashed the banner text + a sound — flatter than almost
@@ -118,7 +134,9 @@ class _PenaltyDashGameState extends State<PenaltyDashGame>
         emit(ExperienceEvent.incorrectAnswer);
       } else {
         TonePlayer.instance.playCue(SoundCue.gentleRetry);
-        _banner = inPosts ? 'Saved!' : 'Wide!';
+        _banner = inPosts
+            ? _savedPool[_rnd.nextInt(_savedPool.length)]
+            : _widePool[_rnd.nextInt(_widePool.length)];
         _bannerT = 1.1;
       }
     }
