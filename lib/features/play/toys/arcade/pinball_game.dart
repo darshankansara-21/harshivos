@@ -436,7 +436,29 @@ class _PinballGameState extends State<PinballGame>
           final w = c.maxWidth;
           final h = c.maxHeight;
           if (w > 0) _aspect = h / w;
-          return Listener(
+          // Until now this was the only interactive arcade surface in the
+          // whole catalog with zero accessibility bridge: a bare Listener
+          // whose flippers and plunger chute were completely undiscoverable
+          // and unusable for a screen-reader user. Mirror RacingGame's
+          // customSemanticsActions pattern so a screen reader can discover
+          // and trigger each control by name.
+          return Semantics(
+            label: _awaitingLaunch
+                ? 'Pinball table. Balls left: $_balls. Pull back the '
+                    'bottom-right chute to launch, or use Flip left, Flip '
+                    'right and Launch ball.'
+                : 'Pinball table. Score $_score. Balls left: $_balls. Hold '
+                    'the left or right side to flip, or use Flip left and '
+                    'Flip right.',
+            customSemanticsActions: <CustomSemanticsAction, VoidCallback>{
+              const CustomSemanticsAction(label: 'Flip left'): () =>
+                  _flip(true),
+              const CustomSemanticsAction(label: 'Flip right'): () =>
+                  _flip(false),
+              const CustomSemanticsAction(label: 'Launch ball'): () =>
+                  _firePlunger(0.7),
+            },
+            child: Listener(
             behavior: HitTestBehavior.opaque,
             onPointerDown: (e) => _handlePointerDown(e.pointer,
                 e.localPosition.dx / w, e.localPosition.dy / h),
@@ -463,6 +485,7 @@ class _PinballGameState extends State<PinballGame>
                 plungerPull: _plungerPull,
               ),
               size: Size.infinite,
+            ),
             ),
           );
         },
