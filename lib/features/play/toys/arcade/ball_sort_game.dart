@@ -153,6 +153,7 @@ class _BallSortGameState extends State<BallSortGame> with _Emit {
           // all-time record is the bigger moment of the two.
           _banner = 'New personal best! 🏆';
           TonePlayer.instance.playCue(SoundCue.milestone);
+          emit(ExperienceEvent.personalBest);
         } else {
           _banner = 'Level $_level!';
         }

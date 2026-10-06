@@ -160,6 +160,7 @@ class _StackGameState extends State<StackGame>
       _banner = 'New personal best! 🏆';
       _bannerT = 1.6;
       TonePlayer.instance.playCue(SoundCue.milestone);
+      emit(ExperienceEvent.personalBest);
     }
     GameScores.instance.submit(_id, _score).then((b) {
       if (mounted && b != _best) setState(() => _best = b);

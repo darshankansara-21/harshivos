@@ -135,6 +135,7 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
       _banner = 'New personal best! 🏆';
       _bannerT = 1.6;
       TonePlayer.instance.playCue(SoundCue.milestone);
+      emit(ExperienceEvent.personalBest);
     }
     if (_score >= _goalScore && _status == GameStatus.playing) {
       _status = GameStatus.won;

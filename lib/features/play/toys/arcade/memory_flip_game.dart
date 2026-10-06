@@ -217,6 +217,7 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
             // all-time record is the bigger moment of the two.
             _flash('New personal best! 🏆');
             TonePlayer.instance.playCue(SoundCue.milestone);
+            emit(ExperienceEvent.personalBest);
           }
           _first = -1;
           _second = -1;

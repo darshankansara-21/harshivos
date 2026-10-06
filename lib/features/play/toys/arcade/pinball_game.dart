@@ -251,6 +251,7 @@ class _PinballGameState extends State<PinballGame>
           // above — a new all-time record is the bigger moment of the two.
           _flash('New personal best! 🏆');
           TonePlayer.instance.playCue(SoundCue.milestone);
+          emit(ExperienceEvent.personalBest);
         } else {
           _flash(_combo >= 2 ? 'Combo x$_combo! +$gain' : '+$gain');
         }

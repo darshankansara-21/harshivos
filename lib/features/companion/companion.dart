@@ -39,6 +39,7 @@ enum ExperienceEvent {
   aacSelected,
   routineCompleted,
   calmCompleted,
+  personalBest,
 }
 
 class CompanionEventNotification extends Notification {
@@ -359,6 +360,28 @@ class CompanionController extends ChangeNotifier {
         // throughout the activity, not a completion sting.
         calm();
         _flashCelebration('Nice and calm', '🫧', SoundCue.calm);
+        return;
+      case ExperienceEvent.personalBest:
+        // ~15 arcade/mini games already flash their own in-canvas "New
+        // personal best! 🏆" banner + a milestone sound the instant a run's
+        // score first overtakes the player's own all-time record — genuinely
+        // the single most replay-motivating moment in the whole catalog. But
+        // every one of those call sites only ever touched the game's own
+        // banner/TonePlayer; none of them also called `emit()`, so Hari/Pico
+        // sat there in their generic idle/happy loop through the single
+        // biggest "you just did better than you ever have" beat a child can
+        // hit. `cue: null` below is deliberate: the game itself already
+        // played `SoundCue.milestone` in the same frame, so firing a second
+        // sound here would just be a jarring double-chime. Priority 2 (below
+        // `celebrate()`'s win-screen priority 3, above the default-1 taps)
+        // means a same-tick game-completion fanfare correctly still wins if
+        // beating a best also happens to be the exact winning move.
+        _startSequence(<_CompanionBeat>[
+          const _CompanionBeat(CompanionReaction.surprised, 260, bounce: false),
+          const _CompanionBeat(CompanionReaction.proud, 620),
+          const _CompanionBeat(CompanionReaction.happy, 420, bounce: false),
+        ], settle: CompanionReaction.happy, priority: 2);
+        _flashCelebration('New best!', '🏆', null);
         return;
     }
   }

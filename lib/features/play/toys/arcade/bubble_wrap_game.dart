@@ -107,6 +107,7 @@ class _BubbleWrapGameState extends State<BubbleWrapGame>
       // land on the same pop — a new all-time record is the bigger moment.
       _flash('New personal best! 🏆');
       TonePlayer.instance.playCue(SoundCue.milestone);
+      emit(ExperienceEvent.personalBest);
     }
   }
 

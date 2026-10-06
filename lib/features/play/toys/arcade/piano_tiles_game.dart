@@ -147,6 +147,7 @@ class _PianoTilesGameState extends State<PianoTilesGame>
         // all-time record is the bigger moment of the two.
         _flash('New personal best! 🏆');
         TonePlayer.instance.playCue(SoundCue.milestone);
+        emit(ExperienceEvent.personalBest);
       }
       GameScores.instance.submit(_id, _score).then((b) {
         if (mounted && b != _best) setState(() => _best = b);

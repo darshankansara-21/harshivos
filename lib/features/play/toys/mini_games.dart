@@ -606,6 +606,7 @@ class _FruitCatchGameState extends State<FruitCatchGame>
       _banner = 'New personal best! 🏆';
       _bannerT = 1.6;
       TonePlayer.instance.playCue(SoundCue.milestone);
+      emit(ExperienceEvent.personalBest);
     }
     if (_score >= _target) _end(GameStatus.won);
   }
@@ -908,6 +909,7 @@ class _BalloonPopGameState extends State<BalloonPopGame>
           _banner = 'New personal best! 🏆';
           _bannerT = 1.6;
           TonePlayer.instance.playCue(SoundCue.milestone);
+          emit(ExperienceEvent.personalBest);
         }
         if (_score >= _target) _end(GameStatus.won);
         return;
@@ -1298,6 +1300,7 @@ class _StarTapGameState extends State<StarTapGame>
         _banner = 'New personal best! 🏆';
         _bannerT = 1.6;
         TonePlayer.instance.playCue(SoundCue.milestone);
+        emit(ExperienceEvent.personalBest);
       }
       if (_score >= _target) {
         _end(GameStatus.won);
@@ -1854,6 +1857,7 @@ class _SnakeGameState extends State<SnakeGame>
           // new all-time record is the bigger moment of the two.
           _flash('New personal best! 🏆');
           TonePlayer.instance.playCue(SoundCue.milestone);
+          emit(ExperienceEvent.personalBest);
         }
         emit(ExperienceEvent.bubblePopped);
         GameScores.instance.submit(_id, _score).then((b) {
@@ -1903,6 +1907,7 @@ class _SnakeGameState extends State<SnakeGame>
           _beatBest = true;
           _flash('New personal best! 🏆');
           TonePlayer.instance.playCue(SoundCue.milestone);
+          emit(ExperienceEvent.personalBest);
         }
         // A rival going down is a great mid-run moment, not the actual end
         // of the game — _finish (below) already fires the full "You did
@@ -2641,6 +2646,7 @@ class _RacingGameState extends State<RacingGame>
       _beatBest = true;
       _flash('New personal best! 🏆');
       TonePlayer.instance.playCue(SoundCue.milestone);
+      emit(ExperienceEvent.personalBest);
     }
   }
 
@@ -3167,6 +3173,7 @@ class _BowlingGameState extends State<BowlingGame>
       _beatBest = true;
       _flash('New personal best! 🏆');
       TonePlayer.instance.playCue(SoundCue.milestone);
+      emit(ExperienceEvent.personalBest);
     }
   }
 

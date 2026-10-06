@@ -167,6 +167,7 @@ class _SkyHopGameState extends State<SkyHopGame>
       _banner = 'New personal best! 🏆';
       _bannerT = 1.6;
       TonePlayer.instance.playCue(SoundCue.milestone);
+      emit(ExperienceEvent.personalBest);
     }
     _pipes.removeWhere((p) => p.x < -0.2);
     if (_birdY > 0.98 || _birdY < 0.02) _over();
