@@ -119,6 +119,15 @@ class _RhythmClapGameState extends State<RhythmClapGame>
         });
         if (crossedBest) {
           _beatBest = true;
+          // Every sibling game shows "New personal best! 🏆" on screen the
+          // instant a record falls, not just a sound — this was the one
+          // arcade game left where `_banner`/`_bannerT` existed and were
+          // already wired into the banner widget below, but the
+          // personal-best branch never actually populated them, so a child
+          // smashing their own record heard the milestone chime with zero
+          // matching text on screen.
+          _banner = 'New personal best! 🏆';
+          _bannerT = 1.4;
           TonePlayer.instance.playCue(SoundCue.milestone);
           emit(ExperienceEvent.personalBest);
         }
