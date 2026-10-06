@@ -11,6 +11,18 @@ import 'mini_games.dart' show GameScores, GameStatus;
 
 /// Lets a goal-shell game emit companion events (correct / win / encourage)
 /// and flushes them to the host after the frame — the same pattern
+// A game-over screen is shown on every loss, and losses are the most common
+// outcome for a child still learning a game. Pair the fixed overText with
+// one of these warm variants, mirroring arcade_games.dart's
+// `_gentleTryAgainPool` (duplicated here since this is a separate library).
+const List<String> _gentleTryAgainPool = <String>[
+  'Nice try — go again!',
+  'So close — try again!',
+  'Great effort — once more!',
+  'Almost there — have another go!',
+  'You can do it — try again!',
+];
+
 /// arcade_games.dart's `_Emit` and mini_games.dart's `_CompanionEmitter` use,
 /// duplicated here because each of these is a separate library.
 mixin _GoalEmit<T extends StatefulWidget> on State<T> {
@@ -1232,7 +1244,7 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
     'Wall between the posts!',
   ];
   String _winPraise = _winPraisePool[0];
-  // Goal Keeper has the same shape as balloon_bounce/sky_hop/whack: a fixed
+  String _overPraise = _gentleTryAgainPool[0];
   // win target (10 saves) reached by a slowly climbing score, but a single
   // missed dive costs a life and 5 missed dives ends the run well short of
   // the target — so most playthroughs never see the win screen at all. The
@@ -1423,6 +1435,8 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
     _status = status;
     if (status == GameStatus.won) {
       _winPraise = _winPraisePool[_random.nextInt(_winPraisePool.length)];
+    } else {
+      _overPraise = _gentleTryAgainPool[_random.nextInt(_gentleTryAgainPool.length)];
     }
     _submit();
     TonePlayer.instance.playCue(
@@ -1475,7 +1489,7 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
       winEmoji: '🧤',
       winText: _winPraise,
       overEmoji: '🥅',
-      overText: 'Out of lives!',
+      overText: _overPraise,
       child: LayoutBuilder(
         builder: (context, c) {
           return Semantics(
