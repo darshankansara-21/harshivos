@@ -193,9 +193,17 @@ class _FluidSimulatorToyState extends State<FluidSimulatorToy>
   final math.Random _r = math.Random();
   Offset? _last;
   double _hue = 0.0;
+  // Every other sensory toy that emits particles on touch (ParticleGalaxy's
+  // `_burst`, Fireworks' `_explode`) already halves or thirds its spawn
+  // count under OS Reduce Motion, same as the arcade catalog's `_Shard`
+  // bursts — this was the one still spawning a flat 6 particles per pointer
+  // move regardless, so a sensitive child with Reduce Motion on got the
+  // exact same dense swirling fluid as everyone else.
+  bool _reduceMotion = false;
 
   void _emit(Offset p, Offset vel) {
-    for (var i = 0; i < 6; i++) {
+    final n = _reduceMotion ? 2 : 6;
+    for (var i = 0; i < n; i++) {
       _p.add(_FluidParticle(
         pos: p + Offset((_r.nextDouble() - 0.5) * 10, (_r.nextDouble() - 0.5) * 10),
         vel: vel * 0.4 + Offset((_r.nextDouble() - 0.5) * 30, (_r.nextDouble() - 0.5) * 30),
@@ -219,33 +227,42 @@ class _FluidSimulatorToyState extends State<FluidSimulatorToy>
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: <Widget>[
-        Listener(
-          onPointerDown: (e) {
-            // Every other continuous-draw toy (SandGarden, Kaleidoscope,
-            // PaintWithLight, CarTrackBuilder, ColorMixingLab) gives a haptic
-            // pulse on first touch — this was the one silent outlier.
-            TonePlayer.instance.haptic(HapticFeedback.selectionClick);
-            _last = e.localPosition;
-            _emit(e.localPosition, Offset.zero);
-          },
-          onPointerMove: (e) {
-            final v = _last == null ? Offset.zero : (e.localPosition - _last!) * 12;
-            _emit(e.localPosition, v);
-            _last = e.localPosition;
-          },
-          onPointerUp: (_) => _last = null,
-          child: CustomPaint(painter: _FluidPainter(_p), size: Size.infinite),
-        ),
-        // The onboarding hint is drawn only onto the canvas (invisible to
-        // screen readers); IgnorePointer keeps it from stealing touches.
-        Positioned.fill(
-          child: IgnorePointer(
-            child: Semantics(label: 'Swirl your finger to stir the colors'),
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
+    // Same "describable but not actionable" gap already fixed in
+    // ParticleGalaxyToy/FireworksToy — the onboarding hint was a plain label
+    // with no `onTap`, so a screen reader could discover the fluid toy but
+    // never actually stir it. Bridges the one discrete action (emit a swirl
+    // at the canvas centre); the continuous drag-to-stir half correctly
+    // stays out of reach, same as every other continuous-drag sensory toy.
+    return Semantics(
+      button: true,
+      label: 'Tap or drag to swirl the colors',
+      onTap: () {
+        final size = context.size ?? Size.zero;
+        _emit(size.center(Offset.zero), Offset.zero);
+      },
+      excludeSemantics: true,
+      child: Stack(
+        children: <Widget>[
+          Listener(
+            onPointerDown: (e) {
+              // Every other continuous-draw toy (SandGarden, Kaleidoscope,
+              // PaintWithLight, CarTrackBuilder, ColorMixingLab) gives a haptic
+              // pulse on first touch — this was the one silent outlier.
+              TonePlayer.instance.haptic(HapticFeedback.selectionClick);
+              _last = e.localPosition;
+              _emit(e.localPosition, Offset.zero);
+            },
+            onPointerMove: (e) {
+              final v = _last == null ? Offset.zero : (e.localPosition - _last!) * 12;
+              _emit(e.localPosition, v);
+              _last = e.localPosition;
+            },
+            onPointerUp: (_) => _last = null,
+            child: CustomPaint(painter: _FluidPainter(_p), size: Size.infinite),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
