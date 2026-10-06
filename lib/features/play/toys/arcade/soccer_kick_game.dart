@@ -30,6 +30,12 @@ class _SoccerKickGameState extends State<SoccerKickGame>
   String? _banner;
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
+  // Every other aim-into-a-goal game in the catalog (basketball, air_hockey,
+  // penalty_dash) bursts a few shards of colour on a score; this one only
+  // ever flashed the "GOAL!" banner text + a sound, flatter than every
+  // sibling scoring moment. Mirror the established `_Shard` convention.
+  final List<_Shard> _bits = <_Shard>[];
+  bool _reduceMotion = false;
 
   @override
   void initState() {
@@ -60,6 +66,14 @@ class _SoccerKickGameState extends State<SoccerKickGame>
     }
     _keeperX += (_keeperTarget - _keeperX) * (_flying ? 6.0 : 2.5) * dt;
     _keeperX = _keeperX.clamp(_goalL + 0.03, _goalR - 0.03);
+    for (var i = _bits.length - 1; i >= 0; i--) {
+      final b = _bits[i];
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.vy += 0.5 * dt;
+      b.life -= dt;
+      if (b.life <= 0) _bits.removeAt(i);
+    }
     if (_flying) {
       _bvx += _spin * dt;
       _bx += _bvx * dt;
@@ -85,6 +99,13 @@ class _SoccerKickGameState extends State<SoccerKickGame>
       _score++;
       TonePlayer.instance.playCue(SoundCue.success);
       emit(ExperienceEvent.bubblePopped);
+      final n = _reduceMotion ? 4 : 12;
+      for (var i = 0; i < n; i++) {
+        final a = _rnd.nextDouble() * math.pi * 2;
+        final sp = 0.15 + _rnd.nextDouble() * 0.3;
+        _bits.add(_Shard(_bx, _goalY, math.cos(a) * sp, math.sin(a) * sp,
+            const Color(0xFF80ED99)));
+      }
       _banner = 'GOAL!  ⚽';
       _bannerT = 1.3;
       GameScores.instance.submit(_id, _score).then((b) {
@@ -175,6 +196,7 @@ class _SoccerKickGameState extends State<SoccerKickGame>
       _misses = 0;
       _banner = null;
       _bannerT = 0;
+      _bits.clear();
       _resetBall();
       _keeperX = 0.5;
       _status = GameStatus.playing;
@@ -184,6 +206,7 @@ class _SoccerKickGameState extends State<SoccerKickGame>
   @override
   Widget build(BuildContext context) {
     drain(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _Shell(
       title: '⚽ Soccer Kick',
       introHow:
@@ -251,6 +274,7 @@ class _SoccerKickGameState extends State<SoccerKickGame>
                 dragging: _dragging && !_flying,
                 aimX: _aimX,
                 aimY: _aimY,
+                bits: _bits,
               ),
               size: Size.infinite,
             ),
@@ -273,9 +297,11 @@ class _SoccerPainter extends CustomPainter {
     required this.dragging,
     required this.aimX,
     required this.aimY,
+    required this.bits,
   });
   final double bx, by, keeperX, goalY, goalL, goalR, aimX, aimY;
   final bool dragging;
+  final List<_Shard> bits;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -365,6 +391,12 @@ class _SoccerPainter extends CustomPainter {
       final a = i / 5 * math.pi * 2 - math.pi / 2;
       canvas.drawCircle(
           ball + Offset(math.cos(a), math.sin(a)) * br * 0.62, br * 0.14, pent);
+    }
+
+    for (final b in bits) {
+      final k = (b.life / 0.5).clamp(0.0, 1.0);
+      canvas.drawCircle(Offset(b.x * w, b.y * h), 2 + 3 * k,
+          Paint()..color = b.color.withOpacity(k));
     }
   }
 
