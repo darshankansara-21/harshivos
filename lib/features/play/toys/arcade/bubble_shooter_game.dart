@@ -55,8 +55,22 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
   // flat difficulty — there's no sense of mounting pressure or a reason to
   // hurry, unlike every other arcade game in the catalog. Every few shots we
   // drop the whole field one row, genre-standard "ceiling descends" pressure.
-  static const int _shotsPerDrop = 8;
-  int _shotsFired = 0;
+  // The drop period itself used to be a flat constant (every 8 shots,
+  // forever) — unlike every other open-ended arcade game in the catalog
+  // (stack's fall speed, whack's spawn rate, space_dodge's density), nothing
+  // here ever got harder as a single run went on, and a returning player
+  // with a high all-time `_best` faced the exact same leisurely pace on
+  // their hundredth run as a first-timer. `_dropsSoFar` shortens the period
+  // a little after each drop (genuine mounting pressure within a run,
+  // floored so it never becomes an unfair flood), and `_careerDropRamp`
+  // nudges a skilled returning player's opening pace a little tighter too,
+  // capped well short of the in-run floor so round one always stays
+  // comfortably playable even for a veteran.
+  int _dropsSoFar = 0;
+  int _shotsSinceDrop = 0;
+  double get _careerDropRamp => (_best / 150).clamp(0.0, 1.0) * 2;
+  int get _shotsPerDrop =>
+      (8 - _dropsSoFar - _careerDropRamp.round()).clamp(4, 8);
   // Mirrors stack_game/block_blast_game's live "beat your own all-time best"
   // celebration. Bubble Shooter has no win cap either — score is a pure
   // pop-count climb until the ceiling reaches the floor — so crossing a
@@ -208,8 +222,7 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
       return;
     }
     if (_status == GameStatus.playing &&
-        _shotsFired > 0 &&
-        _shotsFired % _shotsPerDrop == 0) {
+        _shotsSinceDrop >= _shotsPerDrop) {
       _dropCeiling();
     }
   }
@@ -242,7 +255,7 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
     final n = dir / dir.distance;
     _vel = n * 640;
     _pos = origin;
-    _shotsFired++;
+    _shotsSinceDrop++;
     // The shot itself was completely silent — feedback only arrived once the
     // bubble landed. `SoundCue.laser` already has its own distinct synth
     // built for exactly this "launch" moment but was never wired into any
@@ -264,6 +277,8 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
       _grid[r] = _grid[r - 1];
     }
     _grid[0] = List<Color?>.generate(_cols, (_) => _pal[_rnd.nextInt(_pal.length)]);
+    _dropsSoFar++;
+    _shotsSinceDrop = 0;
     TonePlayer.instance.playCue(SoundCue.milestone);
     _banner = 'Ceiling drops!';
     _bannerT = 1.1;
@@ -288,7 +303,8 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
       _pos = null;
       _pops.clear();
       _score = 0;
-      _shotsFired = 0;
+      _shotsSinceDrop = 0;
+      _dropsSoFar = 0;
       _banner = null;
       _bannerT = 0;
       _beatBest = false;
@@ -305,7 +321,8 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
     return _Shell(
       title: '🫧 Bubble Shooter',
       introHow: 'Aim and shoot to match 3 bubbles of the same colour. '
-          'The ceiling drops lower every 8 shots, so don\'t let bubbles reach the floor!',
+          'The ceiling drops lower every few shots — and faster the longer '
+          'you play — so don\'t let bubbles reach the floor!',
       onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,
