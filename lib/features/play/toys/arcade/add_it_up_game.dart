@@ -162,6 +162,16 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
         } else {
           TonePlayer.instance.playCue(SoundCue.gentleRetry);
           _banner = 'Not quite — try again';
+          // Unlike every other miss-flash in the catalog (bigger_number,
+          // feelings_match, calm_choices all auto-clear their red wrong-tile
+          // flash after a short beat), this one was only ever cleared by the
+          // next tap's `_wrong = -1;` at the top of `_tap` — so a child who
+          // tapped wrong then paused saw the tile stuck red indefinitely.
+          // Auto-clear it the same way, gated so a later miss on a
+          // different tile can't be stomped by a stale timer.
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted && _wrong == k) setState(() => _wrong = -1);
+          });
         }
       }
     }
