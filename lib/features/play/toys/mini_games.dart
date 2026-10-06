@@ -2086,6 +2086,29 @@ class _SnakeGameState extends State<SnakeGame>
     if (v.distance > 6) _target = math.atan2(v.dy, v.dx);
   }
 
+  // Screen-reader bridge: unlike every other whole-screen continuous-drag
+  // game in this catalog (FruitCatchGame's _moveToNearestCatchable,
+  // BalloonPopGame's _popNearestSafe, GoalKeeperGame's _diveToTarget), this
+  // game's drag-to-steer GestureDetector had no Semantics wrapper and no
+  // tap fallback at all — a screen-reader user had no actionable element
+  // and no way to play. Steers the head toward whichever orb is closest,
+  // the same "most urgent" pick a sighted child's eye is drawn to.
+  void _steerToNearestOrb() {
+    if (_status != GameStatus.playing) return;
+    _Orb? nearest;
+    double bestDist = double.infinity;
+    for (final o in _orbs) {
+      final d = (o.pos - _head).distanceSquared;
+      if (d < bestDist) {
+        bestDist = d;
+        nearest = o;
+      }
+    }
+    if (nearest == null) return;
+    final v = nearest.pos - _head;
+    if (v.distance > 6) _target = math.atan2(v.dy, v.dx);
+  }
+
   void _reset() {
     setState(() {
       _banner = null;
@@ -2122,14 +2145,21 @@ class _SnakeGameState extends State<SnakeGame>
           return Stack(
             fit: StackFit.expand,
             children: <Widget>[
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onPanDown: (d) => _steerTo(d.localPosition),
-                onPanUpdate: (d) => _steerTo(d.localPosition),
-                child: CustomPaint(
-                  painter: _SnakePainter(_head, _angle, _path, _length, _seg,
-                      _orbs, _ai, _arenaR, _t, _particles, _boost),
-                  size: Size.infinite,
+              Semantics(
+                button: true,
+                label: 'Score $_score of $_targetScore. Steer toward the '
+                    'nearest orb.',
+                onTap: _steerToNearestOrb,
+                excludeSemantics: true,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onPanDown: (d) => _steerTo(d.localPosition),
+                  onPanUpdate: (d) => _steerTo(d.localPosition),
+                  child: CustomPaint(
+                    painter: _SnakePainter(_head, _angle, _path, _length, _seg,
+                        _orbs, _ai, _arenaR, _t, _particles, _boost),
+                    size: Size.infinite,
+                  ),
                 ),
               ),
               Positioned(
