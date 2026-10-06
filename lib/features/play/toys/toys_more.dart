@@ -88,9 +88,20 @@ class _SlimeStretchToyState extends State<SlimeStretchToy>
       // back to the middle, the same stuck-state gap fixed in
       // CalmCloudsToy/ParticleGalaxyToy.
       onPointerCancel: (_) { _finger = null; },
-      child: CustomPaint(
-        painter: _SlimePainter(_center, _radii, _hue),
-        size: Size.infinite,
+      child: Stack(
+        children: <Widget>[
+          CustomPaint(
+            painter: _SlimePainter(_center, _radii, _hue),
+            size: Size.infinite,
+          ),
+          // The onboarding hint is drawn only onto the canvas (invisible to
+          // screen readers); IgnorePointer keeps it from stealing touches.
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Semantics(label: 'Poke or drag to stretch the stretchy blob'),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -190,7 +201,18 @@ class _ColorMixingLabToyState extends State<ColorMixingLabToy>
           _drop(e.localPosition);
         }
       },
-      child: CustomPaint(painter: _MixPainter(_blobs), size: Size.infinite),
+      child: Stack(
+        children: <Widget>[
+          CustomPaint(painter: _MixPainter(_blobs), size: Size.infinite),
+          // The onboarding hint is drawn only onto the canvas (invisible to
+          // screen readers); IgnorePointer keeps it from stealing touches.
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Semantics(label: 'Drag to drop paint that blends like real pigment'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -451,7 +473,18 @@ class _SpinUniverseToyState extends State<SpinUniverseToy>
         TonePlayer.instance.haptic(HapticFeedback.selectionClick);
         _spin = (_spin + 1.4).clamp(-9.0, 9.0);
       },
-      child: CustomPaint(painter: _GalaxyPainter(_stars, _rot), size: Size.infinite),
+      child: Stack(
+        children: <Widget>[
+          CustomPaint(painter: _GalaxyPainter(_stars, _rot), size: Size.infinite),
+          // The onboarding hint is drawn only onto the canvas (invisible to
+          // screen readers); IgnorePointer keeps it from stealing touches.
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Semantics(label: 'Drag or tap to spin the spiral galaxy'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -580,7 +613,18 @@ class _InfiniteMarbleRunToyState extends State<InfiniteMarbleRunToy>
   Widget build(BuildContext context) {
     return Listener(
       onPointerDown: (e) { _spawn(e.localPosition.dx); TonePlayer.instance.haptic(HapticFeedback.lightImpact); },
-      child: CustomPaint(painter: _MarblePainter(_marbles, _pegs), size: Size.infinite),
+      child: Stack(
+        children: <Widget>[
+          CustomPaint(painter: _MarblePainter(_marbles, _pegs), size: Size.infinite),
+          // The onboarding hint is drawn only onto the canvas (invisible to
+          // screen readers); IgnorePointer keeps it from stealing touches.
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Semantics(label: 'Tap to drop marbles into the peg field'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

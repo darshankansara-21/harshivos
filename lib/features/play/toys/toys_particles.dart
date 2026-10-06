@@ -101,9 +101,20 @@ class _ParticleGalaxyToyState extends State<ParticleGalaxyToy>
       // that dead spot indefinitely instead of resuming its calm ambient
       // swirl, the same stuck-state gap class fixed in CalmCloudsToy.
       onPointerCancel: (_) => _attractor = null,
-      child: CustomPaint(
-        painter: _GalaxyPainter(_stars),
-        size: Size.infinite,
+      child: Stack(
+        children: <Widget>[
+          CustomPaint(
+            painter: _GalaxyPainter(_stars),
+            size: Size.infinite,
+          ),
+          // The onboarding hint is drawn only onto the canvas (invisible to
+          // screen readers); IgnorePointer keeps it from stealing touches.
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Semantics(label: 'Tap or drag to burst and attract stars'),
+            ),
+          ),
+        ],
       ),
     );
   }
