@@ -104,12 +104,15 @@ class _WorldPortalState extends State<WorldPortal>
     return SizedBox(
       width: s,
       height: s + 34,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapDown: (_) => _press.forward(),
-        onTapCancel: () => _press.reverse(),
-        onTap: _handleTap,
-        child: AnimatedBuilder(
+      child: Semantics(
+        button: true,
+        label: widget.label,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapDown: (_) => _press.forward(),
+          onTapCancel: () => _press.reverse(),
+          onTap: _handleTap,
+          child: AnimatedBuilder(
           animation: Listenable.merge(<Listenable>[_bob, _press, _burst]),
           builder: (context, _) {
             final bob = math.sin((_bob.value + widget.phase) * math.pi * 2);
@@ -187,6 +190,7 @@ class _WorldPortalState extends State<WorldPortal>
               ],
             );
           },
+        ),
         ),
       ),
     );
