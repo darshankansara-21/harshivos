@@ -215,10 +215,13 @@ class _FeelingsMatchGameState extends State<FeelingsMatchGame> with _Emit {
           ),
         ),
         child: SafeArea(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+          // Same bug class `_overlayScroll` fixed for `BiggerNumberGame`:
+          // the `Spacer`-based Column overflowed by 379px at
+          // `TextScaler.linear(2.5)` since `Spacer`s squeeze to zero while
+          // the scaled title/subtitle Text and face-option Wrap kept growing.
+          child: _overlayScroll(Column(
+            mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              const Spacer(flex: 2),
               Text(
                 _status == GameStatus.playing ? _prompt.name : 'Feelings',
                 style: const TextStyle(
@@ -229,7 +232,7 @@ class _FeelingsMatchGameState extends State<FeelingsMatchGame> with _Emit {
               const SizedBox(height: 6),
               const Text('Which face feels like this?',
                   style: TextStyle(color: Colors.white60, fontSize: 16)),
-              const Spacer(),
+              const SizedBox(height: 40),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 // A Wrap (not a fixed-width Row) so the growing option count
@@ -251,9 +254,8 @@ class _FeelingsMatchGameState extends State<FeelingsMatchGame> with _Emit {
                   ],
                 ),
               ),
-              const Spacer(flex: 2),
             ],
-          ),
+          )),
         ),
       ),
     );
@@ -307,7 +309,12 @@ class _FaceOption extends StatelessWidget {
                 width: 2),
           ),
           alignment: Alignment.center,
-          child: Text(face, style: const TextStyle(fontSize: 48)),
+          // Fixed 92px tile but a scaled emoji glyph — FittedBox prevents
+          // silent clipping at large accessibility text scale.
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(face, style: const TextStyle(fontSize: 48)),
+          ),
         ),
       ),
     );

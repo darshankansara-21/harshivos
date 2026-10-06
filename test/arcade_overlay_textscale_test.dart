@@ -7,6 +7,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:harshivos/features/play/toys/arcade_games.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+// batch-380: generalizes the batch-379 probe to the other arcade games that
+// share `BiggerNumberGame`'s pre-fix shape — a gameplay-state `Column` using
+// `Spacer`s around a scaled `Text`/option list, found via a catalog-wide
+// `grep 'Spacer('` sweep of arcade/*.dart.
+Future<void> _tapPlayThenCheckNoOverflow(
+    WidgetTester tester, Widget game) async {
+  await _pumpSmallLargeText(tester, game);
+  final Finder playButton = find.widgetWithText(FilledButton, 'Play');
+  await _tapScrolledIntoView(tester, playButton);
+  await tester.pump(const Duration(milliseconds: 300));
+  expect(tester.takeException(), isNull,
+      reason:
+          'gameplay-state layout must not overflow at 2.5x text scale once started');
+}
+
 Future<void> _pumpSmallLargeText(WidgetTester tester, Widget game) async {
   // A small phone surface (logical 320x568, iPhone-SE class) is what
   // originally produced the 1175px overflow; combine it with an aggressive
@@ -72,5 +87,25 @@ void main() {
     await _tapScrolledIntoView(tester, find.text('Play again'));
     await tester.pump(const Duration(milliseconds: 100));
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('AddItUp gameplay layout renders without overflow at 2.5x text scale',
+      (tester) async {
+    await _tapPlayThenCheckNoOverflow(tester, const AddItUpGame());
+  });
+
+  testWidgets('CalmChoices gameplay layout renders without overflow at 2.5x text scale',
+      (tester) async {
+    await _tapPlayThenCheckNoOverflow(tester, const CalmChoicesGame());
+  });
+
+  testWidgets('FeelingsMatch gameplay layout renders without overflow at 2.5x text scale',
+      (tester) async {
+    await _tapPlayThenCheckNoOverflow(tester, const FeelingsMatchGame());
+  });
+
+  testWidgets('KindnessMatch gameplay layout renders without overflow at 2.5x text scale',
+      (tester) async {
+    await _tapPlayThenCheckNoOverflow(tester, const KindnessMatchGame());
   });
 }

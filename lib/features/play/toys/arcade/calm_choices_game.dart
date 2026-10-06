@@ -223,7 +223,12 @@ class _CalmChoicesGameState extends State<CalmChoicesGame> with _Emit {
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(22, 150, 22, 24),
-            child: Column(
+            // Same bug class `_overlayScroll` fixed for `BiggerNumberGame`:
+            // the `Spacer`-based Column overflowed by 158px at
+            // `TextScaler.linear(2.5)` since `Spacer`s squeeze to zero while
+            // the scaled prompt Text and option list kept growing.
+            child: _overlayScroll(Column(
+              mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 Container(
                   padding: const EdgeInsets.all(18),
@@ -238,7 +243,7 @@ class _CalmChoicesGameState extends State<CalmChoicesGame> with _Emit {
                         color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800),
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(height: 28),
                 for (var i = 0; i < _options.length; i++)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 7),
@@ -249,9 +254,8 @@ class _CalmChoicesGameState extends State<CalmChoicesGame> with _Emit {
                       onTap: () => _pick(_options[i], i),
                     ),
                   ),
-                const Spacer(),
               ],
-            ),
+            )),
           ),
         ),
       ),

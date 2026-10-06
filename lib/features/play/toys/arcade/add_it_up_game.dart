@@ -211,14 +211,19 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
             colors: <Color>[Color(0xFF123524), Color(0xFF0A1A12)],
           ),
         ),
+        // Same bug class `_overlayScroll` fixed for `BiggerNumberGame`: the
+        // original `Spacer`-based Column assumed the title Text would always
+        // fit, which overflowed by 193px at `TextScaler.linear(2.5)` since
+        // `Spacer`s squeeze to zero while the scaled Text keeps growing.
+        // Reuse `_overlayScroll` with a fixed gap instead.
         child: SafeArea(
-          child: Column(
+          child: _overlayScroll(Column(
+            mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              const Spacer(flex: 2),
               Text('Make $_sum',
                   style: const TextStyle(
                       color: Colors.white, fontSize: 44, fontWeight: FontWeight.w900)),
-              const Spacer(),
+              const SizedBox(height: 56),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Wrap(
@@ -237,9 +242,8 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
                   ],
                 ),
               ),
-              const Spacer(flex: 3),
             ],
-          ),
+          )),
         ),
       ),
     );
@@ -282,11 +286,17 @@ class _NumberTile extends StatelessWidget {
             border: Border.all(color: Colors.white24, width: 2),
           ),
           alignment: Alignment.center,
-          child: Text('$value',
-              style: TextStyle(
-                  color: (selected || correct) ? Colors.black : Colors.white,
-                  fontSize: 34,
-                  fontWeight: FontWeight.w900)),
+          // Fixed 86px tile but a scaled Text — FittedBox keeps a 2-digit
+          // sum from silently clipping at large accessibility text scale,
+          // same convention as `BiggerNumberGame`'s number tiles.
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text('$value',
+                style: TextStyle(
+                    color: (selected || correct) ? Colors.black : Colors.white,
+                    fontSize: 34,
+                    fontWeight: FontWeight.w900)),
+          ),
         ),
       ),
     );
