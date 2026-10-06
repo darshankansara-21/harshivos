@@ -58,6 +58,7 @@ class _WeatherSortGameState extends State<WeatherSortGame>
   int _score = 0;
   int _lives = 3;
   int _best = 0;
+  bool _beatBest = false;
   int _wrongFlash = -1;
   // Unlike the wrong tap (which flashes the bin red), a correct sort gave
   // zero tile-level feedback — the item just silently swapped for the next
@@ -145,9 +146,19 @@ class _WeatherSortGameState extends State<WeatherSortGame>
       TonePlayer.instance.playCue(SoundCue.success);
       emit(ExperienceEvent.bubblePopped);
       _banner = 'Good sort! ${_bins[bin]}';
+      // A child who runs out of lives right after this sort still deserves
+      // the companion's loudest celebration if it's a genuine all-time
+      // record, not just the routine correct-sort chime.
+      final crossedBest = _score > _best && !_beatBest && _best > 0;
       GameScores.instance.submit(_id, _score).then((b) {
         if (mounted) setState(() => _best = b);
       });
+      if (crossedBest) {
+        _beatBest = true;
+        _banner = 'New personal best! 🏆';
+        TonePlayer.instance.playCue(SoundCue.milestone);
+        emit(ExperienceEvent.personalBest);
+      }
       if (_score >= _target) {
         _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         // The final correct tap used to jump straight to the win overlay in
@@ -204,6 +215,7 @@ class _WeatherSortGameState extends State<WeatherSortGame>
     setState(() {
       _score = 0;
       _lives = 3;
+      _beatBest = false;
       _locked = false;
       _banner = null;
       _bag.clear();

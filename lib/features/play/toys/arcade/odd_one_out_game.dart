@@ -36,6 +36,7 @@ class _OddOneOutGameState extends State<OddOneOutGame>
   int _baseShape = 0, _oddShape = 0;
   Color _baseColor = _palette[0], _oddColor = _palette[1];
   int _score = 0, _lives = 3, _best = 0;
+  bool _beatBest = false;
   int _wrong = -1;
   String? _banner;
   GameStatus _status = GameStatus.ready;
@@ -149,9 +150,19 @@ class _OddOneOutGameState extends State<OddOneOutGame>
       _banner = _foundPool[_rnd.nextInt(_foundPool.length)];
       final gx = i % _cols, gy = i ~/ _cols;
       _burst((gx + 0.5) / _cols, 0.14 + (gy + 0.5) / _cols * 0.82, _oddColor);
+      // A child who runs out of lives right after this tap still deserves
+      // the companion's loudest celebration if it's a genuine all-time
+      // record, not just the routine correct-tap chime.
+      final crossedBest = _score > _best && !_beatBest && _best > 0;
       GameScores.instance.submit(_id, _score).then((v) {
         if (mounted) setState(() => _best = v);
       });
+      if (crossedBest) {
+        _beatBest = true;
+        _banner = 'New personal best! 🏆';
+        TonePlayer.instance.playCue(SoundCue.milestone);
+        emit(ExperienceEvent.personalBest);
+      }
       if (_score >= _target) {
         _status = GameStatus.won;
         _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
@@ -189,6 +200,7 @@ class _OddOneOutGameState extends State<OddOneOutGame>
     setState(() {
       _score = 0;
       _lives = 3;
+      _beatBest = false;
       _banner = null;
       _bits.clear();
       _newRound();

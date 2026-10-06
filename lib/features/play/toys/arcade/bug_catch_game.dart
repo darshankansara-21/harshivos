@@ -42,6 +42,7 @@ class _BugCatchGameState extends State<BugCatchGame>
   int _score = 0;
   int _lives = 3;
   int _best = 0;
+  bool _beatBest = false;
   String? _banner;
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
@@ -144,6 +145,10 @@ class _BugCatchGameState extends State<BugCatchGame>
           _bugs.removeAt(i);
           TonePlayer.instance.playCue(SoundCue.success);
           emit(ExperienceEvent.bubblePopped);
+          // A child who runs out of lives right after this catch still
+          // deserves the companion's loudest celebration if it's a genuine
+          // all-time record, not just the routine correct-catch chime.
+          final crossedBest = _score > _best && !_beatBest && _best > 0;
           if (_score % 4 == 0) {
             _targetColor = _rnd.nextInt(_colors.length);
             _banner = 'Now catch ${_names[_targetColor]}!';
@@ -152,6 +157,12 @@ class _BugCatchGameState extends State<BugCatchGame>
           GameScores.instance.submit(_id, _score).then((v) {
             if (mounted) setState(() => _best = v);
           });
+          if (crossedBest) {
+            _beatBest = true;
+            _banner = 'New personal best! 🏆';
+            TonePlayer.instance.playCue(SoundCue.milestone);
+            emit(ExperienceEvent.personalBest);
+          }
           if (_score >= _target) {
             _status = GameStatus.won;
             _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
@@ -184,6 +195,7 @@ class _BugCatchGameState extends State<BugCatchGame>
     setState(() {
       _score = 0;
       _lives = 3;
+      _beatBest = false;
       _targetColor = _rnd.nextInt(_colors.length);
       _bugs.clear();
       _bits.clear();

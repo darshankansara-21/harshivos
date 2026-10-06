@@ -47,6 +47,7 @@ class _BalloonMathGameState extends State<BalloonMathGame>
   int _score = 0;
   int _lives = 3;
   int _best = 0;
+  bool _beatBest = false;
   String? _banner;
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
@@ -135,9 +136,20 @@ class _BalloonMathGameState extends State<BalloonMathGame>
           emit(ExperienceEvent.bubblePopped);
           _banner = 'Pop! $_a ${_sub ? '−' : '+'} $_b = $_answer';
           _bannerT = 1.2;
+          // A child who runs out of lives right after this pop still
+          // deserves the companion's loudest celebration if it's a genuine
+          // all-time record, not just the routine correct-pop chime.
+          final crossedBest = _score > _best && !_beatBest && _best > 0;
           GameScores.instance.submit(_id, _score).then((v) {
             if (mounted) setState(() => _best = v);
           });
+          if (crossedBest) {
+            _beatBest = true;
+            _banner = 'New personal best! 🏆';
+            _bannerT = 1.2;
+            TonePlayer.instance.playCue(SoundCue.milestone);
+            emit(ExperienceEvent.personalBest);
+          }
           if (_score >= _target) {
             _status = GameStatus.won;
             _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
@@ -175,6 +187,7 @@ class _BalloonMathGameState extends State<BalloonMathGame>
     setState(() {
       _score = 0;
       _lives = 3;
+      _beatBest = false;
       _bits.clear();
       _banner = null;
       _bannerT = 0;

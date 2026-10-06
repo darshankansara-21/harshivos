@@ -34,6 +34,7 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
   int _score = 0;
   int _lives = 3;
   int _best = 0;
+  bool _beatBest = false;
   String? _banner;
   GameStatus _status = GameStatus.ready;
 
@@ -89,9 +90,19 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
         TonePlayer.instance.playCue(SoundCue.correct);
         emit(ExperienceEvent.bubblePopped);
         _banner = _correctPool[_rnd.nextInt(_correctPool.length)];
+        // A child who runs out of lives right after this tap still deserves
+        // the companion's loudest celebration if it's a genuine all-time
+        // record, not just the routine correct-tap chime.
+        final crossedBest = _score > _best && !_beatBest && _best > 0;
         GameScores.instance.submit(_id, _score).then((v) {
           if (mounted) setState(() => _best = v);
         });
+        if (crossedBest) {
+          _beatBest = true;
+          _banner = 'New personal best! 🏆';
+          TonePlayer.instance.playCue(SoundCue.milestone);
+          emit(ExperienceEvent.personalBest);
+        }
         if (_score >= _target) {
           _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
           // The final correct tap used to jump straight to the win overlay
@@ -150,6 +161,7 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
     setState(() {
       _score = 0;
       _lives = 3;
+      _beatBest = false;
       _banner = null;
       _deal();
       _status = GameStatus.playing;

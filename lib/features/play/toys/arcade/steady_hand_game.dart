@@ -25,6 +25,7 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
   int _score = 0;
   int _lives = 3;
   int _best = 0;
+  bool _beatBest = false;
   final math.Random _rnd = math.Random();
   static const List<String> _winPraisePool = <String>[
     'So steady!', 'Rock steady!', 'Calm hands!', 'Precision master!',
@@ -124,9 +125,19 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
     _score++;
     TonePlayer.instance.playCue(SoundCue.success);
     emit(ExperienceEvent.bubblePopped);
+    // A child who runs out of levels right after this one still deserves
+    // the companion's loudest celebration if it's a genuine all-time
+    // record, not just the routine level-clear chime.
+    final crossedBest = _score > _best && !_beatBest && _best > 0;
     GameScores.instance.submit(_id, _score).then((v) {
       if (mounted) setState(() => _best = v);
     });
+    if (crossedBest) {
+      _beatBest = true;
+      _banner = 'New personal best! 🏆';
+      TonePlayer.instance.playCue(SoundCue.milestone);
+      emit(ExperienceEvent.personalBest);
+    }
     if (_score >= _target) {
       _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
       _status = GameStatus.won;
@@ -134,7 +145,9 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
       emit(ExperienceEvent.gameCompleted);
     } else {
       _level++;
-      _banner = _nextPathPool[_rnd.nextInt(_nextPathPool.length)];
+      if (!crossedBest) {
+        _banner = _nextPathPool[_rnd.nextInt(_nextPathPool.length)];
+      }
       _startLevel();
     }
     setState(() {});
@@ -145,6 +158,7 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
       _level = 0;
       _score = 0;
       _lives = 3;
+      _beatBest = false;
       _banner = null;
       _startLevel();
       _status = GameStatus.playing;

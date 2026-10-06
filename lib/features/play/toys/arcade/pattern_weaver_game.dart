@@ -44,6 +44,7 @@ class _PatternWeaverGameState extends State<PatternWeaverGame>
   int _score = 0;
   int _lives = 3;
   int _best = 0;
+  bool _beatBest = false;
   int _wrongFlash = -1;
   double _wrongT = 0;
   double _pop = 0;
@@ -120,9 +121,20 @@ class _PatternWeaverGameState extends State<PatternWeaverGame>
       emit(ExperienceEvent.bubblePopped);
       _banner = 'You wove it! 🧶';
       _bannerT = 1.0;
+      // A child who runs out of lives right after this tap still deserves
+      // the companion's loudest celebration if it's a genuine all-time
+      // record, not just the routine correct-tap chime.
+      final crossedBest = _score > _best && !_beatBest && _best > 0;
       GameScores.instance.submit(_id, _score).then((b) {
         if (mounted) setState(() => _best = b);
       });
+      if (crossedBest) {
+        _beatBest = true;
+        _banner = 'New personal best! 🏆';
+        _bannerT = 1.0;
+        TonePlayer.instance.playCue(SoundCue.milestone);
+        emit(ExperienceEvent.personalBest);
+      }
       if (_score >= _target) {
         _status = GameStatus.won;
         _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
@@ -158,6 +170,7 @@ class _PatternWeaverGameState extends State<PatternWeaverGame>
     setState(() {
       _score = 0;
       _lives = 3;
+      _beatBest = false;
       _banner = null;
       _bannerT = 0;
       _newRound();

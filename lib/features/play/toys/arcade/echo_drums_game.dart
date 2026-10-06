@@ -58,6 +58,7 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
   double _flashT = 0;
   int _lives = 3;
   int _best = 0;
+  bool _beatBest = false;
   String? _banner;
   GameStatus _status = GameStatus.ready;
 
@@ -74,6 +75,7 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
   void _begin() {
     _seq.clear();
     _lives = 3;
+    _beatBest = false;
     _nextRound();
   }
 
@@ -159,6 +161,15 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
           TonePlayer.instance.playCue(SoundCue.success);
           emit(ExperienceEvent.bubblePopped);
           _banner = _echoPraise[_rnd.nextInt(_echoPraise.length)];
+          // A child who runs out of lives right after this round still
+          // deserves the companion's loudest celebration if it's a genuine
+          // all-time record, not just the routine round-clear chime.
+          if (_score > _best && !_beatBest && _best > 0) {
+            _beatBest = true;
+            _banner = 'New personal best! 🏆';
+            TonePlayer.instance.playCue(SoundCue.milestone);
+            emit(ExperienceEvent.personalBest);
+          }
           GameScores.instance.submit(_id, _score).then((b) {
             if (mounted) setState(() => _best = b);
           });

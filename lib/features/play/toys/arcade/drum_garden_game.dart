@@ -50,6 +50,7 @@ class _DrumGardenGameState extends State<DrumGardenGame>
   double _flashT = 0;
   int _lives = 3;
   int _best = 0;
+  bool _beatBest = false;
   String? _banner;
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
@@ -154,6 +155,15 @@ class _DrumGardenGameState extends State<DrumGardenGame>
           });
         } else {
           _flash('Nice! 🥁 Tune of ${_seq.length}');
+          // A child who falls short of the target right after this round
+          // still deserves the companion's loudest celebration if it's a
+          // genuine all-time record, not just the routine round-clear chime.
+          if (_seq.length > _best && !_beatBest && _best > 0) {
+            _beatBest = true;
+            _flash('New personal best! 🏆');
+            TonePlayer.instance.playCue(SoundCue.milestone);
+            emit(ExperienceEvent.personalBest);
+          }
           GameScores.instance.submit(_id, _seq.length).then((b) {
             if (mounted) setState(() => _best = b);
           });
@@ -186,6 +196,7 @@ class _DrumGardenGameState extends State<DrumGardenGame>
       _flashPad = -1;
       _flashT = 0;
       _lives = 3;
+      _beatBest = false;
       _banner = null;
       _bannerT = 0;
       _nextT = 0;

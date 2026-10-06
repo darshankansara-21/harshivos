@@ -28,6 +28,7 @@ class _RhythmClapGameState extends State<RhythmClapGame>
   int _score = 0;
   int _lives = 3;
   int _best = 0;
+  bool _beatBest = false;
   double _padFlash = 0;
   String? _banner;
   double _bannerT = 0;
@@ -109,9 +110,18 @@ class _RhythmClapGameState extends State<RhythmClapGame>
         }
         TonePlayer.instance.playNote(4 + (_score % 5), seconds: 0.18);
         emit(ExperienceEvent.bubblePopped);
+        // A child who runs out of lives right after this clap still
+        // deserves the companion's loudest celebration if it's a genuine
+        // all-time record, not just the routine correct-clap chime.
+        final crossedBest = _score > _best && !_beatBest && _best > 0;
         GameScores.instance.submit(_id, _score).then((b) {
           if (mounted) setState(() => _best = b);
         });
+        if (crossedBest) {
+          _beatBest = true;
+          TonePlayer.instance.playCue(SoundCue.milestone);
+          emit(ExperienceEvent.personalBest);
+        }
         if (_score >= _target) {
           _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
           _status = GameStatus.won;
@@ -128,6 +138,7 @@ class _RhythmClapGameState extends State<RhythmClapGame>
     setState(() {
       _score = 0;
       _lives = 3;
+      _beatBest = false;
       _bits.clear();
       _banner = null;
       _bannerT = 0;

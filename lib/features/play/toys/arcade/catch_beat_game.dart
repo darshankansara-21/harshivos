@@ -48,6 +48,7 @@ class _CatchBeatGameState extends State<CatchBeatGame>
   int _bestCombo = 0;
   int _lives = 3;
   int _best = 0;
+  bool _beatBest = false;
   int _laneFlash = -1;
   double _laneFlashT = 0;
   bool _laneFlashHit = false;
@@ -178,9 +179,19 @@ class _CatchBeatGameState extends State<CatchBeatGame>
       } else if (_combo >= 3) {
         _flash('Combo x$_combo');
       }
+      // A child who runs out of lives right after this catch still deserves
+      // the companion's loudest celebration if it's a genuine all-time
+      // record, not just the routine correct-catch chime.
+      final crossedBest = _score > _best && !_beatBest && _best > 0;
       GameScores.instance.submit(_id, _score).then((b) {
         if (mounted) setState(() => _best = b);
       });
+      if (crossedBest) {
+        _beatBest = true;
+        _flash('New personal best! 🏆');
+        TonePlayer.instance.playCue(SoundCue.milestone);
+        emit(ExperienceEvent.personalBest);
+      }
       if (_score >= _target) {
         _status = GameStatus.won;
         TonePlayer.instance.playCue(SoundCue.gameStart);
@@ -198,6 +209,7 @@ class _CatchBeatGameState extends State<CatchBeatGame>
       _score = 0;
       _combo = 0;
       _lives = 3;
+      _beatBest = false;
       _banner = null;
       _bannerT = 0;
       _status = GameStatus.playing;

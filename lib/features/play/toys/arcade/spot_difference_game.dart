@@ -28,6 +28,7 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with _Emit {
   int _score = 0;
   int _lives = 3;
   int _best = 0;
+  bool _beatBest = false;
   int _wrongFlash = -1;
   String? _banner;
   GameStatus _status = GameStatus.ready;
@@ -61,9 +62,19 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with _Emit {
       TonePlayer.instance.playCue(SoundCue.success);
       emit(ExperienceEvent.bubblePopped);
       _banner = _spottedPool[_rnd.nextInt(_spottedPool.length)];
+      // A child who runs out of lives right after this tap still deserves
+      // the companion's loudest celebration if it's a genuine all-time
+      // record, not just the routine correct-spot chime.
+      final crossedBest = _score > _best && !_beatBest && _best > 0;
       GameScores.instance.submit(_id, _score).then((b) {
         if (mounted) setState(() => _best = b);
       });
+      if (crossedBest) {
+        _beatBest = true;
+        _banner = 'New personal best! 🏆';
+        TonePlayer.instance.playCue(SoundCue.milestone);
+        emit(ExperienceEvent.personalBest);
+      }
       if (_score >= _target) {
         _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         _status = GameStatus.won;
@@ -109,6 +120,7 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with _Emit {
     setState(() {
       _score = 0;
       _lives = 3;
+      _beatBest = false;
       _banner = null;
       _newRound();
       _status = GameStatus.playing;

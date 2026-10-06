@@ -30,6 +30,7 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
   List<int> _nums = <int>[2, 5, 8];
   bool _biggest = true;
   int _score = 0, _lives = 3, _best = 0;
+  bool _beatBest = false;
   int _wrong = -1;
   // Unlike the wrong tap (which flashes the tile red), a correct tap gave
   // zero tile-level visual feedback at all — the numbers just silently
@@ -88,9 +89,19 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
       TonePlayer.instance.playCue(SoundCue.correct);
       emit(ExperienceEvent.bubblePopped);
       _banner = _correctPool[_rnd.nextInt(_correctPool.length)];
+      // A child who runs out of lives right after this tap still deserves
+      // the companion's loudest celebration if it's a genuine all-time
+      // record, not just the routine correct-tap chime.
+      final crossedBest = _score > _best && !_beatBest && _best > 0;
       GameScores.instance.submit(_id, _score).then((v) {
         if (mounted) setState(() => _best = v);
       });
+      if (crossedBest) {
+        _beatBest = true;
+        _banner = 'New personal best! 🏆';
+        TonePlayer.instance.playCue(SoundCue.milestone);
+        emit(ExperienceEvent.personalBest);
+      }
       if (_score >= _target) {
         _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         // The final correct tap used to jump straight to the win overlay in
@@ -145,6 +156,7 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
     setState(() {
       _score = 0;
       _lives = 3;
+      _beatBest = false;
       _banner = null;
       _newRound();
       _status = GameStatus.playing;
