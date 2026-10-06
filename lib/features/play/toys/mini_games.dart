@@ -2165,20 +2165,50 @@ class _SnakeGameState extends State<SnakeGame>
               Positioned(
                 left: 20,
                 bottom: 20,
-                child: Listener(
-                  onPointerDown: (_) => _boost = true,
-                  onPointerUp: (_) => _boost = false,
-                  onPointerCancel: (_) => _boost = false,
-                  child: Container(
-                    width: 76,
-                    height: 76,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.14),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white30, width: 2),
+                // This button was the only interactive control in the whole
+                // Play catalog that gave zero confirmation of its own press
+                // state: the circle's color/size/glow never changed whether
+                // or not a child was actively holding boost, unlike every
+                // other button here (clicky buttons, toggle switches, etc.)
+                // which all animate on press. It also had no Semantics node
+                // at all, so a screen-reader user had no way to even
+                // discover a boost control exists. Add both: an animated
+                // glow/scale while held, plus a discoverable, announced
+                // on/off label matching the toggle-switch convention.
+                child: Semantics(
+                  label: 'Boost, hold to speed up',
+                  toggled: _boost,
+                  excludeSemantics: true,
+                  child: Listener(
+                    onPointerDown: (_) => setState(() => _boost = true),
+                    onPointerUp: (_) => setState(() => _boost = false),
+                    onPointerCancel: (_) => setState(() => _boost = false),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 120),
+                      width: _boost ? 84 : 76,
+                      height: _boost ? 84 : 76,
+                      decoration: BoxDecoration(
+                        color: _boost
+                            ? const Color(0xFF06D6A0).withOpacity(0.55)
+                            : Colors.white.withOpacity(0.14),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                            color: _boost
+                                ? const Color(0xFF06D6A0)
+                                : Colors.white30,
+                            width: 2),
+                        boxShadow: _boost
+                            ? const <BoxShadow>[
+                                BoxShadow(
+                                    color: Color(0x8006D6A0),
+                                    blurRadius: 20,
+                                    spreadRadius: 2),
+                              ]
+                            : const <BoxShadow>[],
+                      ),
+                      child: const Icon(Icons.keyboard_double_arrow_up_rounded,
+                          color: Colors.white, size: 40),
                     ),
-                    child: const Icon(Icons.keyboard_double_arrow_up_rounded,
-                        color: Colors.white, size: 40),
                   ),
                 ),
               ),
