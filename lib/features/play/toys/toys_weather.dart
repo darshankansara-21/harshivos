@@ -174,6 +174,14 @@ class _LavaLampToyState extends State<LavaLampToy>
   final List<_Blob> _blobs = <_Blob>[];
   final math.Random _r = math.Random();
   double _t = 0;
+  // Unlike every sibling toy in this file (RainbowRainToy's rain,
+  // CalmCloudsToy's clouds, BubblePopToy's bubbles), this lamp's blobs kept
+  // rising, falling, and side-drifting forever at full speed via an
+  // unconditional `_t += dt` with zero Reduce Motion handling at all — the
+  // one ambient-motion toy that slipped through every prior sweep of this
+  // bug class. Thin the global clock driving that motion under Reduce
+  // Motion instead of leaving it as the remaining gap.
+  bool _reduceMotion = false;
 
   @override
   void initState() {
@@ -190,7 +198,7 @@ class _LavaLampToyState extends State<LavaLampToy>
   }
 
   @override
-  void onTick(double dt) => _t += dt;
+  void onTick(double dt) => _t += dt * (_reduceMotion ? 0.2 : 1.0);
 
   void _addBlob(double fractionalX) {
     setState(() {
@@ -215,6 +223,7 @@ class _LavaLampToyState extends State<LavaLampToy>
     // Same "describable but not actionable" gap as RainbowRainToy above —
     // a screen reader could discover the lamp but never tap it. One shared
     // Semantics node makes the discrete add-a-blob action reachable.
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return Semantics(
       button: true,
       label: 'Tap to add a glowing blob to the lava lamp',
