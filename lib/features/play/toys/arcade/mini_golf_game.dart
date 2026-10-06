@@ -266,7 +266,7 @@ class _MiniGolfGameState extends State<MiniGolfGame>
         TonePlayer.instance.playCue(SoundCue.milestone);
         emit(ExperienceEvent.personalBest);
       }
-      TonePlayer.instance.playCue(SoundCue.gameStart);
+      TonePlayer.instance.playCue(SoundCue.success);
       emit(ExperienceEvent.gameCompleted);
     } else {
       _nextT = 0.9;

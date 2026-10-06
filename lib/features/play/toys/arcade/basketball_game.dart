@@ -268,7 +268,7 @@ class _BasketballGameState extends State<BasketballGame>
         TonePlayer.instance.playCue(SoundCue.milestone);
         emit(ExperienceEvent.personalBest);
       }
-      TonePlayer.instance.playCue(SoundCue.gameStart);
+      TonePlayer.instance.playCue(SoundCue.success);
       emit(ExperienceEvent.gameCompleted);
     } else {
       _resetT = 0.6;

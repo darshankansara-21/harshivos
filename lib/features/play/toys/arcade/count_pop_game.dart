@@ -161,7 +161,7 @@ class _CountPopGameState extends State<CountPopGame>
               TonePlayer.instance.playCue(SoundCue.milestone);
               emit(ExperienceEvent.personalBest);
             }
-            TonePlayer.instance.playCue(SoundCue.gameStart);
+            TonePlayer.instance.playCue(SoundCue.success);
             emit(ExperienceEvent.gameCompleted);
           } else {
             _banner = 'Yes! You popped $_need 🫧';
