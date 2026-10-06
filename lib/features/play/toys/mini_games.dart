@@ -529,6 +529,15 @@ class _FruitCatchGameState extends State<FruitCatchGame>
   // player's very first catch (where `_best` is still 0) isn't falsely
   // celebrated, and so it only fires once per run.
   bool _beatBest = false;
+  // Same "flat-forever opening pace never fed by career `_best`" bug class
+  // already fixed catalog-wide in brick_break/stack/sky_hop/hoop_toss/etc.:
+  // the fall speed and spawn cadence below only ever scaled with the
+  // current run's `_score`, so a child who already has a high all-time
+  // best faced the identical slow, sparse opening seconds every single
+  // replay forever. Both call sites below read this getter live, so there
+  // is no stale-field reset to worry about (unlike the stored-field games
+  // that needed an explicit `onStart` fix too).
+  double get _careerPaceRamp => (_best / _target).clamp(0.0, 1.0) * 0.14;
 
   @override
   void initState() {
@@ -551,6 +560,7 @@ class _FruitCatchGameState extends State<FruitCatchGame>
     // plateau that never reaches a meaningfully faster end-state.
     final speed = 0.28 +
         _rnd.nextDouble() * 0.16 +
+        _careerPaceRamp +
         math.min(0.26, _score * 0.0145) +
         (kind == 1 ? 0.12 : 0);
     _items.add(
@@ -573,8 +583,8 @@ class _FruitCatchGameState extends State<FruitCatchGame>
     }
     _spawnIn -= dt;
     if (_spawnIn <= 0) {
-      _spawnIn =
-          math.max(0.32, 0.7 - _score * 0.021) * (0.7 + _rnd.nextDouble() * 0.6);
+      _spawnIn = math.max(0.32, 0.7 - _score * 0.021 - _careerPaceRamp * 0.6) *
+          (0.7 + _rnd.nextDouble() * 0.6);
       _spawn();
     }
     for (final f in _items) {
