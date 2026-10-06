@@ -12,11 +12,20 @@ class SnackStudioToy extends StatefulWidget {
 }
 
 class _SnackStudioToyState extends State<SnackStudioToy> {
+  // Only 3 bases x 4 toppings (12 single-topping combos) gave this
+  // open-ended creative toy noticeably thinner replay variety than every
+  // other free-play sensory toy in the catalog — a child who serves a few
+  // snacks quickly sees every base and topping at least once. Tripling the
+  // pool (6 bases, 8 toppings) gives real creative range while keeping
+  // 'Bread'/'Berry' first so existing muscle memory (and the widget test)
+  // still finds them immediately.
   static const List<(String, String)> _bases = <(String, String)>[
     ('Bread', '🍞'), ('Taco', '🌮'), ('Bowl', '🥣'),
+    ('Pancake', '🥞'), ('Sandwich', '🥪'), ('Waffle', '🧇'),
   ];
   static const List<(String, String)> _toppings = <(String, String)>[
     ('Berry', '🍓'), ('Banana', '🍌'), ('Cheese', '🧀'), ('Leaf', '🥬'),
+    ('Honey', '🍯'), ('Chocolate', '🍫'), ('Orange', '🍊'), ('Mint', '🌿'),
   ];
 
   (String, String)? _base;
@@ -35,7 +44,10 @@ class _SnackStudioToyState extends State<SnackStudioToy> {
   }
 
   void _addTopping((String, String) topping) {
-    if (_base == null || _served || _chosen.length >= 4) return;
+    // Raised from 4 to 5 alongside doubling the topping pool to 8, so the
+    // wider variety actually has room to show up in a single creation
+    // instead of being capped at the same ceiling the old, thinner pool had.
+    if (_base == null || _served || _chosen.length >= 5) return;
     TonePlayer.instance.haptic(HapticFeedback.lightImpact);
     TonePlayer.instance.playPop(_chosen.length / 4);
     setState(() => _chosen.add(topping));
@@ -174,39 +186,45 @@ class _ChoiceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        for (final item in items)
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Semantics(
-                button: true,
-                label: item.$1,
-                child: InkWell(
-                  onTap: () => onChoose(item),
+    // The bases/toppings pools doubled in size (3->6, 4->8); a Row of
+    // Expanded cells that worked fine for 3-4 items would squeeze 6-8 items
+    // into illegibly narrow slivers on a phone. A horizontally scrollable
+    // row of fixed-width cards keeps every item comfortably tappable no
+    // matter how large the pool grows.
+    return SizedBox(
+      height: 82,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: items.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, i) {
+          final item = items[i];
+          return Semantics(
+            button: true,
+            label: item.$1,
+            child: InkWell(
+              onTap: () => onChoose(item),
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                width: 88,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF3D6),
                   borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    height: 82,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF3D6),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: <Widget>[
-                        Text(item.$2, style: const TextStyle(fontSize: 28)),
-                        Text(item.$1, style: const TextStyle(
-                            color: Color(0xFF153B38), fontWeight: FontWeight.w700)),
-                      ],
-                    ),
-                  ),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Text(item.$2, style: const TextStyle(fontSize: 28)),
+                    Text(item.$1, style: const TextStyle(
+                        color: Color(0xFF153B38), fontWeight: FontWeight.w700)),
+                  ],
                 ),
               ),
             ),
-          ),
-      ],
+          );
+        },
+      ),
     );
   }
 }
