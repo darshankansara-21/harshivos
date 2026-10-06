@@ -20,6 +20,12 @@ class _MergeGameState extends State<MergeGame> with _Emit {
   int _milestone = 0;
   int _score = 0;
   int _best = 0;
+  // Merge's score grows across an open-ended session that can end earlier
+  // via a board-full game over, exactly like stack/sky_hop/space_dodge's
+  // shape — yet unlike all of those, crossing the player's own all-time
+  // best mid-run was never celebrated here, only the per-run tile milestone
+  // was. Mirrors their `_beatBest` one-shot guard + banner + sound pattern.
+  bool _beatBest = false;
   String? _banner;
   GameStatus _status = GameStatus.ready;
 
@@ -110,6 +116,17 @@ class _MergeGameState extends State<MergeGame> with _Emit {
       TonePlayer.instance.playCue(SoundCue.milestone);
       _milestone = 0;
     }
+    if (!_beatBest &&
+        _best > 0 &&
+        _score > _best &&
+        _status != GameStatus.won) {
+      _beatBest = true;
+      // Takes priority over the tile-milestone banner just set above — a
+      // new all-time record is the bigger moment of the two.
+      _banner = 'New personal best! 🏆';
+      TonePlayer.instance.playCue(SoundCue.milestone);
+      emit(ExperienceEvent.personalBest);
+    }
     if (_status == GameStatus.won) {
       TonePlayer.instance.playCue(SoundCue.success);
       emit(ExperienceEvent.gameCompleted);
@@ -151,6 +168,7 @@ class _MergeGameState extends State<MergeGame> with _Emit {
       _score = 0;
       _maxTile = 2;
       _milestone = 0;
+      _beatBest = false;
       _banner = null;
       _status = GameStatus.playing;
       _spawn();
