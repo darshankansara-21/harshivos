@@ -39,6 +39,16 @@ class _BeatBuilderGameState extends State<BeatBuilderGame>
   String? _banner;
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
+  // Filling the last cell used to flip `_status` to `GameStatus.won`
+  // instantly, and `onTick` below early-returns the moment status isn't
+  // `playing` — so the playhead froze mid-bar and the full 8-step groove the
+  // child just spent a whole round building was silenced before it could
+  // ever actually play, the one payoff this whole game is built around.
+  // Keep `_status` at `playing` for one more full loop around the grid so
+  // the completed beat plays through at least once, then reveal the win
+  // overlay.
+  bool _winPending = false;
+  double _winDelayT = 0;
 
   @override
   void initState() {
@@ -54,6 +64,16 @@ class _BeatBuilderGameState extends State<BeatBuilderGame>
     if (_bannerT > 0) {
       _bannerT -= dt;
       if (_bannerT <= 0) _banner = null;
+    }
+    if (_winPending) {
+      _winDelayT -= dt;
+      if (_winDelayT <= 0) {
+        _winPending = false;
+        _status = GameStatus.won;
+        _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
+        TonePlayer.instance.playCue(SoundCue.gameStart);
+        emit(ExperienceEvent.gameCompleted);
+      }
     }
     _stepT += dt;
     if (_stepT >= _tempo) {
@@ -76,7 +96,12 @@ class _BeatBuilderGameState extends State<BeatBuilderGame>
   }
 
   void _toggleCell(int row, int col) {
-    if (_status != GameStatus.playing) return;
+    // Blocks further edits during the post-fill victory lap below — the
+    // grid is already complete and about to be celebrated, so letting a
+    // stray tap toggle a cell back off mid-loop would both silently break
+    // the "full groove" that's about to play and undo the win it already
+    // earned.
+    if (_status != GameStatus.playing || _winPending) return;
     final idx = row * _steps + col;
     setState(() {
       _grid[idx] = !_grid[idx];
@@ -89,15 +114,15 @@ class _BeatBuilderGameState extends State<BeatBuilderGame>
         GameScores.instance.submit(_id, _active);
       }
       if (_active == _rowsN * _steps) {
-        // Filling every step is the whole point of the sequencer — it must
-        // earn the same win celebration every other game gets, not just a
-        // banner that fades while the status quietly stays "playing".
+        // Filling every step is the whole point of the sequencer, and the
+        // instant it happens is the one time all eight steps are lit at
+        // once — let the full groove actually loop around and play once
+        // (one full bar, `_steps * _tempo`) before the win overlay appears,
+        // instead of freezing the playhead the moment the last cell lands.
         _banner = 'Full groove! 🔥';
         _bannerT = 1.6;
-        _status = GameStatus.won;
-        _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
-        TonePlayer.instance.playCue(SoundCue.gameStart);
-        emit(ExperienceEvent.gameCompleted);
+        _winPending = true;
+        _winDelayT = _steps * _tempo;
       }
     });
   }
@@ -112,6 +137,8 @@ class _BeatBuilderGameState extends State<BeatBuilderGame>
       _stepT = 0;
       _banner = null;
       _bannerT = 0;
+      _winPending = false;
+      _winDelayT = 0;
       _status = GameStatus.playing;
     });
   }
