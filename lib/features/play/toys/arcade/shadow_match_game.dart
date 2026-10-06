@@ -8,7 +8,8 @@ class ShadowMatchGame extends StatefulWidget {
   State<ShadowMatchGame> createState() => _ShadowMatchGameState();
 }
 
-class _ShadowMatchGameState extends State<ShadowMatchGame> with _Emit {
+class _ShadowMatchGameState extends State<ShadowMatchGame>
+    with TickerProviderStateMixin, ToyTicker, _Emit {
   static const String _id = 'shadow_match';
   static const int _target = 10;
   static const List<Color> _tint = <Color>[
@@ -40,6 +41,13 @@ class _ShadowMatchGameState extends State<ShadowMatchGame> with _Emit {
   int _wrongFlash = -1;
   String? _banner;
   GameStatus _status = GameStatus.ready;
+  // Every sibling tap/match game in the catalog (odd_one_out,
+  // shape_sort_chute, pattern_weaver...) bursts a few shards of colour on a
+  // correct hit; this one only ever advanced silently to the next round,
+  // making the one feeling this whole game is built around — finding the
+  // matching shadow — land flatter than every other reaction-tap sibling.
+  final List<_Shard> _bits = <_Shard>[];
+  bool _reduceMotion = false;
 
   // Screen-reader users can't see the bright shape or its black shadows, so
   // expose the same shape name a sighted child reads visually per option —
@@ -56,6 +64,27 @@ class _ShadowMatchGameState extends State<ShadowMatchGame> with _Emit {
     GameScores.instance.ensureLoaded().then((_) {
       if (mounted) setState(() => _best = GameScores.instance.best(_id));
     });
+  }
+
+  @override
+  void onTick(double dt) {
+    for (var i = _bits.length - 1; i >= 0; i--) {
+      final b = _bits[i];
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.vy += 0.5 * dt;
+      b.life -= dt;
+      if (b.life <= 0) _bits.removeAt(i);
+    }
+  }
+
+  void _burst(double x, double y, Color color) {
+    final n = _reduceMotion ? 4 : 12;
+    for (var i = 0; i < n; i++) {
+      final a = _rnd.nextDouble() * math.pi * 2;
+      final sp = 0.15 + _rnd.nextDouble() * 0.3;
+      _bits.add(_Shard(x, y, math.cos(a) * sp, math.sin(a) * sp, color));
+    }
   }
 
   // More shadows to scan gets genuinely harder: 4 options at the start,
@@ -84,6 +113,8 @@ class _ShadowMatchGameState extends State<ShadowMatchGame> with _Emit {
       TonePlayer.instance.playCue(SoundCue.success);
       emit(ExperienceEvent.bubblePopped);
       _banner = _matchPool[_rnd.nextInt(_matchPool.length)];
+      final n = _options.length;
+      _burst((idx + 0.5) / n, 0.72, _shapeColor);
       // A child who runs out of lives right after this tap still deserves
       // the companion's loudest celebration if it's a genuine all-time
       // record, not just the routine correct-match chime.
@@ -136,6 +167,7 @@ class _ShadowMatchGameState extends State<ShadowMatchGame> with _Emit {
       _lives = 3;
       _beatBest = false;
       _banner = null;
+      _bits.clear();
       _newRound();
       _status = GameStatus.playing;
     });
@@ -144,6 +176,7 @@ class _ShadowMatchGameState extends State<ShadowMatchGame> with _Emit {
   @override
   Widget build(BuildContext context) {
     drain(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _Shell(
       title: '🫥 Shadow Match',
       introHow:
@@ -216,6 +249,7 @@ class _ShadowMatchGameState extends State<ShadowMatchGame> with _Emit {
                     shapeColor: _shapeColor,
                     options: _options,
                     wrongFlash: _wrongFlash,
+                    bits: _bits,
                   ),
                   size: Size.infinite,
                 ),
@@ -235,11 +269,13 @@ class _ShadowPainter extends CustomPainter {
     required this.shapeColor,
     required this.options,
     required this.wrongFlash,
+    required this.bits,
   });
   final int shape;
   final Color shapeColor;
   final List<int> options;
   final int wrongFlash;
+  final List<_Shard> bits;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -267,6 +303,11 @@ class _ShadowPainter extends CustomPainter {
       }
       _paintPolyShape(canvas, c, r, options[i],
           Paint()..color = Colors.black.withOpacity(0.72));
+    }
+    for (final b in bits) {
+      final k = (b.life / 0.5).clamp(0.0, 1.0);
+      canvas.drawCircle(Offset(b.x * w, b.y * h), 2 + 3 * k,
+          Paint()..color = b.color.withOpacity(k));
     }
   }
 
