@@ -4,7 +4,30 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../services/audio/tone_player.dart';
+import '../../companion/companion.dart';
 import 'mini_games.dart' show GameScores, GameStatus;
+
+/// Lets this standalone game emit companion events (correct / win) and
+/// flush them to the host after the frame — the same pattern
+/// arcade_games.dart's `_Emit` and goal_games.dart's `_GoalEmit` use,
+/// duplicated here because this file isn't part of either library.
+mixin _TraceEmit<T extends StatefulWidget> on State<T> {
+  final List<ExperienceEvent> _pendingEvents = <ExperienceEvent>[];
+
+  void emit(ExperienceEvent event) => _pendingEvents.add(event);
+
+  void drainCompanion(BuildContext context) {
+    if (_pendingEvents.isEmpty) return;
+    final events = List<ExperienceEvent>.from(_pendingEvents);
+    _pendingEvents.clear();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      for (final event in events) {
+        CompanionEventNotification(event).dispatch(context);
+      }
+    });
+  }
+}
 
 /// Trace It — a calm fine-motor game. A shape is drawn as a trail of dots and
 /// the child drags a finger over them to light each one up. Complete a shape to
@@ -17,7 +40,7 @@ class TraceGame extends StatefulWidget {
   State<TraceGame> createState() => _TraceGameState();
 }
 
-class _TraceGameState extends State<TraceGame> {
+class _TraceGameState extends State<TraceGame> with _TraceEmit {
   static const String _id = 'trace_it';
   static const int _shapeCount = 5;
   // Total distinct shapes the game can draw from. Only _shapeCount of these
@@ -28,6 +51,11 @@ class _TraceGameState extends State<TraceGame> {
   final math.Random _rnd = math.Random();
   int _score = 0;
   int _best = 0;
+  // Every other scoring game in the catalog already celebrates the moment a
+  // run's score passes the child's all-time best with a milestone chime +
+  // ExperienceEvent.personalBest — Trace It only ever submitted the new
+  // best silently. Guard it the same way (reset in `_reset()`).
+  bool _beatBest = false;
   GameStatus _status = GameStatus.playing;
   late List<Offset> _pts;
   late List<bool> _lit;
@@ -156,15 +184,31 @@ class _TraceGameState extends State<TraceGame> {
     // game with zero tactile feedback on the actual dot-lighting contact.
     TonePlayer.instance.haptic(HapticFeedback.selectionClick);
     TonePlayer.instance.playPop(0.4 + done / _pts.length * 0.5);
+    // Trace It had zero companion wiring at all — not on a single dot lit,
+    // not on a shape completed, not even on the full win — the same
+    // repo-wide companion-integration gap (CLAUDE.md Phase 7) already fixed
+    // for goal_games.dart's 5 games. Mirror the catalog-wide convention used
+    // by maze_run/echo: a quiet correctAnswer per dot lands right, the
+    // routine bubblePopped per finished shape, and gameCompleted reserved
+    // for the final win so it isn't diluted across every sub-goal.
+    emit(ExperienceEvent.correctAnswer);
     if (_lit.every((e) => e)) {
       _score++;
+      final crossedBest = _score > _best && !_beatBest && _best > 0;
       GameScores.instance.submit(_id, _score).then((b) {
         if (mounted) setState(() => _best = b);
       });
+      emit(ExperienceEvent.bubblePopped);
       if (_score >= _shapeCount) {
         _status = GameStatus.won;
         _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         TonePlayer.instance.playCue(SoundCue.success);
+        emit(ExperienceEvent.gameCompleted);
+      } else if (crossedBest) {
+        _beatBest = true;
+        TonePlayer.instance.playCue(SoundCue.milestone);
+        emit(ExperienceEvent.personalBest);
+        _load(_score);
       } else {
         TonePlayer.instance.playCue(SoundCue.correct);
         _load(_score);
@@ -176,6 +220,7 @@ class _TraceGameState extends State<TraceGame> {
   void _reset() {
     setState(() {
       _score = 0;
+      _beatBest = false;
       _status = GameStatus.playing;
       _order = _pickOrder();
       _load(0);
@@ -184,6 +229,7 @@ class _TraceGameState extends State<TraceGame> {
 
   @override
   Widget build(BuildContext context) {
+    drainCompanion(context);
     return Stack(
       fit: StackFit.expand,
       children: <Widget>[
