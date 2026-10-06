@@ -138,25 +138,55 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with _Emit {
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapDown: (d) {
-              final col = (d.localPosition.dx / w * _cols).floor();
-              final row = (d.localPosition.dy / h * _rows).floor();
-              if (col < 0 || col >= _cols || row < 0 || row >= _rows) return;
-              _pick(row * _cols + col);
-            },
-            child: CustomPaint(
-              painter: _SpotPainter(
-                cols: _cols,
-                rows: _rows,
-                odd: _odd,
-                base: _base,
-                oddColor: _oddColor,
-                wrongFlash: _wrongFlash,
+          final cw = w / _cols, ch = h / _rows;
+          // Every tile is painted only onto the canvas with a colour
+          // difference so subtle it's the entire challenge — but that left
+          // the whole grid with zero Semantics tree, so a screen-reader
+          // user couldn't even discover a tile existed to tap, let alone
+          // which one they'd just picked. These invisible per-tile overlays
+          // (same pattern as odd_one_out/pattern_weaver) expose position and
+          // route to the real `_pick()` hit-test, without naming the shade
+          // itself — that would hand away the answer this game is about.
+          final tiles = <Widget>[
+            for (var r = 0; r < _rows; r++)
+              for (var cc = 0; cc < _cols; cc++)
+                Positioned(
+                  left: cc * cw,
+                  top: r * ch,
+                  width: cw,
+                  height: ch,
+                  child: Semantics(
+                    label: 'Row ${r + 1} column ${cc + 1}',
+                    button: true,
+                    onTap: () => _pick(r * _cols + cc),
+                    child: const SizedBox.expand(),
+                  ),
+                ),
+          ];
+          return Stack(
+            children: <Widget>[
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapDown: (d) {
+                  final col = (d.localPosition.dx / w * _cols).floor();
+                  final row = (d.localPosition.dy / h * _rows).floor();
+                  if (col < 0 || col >= _cols || row < 0 || row >= _rows) return;
+                  _pick(row * _cols + col);
+                },
+                child: CustomPaint(
+                  painter: _SpotPainter(
+                    cols: _cols,
+                    rows: _rows,
+                    odd: _odd,
+                    base: _base,
+                    oddColor: _oddColor,
+                    wrongFlash: _wrongFlash,
+                  ),
+                  size: Size.infinite,
+                ),
               ),
-              size: Size.infinite,
-            ),
+              ...tiles,
+            ],
           );
         },
       ),
