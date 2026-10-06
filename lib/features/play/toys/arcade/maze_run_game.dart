@@ -123,7 +123,13 @@ class _MazeRunGameState extends State<MazeRunGame> with _Emit {
       if (nc == _key && !_hasKey) {
         _hasKey = true;
         TonePlayer.instance.playCue(SoundCue.success);
-        _banner = 'Key! 🔑 Now find the exit';
+        // Was a direct `_banner =` assignment with no clearing timer, so it
+        // stayed glued over the "Find the exit!" live status hint for the
+        // rest of the maze instead of fading like every other transient
+        // banner in this file (same stuck-banner bug class fixed
+        // catalog-wide in batch 435, missed here because this one bypassed
+        // `_flashBanner` entirely).
+        _flashBanner('Key! 🔑 Now find the exit');
       }
       if (nc == _exit && _hasKey) {
         _solve();

@@ -13,6 +13,13 @@ class _TicTacToeGameState extends State<TicTacToeGame> with _Emit {
     'You win!', 'Three in a row!', 'Victory!', 'Great game!',
   ];
   String _winPraise = _winPraisePool[0];
+  // A loss to Pico used to show the exact same 'Pico wins!' literal every
+  // single time — the same flat-repeated-banner gap the win/draw text above
+  // already avoids with a pool. Keeps the gentle, no-fault tone (Pico simply
+  // "got" the win, nothing framed as the child doing something wrong).
+  static const List<String> _losePool = <String>[
+    'Pico wins!', 'Pico got it!', 'So close! Pico wins.', 'Pico takes this one!',
+  ];
   final List<int> _b = List<int>.filled(9, 0); // 0 empty, 1 player, 2 ai
   List<int> _winLine = const <int>[];
   int _best = 0; // wins
@@ -113,7 +120,7 @@ class _TicTacToeGameState extends State<TicTacToeGame> with _Emit {
       });
     } else if (w == 2) {
       _status = GameStatus.over;
-      _overText = 'Pico wins!';
+      _overText = _losePool[_rnd.nextInt(_losePool.length)];
       TonePlayer.instance.playCue(SoundCue.gameOver);
       emit(ExperienceEvent.incorrectAnswer);
     } else {
