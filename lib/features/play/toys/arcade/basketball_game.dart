@@ -64,6 +64,17 @@ class _BasketballGameState extends State<BasketballGame>
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
 
+  // Same "flat-forever opening pace never fed by career `_best`" bug class
+  // already fixed in target_toss_game/hoop_toss_game/penalty_dash_game
+  // (identical sliding-target shape): once the hoop starts gliding past
+  // shot 4, its top speed only ever ramped within the current round
+  // (`_score`), so a child who has already sunk hundreds of career baskets
+  // still faces the identical gentle glide as a first-time player every
+  // single round. The static "ease into motion" window before shot 4 stays
+  // flat for everyone — that's deliberate round pacing, not a skill gate —
+  // but the speed ramp beyond it gets a small capped career nudge.
+  double get _careerHoopRamp => (_best / (_target * 4)).clamp(0.0, 1.0) * 0.08;
+
   @override
   void initState() {
     super.initState();
@@ -223,7 +234,10 @@ class _BasketballGameState extends State<BasketballGame>
     // Ease the hoop into motion instead of snapping discontinuously at the
     // score 4/8 thresholds — a smooth ramp from the first wobble to full
     // speed feels fair rather than a sudden jolt right after a basket.
-    _hoopSpeed = _score < 4 ? 0 : (0.22 * (_score - 4) / (_target - 1)).clamp(0.0, 0.22);
+    _hoopSpeed = _score < 4
+        ? 0
+        : (0.22 * (_score - 4) / (_target - 1)).clamp(0.0, 0.22) +
+            _careerHoopRamp;
     // A child who wins right after this basket still deserves the
     // companion's loudest celebration if it's a genuine all-time record,
     // not just the routine swish chime — every other scoring game in the

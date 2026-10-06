@@ -37,6 +37,16 @@ class _TargetTossGameState extends State<TargetTossGame>
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
 
+  // Same "flat-forever opening pace never fed by career `_best`" bug class
+  // already fixed in hoop_toss_game/penalty_dash_game (identical fixed-
+  // win-cap + sliding-target shape): the board's slide speed only ever
+  // ramped within a single run (`_score / _target * 0.26`), so a child who
+  // has already racked up dozens of career bullseyes still opens every
+  // fresh toss against the exact same gentle 0.18 slide as a first-time
+  // player. Capped well short of the in-run ramp so the very first toss of
+  // a match stays reachable even for a seasoned marksman.
+  double get _careerPaceRamp => (_best / (_target * 4)).clamp(0.0, 1.0) * 0.12;
+
   @override
   void initState() {
     super.initState();
@@ -152,7 +162,7 @@ class _TargetTossGameState extends State<TargetTossGame>
     TonePlayer.instance.playCue(SoundCue.success);
     emit(ExperienceEvent.bubblePopped);
     _flash(label);
-    _tSpeed = 0.18 + (_score / _target) * 0.26;
+    _tSpeed = 0.18 + _careerPaceRamp + (_score / _target) * 0.26;
     // A bullseye-heavy run can clear the 24-point target with points to
     // spare — surface that as a genuine personal best, matching the pattern
     // every other variable-scoring game in the catalog already uses.
@@ -207,7 +217,7 @@ class _TargetTossGameState extends State<TargetTossGame>
     setState(() {
       _score = 0;
       _throws = 0;
-      _tSpeed = 0.18;
+      _tSpeed = 0.18 + _careerPaceRamp;
       _tx = 0.5;
       _tDir = 1;
       _beatBest = false;
@@ -228,7 +238,14 @@ class _TargetTossGameState extends State<TargetTossGame>
       title: '🎯 Target Toss',
       introHow:
           'Drag from the bean bag toward the moving target, then let go. Hit the centre for 5!',
-      onStart: () => setState(() => _status = GameStatus.playing),
+      onStart: () => setState(() {
+        // `_best` only finishes loading asynchronously after `initState`, so
+        // the very first play of a session (unlike every later `_reset()`
+        // replay) must pick up the career ramp here too, not just leave
+        // `_tSpeed` at its unramped field default until the first hit.
+        _tSpeed = 0.18 + _careerPaceRamp;
+        _status = GameStatus.playing;
+      }),
       score: _score,
       best: _best,
       target: _target,
