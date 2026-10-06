@@ -3308,7 +3308,15 @@ class _BowlingGameState extends State<BowlingGame>
           'Ten frames — go for a STRIKE!',
       onStart: _start,
       onPlayAgain: _reset,
-      child: GestureDetector(
+      child: Semantics(
+        button: true,
+        label: 'Frame $_frame of 10, ball $_ballInFrame. Tap to bowl '
+            'straight up the lane.',
+        onTap: () {
+          if (_phase == _BowlPhase.aim) _throw(0, -1.4);
+        },
+        excludeSemantics: true,
+        child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onPanUpdate: (d) {
           if (_phase != _BowlPhase.aim || _status != GameStatus.playing) return;
@@ -3379,6 +3387,7 @@ class _BowlingGameState extends State<BowlingGame>
               ),
             ),
           ],
+        ),
         ),
       ),
     );
