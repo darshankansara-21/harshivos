@@ -55,6 +55,7 @@ class _MemoryPairsDeluxeGameState extends State<MemoryPairsDeluxeGame>
   int _streak = 0;
   int _score = 0;
   int _best = 0;
+  bool _beatBest = false;
   String? _banner;
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
@@ -122,9 +123,23 @@ class _MemoryPairsDeluxeGameState extends State<MemoryPairsDeluxeGame>
           _bannerT = 1.0;
           _first = -1;
           _second = -1;
+          // The streak multiplier makes every playthrough's final score
+          // genuinely open-ended, exactly the shape the catalog already
+          // celebrates mid-run with a "New personal best!" banner elsewhere
+          // (piano_tiles/ball_sort/bubble_wrap/stack/etc.) — this was the
+          // one remaining streak-scored game that tracked `_best` only to
+          // display it, never to celebrate actually beating it.
+          final crossedBest = _score > _best && !_beatBest && _best > 0;
           GameScores.instance.submit(_id, _score).then((b) {
             if (mounted) setState(() => _best = b);
           });
+          if (crossedBest) {
+            _beatBest = true;
+            _banner = 'New personal best! 🏆';
+            _bannerT = 1.2;
+            TonePlayer.instance.playCue(SoundCue.milestone);
+            emit(ExperienceEvent.personalBest);
+          }
           if (_cards.every((c) => c.matched)) {
             if (_level >= _target) {
               _status = GameStatus.won;
@@ -152,6 +167,7 @@ class _MemoryPairsDeluxeGameState extends State<MemoryPairsDeluxeGame>
       _level = 1;
       _streak = 0;
       _score = 0;
+      _beatBest = false;
       _banner = null;
       _bannerT = 0;
       _deal();
