@@ -32,6 +32,25 @@ class GameScores {
     }
     return best(id);
   }
+
+  /// Lower-is-better counterpart to [best]/[submit] — for metrics like
+  /// mini_golf's total strokes per round, where fewer is the genuine
+  /// personal best, not more. 0 means "no record set yet" (same "unset"
+  /// convention as [best]), so a first-ever round never falsely claims a
+  /// new record against a non-existent baseline.
+  int bestLow(String id) => _prefs?.getInt('best_low_$id') ?? 0;
+
+  /// Records [score] if it beats the stored low-is-better best (or none is
+  /// set yet); returns the resulting best.
+  Future<int> submitLow(String id, int score) async {
+    await ensureLoaded();
+    final current = bestLow(id);
+    if (current == 0 || score < current) {
+      await _prefs!.setInt('best_low_$id', score);
+      return score;
+    }
+    return current;
+  }
 }
 
 /// Lets a game emit companion events (collect / win / encourage) from anywhere

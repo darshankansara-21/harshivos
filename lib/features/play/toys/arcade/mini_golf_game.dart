@@ -48,6 +48,19 @@ class _MiniGolfGameState extends State<MiniGolfGame>
   int _strokes = 0;
   int _score = 0; // holes sunk
   int _best = 0;
+  // `_score` (holes sunk) always tops out at `_target` the moment a round is
+  // actually completed, so `_best` goes permanently static at 9 after the
+  // first full round — it can never again reflect a genuinely better round,
+  // even though the game's own tagline ("fewer strokes feel better") and
+  // its hole-in-one/birdie banners both treat stroke count as the real
+  // measure of skill. Track the round's total strokes and keep a separate,
+  // lower-is-better personal best for it via `GameScores.submitLow`, so a
+  // tighter round (not just "did you finish") is the thing that can
+  // actually be beaten run after run — a real golf scorecard, not just a
+  // completion flag.
+  static const String _strokesId = '${_id}_strokes';
+  int _totalStrokes = 0;
+  int _bestStrokes = 0;
   Offset? _aim;
   String? _banner;
   double _bannerT = 0;
@@ -57,7 +70,12 @@ class _MiniGolfGameState extends State<MiniGolfGame>
   void initState() {
     super.initState();
     GameScores.instance.ensureLoaded().then((_) {
-      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+      if (mounted) {
+        setState(() {
+          _best = GameScores.instance.best(_id);
+          _bestStrokes = GameScores.instance.bestLow(_strokesId);
+        });
+      }
     });
   }
 
@@ -215,6 +233,7 @@ class _MiniGolfGameState extends State<MiniGolfGame>
   void _sink() {
     _moving = false;
     _score++;
+    _totalStrokes += _strokes;
     _cupPulse = 0.6;
     final bitCount = _reduceMotion ? 5 : 16;
     for (var i = 0; i < bitCount; i++) {
@@ -234,6 +253,19 @@ class _MiniGolfGameState extends State<MiniGolfGame>
     if (_score >= _target) {
       _status = GameStatus.won;
       _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
+      // A full round that genuinely beats the fewest-strokes record is the
+      // real "did you golf better" moment this game is built around — give
+      // it the same milestone chime + companion celebration every other
+      // beat-your-best moment in the catalog gets, layered onto (not
+      // replacing) the win fanfare.
+      final beatStrokes = _bestStrokes > 0 && _totalStrokes < _bestStrokes;
+      GameScores.instance.submitLow(_strokesId, _totalStrokes).then((b) {
+        if (mounted) setState(() => _bestStrokes = b);
+      });
+      if (beatStrokes) {
+        TonePlayer.instance.playCue(SoundCue.milestone);
+        emit(ExperienceEvent.personalBest);
+      }
       TonePlayer.instance.playCue(SoundCue.gameStart);
       emit(ExperienceEvent.gameCompleted);
     } else {
@@ -280,6 +312,7 @@ class _MiniGolfGameState extends State<MiniGolfGame>
       _hole = 1;
       _strokes = 0;
       _score = 0;
+      _totalStrokes = 0;
       _nextT = 0;
       _bits.clear();
       _banner = null;
@@ -293,10 +326,18 @@ class _MiniGolfGameState extends State<MiniGolfGame>
   Widget build(BuildContext context) {
     drain(context);
     _reduceMotion = MediaQuery.disableAnimationsOf(context);
+    final beatStrokes = _status == GameStatus.won &&
+        _bestStrokes > 0 &&
+        _totalStrokes < _bestStrokes;
+    final roundWinText = beatStrokes
+        ? '$_winPraise New best round: $_totalStrokes strokes! 🏆'
+        : '$_winPraise $_totalStrokes strokes'
+            '${_bestStrokes > 0 ? ' (best $_bestStrokes)' : ''}';
     return _Shell(
       title: '⛳ Mini Golf',
       introHow:
-          'Drag from the ball toward the cup to aim and set power, then release to putt. Bank off the rails!',
+          'Drag from the ball toward the cup to aim and set power, then release to putt. Bank off the rails! '
+          'Fewer total strokes across the round is a better score.',
       onStart: () => setState(() {
         _setupHole();
         _status = GameStatus.playing;
@@ -305,9 +346,11 @@ class _MiniGolfGameState extends State<MiniGolfGame>
       best: _best,
       target: _target,
       status: _status,
-      banner: _banner ?? 'Hole $_hole/$_target · strokes $_strokes',
+      banner: _banner ??
+          ('Hole $_hole/$_target · strokes $_strokes'
+              '${_bestStrokes > 0 ? ' · best round $_bestStrokes' : ''}'),
       winEmoji: '⛳',
-      winText: _winPraise,
+      winText: roundWinText,
       accent: const Color(0xFF2E9E5B),
       onPlayAgain: _reset,
       child: LayoutBuilder(
