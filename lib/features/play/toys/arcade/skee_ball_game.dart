@@ -121,6 +121,16 @@ class _SkeeBallGameState extends State<SkeeBallGame>
     TonePlayer.instance.playCue(SoundCue.ball);
   }
 
+  // Screen-reader bridge: dragging up to build power is a continuous analog
+  // gesture a switch/VoiceOver user can't perform. Give them a direct action
+  // that rolls with a solid, reliable mid-power flick through the same
+  // _launch path the drag release already uses.
+  void _rollWithPower() {
+    if (_rolling || _dragging) return;
+    _power = 0.55;
+    _launch();
+  }
+
   void _reset() {
     setState(() {
       _score = 0;
@@ -153,7 +163,13 @@ class _SkeeBallGameState extends State<SkeeBallGame>
       child: LayoutBuilder(
         builder: (context, c) {
           final h = c.maxHeight;
-          return GestureDetector(
+          return Semantics(
+            button: true,
+            label: 'Score $_score of $_target. Tap to roll with a solid '
+                'mid-power flick.',
+            onTap: _rollWithPower,
+            excludeSemantics: true,
+            child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onPanStart: (d) {
               if (_rolling) return;
@@ -195,6 +211,7 @@ class _SkeeBallGameState extends State<SkeeBallGame>
                   power: _dragging ? _power : 0,
                   bandUpperY: _liveBandUpperY),
               size: Size.infinite,
+            ),
             ),
           );
         },

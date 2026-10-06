@@ -252,6 +252,16 @@ class _MiniGolfGameState extends State<MiniGolfGame>
     _aim = Offset(p.dx / w - _bx, p.dy / h - _by);
   }
 
+  // Screen-reader bridge: see basketball_game.dart's _shootAtHoop — putts
+  // straight at the cup through the same _aimAt + _putt path the drag
+  // gesture already uses (a straight line can still clip a rail, same risk
+  // a sighted child takes misjudging the angle).
+  void _puttAtCup() {
+    if (_moving || _nextT > 0 || _status != GameStatus.playing) return;
+    _aimAt(Offset(_cupX, _cupY), 1, 1);
+    _putt();
+  }
+
   void _putt() {
     final a = _aim;
     _aim = null;
@@ -304,7 +314,13 @@ class _MiniGolfGameState extends State<MiniGolfGame>
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
           if (w > 0) _aspect = h / w;
-          return GestureDetector(
+          return Semantics(
+            button: true,
+            label: 'Hole $_hole of $_target. Strokes $_strokes. Tap to putt '
+                'straight at the cup.',
+            onTap: _puttAtCup,
+            excludeSemantics: true,
+            child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onPanStart: (d) => _aimAt(d.localPosition, w, h),
             onPanUpdate: (d) => _aimAt(d.localPosition, w, h),
@@ -330,6 +346,7 @@ class _MiniGolfGameState extends State<MiniGolfGame>
                 launch: _aim == null ? Offset.zero : _puttVel(_aim!),
               ),
               size: Size.infinite,
+            ),
             ),
           );
         },

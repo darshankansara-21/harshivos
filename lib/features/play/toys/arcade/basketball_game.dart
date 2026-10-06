@@ -226,6 +226,16 @@ class _BasketballGameState extends State<BasketballGame>
     _aim = Offset(p.dx / w - _bx, p.dy / h - _by);
   }
 
+  // Screen-reader bridge: dragging to aim is a continuous analog gesture a
+  // switch/VoiceOver user can't perform, so give them a direct action that
+  // aims straight at the hoop's current position and releases immediately,
+  // matching the same _aimAt + _shoot path the drag gesture already uses.
+  void _shootAtHoop() {
+    if (_flying || _resetT > 0 || _status != GameStatus.playing) return;
+    _aimAt(Offset(_hoopX, _hoopY - 0.08), 1, 1);
+    _shoot();
+  }
+
   void _shoot() {
     final a = _aim;
     _aim = null;
@@ -288,7 +298,13 @@ class _BasketballGameState extends State<BasketballGame>
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
           if (w > 0) _aspect = h / w;
-          return GestureDetector(
+          return Semantics(
+            button: true,
+            label: 'Baskets $_score of $_target. Tap to shoot toward the '
+                'hoop.',
+            onTap: _shootAtHoop,
+            excludeSemantics: true,
+            child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onPanStart: (d) => _aimAt(d.localPosition, w, h),
             onPanUpdate: (d) => _aimAt(d.localPosition, w, h),
@@ -313,6 +329,7 @@ class _BasketballGameState extends State<BasketballGame>
                 launch: _aim == null ? Offset.zero : _launchVel(_aim!),
               ),
               size: Size.infinite,
+            ),
             ),
           );
         },

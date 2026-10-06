@@ -170,6 +170,15 @@ class _TargetTossGameState extends State<TargetTossGame>
     _aim = Offset(p.dx / w - _bx, p.dy / h - _by);
   }
 
+  // Screen-reader bridge: see basketball_game.dart's _shootAtHoop — aims
+  // straight at the moving target's current position and releases through
+  // the same _aimAt + _toss path the drag gesture already uses.
+  void _tossAtTarget() {
+    if (_flying || _resetT > 0 || _status != GameStatus.playing) return;
+    _aimAt(Offset(_tx, _targetY), 1, 1);
+    _toss();
+  }
+
   void _toss() {
     final a = _aim;
     _aim = null;
@@ -220,7 +229,13 @@ class _TargetTossGameState extends State<TargetTossGame>
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
-          return GestureDetector(
+          return Semantics(
+            button: true,
+            label: 'Points $_score of $_target. Tap to toss toward the '
+                'target.',
+            onTap: _tossAtTarget,
+            excludeSemantics: true,
+            child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onPanStart: (d) => _aimAt(d.localPosition, w, h),
             onPanUpdate: (d) => _aimAt(d.localPosition, w, h),
@@ -242,6 +257,7 @@ class _TargetTossGameState extends State<TargetTossGame>
                 launch: _aim == null ? Offset.zero : _throwVel(_aim!),
               ),
               size: Size.infinite,
+            ),
             ),
           );
         },

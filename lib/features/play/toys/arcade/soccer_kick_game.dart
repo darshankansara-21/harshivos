@@ -155,6 +155,20 @@ class _SoccerKickGameState extends State<SoccerKickGame>
     _flying = true;
   }
 
+  // Screen-reader bridge: dragging back to aim is a continuous analog
+  // gesture a switch/VoiceOver user can't perform. Give them a direct
+  // action that pulls back for the far corner, away from the keeper's
+  // current position, through the same _aimX/_aimY + _launch path (a
+  // slingshot pull: the ball flies *opposite* the pulled-back point).
+  void _kickToCorner() {
+    if (_flying || _status != GameStatus.playing) return;
+    // Keeper on the right → pull back right so the ball flies left, and
+    // vice versa, so the shot aims for the corner the keeper isn't in.
+    _aimX = _keeperX >= 0.5 ? _bx + 0.22 : _bx - 0.22;
+    _aimY = _by - 0.14;
+    _launch();
+  }
+
   void _reset() {
     setState(() {
       _score = 0;
@@ -194,7 +208,13 @@ class _SoccerKickGameState extends State<SoccerKickGame>
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
-          return GestureDetector(
+          return Semantics(
+            button: true,
+            label: 'Goals $_score of $_target. Tap to kick for the corner '
+                'away from the keeper.',
+            onTap: _kickToCorner,
+            excludeSemantics: true,
+            child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onPanStart: (d) {
               if (_flying) return;
@@ -233,6 +253,7 @@ class _SoccerKickGameState extends State<SoccerKickGame>
                 aimY: _aimY,
               ),
               size: Size.infinite,
+            ),
             ),
           );
         },
