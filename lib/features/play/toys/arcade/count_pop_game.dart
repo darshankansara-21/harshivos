@@ -21,6 +21,13 @@ class _CountPopGameState extends State<CountPopGame>
   static const String _id = 'count_pop';
   static const int _target = 10;
   final math.Random _rnd = math.Random();
+  static const List<String> _winPraisePool = <String>[
+    'Great counting!',
+    'Perfect pops!',
+    'Super counter!',
+    'Bubble master!',
+  ];
+  String _winPraise = _winPraisePool.first;
 
   final List<_CountBubble> _bubbles = <_CountBubble>[];
   int _need = 3;
@@ -107,6 +114,7 @@ class _CountPopGameState extends State<CountPopGame>
           });
           if (_score >= _target) {
             _status = GameStatus.won;
+            _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
             TonePlayer.instance.playCue(SoundCue.gameStart);
             emit(ExperienceEvent.gameCompleted);
           } else {
@@ -150,7 +158,7 @@ class _CountPopGameState extends State<CountPopGame>
               ? 'Pop $_need bubbles  ·  $_popped/$_need'
               : 'Pop the right number of bubbles'),
       winEmoji: '🔢',
-      winText: 'Great counting!',
+      winText: _winPraise,
       accent: const Color(0xFF48CAE4),
       onPlayAgain: _reset,
       child: LayoutBuilder(

@@ -16,6 +16,13 @@ class _MiniGolfGameState extends State<MiniGolfGame>
   static const double _cupR = 0.05;
   static const double _margin = 0.05;
   final math.Random _rnd = math.Random();
+  static const List<String> _winPraisePool = <String>[
+    'Clubhouse champion!',
+    'Hole-in-one hero!',
+    'Putting pro!',
+    'Course conqueror!',
+  ];
+  String _winPraise = _winPraisePool.first;
   final List<_Shard> _bits = <_Shard>[];
   bool _reduceMotion = false;
   double _bx = 0.5, _by = 0.86;
@@ -226,6 +233,7 @@ class _MiniGolfGameState extends State<MiniGolfGame>
     });
     if (_score >= _target) {
       _status = GameStatus.won;
+      _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
       TonePlayer.instance.playCue(SoundCue.gameStart);
       emit(ExperienceEvent.gameCompleted);
     } else {
@@ -289,7 +297,7 @@ class _MiniGolfGameState extends State<MiniGolfGame>
       status: _status,
       banner: _banner ?? 'Hole $_hole/$_target · strokes $_strokes',
       winEmoji: '⛳',
-      winText: 'Clubhouse champion!',
+      winText: _winPraise,
       accent: const Color(0xFF2E9E5B),
       onPlayAgain: _reset,
       child: LayoutBuilder(

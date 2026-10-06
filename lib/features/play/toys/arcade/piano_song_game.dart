@@ -27,6 +27,13 @@ class _PianoSongGameState extends State<PianoSongGame> with _Emit {
   ];
   static const int _target = 3; // songs to win
   final math.Random _rnd = math.Random();
+  static const List<String> _winPraisePool = <String>[
+    'All 3 songs played!',
+    'Piano virtuoso!',
+    'Perfect performance!',
+    'Musical star!',
+  ];
+  String _winPraise = _winPraisePool.first;
 
   // Shuffled song order for this playthrough — without this, every single
   // run played 'Twinkle Twinkle', 'Mary Had a Lamb', 'Row Your Boat' in the
@@ -79,6 +86,7 @@ class _PianoSongGameState extends State<PianoSongGame> with _Emit {
         });
         if (_score >= _target) {
           _status = GameStatus.won;
+          _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
           TonePlayer.instance.playCue(SoundCue.gameStart);
           emit(ExperienceEvent.gameCompleted);
         } else {
@@ -123,7 +131,7 @@ class _PianoSongGameState extends State<PianoSongGame> with _Emit {
       status: _status,
       banner: _banner ?? progress,
       winEmoji: '🎹',
-      winText: 'All 3 songs played!',
+      winText: _winPraise,
       accent: const Color(0xFFFFB5E8),
       onPlayAgain: _start,
       child: Container(

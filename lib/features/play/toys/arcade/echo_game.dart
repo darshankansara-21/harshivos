@@ -17,6 +17,13 @@ class _EchoGameState extends State<EchoGame>
     Color(0xFFFFD166),
   ];
   final math.Random _rnd = math.Random();
+  static const List<String> _winPraisePool = <String>[
+    'Tune master!',
+    'Perfect echo!',
+    'Sharp ears!',
+    'Melody master!',
+  ];
+  String _winPraise = _winPraisePool.first;
   final List<int> _seq = <int>[];
   int _inputAt = 0;
   int _flash = -1;
@@ -94,6 +101,7 @@ class _EchoGameState extends State<EchoGame>
       _inputAt++;
       if (_inputAt >= _seq.length) {
         if (_seq.length >= _target) {
+          _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
           setState(() => _status = GameStatus.won);
           TonePlayer.instance.playCue(SoundCue.success);
           emit(ExperienceEvent.gameCompleted);
@@ -149,7 +157,7 @@ class _EchoGameState extends State<EchoGame>
       overEmoji: '🎵',
       overText: 'Missed the tune',
       winEmoji: '🏆',
-      winText: 'Tune master!',
+      winText: _winPraise,
       accent: const Color(0xFF9B5DE5),
       onPlayAgain: _reset,
       child: DecoratedBox(

@@ -12,6 +12,13 @@ class _MazeRunGameState extends State<MazeRunGame> with _Emit {
   static const String _id = 'maze_run';
   static const int _target = 5;
   final math.Random _rnd = math.Random();
+  static const List<String> _winPraisePool = <String>[
+    'Maze master!',
+    'Puzzle champion!',
+    'Clever navigator!',
+    'Exit found!',
+  ];
+  String _winPraise = _winPraisePool.first;
   int _cols = 5, _rows = 6;
   List<int> _cell = <int>[]; // bitmask: 1=up,2=right,4=down,8=left
   int _px = 0, _py = 0;
@@ -114,6 +121,7 @@ class _MazeRunGameState extends State<MazeRunGame> with _Emit {
       if (mounted) setState(() => _best = b);
     });
     if (_solved >= _target) {
+      _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
       setState(() {
         _banner = 'Maze master!';
         _status = GameStatus.won;
@@ -156,7 +164,7 @@ class _MazeRunGameState extends State<MazeRunGame> with _Emit {
       status: _status,
       banner: _banner ?? (_hasKey ? 'Find the exit!' : 'Grab the key 🔑'),
       winEmoji: '🧩',
-      winText: 'Maze master!',
+      winText: _winPraise,
       accent: const Color(0xFF7BD389),
       onPlayAgain: _reset,
       child: GestureDetector(

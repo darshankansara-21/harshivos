@@ -16,6 +16,13 @@ class _HoopTossGameState extends State<HoopTossGame>
   static const double _pegY = 0.3;
 
   final math.Random _rnd = math.Random();
+  static const List<String> _winPraisePool = <String>[
+    'Good tosses!',
+    'Ringer streak!',
+    'Perfect aim!',
+    'Hoop champion!',
+  ];
+  String _winPraise = _winPraisePool.first;
   // Every other aim-and-score game in the catalog (basketball, target_toss,
   // bug_catch, pinball, brick_break...) bursts a few shards of colour on a
   // successful hit; Hoop Toss only ever flashed the banner text + a sound,
@@ -91,6 +98,7 @@ class _HoopTossGameState extends State<HoopTossGame>
       });
       if (_score >= _target) {
         _status = GameStatus.won;
+        _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
       }
@@ -154,7 +162,7 @@ class _HoopTossGameState extends State<HoopTossGame>
       overEmoji: '💪',
       overText: 'Out of rings — nice try!',
       winEmoji: '🎪',
-      winText: 'Good tosses!',
+      winText: _winPraise,
       accent: const Color(0xFFFFD166),
       onPlayAgain: _reset,
       child: GestureDetector(

@@ -21,6 +21,13 @@ class _CountingBasketsGameState extends State<CountingBasketsGame> with _Emit {
   static const int _target = 10;
   static const List<String> _emojis = <String>['🍎', '🍊', '🍌', '🍓', '🍇', '🍐'];
   final math.Random _rnd = math.Random();
+  static const List<String> _winPraisePool = <String>[
+    'Great counting!',
+    'Basket champion!',
+    'Perfect fill!',
+    'Fruit sorter pro!',
+  ];
+  String _winPraise = _winPraisePool.first;
 
   final List<_Fruit> _fruits = <_Fruit>[];
   int _need = 3;
@@ -95,6 +102,7 @@ class _CountingBasketsGameState extends State<CountingBasketsGame> with _Emit {
       });
       if (_score >= _target) {
         _status = GameStatus.won;
+        _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
       } else {
@@ -147,7 +155,7 @@ class _CountingBasketsGameState extends State<CountingBasketsGame> with _Emit {
               ? 'Put $_need in the basket  ·  $_inBasket/$_need'
               : 'Drag fruits to match the number'),
       winEmoji: '🧺',
-      winText: 'Great counting!',
+      winText: _winPraise,
       accent: const Color(0xFFF4A261),
       onPlayAgain: _reset,
       child: LayoutBuilder(

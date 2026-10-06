@@ -15,6 +15,13 @@ class _PenaltyDashGameState extends State<PenaltyDashGame>
   static const int _target = 10;
 
   final math.Random _rnd = math.Random();
+  static const List<String> _winPraisePool = <String>[
+    'Ten goals! You won the shootout!',
+    'Golden boot!',
+    'Shootout champion!',
+    'Clinical finish!',
+  ];
+  String _winPraise = _winPraisePool.first;
   // Mirrors hoop_toss_game.dart's fix: every other aim-and-score game in the
   // catalog bursts a few shards of colour on a successful hit, but a GOAL
   // here only ever flashed the banner text + a sound — flatter than almost
@@ -94,6 +101,7 @@ class _PenaltyDashGameState extends State<PenaltyDashGame>
       });
       if (_score >= _target) {
         _status = GameStatus.won;
+        _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
       }
@@ -152,7 +160,7 @@ class _PenaltyDashGameState extends State<PenaltyDashGame>
       overEmoji: '💪',
       overText: 'Out of shots — nice try!',
       winEmoji: '🥅',
-      winText: 'Ten goals! You won the shootout!',
+      winText: _winPraise,
       accent: const Color(0xFF80ED99),
       onPlayAgain: _reset,
       child: GestureDetector(

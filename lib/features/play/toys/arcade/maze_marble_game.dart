@@ -22,6 +22,13 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
   static const int _target = 6;
   static const double _r = 0.045;
   final math.Random _rnd = math.Random();
+  static const List<String> _winPraisePool = <String>[
+    'Nice rolling!',
+    'Marble master!',
+    'Smooth steering!',
+    'Perfect run!',
+  ];
+  String _winPraise = _winPraisePool.first;
 
   final List<_MazeWall> _walls = <_MazeWall>[];
   double _mx = 0.5, _my = 0.1, _vx = 0, _vy = 0;
@@ -198,6 +205,7 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
     });
     if (_score >= _target) {
       _status = GameStatus.won;
+      _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
       TonePlayer.instance.playCue(SoundCue.gameStart);
       emit(ExperienceEvent.gameCompleted);
     } else {
@@ -237,7 +245,7 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
       status: _status,
       banner: _banner ?? 'Steer through the gates to the cup',
       winEmoji: '🔵',
-      winText: 'Nice rolling!',
+      winText: _winPraise,
       accent: const Color(0xFF4CC9F0),
       onPlayAgain: _reset,
       child: LayoutBuilder(

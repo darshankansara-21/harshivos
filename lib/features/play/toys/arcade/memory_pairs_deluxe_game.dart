@@ -40,6 +40,13 @@ class _MemoryPairsDeluxeGameState extends State<MemoryPairsDeluxeGame>
     '🦉': 'owl',
   };
   final math.Random _rnd = math.Random();
+  static const List<String> _winPraisePool = <String>[
+    'Memory master!',
+    'Perfect recall!',
+    'Pair champion!',
+    'Sharp memory!',
+  ];
+  String _winPraise = _winPraisePool.first;
   List<_MCard> _cards = <_MCard>[];
   int _first = -1;
   int _second = -1;
@@ -121,6 +128,7 @@ class _MemoryPairsDeluxeGameState extends State<MemoryPairsDeluxeGame>
           if (_cards.every((c) => c.matched)) {
             if (_level >= _target) {
               _status = GameStatus.won;
+              _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
               TonePlayer.instance.playCue(SoundCue.gameStart);
               emit(ExperienceEvent.gameCompleted);
             } else {
@@ -182,7 +190,7 @@ class _MemoryPairsDeluxeGameState extends State<MemoryPairsDeluxeGame>
       status: _status,
       banner: _banner ?? 'Level $_level/$_target · find the pairs',
       winEmoji: '🧠',
-      winText: 'Memory master!',
+      winText: _winPraise,
       accent: const Color(0xFFB197FC),
       onPlayAgain: _reset,
       child: Padding(

@@ -24,6 +24,13 @@ class _DrumGardenGameState extends State<DrumGardenGame>
     Color(0xFFB197FC),
   ];
   final math.Random _rnd = math.Random();
+  static const List<String> _winPraisePool = <String>[
+    'What a tune!',
+    'Garden maestro!',
+    'Perfect pitch!',
+    'Rhythm master!',
+  ];
+  String _winPraise = _winPraisePool.first;
   final List<int> _seq = <int>[];
   int _inputIdx = 0;
   int _phase = 0; // 0 free, 1 showing, 2 input, 3 result
@@ -134,6 +141,7 @@ class _DrumGardenGameState extends State<DrumGardenGame>
         emit(ExperienceEvent.bubblePopped);
         if (_seq.length >= _target) {
           _status = GameStatus.won;
+          _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
           TonePlayer.instance.playCue(SoundCue.gameStart);
           emit(ExperienceEvent.gameCompleted);
           // The win branch never called submit() at all, so the final
@@ -210,7 +218,7 @@ class _DrumGardenGameState extends State<DrumGardenGame>
       overEmoji: '🥁',
       overText: 'Keep the beat!',
       winEmoji: '🥁',
-      winText: 'What a tune!',
+      winText: _winPraise,
       accent: const Color(0xFFB197FC),
       onPlayAgain: _reset,
       child: LayoutBuilder(

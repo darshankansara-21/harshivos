@@ -11,6 +11,13 @@ class _QuickTapGameState extends State<QuickTapGame>
   static const String _id = 'quick_tap';
   static const int _rounds = 5;
   final math.Random _rnd = math.Random();
+  static const List<String> _winPraisePool = <String>[
+    'Fast fingers!',
+    'Lightning reflexes!',
+    'Quickest yet!',
+    'Reaction champion!',
+  ];
+  String _winPraise = _winPraisePool.first;
   int _phase = 0; // 0 waiting(red) 1 go(green) 2 too-soon 3 result
   double _waitT = 0;
   double _reactT = 0;
@@ -98,6 +105,7 @@ class _QuickTapGameState extends State<QuickTapGame>
     emit(ExperienceEvent.bubblePopped);
     if (_round >= _rounds) {
       _status = GameStatus.won;
+      _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
       TonePlayer.instance.playCue(SoundCue.success);
       emit(ExperienceEvent.gameCompleted);
       GameScores.instance.submit(_id, _score).then((b) {
@@ -164,7 +172,7 @@ class _QuickTapGameState extends State<QuickTapGame>
       status: _status,
       banner: _lastMs > 0 ? 'Round $_round · ${_lastMs}ms' : 'Round ${_round + 1}',
       winEmoji: '⚡',
-      winText: 'Fast fingers!',
+      winText: _winPraise,
       accent: Colors.white,
       onPlayAgain: _reset,
       child: GestureDetector(

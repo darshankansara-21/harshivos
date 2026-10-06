@@ -19,6 +19,13 @@ class _PatternWeaverGameState extends State<PatternWeaverGame>
     Color(0xFF66D9E8),
   ];
   final math.Random _rnd = math.Random();
+  static const List<String> _winPraisePool = <String>[
+    'Pattern pro!',
+    'Weaving wizard!',
+    'Sharp sequencer!',
+    'Pattern master!',
+  ];
+  String _winPraise = _winPraisePool.first;
   final List<_Shard> _bits = <_Shard>[];
   bool _reduceMotion = false;
 
@@ -118,6 +125,7 @@ class _PatternWeaverGameState extends State<PatternWeaverGame>
       });
       if (_score >= _target) {
         _status = GameStatus.won;
+        _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
       } else {
@@ -175,7 +183,7 @@ class _PatternWeaverGameState extends State<PatternWeaverGame>
       overEmoji: '💪',
       overText: 'Out of lives — nice try!',
       winEmoji: '🧶',
-      winText: 'Pattern pro!',
+      winText: _winPraise,
       accent: const Color(0xFF63E6BE),
       onPlayAgain: _reset,
       child: LayoutBuilder(

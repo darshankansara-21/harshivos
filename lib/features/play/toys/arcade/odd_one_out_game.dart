@@ -17,6 +17,13 @@ class _OddOneOutGameState extends State<OddOneOutGame> with _Emit {
     Color(0xFF80ED99), Color(0xFF9B5DE5), Color(0xFFFF8ED8),
   ];
   final math.Random _rnd = math.Random();
+  static const List<String> _winPraisePool = <String>[
+    'Sharp eyes!',
+    'Eagle vision!',
+    'Spot-on!',
+    'Detail detective!',
+  ];
+  String _winPraise = _winPraisePool.first;
 
   int _cols = 2;
   int _oddIndex = 0;
@@ -111,6 +118,7 @@ class _OddOneOutGameState extends State<OddOneOutGame> with _Emit {
       });
       if (_score >= _target) {
         _status = GameStatus.won;
+        _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
       } else {
@@ -169,7 +177,7 @@ class _OddOneOutGameState extends State<OddOneOutGame> with _Emit {
       overEmoji: '💪',
       overText: 'Out of lives — nice try!',
       winEmoji: '🧐',
-      winText: 'Sharp eyes!',
+      winText: _winPraise,
       accent: const Color(0xFF80ED99),
       onPlayAgain: _reset,
       child: LayoutBuilder(

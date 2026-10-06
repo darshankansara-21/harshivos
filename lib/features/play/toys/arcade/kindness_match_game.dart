@@ -33,6 +33,13 @@ class _KindnessMatchGameState extends State<KindnessMatchGame> with _Emit {
     _KindScene('Someone is tired.', 'Have a rest', 'Keep going', 'Too slow'),
   ];
   final math.Random _rnd = math.Random();
+  static const List<String> _winPraisePool = <String>[
+    'Kind friend!',
+    'Kindness champion!',
+    'So thoughtful!',
+    'Big heart!',
+  ];
+  String _winPraise = _winPraisePool.first;
   final List<int> _bag = <int>[];
 
   _KindScene _scene = _scenes.first;
@@ -79,6 +86,7 @@ class _KindnessMatchGameState extends State<KindnessMatchGame> with _Emit {
       });
       if (_score >= _target) {
         _status = GameStatus.won;
+        _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
       } else {
@@ -140,7 +148,7 @@ class _KindnessMatchGameState extends State<KindnessMatchGame> with _Emit {
       overEmoji: '💪',
       overText: 'Out of lives — nice try!',
       winEmoji: '💛',
-      winText: 'Kind friend!',
+      winText: _winPraise,
       accent: const Color(0xFFFFD166),
       onPlayAgain: _reset,
       child: Container(

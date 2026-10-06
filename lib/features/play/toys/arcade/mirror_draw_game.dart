@@ -19,6 +19,13 @@ class _MirrorDrawGameState extends State<MirrorDrawGame> with _Emit {
   static const String _id = 'mirror_draw';
   static const int _target = 5;
   final math.Random _rnd = math.Random();
+  static const List<String> _winPraisePool = <String>[
+    'Lovely art!',
+    'Symmetry star!',
+    'Beautiful work!',
+    'Artist supreme!',
+  ];
+  String _winPraise = _winPraisePool.first;
 
   // Half-figures in the left pane, each a polyline of [x,y] with x in [0,0.5].
   static const List<List<List<double>>> _half = <List<List<double>>>[
@@ -131,6 +138,7 @@ class _MirrorDrawGameState extends State<MirrorDrawGame> with _Emit {
       });
       if (_score >= _target) {
         _status = GameStatus.won;
+        _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
       } else {
@@ -173,7 +181,7 @@ class _MirrorDrawGameState extends State<MirrorDrawGame> with _Emit {
               ? 'Trace the left side  ·  $lit/${_dots.length}'
               : 'Draw symmetric pictures'),
       winEmoji: '🎨',
-      winText: 'Lovely art!',
+      winText: _winPraise,
       accent: const Color(0xFFB197FC),
       onPlayAgain: _reset,
       child: LayoutBuilder(
