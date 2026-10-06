@@ -274,7 +274,36 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
           final w = c.maxWidth, h = c.maxHeight;
           if (w > 0) _aspect = h / w;
           _reduceMotion = MediaQuery.disableAnimationsOf(context);
-          return GestureDetector(
+          // Unlike every other drag-to-steer physics game in the catalog
+          // (balance_ball's tilt bridge, maze_run's slide actions), this
+          // free-form drag-to-roll surface had zero Semantics anywhere — a
+          // screen-reader user couldn't even discover the marble was
+          // draggable. The real gesture pulls the marble toward a moving
+          // finger position each frame, which isn't itself discrete, but a
+          // fixed-size nudge of the drag target in each direction produces
+          // the same "tray tilted that way" push, and "Release" mirrors
+          // lifting the finger (onPanEnd) so the marble can coast and settle.
+          void nudge(double dx, double dy) => setState(() {
+                _dragging = true;
+                _tx = (_mx + dx).clamp(0.0, 1.0);
+                _ty = (_my + dy).clamp(0.0, 1.0);
+              });
+          return Semantics(
+            label: 'Maze marble board. Drag or use the nudge actions to '
+                'roll the marble through the gates toward the goal cup.',
+            customSemanticsActions: <CustomSemanticsAction, VoidCallback>{
+              const CustomSemanticsAction(label: 'Nudge left'): () =>
+                  nudge(-0.18, 0),
+              const CustomSemanticsAction(label: 'Nudge right'): () =>
+                  nudge(0.18, 0),
+              const CustomSemanticsAction(label: 'Nudge up'): () =>
+                  nudge(0, -0.18),
+              const CustomSemanticsAction(label: 'Nudge down'): () =>
+                  nudge(0, 0.18),
+              const CustomSemanticsAction(label: 'Release'): () =>
+                  setState(() => _dragging = false),
+            },
+            child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onPanStart: (d) {
               _dragging = true;
@@ -304,6 +333,7 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
                 bits: _bits,
               ),
               size: Size.infinite,
+            ),
             ),
           );
         },
