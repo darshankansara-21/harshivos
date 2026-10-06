@@ -199,7 +199,18 @@ class _MagneticBallsToyState extends State<MagneticBallsToy>
       onPointerMove: (e) => _finger = e.localPosition,
       onPointerUp: (_) => _finger = null,
       onPointerCancel: (_) => _finger = null,
-      child: CustomPaint(painter: _BallsPainter(_balls, _finger), size: Size.infinite),
+      child: Stack(
+        children: <Widget>[
+          CustomPaint(painter: _BallsPainter(_balls, _finger), size: Size.infinite),
+          // The onboarding hint is drawn only onto the canvas (invisible to
+          // screen readers); IgnorePointer keeps it from stealing touches.
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Semantics(label: 'Drag your finger to attract the magnetic balls'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
