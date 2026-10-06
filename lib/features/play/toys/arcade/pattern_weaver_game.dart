@@ -80,8 +80,19 @@ class _PatternWeaverGameState extends State<PatternWeaverGame>
       } while (i > 0 && c == _pattern[i - 1] && period > 2);
       _pattern.add(c);
     }
-    _visible = period * 2;
-    _answer = _pattern[_visible % period];
+    // `_visible` used to always equal exactly `period * 2`, so the missing
+    // bead's index-within-period (`_visible % period`) was always 0 — the
+    // correct answer was always, mathematically, whatever colour/shape sat
+    // in the very first slot of the pattern. A child could learn "the
+    // answer always matches the leftmost bead" after a few rounds and win
+    // without ever actually tracking the repeat, defeating the whole
+    // pattern-recognition premise. Showing two full cycles plus a random
+    // partial-cycle offset keeps the repeat genuinely visible (so it's still
+    // solvable) while moving the missing slot around the period, so the
+    // answer is sometimes pattern[1], pattern[2], etc. — not always [0].
+    final offset = _rnd.nextInt(period);
+    _visible = period * 2 + offset;
+    _answer = _pattern[offset];
   }
 
   @override
