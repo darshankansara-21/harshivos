@@ -224,7 +224,7 @@ class _ColorMixerGameState extends State<ColorMixerGame>
             TonePlayer.instance.playCue(SoundCue.milestone);
             emit(ExperienceEvent.personalBest);
           }
-          TonePlayer.instance.playCue(SoundCue.gameStart);
+          TonePlayer.instance.playCue(SoundCue.success);
           emit(ExperienceEvent.gameCompleted);
         } else {
           _newTarget();

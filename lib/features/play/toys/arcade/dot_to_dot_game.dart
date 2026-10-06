@@ -165,7 +165,7 @@ class _DotToDotGameState extends State<DotToDotGame>
             TonePlayer.instance.playCue(SoundCue.milestone);
             emit(ExperienceEvent.personalBest);
           }
-          TonePlayer.instance.playCue(SoundCue.gameStart);
+          TonePlayer.instance.playCue(SoundCue.success);
           emit(ExperienceEvent.gameCompleted);
         } else {
           _fig++;

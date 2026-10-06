@@ -168,7 +168,7 @@ class _CountingBasketsGameState extends State<CountingBasketsGame> with _Emit {
           TonePlayer.instance.playCue(SoundCue.milestone);
           emit(ExperienceEvent.personalBest);
         }
-        TonePlayer.instance.playCue(SoundCue.gameStart);
+        TonePlayer.instance.playCue(SoundCue.success);
         emit(ExperienceEvent.gameCompleted);
       } else {
         _flashBanner('Yes! $_need in the basket 🧺');
