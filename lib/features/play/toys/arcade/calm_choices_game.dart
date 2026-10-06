@@ -109,10 +109,18 @@ class _CalmChoicesGameState extends State<CalmChoicesGame> with _Emit {
         if (mounted) setState(() => _best = v);
       });
       if (_score >= _target) {
-        _status = GameStatus.won;
         _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
-        TonePlayer.instance.playCue(SoundCue.gameStart);
-        emit(ExperienceEvent.gameCompleted);
+        // The final correct tap used to jump straight to the win overlay in
+        // the same frame, so the green option flash above was set but
+        // never actually rendered before the whole game view was replaced.
+        // Give it the same 220ms beat as every other correct tap before
+        // declaring the win, so the last choice is visibly confirmed too.
+        Future.delayed(const Duration(milliseconds: 220), () {
+          if (!mounted) return;
+          setState(() => _status = GameStatus.won);
+          TonePlayer.instance.playCue(SoundCue.gameStart);
+          emit(ExperienceEvent.gameCompleted);
+        });
       } else {
         // Let the green flash above actually be seen before the options
         // swap out for the next scene.
