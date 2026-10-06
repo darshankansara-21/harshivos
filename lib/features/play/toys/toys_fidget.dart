@@ -321,6 +321,18 @@ class _GlideRoller extends StatefulWidget {
 
 class _GlideRollerState extends State<_GlideRoller> {
   double _value = 0.5;
+  // Same step the drag gesture's own haptic detents already snap to below
+  // (1/12th of the track) — keeps a screen-reader swipe and a sighted drag
+  // feeling like the same control.
+  static const double _step = 1 / 12;
+
+  void _nudge(double delta) {
+    final next = (_value + delta).clamp(0.0, 1.0);
+    if (next == _value) return;
+    setState(() => _value = next);
+    TonePlayer.instance.haptic(HapticFeedback.selectionClick);
+    TonePlayer.instance.playCue(SoundCue.selection);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -330,10 +342,21 @@ class _GlideRollerState extends State<_GlideRoller> {
         // The glide roller panel had zero Semantics tree, unlike its
         // clicky-button and toggle-switch siblings — a blind child couldn't
         // discover or read the current position of this drag slider.
+        // `slider: true` alone only lets a screen reader *announce* the
+        // value — every other sighted-only slider in the app that children
+        // actually move via TalkBack/VoiceOver's swipe-up/down gesture needs
+        // `onIncrease`/`onDecrease` wired to a real action, same as the
+        // built-in `Slider` widget provides automatically. Without these
+        // two, this was the one widget in the whole catalog labelled a
+        // slider that a blind child could discover but never actually move.
         return Semantics(
           slider: true,
           label: 'Glide roller',
           value: '${(_value * 100).round()} percent',
+          increasedValue: '${((_value + _step).clamp(0.0, 1.0) * 100).round()} percent',
+          decreasedValue: '${((_value - _step).clamp(0.0, 1.0) * 100).round()} percent',
+          onIncrease: () => _nudge(_step),
+          onDecrease: () => _nudge(-_step),
           child: GestureDetector(
             onPanUpdate: (e) {
               setState(() =>
