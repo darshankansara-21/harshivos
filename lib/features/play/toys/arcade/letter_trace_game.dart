@@ -95,6 +95,12 @@ class _LetterTraceGameState extends State<LetterTraceGame> with _Emit {
   };
   late final List<String> _pool = _glyphs.keys.toList();
 
+  // The catch radius around the next dot narrows a little each letter so the
+  // challenge actually ramps toward the target instead of staying identical
+  // for all five letters of a playthrough — same per-round-tightening shape
+  // as `steady_hand_game.dart`'s corridor `_widths` narrowing by level.
+  double get _catchTolerance => (0.09 - _score * 0.006).clamp(0.065, 0.09);
+
   final List<_TraceDot> _dots = <_TraceDot>[];
   String _glyph = 'A';
   int _score = 0;
@@ -157,7 +163,7 @@ class _LetterTraceGameState extends State<LetterTraceGame> with _Emit {
     // quick diagonal swipe light far-apart dots out of sequence, skipping
     // the actual stroke and defeating the fine-motor tracing this game
     // promises in its own intro text.
-    const bestD = 0.09;
+    final bestD = _catchTolerance;
     // Scale the y-delta by aspect so this compares real pixel distance —
     // nx/ny are width/height-normalized respectively, so a plain isotropic
     // sqrt here would make the vertical catch radius wider or narrower
