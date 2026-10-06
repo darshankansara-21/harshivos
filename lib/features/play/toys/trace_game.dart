@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../services/audio/tone_player.dart';
 import 'mini_games.dart' show GameScores, GameStatus;
@@ -149,6 +150,11 @@ class _TraceGameState extends State<TraceGame> {
     if ((dot - local).distance >= 32) return;
     _lit[idx] = true;
     final done = _lit.where((e) => e).length;
+    // Every other sensory/fine-motor toy in the catalog (toys_draw,
+    // toys_fidget, letter paint, etc.) pairs a meaningful touch hit with a
+    // haptic tick, not just a sound — Trace It was the one tactile-tracing
+    // game with zero tactile feedback on the actual dot-lighting contact.
+    TonePlayer.instance.haptic(HapticFeedback.selectionClick);
     TonePlayer.instance.playPop(0.4 + done / _pts.length * 0.5);
     if (_lit.every((e) => e)) {
       _score++;
