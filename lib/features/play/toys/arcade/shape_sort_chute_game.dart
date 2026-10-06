@@ -33,6 +33,13 @@ class _ShapeSortChuteGameState extends State<ShapeSortChuteGame>
   bool _flashGood = false;
   String? _banner;
   GameStatus _status = GameStatus.ready;
+  // Every other aim-into-a-matching-target game in the catalog
+  // (hoop_toss, sorting_train, basketball, bug_catch, penalty_dash...)
+  // bursts a few shards of colour on a correct hit; this chute only ever
+  // flashed the hole colour for 0.4s, making a correct sort feel flatter
+  // than every sibling sort/aim game. Mirror the established convention.
+  final List<_Shard> _bits = <_Shard>[];
+  bool _reduceMotion = false;
 
   @override
   void initState() {
@@ -60,7 +67,24 @@ class _ShapeSortChuteGameState extends State<ShapeSortChuteGame>
     if (_y >= 0.82) {
       _land();
     }
+    for (var i = _bits.length - 1; i >= 0; i--) {
+      final b = _bits[i];
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.vy += 0.5 * dt;
+      b.life -= dt;
+      if (b.life <= 0) _bits.removeAt(i);
+    }
     setState(() {});
+  }
+
+  void _burst(double x, double y, Color color) {
+    final n = _reduceMotion ? 4 : 12;
+    for (var i = 0; i < n; i++) {
+      final a = _rnd.nextDouble() * math.pi * 2;
+      final sp = 0.15 + _rnd.nextDouble() * 0.3;
+      _bits.add(_Shard(x, y, math.cos(a) * sp, math.sin(a) * sp, color));
+    }
   }
 
   void _land() {
@@ -72,6 +96,7 @@ class _ShapeSortChuteGameState extends State<ShapeSortChuteGame>
       _score++;
       TonePlayer.instance.playCue(SoundCue.wood);
       emit(ExperienceEvent.bubblePopped);
+      _burst((hole + 0.5) / 3, 0.82, _shapeColors[_shape]);
       GameScores.instance.submit(_id, _score).then((b) {
         if (mounted) setState(() => _best = b);
       });
@@ -108,6 +133,7 @@ class _ShapeSortChuteGameState extends State<ShapeSortChuteGame>
       _score = 0;
       _lives = 3;
       _banner = null;
+      _bits.clear();
       _arrange();
       _status = GameStatus.playing;
     });
@@ -116,6 +142,7 @@ class _ShapeSortChuteGameState extends State<ShapeSortChuteGame>
   @override
   Widget build(BuildContext context) {
     drain(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _Shell(
       title: '🔻 Shape Sort Chute',
       introHow:
@@ -158,6 +185,7 @@ class _ShapeSortChuteGameState extends State<ShapeSortChuteGame>
                     colors: _shapeColors,
                     flashHole: _flashT > 0 ? _flashHole : -1,
                     flashGood: _flashGood,
+                    bits: _bits,
                   ),
                   size: Size.infinite,
                 ),
@@ -195,6 +223,7 @@ class _ShapeSortChutePainter extends CustomPainter {
     required this.colors,
     required this.flashHole,
     required this.flashGood,
+    required this.bits,
   });
   final List<int> holes;
   final int shape;
@@ -202,6 +231,7 @@ class _ShapeSortChutePainter extends CustomPainter {
   final List<Color> colors;
   final int flashHole;
   final bool flashGood;
+  final List<_Shard> bits;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -236,6 +266,12 @@ class _ShapeSortChutePainter extends CustomPainter {
     // Falling shape.
     _paintPolyShape(canvas, Offset(x * w, y * h), w * 0.08, shape,
         Paint()..color = colors[shape]);
+
+    for (final b in bits) {
+      final k = (b.life / 0.5).clamp(0.0, 1.0);
+      canvas.drawCircle(Offset(b.x * w, b.y * h), 2 + 3 * k,
+          Paint()..color = b.color.withOpacity(k));
+    }
   }
 
   @override
