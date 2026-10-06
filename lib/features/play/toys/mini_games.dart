@@ -2603,6 +2603,17 @@ class _RacingGameState extends State<RacingGame>
     return ahead + 1;
   }
 
+  // The rival pack's base pace (88..108 mps) was a flat constant applied to
+  // every single race forever — `_best` (career pickup-score record) was
+  // tracked purely as a display stat and never fed back into rival speed,
+  // so a child who had already racked up hundreds of career points faced
+  // the identical pack as their very first race. Same "career-skill ramp"
+  // pattern already used for tic_tac_toe's Pico (`_blockChance`/
+  // `_goodSquareChance` scaling with win count): ramp a modest pace bonus in
+  // with `_best`, capped well short of overwhelming so the pack always
+  // stays genuinely beatable via the player's own pickup/boost pace.
+  double get _rivalPaceRamp => (_best / 150).clamp(0.0, 1.0) * 14.0;
+
   double get _mps {
     var v = 95.0 + _score * 0.04; // pace lifts a little as you score
     if (_boostT > 0) v += 75;
@@ -2635,7 +2646,7 @@ class _RacingGameState extends State<RacingGame>
       ..clear()
       ..addAll(<double>[0, 0, 0]);
     for (var i = 0; i < 3; i++) {
-      _rivalMps.add(88 + _rnd.nextDouble() * 20); // 88..108 mps
+      _rivalMps.add(88 + _rnd.nextDouble() * 20 + _rivalPaceRamp); // 88..122 mps
       _rivalLaneTimer[i] = 1.2 + _rnd.nextDouble() * 2.0;
     }
     _lane = 1;
