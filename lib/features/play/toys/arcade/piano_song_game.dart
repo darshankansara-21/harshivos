@@ -50,6 +50,18 @@ class _PianoSongGameState extends State<PianoSongGame>
   int _notePos = 0;
   int _score = 0; // songs completed
   int _best = 0;
+  // `_score` (songs completed) always tops out at `_target` the moment a
+  // win happens, so `_best` goes permanently static at 3 after the first
+  // completed run — the same "stat that can never move again" bug class
+  // already fixed in mini_golf's stroke count, jigsaw_four's rebuild time,
+  // slide_puzzle's move count, and counting_baskets' miss count. A wrong
+  // key tap is this game's own equivalent of a miss, so track it across the
+  // whole 3-song run as a separate, lower-is-better personal best via
+  // `GameScores.submitLow`, giving a replaying child a real "play it more
+  // cleanly" goal beyond just finishing again.
+  static const String _wrongId = '${_id}_wrong_taps';
+  int _runWrongTaps = 0;
+  int _bestWrongTaps = 0;
   String? _banner;
   GameStatus _status = GameStatus.ready;
   int _wrongKey = -1; // brief red flash on a mis-tapped key
@@ -67,7 +79,12 @@ class _PianoSongGameState extends State<PianoSongGame>
     super.initState();
     _order = List<int>.generate(_songs.length, (i) => i)..shuffle(_rnd);
     GameScores.instance.ensureLoaded().then((_) {
-      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+      if (mounted) {
+        setState(() {
+          _best = GameScores.instance.best(_id);
+          _bestWrongTaps = GameScores.instance.bestLow(_wrongId);
+        });
+      }
     });
   }
 
@@ -106,6 +123,7 @@ class _PianoSongGameState extends State<PianoSongGame>
       _orderPos = 0;
       _notePos = 0;
       _score = 0;
+      _runWrongTaps = 0;
       _banner = null;
       _bits.clear();
       _status = GameStatus.playing;
@@ -129,6 +147,20 @@ class _PianoSongGameState extends State<PianoSongGame>
         if (_score >= _target) {
           _status = GameStatus.won;
           _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
+          // A full 3-song run that genuinely beats the fewest-wrong-taps
+          // record is the real "did you play it more cleanly" moment this
+          // stat is for — give it the same milestone chime + companion
+          // celebration every other beat-your-best moment in the catalog
+          // gets, layered onto (not replacing) the win fanfare.
+          final beatWrong =
+              _bestWrongTaps > 0 && _runWrongTaps < _bestWrongTaps;
+          GameScores.instance.submitLow(_wrongId, _runWrongTaps).then((b) {
+            if (mounted) setState(() => _bestWrongTaps = b);
+          });
+          if (beatWrong) {
+            TonePlayer.instance.playCue(SoundCue.milestone);
+            emit(ExperienceEvent.personalBest);
+          }
           TonePlayer.instance.playCue(SoundCue.gameStart);
           emit(ExperienceEvent.gameCompleted);
         } else {
@@ -147,6 +179,7 @@ class _PianoSongGameState extends State<PianoSongGame>
       // child actually felt is the one that visibly answers them.
       _banner = 'Follow the glowing key';
       _wrongKey = k;
+      _runWrongTaps++;
       TonePlayer.instance.playCue(SoundCue.gentleRetry);
       Future.delayed(const Duration(milliseconds: 300), () {
         if (mounted && _wrongKey == k) setState(() => _wrongKey = -1);
@@ -162,6 +195,13 @@ class _PianoSongGameState extends State<PianoSongGame>
     final progress = _status == GameStatus.playing
         ? '${_song.name} · ${_notePos + 1}/${_song.keys.length}'
         : 'Tap the lit keys to play a song';
+    final beatWrong = _status == GameStatus.won &&
+        _bestWrongTaps > 0 &&
+        _runWrongTaps < _bestWrongTaps;
+    final runWinText = beatWrong
+        ? '$_winPraise New cleanest run: $_runWrongTaps wrong taps! 🏆'
+        : '$_winPraise $_runWrongTaps wrong taps'
+            '${_bestWrongTaps > 0 ? ' (best $_bestWrongTaps)' : ''}';
     return _Shell(
       title: '🎹 Piano Song',
       introHow:
@@ -174,7 +214,7 @@ class _PianoSongGameState extends State<PianoSongGame>
       status: _status,
       banner: _banner ?? progress,
       winEmoji: '🎹',
-      winText: _winPraise,
+      winText: runWinText,
       accent: const Color(0xFFFFB5E8),
       onPlayAgain: _start,
       child: Container(
