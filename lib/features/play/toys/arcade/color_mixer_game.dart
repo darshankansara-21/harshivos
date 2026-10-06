@@ -55,6 +55,17 @@ class _ColorMixerGameState extends State<ColorMixerGame>
   int _best = 0;
   String? _banner;
   GameStatus _status = GameStatus.ready;
+  // `_score` (colours matched) always tops out at `_target` the moment a
+  // round is actually won, so `_best` goes permanently static at 8 after the
+  // first completed round — it can never again reflect a genuinely better
+  // round, the same "stat that can never move" bug class already fixed in
+  // mini_golf/jigsaw_four/basketball. Track total drops poured across the
+  // whole round as a separate, lower-is-better personal best via
+  // `GameScores.submitLow`: fewer pours to match all 8 target colours is a
+  // tighter, more skillful round.
+  static const String _dropsId = '${_id}_drops';
+  int _roundDrops = 0;
+  int _bestDrops = 0;
   // A colour match is this game's whole scoring moment, yet it never burst
   // a single particle — every other "match the target" game in the catalog
   // (tone_match, odd_one_out, jigsaw_four, firefly_count) already celebrates
@@ -71,7 +82,12 @@ class _ColorMixerGameState extends State<ColorMixerGame>
   void initState() {
     super.initState();
     GameScores.instance.ensureLoaded().then((_) {
-      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+      if (mounted) {
+        setState(() {
+          _best = GameScores.instance.best(_id);
+          _bestDrops = GameScores.instance.bestLow(_dropsId);
+        });
+      }
     });
   }
 
@@ -147,6 +163,7 @@ class _ColorMixerGameState extends State<ColorMixerGame>
       // feedback pattern.
       final prevDist = _drops.isEmpty ? double.infinity : _dist(_mixOf(_drops), t);
       _drops.add(i);
+      _roundDrops++;
       TonePlayer.instance.playPop(0.6 + _drops.length * 0.03);
       final mix = _mixOf(_drops);
       final dist = _dist(mix, t);
@@ -177,6 +194,19 @@ class _ColorMixerGameState extends State<ColorMixerGame>
         if (_score >= _target) {
           _status = GameStatus.won;
           _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
+          // A full round that genuinely beats the fewest-drops record is the
+          // real "did you mix better" moment this stat is for — give it the
+          // same milestone chime + companion celebration every other
+          // beat-your-best moment in the catalog gets, layered onto (not
+          // replacing) the win fanfare.
+          final beatDrops = _bestDrops > 0 && _roundDrops < _bestDrops;
+          GameScores.instance.submitLow(_dropsId, _roundDrops).then((b) {
+            if (mounted) setState(() => _bestDrops = b);
+          });
+          if (beatDrops) {
+            TonePlayer.instance.playCue(SoundCue.milestone);
+            emit(ExperienceEvent.personalBest);
+          }
           TonePlayer.instance.playCue(SoundCue.gameStart);
           emit(ExperienceEvent.gameCompleted);
         } else {
@@ -202,6 +232,7 @@ class _ColorMixerGameState extends State<ColorMixerGame>
   void _reset() {
     setState(() {
       _score = 0;
+      _roundDrops = 0;
       _banner = null;
       _bag.clear();
       _newTarget();
@@ -218,8 +249,10 @@ class _ColorMixerGameState extends State<ColorMixerGame>
     return _Shell(
       title: '🎨 Color Mixer',
       introHow:
-          'Tap the paint drops to pour them in and match the target colour. Red + yellow = orange!',
+          'Tap the paint drops to pour them in and match the target colour. Red + yellow = orange! '
+          'Fewer total drops is a better round.',
       onStart: () => setState(() {
+        _roundDrops = 0;
         _bag.clear();
         _newTarget();
         _status = GameStatus.playing;
@@ -230,7 +263,12 @@ class _ColorMixerGameState extends State<ColorMixerGame>
       status: _status,
       banner: _banner ?? 'Make ${_recipeName[_recipe]}',
       winEmoji: '🎨',
-      winText: _winPraise,
+      winText: _status == GameStatus.won &&
+              _bestDrops > 0 &&
+              _roundDrops < _bestDrops
+          ? '$_winPraise New best round: $_roundDrops drops! 🏆'
+          : '$_winPraise $_roundDrops drops'
+              '${_bestDrops > 0 ? ' (best $_bestDrops)' : ''}',
       accent: const Color(0xFFE0407A),
       onPlayAgain: _reset,
       child: Stack(
