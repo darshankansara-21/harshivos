@@ -35,6 +35,12 @@ class _HoopTossGameState extends State<HoopTossGame>
   double _ringY = 0.86;
   bool _flying = false;
   int _score = 0, _misses = 0, _best = 0;
+  // Unlike every sibling score-with-lives game (balloon_math, firefly_count,
+  // odd_one_out...), five misses can end a Hoop Toss run before the 10-ring
+  // win target — but a near-miss-ending run that still beat a prior all-time
+  // best silently got nothing but the routine "Ringer!" banner. Mirror the
+  // catalog-wide mid-run personal-best celebration.
+  bool _beatBest = false;
   String? _banner;
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
@@ -93,9 +99,20 @@ class _HoopTossGameState extends State<HoopTossGame>
       _burst(const Color(0xFFFFD166));
       _banner = 'Ringer!  🎯';
       _bannerT = 1.1;
+      // A child whose run ends in misses right after this toss still
+      // deserves the companion's loudest celebration if it's a genuine
+      // all-time record, not just the routine ringer chime.
+      final crossedBest = _score > _best && !_beatBest && _best > 0;
       GameScores.instance.submit(_id, _score).then((b) {
         if (mounted) setState(() => _best = b);
       });
+      if (crossedBest) {
+        _beatBest = true;
+        _banner = 'New personal best! 🏆';
+        _bannerT = 1.2;
+        TonePlayer.instance.playCue(SoundCue.milestone);
+        emit(ExperienceEvent.personalBest);
+      }
       if (_score >= _target) {
         _status = GameStatus.won;
         _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
@@ -131,6 +148,7 @@ class _HoopTossGameState extends State<HoopTossGame>
     setState(() {
       _score = 0;
       _misses = 0;
+      _beatBest = false;
       _t = 0;
       _flying = false;
       _ringY = 0.86;
