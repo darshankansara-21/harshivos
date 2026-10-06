@@ -84,6 +84,25 @@ class _MiniGolfGameState extends State<MiniGolfGame>
     _bannerT = 1.4;
   }
 
+  // Same "flat-forever opening difficulty never fed by a career skill stat"
+  // bug class already fixed via `_careerPaceRamp`/`_careerShotRamp` getters
+  // across the rest of the catalog (stack/snake/racing/tic_tac_toe/
+  // goal_keeper/target_toss) — holes 1-2 here never had a rail and hole 1-5
+  // always kept the same forgiving sink tolerance no matter how skilled the
+  // player already is, so a veteran who routinely cards a tight sub-par
+  // round still faces the identical, totally unobstructed opening hole as a
+  // first-time player every single replay. Mini Golf's own real skill stat
+  // isn't `_best` (holes sunk permanently caps at 9 after one full round,
+  // see `_bestStrokes` below) but `_bestStrokes` — fewer total strokes is a
+  // better round, so a low personal-best stroke count is exactly the
+  // "played many tight rounds already" signal. 27 is a flat 3-strokes-per-
+  // hole par baseline; anything tighter than that ramps this up, capped at
+  // 1 by 12 strokes (3 under par across the whole round) so the ramp can
+  // never make hole 1 harder than a fresh player should ever face.
+  double get _careerSkillRamp => _bestStrokes > 0
+      ? ((27 - _bestStrokes) / 15).clamp(0.0, 1.0)
+      : 0.0;
+
   void _setupHole() {
     _bx = 0.5;
     _by = 0.86;
@@ -93,8 +112,12 @@ class _MiniGolfGameState extends State<MiniGolfGame>
     _aim = null;
     _cupX = 0.2 + _rnd.nextDouble() * 0.6;
     _cupY = 0.13 + _rnd.nextDouble() * 0.18;
-    // A rail obstacle appears from hole 3 onward to force bank shots.
-    if (_hole >= 3) {
+    // A rail obstacle appears from hole 3 onward to force bank shots — a
+    // skilled veteran (high `_careerSkillRamp`) sees it up to two holes
+    // earlier so the very first putt of their round isn't a guaranteed
+    // trivial straight-line sink.
+    final railHole = (3 - (_careerSkillRamp * 2).round()).clamp(1, 3);
+    if (_hole >= railHole) {
       final ww = 0.16 + _rnd.nextDouble() * 0.18;
       final wx = (0.5 - ww / 2 + (_rnd.nextDouble() - 0.5) * 0.34)
           .clamp(_margin, 1 - _margin - ww);
@@ -106,7 +129,8 @@ class _MiniGolfGameState extends State<MiniGolfGame>
     // A second rail joins from hole 6 onward, placed on the opposite side of
     // the green from the first so late holes genuinely need two bank shots
     // instead of the same single-obstacle puzzle repeated for 7 holes.
-    if (_hole >= 6) {
+    final rail2Hole = (6 - (_careerSkillRamp * 2).round()).clamp(railHole, 6);
+    if (_hole >= rail2Hole) {
       final ww2 = 0.14 + _rnd.nextDouble() * 0.16;
       final wx2 = (0.5 - ww2 / 2 + (_rnd.nextDouble() - 0.5) * 0.3)
           .clamp(_margin, 1 - _margin - ww2);
@@ -118,11 +142,12 @@ class _MiniGolfGameState extends State<MiniGolfGame>
   }
 
   // Sinking requires a steadier, slower-rolling putt on later holes — holes
-  // 1-5 keep the original forgiving threshold; holes 6-9 tighten it down to
-  // a true plateau-free ramp so the last third of the round is noticeably
-  // less forgiving of a hard putt than the first third.
+  // 1-5 keep the original forgiving threshold (nudged down a touch further
+  // for a high-skill veteran via `_careerSkillRamp`); holes 6-9 tighten it
+  // down to a true plateau-free ramp so the last third of the round is
+  // noticeably less forgiving of a hard putt than the first third.
   double get _sinkSpeedLimit {
-    if (_hole <= 5) return 0.5;
+    if (_hole <= 5) return 0.5 - _careerSkillRamp * 0.08;
     final t = ((_hole - 5) / 4).clamp(0.0, 1.0);
     return 0.5 - t * 0.18;
   }
