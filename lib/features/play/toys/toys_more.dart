@@ -416,6 +416,13 @@ class _SpinUniverseToyState extends State<SpinUniverseToy>
   double _rot = 0;
   double _spin = 0.4; // angular velocity (rad/s)
   bool _seeded = false;
+  // Every other ambient/idle looping toy in this catalog (CalmCloudsToy's
+  // drift, RainbowRainToy's fall rate, InfiniteMarbleRunToy's spawn rate)
+  // thins its forever-motion under the OS Reduce Motion setting; this toy's
+  // idle galaxy spin never stopped, nor even slowed, regardless — it's a
+  // continuous visual rotation with no settle point, the exact ambient
+  // motion that setting exists to calm down.
+  bool _reduceMotion = false;
 
   void _seed(Size size) {
     final maxR = size.shortestSide * 0.48;
@@ -442,8 +449,11 @@ class _SpinUniverseToyState extends State<SpinUniverseToy>
     if (size == Size.zero) return;
     if (!_seeded) _seed(size);
     _rot += _spin * dt;
-    // Gentle friction so a fling slowly coasts to a calm idle spin.
-    _spin += (0.25 - _spin) * 0.4 * dt;
+    // Gentle friction so a fling slowly coasts to a calm idle spin — under
+    // Reduce Motion that idle rate (and the rotation itself) is thinned
+    // well down instead of spinning forever at the default rate.
+    final idleSpin = _reduceMotion ? 0.05 : 0.25;
+    _spin += (idleSpin - _spin) * 0.4 * dt;
   }
 
   void _tapNudge() {
@@ -453,6 +463,7 @@ class _SpinUniverseToyState extends State<SpinUniverseToy>
 
   @override
   Widget build(BuildContext context) {
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     // Same "describable but not actionable" gap as ParticleGalaxyToy/
     // FireworksToy above — bridge the discrete tap-nudge half of the toy;
     // drag-to-spin correctly stays continuous-only, same as every other
