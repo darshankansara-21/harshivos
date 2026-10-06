@@ -2048,13 +2048,23 @@ class _SnakeGameState extends State<SnakeGame>
     }
   }
 
+  // Same "flat-forever AI difficulty never fed by career `_best`" bug class
+  // already fixed in TicTacToeGame's Pico (batch 274), RacingGame's rival
+  // pack (batch 395), and AirHockeyGame/GoalKeeperGame (this batch): the
+  // rival worms' speed/turn-sharpness only ever ramped with the *current*
+  // run's score, resetting to the identical lazy opening pack every replay
+  // no matter how high the player's all-time `_best` had already climbed.
+  // Capped small so a seasoned player's very first orb is still easy.
+  double get _careerAiRamp => (_best / (_targetScore * 3)).clamp(0.0, 1.0);
+
   void _updateAi(double dt) {
     // Rivals genuinely get faster and sharper-turning as the run progresses
     // toward the win target, instead of staying at one flat difficulty the
     // whole game — mirrors the player's own speed-up curve below.
-    final difficulty = math.min(_score, _targetScore) / _targetScore;
-    final aiSpeed = 120 * (1.0 + difficulty * 0.5);
-    final aiTurnRate = 2.4 * (1.0 + difficulty * 0.4);
+    final difficulty = (math.min(_score, _targetScore) / _targetScore)
+        .clamp(0.0, 1.0);
+    final aiSpeed = 120 * (1.0 + difficulty * 0.5 + _careerAiRamp * 0.15);
+    final aiTurnRate = 2.4 * (1.0 + difficulty * 0.4 + _careerAiRamp * 0.1);
     final aiTurnMin = 0.6 - difficulty * 0.25;
     final aiTurnSpan = 1.4 - difficulty * 0.5;
     for (final w in _ai) {
