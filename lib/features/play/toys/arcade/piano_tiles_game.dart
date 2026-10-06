@@ -7,10 +7,13 @@ class PianoTilesGame extends StatefulWidget {
 }
 
 class _PRow {
-  _PRow(this.col, this.y, this.note);
-  final int col;
+  _PRow(this.cols, this.y, this.notes);
+  // A row can require more than one lane tapped before it passes — a real
+  // "chord" the child must read and hit both notes of, instead of every
+  // single beat being the identical "find the lit lane, tap it" decision.
+  final List<int> cols;
   double y;
-  final int note;
+  final List<int> notes;
 }
 
 class _PianoTilesGameState extends State<PianoTilesGame>
@@ -97,9 +100,11 @@ class _PianoTilesGameState extends State<PianoTilesGame>
   }
 
   _PRow _spawnRow(double y) {
-    final row = _PRow(_pickCol(), y, _melody[_mPos % _melody.length]);
-    _mPos++;
-    return row;
+    final cols = _pickCols();
+    final notes = <int>[
+      for (final _ in cols) _melody[_mPos++ % _melody.length],
+    ];
+    return _PRow(cols, y, notes);
   }
 
   int _pickCol() {
@@ -107,6 +112,31 @@ class _PianoTilesGameState extends State<PianoTilesGame>
     if (c == _lastCol) c = (c + 1) % _cols;
     _lastCol = c;
     return c;
+  }
+
+  // Once the tune is established and the child has shown they can read a
+  // single lane reliably (a handful of tiles cleared, same gating the
+  // catalog's "ramps in only once proven" lenses already use elsewhere),
+  // occasionally light a second lane in the same row — a real chord the
+  // child must read both notes of and hit in either order, instead of the
+  // identical "find the one lit lane" decision every single beat forever.
+  // Capped well below 1-in-2 so the famous single-tap feel stays dominant.
+  List<int> _pickCols() {
+    final first = _pickCol();
+    final chordChance = _score >= 20
+        ? 0.26
+        : _score >= 8
+            ? 0.16
+            : 0.0;
+    if (chordChance > 0 && _rnd.nextDouble() < chordChance) {
+      var second = _rnd.nextInt(_cols);
+      while (second == first) {
+        second = _rnd.nextInt(_cols);
+      }
+      _lastCol = second;
+      return <int>[first, second]..sort();
+    }
+    return <int>[first];
   }
 
   @override
@@ -140,10 +170,16 @@ class _PianoTilesGameState extends State<PianoTilesGame>
       if (r.y > 0.04 && (target == null || r.y > target.y)) target = r;
     }
     if (target == null) return;
-    if (target.col == c) {
-      _rows.remove(target);
+    final hitIdx = target.cols.indexOf(c);
+    if (hitIdx != -1) {
+      final note = target.notes.removeAt(hitIdx);
+      target.cols.removeAt(hitIdx);
+      // A chord row only fully clears once every one of its lit lanes has
+      // been tapped — tapping one note of a two-note chord plays that note
+      // and keeps the row (minus that lane) in play for its partner.
+      if (target.cols.isEmpty) _rows.remove(target);
       _score++;
-      TonePlayer.instance.playNote(target.note, seconds: 0.22);
+      TonePlayer.instance.playNote(note, seconds: 0.22);
       _flashCol = c;
       _flashT = 0.26;
       _flashWrong = false;
@@ -311,15 +347,19 @@ class _PianoPainter extends CustomPainter {
     }
     final th = size.height * 0.22;
     for (final r in rows) {
-      final x = r.col * cw;
       final y = r.y * size.height - th;
-      // Tile hue rises with its pitch so the child sees the melody climb.
-      final hue = 250 + r.note * 9.0;
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-            Rect.fromLTWH(x + 4, y, cw - 8, th - 6), const Radius.circular(8)),
-        Paint()..color = HSVColor.fromAHSV(1, hue % 360, 0.45, 0.42).toColor(),
-      );
+      // A chord row draws one tile per remaining lane so a two-note chord
+      // visibly shows both lit lanes the child must read and hit.
+      for (var i = 0; i < r.cols.length; i++) {
+        final x = r.cols[i] * cw;
+        // Tile hue rises with its pitch so the child sees the melody climb.
+        final hue = 250 + r.notes[i] * 9.0;
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(Rect.fromLTWH(x + 4, y, cw - 8, th - 6),
+              const Radius.circular(8)),
+          Paint()..color = HSVColor.fromAHSV(1, hue % 360, 0.45, 0.42).toColor(),
+        );
+      }
     }
   }
 
