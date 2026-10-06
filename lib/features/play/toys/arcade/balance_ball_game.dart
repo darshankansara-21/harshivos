@@ -35,7 +35,16 @@ class _BalanceBallGameState extends State<BalanceBallGame>
   // of spamming every frame while the ball lingers out there.
   bool _edgeWarned = false;
   int _score = 0, _best = 0;
+  // Mirrors spot_difference/memory_flip/snake's live "beat your own all-time
+  // best" celebration. Balance Ball's score is the number of seconds
+  // survived toward the fixed 20s target, submitted live every second — a
+  // run commonly ends (ball rolls off) partway through, well short of the
+  // final win screen, so crossing a prior personal best mid-run deserves its
+  // own moment instead of vanishing silently into the next second's tick.
+  bool _beatBest = false;
   GameStatus _status = GameStatus.ready;
+  String? _banner;
+  double _bannerT = 0;
 
   @override
   void initState() {
@@ -49,6 +58,10 @@ class _BalanceBallGameState extends State<BalanceBallGame>
   void onTick(double dt) {
     if (_status != GameStatus.playing) return;
     _t += dt;
+    if (_bannerT > 0) {
+      _bannerT -= dt;
+      if (_bannerT <= 0) _banner = null;
+    }
     if (!_dragging) _tilt *= (1 - 2.5 * dt).clamp(0.0, 1.0);
     // Wobble grows slowly with time.
     final wobble = (0.04 + _t * 0.004) * math.sin(_t * 2.3) +
@@ -82,9 +95,17 @@ class _BalanceBallGameState extends State<BalanceBallGame>
     if (sec > _score) {
       _score = sec.clamp(0, _target);
       if (_score % 5 == 0) TonePlayer.instance.playCue(SoundCue.coin);
+      final crossedBest = _score > _best && !_beatBest && _best > 0;
       GameScores.instance.submit(_id, _score).then((b) {
         if (mounted) setState(() => _best = b);
       });
+      if (crossedBest) {
+        _beatBest = true;
+        _banner = 'New personal best! 🏆';
+        _bannerT = 1.4;
+        TonePlayer.instance.playCue(SoundCue.milestone);
+        emit(ExperienceEvent.personalBest);
+      }
       if (_score >= _target) {
         _status = GameStatus.won;
         _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
@@ -104,6 +125,9 @@ class _BalanceBallGameState extends State<BalanceBallGame>
       _v = 0;
       _score = 0;
       _edgeWarned = false;
+      _beatBest = false;
+      _banner = null;
+      _bannerT = 0;
       _status = GameStatus.playing;
     });
   }
@@ -123,13 +147,16 @@ class _BalanceBallGameState extends State<BalanceBallGame>
         _beam = 0;
         _tilt = 0;
         _edgeWarned = false;
+        _beatBest = false;
+        _banner = null;
+        _bannerT = 0;
         _status = GameStatus.playing;
       }),
       score: _score,
       best: _best,
       target: _target,
       status: _status,
-      banner: 'Keep it centred  ·  ${_score}s',
+      banner: _banner ?? 'Keep it centred  ·  ${_score}s',
       overEmoji: '⚖️',
       overText: 'It rolled off!',
       winEmoji: '🏆',
