@@ -8,7 +8,8 @@ class ColorMixerGame extends StatefulWidget {
   State<ColorMixerGame> createState() => _ColorMixerGameState();
 }
 
-class _ColorMixerGameState extends State<ColorMixerGame> with _Emit {
+class _ColorMixerGameState extends State<ColorMixerGame>
+    with TickerProviderStateMixin, ToyTicker, _Emit {
   static const String _id = 'color_mixer';
   static const int _target = 8;
   // Primaries as (r,g,b) 0..1: red, yellow, blue, white.
@@ -54,6 +55,17 @@ class _ColorMixerGameState extends State<ColorMixerGame> with _Emit {
   int _best = 0;
   String? _banner;
   GameStatus _status = GameStatus.ready;
+  // A colour match is this game's whole scoring moment, yet it never burst
+  // a single particle — every other "match the target" game in the catalog
+  // (tone_match, odd_one_out, jigsaw_four, firefly_count) already celebrates
+  // that exact moment with a `_Shard` burst from the matched spot. The bowl
+  // itself is the obvious burst origin here.
+  final List<_Shard> _bits = <_Shard>[];
+  bool _reduceMotion = false;
+  // Fractional y of the bowl in the `Column(spaceEvenly)` layout below (the
+  // 2nd of 4 evenly-spaced groups) — close enough for a burst origin, no
+  // GlobalKey/RenderBox lookup needed for a purely decorative effect.
+  static const double _bowlY = 0.42;
 
   @override
   void initState() {
@@ -61,6 +73,20 @@ class _ColorMixerGameState extends State<ColorMixerGame> with _Emit {
     GameScores.instance.ensureLoaded().then((_) {
       if (mounted) setState(() => _best = GameScores.instance.best(_id));
     });
+  }
+
+  @override
+  void onTick(double dt) {
+    if (_status != GameStatus.playing) return;
+    if (_bits.isEmpty) return;
+    for (var i = _bits.length - 1; i >= 0; i--) {
+      final b = _bits[i];
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.life -= dt;
+      if (b.life <= 0) _bits.removeAt(i);
+    }
+    setState(() {});
   }
 
   List<double> _mixOf(List<int> drops) {
@@ -138,6 +164,13 @@ class _ColorMixerGameState extends State<ColorMixerGame> with _Emit {
         // target" moment, giving Color Mixer its own distinct audio identity
         // instead of sharing one with 30+ unrelated games.
         TonePlayer.instance.playCue(SoundCue.paint);
+        final n = _reduceMotion ? 4 : 12;
+        for (var k = 0; k < n; k++) {
+          final a = _rnd.nextDouble() * math.pi * 2;
+          final sp = 0.15 + _rnd.nextDouble() * 0.3;
+          _bits.add(_Shard(0.5, _bowlY, math.cos(a) * sp, math.sin(a) * sp,
+              _toColor(mix)));
+        }
         GameScores.instance.submit(_id, _score).then((b) {
           if (mounted) setState(() => _best = b);
         });
@@ -179,6 +212,7 @@ class _ColorMixerGameState extends State<ColorMixerGame> with _Emit {
   @override
   Widget build(BuildContext context) {
     drain(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     final target = _toColor(_targetRgb);
     final mix = _toColor(_mixOf(_drops));
     return _Shell(
@@ -199,9 +233,11 @@ class _ColorMixerGameState extends State<ColorMixerGame> with _Emit {
       winText: _winPraise,
       accent: const Color(0xFFE0407A),
       onPlayAgain: _reset,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+      child: Stack(
+        children: <Widget>[
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: <Widget>[
             Column(
@@ -310,9 +346,34 @@ class _ColorMixerGameState extends State<ColorMixerGame> with _Emit {
                   style: TextStyle(color: Colors.white70)),
             ),
           ],
-        ),
+            ),
+          ),
+          Positioned.fill(
+            child: IgnorePointer(
+              child: CustomPaint(painter: _ColorMixerShardPainter(_bits)),
+            ),
+          ),
+        ],
       ),
     );
   }
+}
+
+class _ColorMixerShardPainter extends CustomPainter {
+  _ColorMixerShardPainter(this.bits);
+  final List<_Shard> bits;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    for (final s in bits) {
+      final k = (s.life / 0.5).clamp(0.0, 1.0);
+      canvas.drawCircle(Offset(s.x * w, s.y * h), 2 + 3 * k,
+          Paint()..color = s.color.withOpacity(k));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ColorMixerShardPainter oldDelegate) => true;
 }
 
