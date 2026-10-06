@@ -50,6 +50,16 @@ class _BasketballGameState extends State<BasketballGame>
   int _streak = 0;
   int _best = 0;
   bool _beatBest = false;
+  // `_score` (baskets made) always tops out at `_target` the moment a round
+  // is actually won, so `_best` goes permanently static at 12 after the
+  // first perfect-or-not completed round — it can never again reflect a
+  // genuinely better round, even though `_shots` (already tracked for the
+  // in-round banner) is the real measure of skill here: fewer shots to sink
+  // 12 baskets is a tighter round. Track a separate, lower-is-better
+  // personal best for it via `GameScores.submitLow`, the same fix already
+  // applied to mini_golf's stroke count.
+  static const String _shotsId = '${_id}_shots';
+  int _bestShots = 0;
   String? _banner;
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
@@ -58,7 +68,12 @@ class _BasketballGameState extends State<BasketballGame>
   void initState() {
     super.initState();
     GameScores.instance.ensureLoaded().then((_) {
-      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+      if (mounted) {
+        setState(() {
+          _best = GameScores.instance.best(_id);
+          _bestShots = GameScores.instance.bestLow(_shotsId);
+        });
+      }
     });
   }
 
@@ -226,6 +241,19 @@ class _BasketballGameState extends State<BasketballGame>
     if (_score >= _target) {
       _status = GameStatus.won;
       _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
+      // A full round that genuinely beats the fewest-shots record is the
+      // real "did you shoot better" moment this stat is for — give it the
+      // same milestone chime + companion celebration every other
+      // beat-your-best moment in the catalog gets, layered onto (not
+      // replacing) the win fanfare.
+      final beatShots = _bestShots > 0 && _shots < _bestShots;
+      GameScores.instance.submitLow(_shotsId, _shots).then((b) {
+        if (mounted) setState(() => _bestShots = b);
+      });
+      if (beatShots) {
+        TonePlayer.instance.playCue(SoundCue.milestone);
+        emit(ExperienceEvent.personalBest);
+      }
       TonePlayer.instance.playCue(SoundCue.gameStart);
       emit(ExperienceEvent.gameCompleted);
     } else {
@@ -293,18 +321,29 @@ class _BasketballGameState extends State<BasketballGame>
   Widget build(BuildContext context) {
     drain(context);
     _reduceMotion = MediaQuery.disableAnimationsOf(context);
+    final beatShots =
+        _status == GameStatus.won && _bestShots > 0 && _shots < _bestShots;
+    final roundWinText = beatShots
+        ? '$_winPraise New best round: $_shots shots! 🏆'
+        : '$_winPraise $_shots shots'
+            '${_bestShots > 0 ? ' (best $_bestShots)' : ''}';
     return _Shell(
       title: '🏀 Basketball',
       introHow:
-          'Drag from the ball toward the hoop to aim, then let go to shoot. Make 12 baskets to win!',
+          'Drag from the ball toward the hoop to aim, then let go to shoot. Make 12 baskets to win! '
+          'Fewer total shots is a better round.',
       onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,
       target: _target,
       status: _status,
-      banner: _banner ?? (_shots > 0 ? 'Baskets $_score/$_target · shots $_shots' : 'Aim and shoot!'),
+      banner: _banner ??
+          (_shots > 0
+              ? 'Baskets $_score/$_target · shots $_shots'
+                  '${_bestShots > 0 ? ' · best round $_bestShots' : ''}'
+              : 'Aim and shoot!'),
       winEmoji: '🏀',
-      winText: _winPraise,
+      winText: roundWinText,
       accent: const Color(0xFFFF9E00),
       onPlayAgain: _reset,
       child: LayoutBuilder(
