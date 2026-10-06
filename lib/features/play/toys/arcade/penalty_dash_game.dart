@@ -48,6 +48,13 @@ class _PenaltyDashGameState extends State<PenaltyDashGame>
   double _marker = 0.5;
   double _keeper = 0.5;
   int _score = 0, _misses = 0, _best = 0;
+  // Every other target-based scoring game in the catalog (basketball,
+  // firefly_count, block_blast, soccer_kick) fires a mid-run "beat your own
+  // all-time best" celebration the moment a run's score overtakes the prior
+  // record — Penalty Dash tracked `_best` but never checked for or
+  // celebrated crossing it, so a child quietly beating their record mid-run
+  // got only the routine 'GOAL!' chime, same as every other goal.
+  bool _beatBest = false;
   double _flashX = -1, _flashT = 0;
   double _shotLockT = 0;
   bool _flashGoal = false;
@@ -112,9 +119,21 @@ class _PenaltyDashGameState extends State<PenaltyDashGame>
       }
       _banner = 'GOAL!  ⚽';
       _bannerT = 1.1;
+      // Capture before the async submit resolves so a win on this same goal
+      // can't race the best-update and silently swallow the celebration.
+      final crossedBest = _score > _best && !_beatBest && _best > 0;
       GameScores.instance.submit(_id, _score).then((b) {
         if (mounted) setState(() => _best = b);
       });
+      if (crossedBest) {
+        _beatBest = true;
+        // Takes priority over the routine 'GOAL!' banner just set above —
+        // a new all-time record is the bigger moment of the two.
+        _banner = 'New personal best! 🏆';
+        _bannerT = 1.1;
+        TonePlayer.instance.playCue(SoundCue.milestone);
+        emit(ExperienceEvent.personalBest);
+      }
       if (_score >= _target) {
         _status = GameStatus.won;
         _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
@@ -148,6 +167,7 @@ class _PenaltyDashGameState extends State<PenaltyDashGame>
       _score = 0;
       _misses = 0;
       _t = 0;
+      _beatBest = false;
       _bits.clear();
       _banner = null;
       _bannerT = 0;
