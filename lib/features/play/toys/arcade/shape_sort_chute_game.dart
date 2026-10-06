@@ -46,6 +46,15 @@ class _ShapeSortChuteGameState extends State<ShapeSortChuteGame>
   // file was missing that lens entirely, flatly repeating the routine
   // "Wrong hole!"/good-sort flash even on an all-time-record-breaking sort.
   bool _beatBest = false;
+  // Same "flat-forever opening pace every replay" bug already fixed in
+  // brick_break/stack/sky_hop/target_toss/etc.: `_fall`'s opener only ever
+  // scaled with this run's own `_score` (always 0 at `_arrange()`'s very
+  // first call), so a returning child who has sorted a hundred shapes faces
+  // the exact same gentle drift a first-time player gets. Scale the opener
+  // with career `_best` instead, capped well short of the in-run ceiling so
+  // a skilled returning player meets a slightly livelier opening drop while
+  // a fresh/low-`_best` child still gets the original gentle pace.
+  double get _careerPaceRamp => (_best / _target).clamp(0.0, 1.0) * 0.12;
 
   @override
   void initState() {
@@ -62,7 +71,7 @@ class _ShapeSortChuteGameState extends State<ShapeSortChuteGame>
     _shape = _holes[_rnd.nextInt(3)];
     _x = 0.5;
     _y = 0.0;
-    _fall = 0.26 + _score * 0.012;
+    _fall = 0.26 + _careerPaceRamp + _score * 0.012;
   }
 
   @override
