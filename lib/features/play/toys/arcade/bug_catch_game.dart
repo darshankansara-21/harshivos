@@ -178,7 +178,15 @@ class _BugCatchGameState extends State<BugCatchGame>
             // Distinct terminal cue — the catching run really ends here.
             _status = GameStatus.over;
             TonePlayer.instance.playCue(SoundCue.gameOver);
-            emit(ExperienceEvent.incorrectAnswer);
+            // A run that ends in a loss of lives can still be this child's
+            // best-ever catch count — every sibling lives-based game
+            // (whack/memory_flip/stack/pinball/sky_hop) celebrates that with
+            // gameCompleted instead of flatly repeating the sad miss cue, so
+            // a genuinely record-setting run here shouldn't feel identical
+            // to a plain loss.
+            emit(_score > _best
+                ? ExperienceEvent.gameCompleted
+                : ExperienceEvent.incorrectAnswer);
           } else {
             TonePlayer.instance.playCue(SoundCue.gentleRetry);
           }
