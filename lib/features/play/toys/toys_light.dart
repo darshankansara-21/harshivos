@@ -117,6 +117,15 @@ class _MagneticBallsToyState extends State<MagneticBallsToy>
   final math.Random _r = math.Random();
   Offset? _finger;
   bool _seeded = false;
+  // Every other ambient-motion toy in this catalog (CalmCloudsToy's drifting
+  // clouds, MusicGardenToy's swaying flowers, BubblePopToy/RainbowRainToy's
+  // streams) caps its unbroken ambient motion for Reduce Motion — this
+  // toy's 26 balls kept bouncing and jostling indefinitely at full physics
+  // speed regardless, the one drag-free-play toy that slipped through that
+  // sweep. The magnetic pull itself (the direct, user-driven response to a
+  // finger) stays at full strength; only the passive wall/ball bounce
+  // energy that keeps them perpetually jittering is damped harder.
+  bool _reduceMotion = false;
 
   void _seed(Size size) {
     for (var i = 0; i < 26; i++) {
@@ -141,7 +150,10 @@ class _MagneticBallsToyState extends State<MagneticBallsToy>
         final dist = toF.distance.clamp(30.0, 5000.0);
         b.vel += toF / dist * 1400 * dt;
       }
-      b.vel *= 0.92; // damping
+      // A much stronger damp under Reduce Motion settles the balls into
+      // stillness within a couple of seconds instead of letting them
+      // jostle and bounce forever.
+      b.vel *= _reduceMotion ? 0.8 : 0.92;
       b.pos += b.vel * dt;
       // Walls. Like InfiniteMarbleRunToy's peg field, this toy has real
       // physics collisions that were entirely silent — a ball bouncing hard
@@ -194,6 +206,7 @@ class _MagneticBallsToyState extends State<MagneticBallsToy>
 
   @override
   Widget build(BuildContext context) {
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return Listener(
       onPointerDown: (e) { _finger = e.localPosition; TonePlayer.instance.haptic(HapticFeedback.selectionClick); },
       onPointerMove: (e) => _finger = e.localPosition,
