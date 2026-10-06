@@ -50,6 +50,13 @@ class _PinballGameState extends State<PinballGame>
   // progress stat distinct from the score, lost the instant the game-over
   // card covers the transient 'Extra ball!' banner unless surfaced here too.
   int _extraBallsEarned = 0;
+  // Mirrors stack_game/block_blast_game/bubble_shooter_game/memory_flip_game/
+  // piano_tiles_game's live "beat your own all-time best" celebration.
+  // Pinball has no win cap — score climbs purely with bumper combos across
+  // however many balls the run earns, until the last ball drains — so
+  // crossing a prior personal best mid-run is a real, judgment-free moment
+  // worth its own banner, exactly like its open-ended arcade siblings.
+  bool _beatBest = false;
   double _leftT = 0; // 0 down .. 1 fully flipped
   double _rightT = 0;
   // Real pinball flippers stay raised as long as the button is held, not
@@ -238,6 +245,12 @@ class _PinballGameState extends State<PinballGame>
           _nextExtraBallAt += _extraBallScore;
           TonePlayer.instance.playCue(SoundCue.milestone);
           _flash('Extra ball! 🎉');
+        } else if (!_beatBest && _best > 0 && _score > _best) {
+          _beatBest = true;
+          // Takes priority over the ordinary combo/point banner just chosen
+          // above — a new all-time record is the bigger moment of the two.
+          _flash('New personal best! 🏆');
+          TonePlayer.instance.playCue(SoundCue.milestone);
         } else {
           _flash(_combo >= 2 ? 'Combo x$_combo! +$gain' : '+$gain');
         }
@@ -378,6 +391,7 @@ class _PinballGameState extends State<PinballGame>
       _balls = 3;
       _nextExtraBallAt = _extraBallScore;
       _extraBallsEarned = 0;
+      _beatBest = false;
       _combo = 0;
       _comboT = 0;
       _banner = null;
