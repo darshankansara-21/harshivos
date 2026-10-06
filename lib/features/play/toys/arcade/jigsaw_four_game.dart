@@ -59,6 +59,18 @@ class _JigsawFourGameState extends State<JigsawFourGame>
   int _sceneSeed = 0;
   int _score = 0;
   int _best = 0;
+  // Jigsaw has no fail state at all — a round always eventually finishes
+  // all 3 pictures, so the regular higher-is-better `best` (picture count)
+  // freezes at `_target` forever after the very first completed round,
+  // exactly the "stat that can never move again" bug class fixed for
+  // mini_golf's stroke count. Time-to-complete is the genuine open-ended
+  // skill measure here (a faster rebuild is a better result, and there's
+  // always room to shave more time off), so track it as a separate
+  // lower-is-better personal best via `GameScores.submitLow`.
+  static const String _timeId = '${_id}_time_ms';
+  double _elapsedMs = 0;
+  int _bestTimeMs = 0;
+  int _finishMs = 0;
   int _cols = 2, _rows = 2;
   int? _dragging;
   // Screen-reader-only selection: a blind child cannot perform the pixel
@@ -73,7 +85,12 @@ class _JigsawFourGameState extends State<JigsawFourGame>
   void initState() {
     super.initState();
     GameScores.instance.ensureLoaded().then((_) {
-      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+      if (mounted) {
+        setState(() {
+          _best = GameScores.instance.best(_id);
+          _bestTimeMs = GameScores.instance.bestLow(_timeId);
+        });
+      }
     });
   }
 
@@ -92,6 +109,7 @@ class _JigsawFourGameState extends State<JigsawFourGame>
 
   @override
   void onTick(double dt) {
+    if (_status == GameStatus.playing) _elapsedMs += dt * 1000;
     for (var i = _shards.length - 1; i >= 0; i--) {
       final s = _shards[i];
       s.x += s.vx * dt;
@@ -149,6 +167,20 @@ class _JigsawFourGameState extends State<JigsawFourGame>
           _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
           TonePlayer.instance.playCue(SoundCue.gameStart);
           emit(ExperienceEvent.gameCompleted);
+          _finishMs = _elapsedMs.round();
+          final beatTime = _bestTimeMs > 0 && _finishMs < _bestTimeMs;
+          GameScores.instance.submitLow(_timeId, _finishMs).then((v) {
+            if (mounted) setState(() => _bestTimeMs = v);
+          });
+          // A faster all-time rebuild is its own genuine achievement,
+          // distinct from — and able to keep recurring after — the
+          // picture-count celebration above, so it gets its own banner and
+          // milestone chime rather than being silently absorbed.
+          if (beatTime) {
+            _banner = 'Fastest rebuild yet! 🏆';
+            TonePlayer.instance.playCue(SoundCue.milestone);
+            emit(ExperienceEvent.personalBest);
+          }
         } else {
           _level++;
           _banner = _nextPicturePool[_rnd.nextInt(_nextPicturePool.length)];
@@ -163,6 +195,8 @@ class _JigsawFourGameState extends State<JigsawFourGame>
       _level = 0;
       _score = 0;
       _banner = null;
+      _elapsedMs = 0;
+      _finishMs = 0;
       _shards.clear();
       _buildBoard();
       _status = GameStatus.playing;
@@ -195,6 +229,7 @@ class _JigsawFourGameState extends State<JigsawFourGame>
           'Drag each piece into its matching slot to rebuild the picture. '
           'Finish three pictures to win!',
       onStart: () => setState(() {
+        _elapsedMs = 0;
         _buildBoard();
         _status = GameStatus.playing;
       }),
@@ -207,7 +242,15 @@ class _JigsawFourGameState extends State<JigsawFourGame>
               ? 'Picture ${_score + 1}  ·  $left pieces to place'
               : 'Rebuild the pictures'),
       winEmoji: '🧩',
-      winText: _winPraise,
+      // Mirrors mini_golf's roundWinText convention: show this round's own
+      // time plus (once one exists) the all-time best, and call out a
+      // genuine new record distinctly from a routine finish.
+      winText: _finishMs <= 0
+          ? _winPraise
+          : (_bestTimeMs > 0 && _finishMs < _bestTimeMs
+              ? '$_winPraise New fastest: ${(_finishMs / 1000).toStringAsFixed(1)}s! 🏆'
+              : '$_winPraise ${(_finishMs / 1000).toStringAsFixed(1)}s'
+                  '${_bestTimeMs > 0 ? ' (best ${(_bestTimeMs / 1000).toStringAsFixed(1)}s)' : ''}'),
       accent: const Color(0xFF48CAE4),
       onPlayAgain: _reset,
       child: LayoutBuilder(
