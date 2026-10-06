@@ -69,6 +69,20 @@ class _PianoTilesGameState extends State<PianoTilesGame>
   bool _beatBest = false;
   GameStatus _status = GameStatus.ready;
 
+  // Every other high-risk arcade game already feeds career skill into its
+  // opening pace (rhythm_clap/echo_drums/penalty_dash/space_dodge's
+  // `_careerPaceRamp`/`_careerWaveRamp`), but Piano Tiles — the Phase-5
+  // immediate-interaction benchmark — always reset `_speed` to the same
+  // flat 0.42 beginner tempo, no matter how many tiles the child has
+  // already cleared across their whole career. Nudge (never remove) the
+  // opening pace for a proven player, capped well short of the in-run 0.95
+  // ceiling so the famous first-tap feel never changes.
+  double get _careerPaceRamp {
+    if (_best >= 60) return 0.08;
+    if (_best >= 30) return 0.04;
+    return 0;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -183,7 +197,7 @@ class _PianoTilesGameState extends State<PianoTilesGame>
   void _reset() {
     setState(() {
       _rows.clear();
-      _speed = 0.42;
+      _speed = 0.42 + _careerPaceRamp;
       _spawnIn = 0;
       _score = 0;
       _lastCol = -1;
