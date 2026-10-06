@@ -34,6 +34,15 @@ class _ToneMatchGameState extends State<ToneMatchGame>
   int _best = 0;
   String? _banner;
   GameStatus _status = GameStatus.ready;
+  // A found pair only ever recoloured the two bells — every other grid
+  // matching game in the catalog (memory_flip, odd_one_out, shadow_match)
+  // bursts a few shards of colour on a correct match; this one, built
+  // entirely around the "found it!" feeling, stayed flat. Mirror the
+  // established convention using the same fractional-grid-cell centre
+  // approach memory_flip_game uses for its own widget-grid bells.
+  final List<_Shard> _bits = <_Shard>[];
+  bool _reduceMotion = false;
+  Size? _lastSize;
 
   @override
   void initState() {
@@ -61,6 +70,42 @@ class _ToneMatchGameState extends State<ToneMatchGame>
         setState(() {});
       }
     }
+    for (var i = _bits.length - 1; i >= 0; i--) {
+      final b = _bits[i];
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.life -= dt;
+      if (b.life <= 0) _bits.removeAt(i);
+    }
+    if (_bits.isNotEmpty) setState(() {});
+  }
+
+  // Mirrors memory_flip_game.dart's `_cellCenter`: resolves a bell index to
+  // its real on-screen fractional centre from the same crossAxisCount: 4,
+  // mainAxisSpacing/crossAxisSpacing: 14, padding: fromLTRB(26, 150, 26, 40)
+  // the GridView itself is built with below.
+  Offset _cellCenter(int i, double w, double h) {
+    const cols = 4, spacing = 14.0;
+    const padLeft = 26.0, padRight = 26.0, padTop = 150.0, padBottom = 40.0;
+    final rows = (_tones.length / cols).ceil();
+    final availW = w - padLeft - padRight;
+    final availH = h - padTop - padBottom;
+    final cellW = (availW - spacing * (cols - 1)) / cols;
+    final cellH = (availH - spacing * (rows - 1)) / rows;
+    final col = i % cols, row = i ~/ cols;
+    final cx = padLeft + col * (cellW + spacing) + cellW / 2;
+    final cy = padTop + row * (cellH + spacing) + cellH / 2;
+    return Offset(cx / w, cy / h);
+  }
+
+  void _burst(Offset fracPos, Color color) {
+    final n = _reduceMotion ? 4 : 12;
+    for (var k = 0; k < n; k++) {
+      final a = _rnd.nextDouble() * math.pi * 2;
+      final sp = 0.15 + _rnd.nextDouble() * 0.3;
+      _bits.add(_Shard(fracPos.dx, fracPos.dy, math.cos(a) * sp,
+          math.sin(a) * sp, color));
+    }
   }
 
   void _tap(int i) {
@@ -77,6 +122,11 @@ class _ToneMatchGameState extends State<ToneMatchGame>
         _score++;
         emit(ExperienceEvent.bubblePopped);
         TonePlayer.instance.playCue(SoundCue.success);
+        if (_lastSize != null) {
+          final color = _toneColors[_tones[a]];
+          _burst(_cellCenter(a, _lastSize!.width, _lastSize!.height), color);
+          _burst(_cellCenter(b, _lastSize!.width, _lastSize!.height), color);
+        }
         _banner = _matchPool[_rnd.nextInt(_matchPool.length)];
         GameScores.instance.submit(_id, _score).then((v) {
           if (mounted) setState(() => _best = v);
@@ -140,18 +190,34 @@ class _ToneMatchGameState extends State<ToneMatchGame>
           ),
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(26, 150, 26, 40),
-            child: GridView.count(
-              crossAxisCount: 4,
-              mainAxisSpacing: 14,
-              crossAxisSpacing: 14,
-              physics: const NeverScrollableScrollPhysics(),
-              children: <Widget>[
-                for (var i = 0; i < _tones.length; i++)
-                  _buildBell(i),
-              ],
-            ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              _lastSize = Size(constraints.maxWidth, constraints.maxHeight);
+              _reduceMotion = MediaQuery.disableAnimationsOf(context);
+              return Stack(
+                fit: StackFit.expand,
+                children: <Widget>[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(26, 150, 26, 40),
+                    child: GridView.count(
+                      crossAxisCount: 4,
+                      mainAxisSpacing: 14,
+                      crossAxisSpacing: 14,
+                      physics: const NeverScrollableScrollPhysics(),
+                      children: <Widget>[
+                        for (var i = 0; i < _tones.length; i++)
+                          _buildBell(i),
+                      ],
+                    ),
+                  ),
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: CustomPaint(painter: _ToneMatchShardPainter(_bits)),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -187,4 +253,22 @@ class _ToneMatchGameState extends State<ToneMatchGame>
       ),
     );
   }
+}
+
+class _ToneMatchShardPainter extends CustomPainter {
+  _ToneMatchShardPainter(this.bits);
+  final List<_Shard> bits;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    for (final s in bits) {
+      final k = (s.life / 0.5).clamp(0.0, 1.0);
+      canvas.drawCircle(Offset(s.x * w, s.y * h), 2 + 3 * k,
+          Paint()..color = s.color.withOpacity(k));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ToneMatchShardPainter oldDelegate) => true;
 }
