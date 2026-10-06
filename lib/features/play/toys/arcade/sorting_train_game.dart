@@ -12,11 +12,20 @@ class _SortingTrainGameState extends State<SortingTrainGame>
     with TickerProviderStateMixin, ToyTicker, _Emit {
   static const String _id = 'sorting_train';
   static const int _target = 12;
+  // Full palette the train can draw wagons from. Unlike odd_one_out
+  // (grid grows 2x2 -> 5x5) or skee_ball (bands narrow), this game's wagon
+  // count never changed — every one of the 12 parcels was a pick from the
+  // exact same 4 wagons, so parcel 1 and parcel 11 were equally easy. Only
+  // the first `_activeCount` colours are in play at any moment; that count
+  // grows with score (see `_activeCount`), so late parcels genuinely demand
+  // telling apart more wagons/colours than early ones.
   static const List<Color> _colors = <Color>[
     Color(0xFFFF6B6B),
     Color(0xFFFFD166),
     Color(0xFF63E6BE),
     Color(0xFF66D9E8),
+    Color(0xFFB298DC),
+    Color(0xFFFFA94D),
   ];
   final math.Random _rnd = math.Random();
   static const List<String> _winPraisePool = <String>[
@@ -38,20 +47,30 @@ class _SortingTrainGameState extends State<SortingTrainGame>
     'red',
     'yellow',
     'teal',
-    'sky blue'
+    'sky blue',
+    'purple',
+    'orange',
   ];
   static const List<String> _shapeNames = <String>[
     'circle',
     'square',
     'triangle',
-    'diamond'
+    'diamond',
+    'star',
+    'heart',
   ];
   String _parcelName(int c) => '${_colorNames[c]} ${_shapeNames[c]}';
+  // Wagons in play right now: starts at 3 (easier opening than the old
+  // always-4) and opens up to the full 6-colour palette by the final
+  // parcels, same escalating-but-clamped shape as odd_one_out's `_cols`.
+  int get _activeCount => (3 + _score ~/ 3).clamp(3, _colors.length);
+  List<Color> get _activeColors => _colors.sublist(0, _activeCount);
   // Shuffled bag of colour indices so the 12-parcel win draws each colour an
   // even number of times with no repeat, instead of plain Random-with-
   // replacement risking the same colour several times in a row while the
   // child never sees another one — same gap class as kindness_match /
-  // calm_choices / weather_sort.
+  // calm_choices / weather_sort. Refilled from the *current* `_activeCount`
+  // each time it empties, so it automatically widens as the round goes on.
   final List<int> _bag = <int>[];
   bool _reduceMotion = false;
   int _item = 0;
@@ -75,7 +94,7 @@ class _SortingTrainGameState extends State<SortingTrainGame>
 
   int _drawItem() {
     if (_bag.isEmpty) {
-      _bag.addAll(List<int>.generate(_colors.length, (i) => i)..shuffle(_rnd));
+      _bag.addAll(List<int>.generate(_activeCount, (i) => i)..shuffle(_rnd));
     }
     return _bag.removeLast();
   }
@@ -110,7 +129,7 @@ class _SortingTrainGameState extends State<SortingTrainGame>
       for (var i = 0; i < bitCount; i++) {
         final a = _rnd.nextDouble() * math.pi * 2;
         final sp = 0.15 + _rnd.nextDouble() * 0.3;
-        _bits.add(_Shard((wagon + 0.5) / _colors.length, 0.8, math.cos(a) * sp,
+        _bits.add(_Shard((wagon + 0.5) / _activeCount, 0.8, math.cos(a) * sp,
             math.sin(a) * sp, _colors[wagon]));
       }
       TonePlayer.instance.playCue(SoundCue.success);
@@ -184,8 +203,9 @@ class _SortingTrainGameState extends State<SortingTrainGame>
               ),
             ),
           ];
-          final lw = w / _colors.length;
-          for (var i = 0; i < _colors.length; i++) {
+          final activeCount = _activeCount;
+          final lw = w / activeCount;
+          for (var i = 0; i < activeCount; i++) {
             overlays.add(Positioned(
               left: i * lw,
               top: h * 0.62,
@@ -205,14 +225,14 @@ class _SortingTrainGameState extends State<SortingTrainGame>
                 behavior: HitTestBehavior.opaque,
                 onTapDown: (d) {
                   if (d.localPosition.dy < h * 0.62) return;
-                  final i = (d.localPosition.dx / w * _colors.length)
+                  final i = (d.localPosition.dx / w * activeCount)
                       .floor()
-                      .clamp(0, _colors.length - 1);
+                      .clamp(0, activeCount - 1);
                   _drop(i);
                 },
                 child: CustomPaint(
                   painter: _TrainPainter(
-                    colors: _colors,
+                    colors: _activeColors,
                     item: _item,
                     bob: _bob,
                     wrongFlash: _wrongFlash,
@@ -244,11 +264,12 @@ class _TrainPainter extends CustomPainter {
   final int wrongFlash;
   final List<_Shard> bits;
 
-  // One fixed shape per colour (circle/square/triangle/diamond) so a
-  // colour-blind child can match by silhouette alone, the same
-  // shape+colour redundancy already used by odd_one_out/shadow_match —
-  // sorting_train was the one matching game still colour-only.
-  static const List<int> _shapeForColor = <int>[0, 1, 2, 5];
+  // One fixed shape per colour (circle/square/triangle/diamond/star/heart,
+  // matching `_shapeNames`'s order) so a colour-blind child can match by
+  // silhouette alone, the same shape+colour redundancy already used by
+  // odd_one_out/shadow_match — sorting_train was the one matching game
+  // still colour-only.
+  static const List<int> _shapeForColor = <int>[0, 1, 2, 5, 3, 4];
 
   @override
   void paint(Canvas canvas, Size size) {
