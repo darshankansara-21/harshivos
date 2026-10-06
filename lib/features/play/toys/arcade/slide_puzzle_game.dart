@@ -29,6 +29,16 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame> with _Emit {
   int _score = 0;
   int _moves = 0;
   int _best = 0;
+  // `_moves` is shown live in the banner every round ("Board X · Y moves"),
+  // dangling a "fewer moves is better" promise exactly like mini_golf's
+  // stroke count — but it only ever reset per board and was never summed or
+  // compared against anything, so a genuinely tighter 3-board run (the real
+  // skill signal this stat implies) could never be recognized or beaten.
+  // Mirror mini_golf's `_strokesId`/`submitLow`/`bestLow` pattern: track the
+  // whole run's total moves and a separate, lower-is-better personal best.
+  static const String _movesId = '${_id}_moves';
+  int _totalMoves = 0;
+  int _bestMoves = 0;
   String? _banner;
   GameStatus _status = GameStatus.ready;
 
@@ -36,7 +46,12 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame> with _Emit {
   void initState() {
     super.initState();
     GameScores.instance.ensureLoaded().then((_) {
-      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+      if (mounted) {
+        setState(() {
+          _best = GameScores.instance.best(_id);
+          _bestMoves = GameScores.instance.bestLow(_movesId);
+        });
+      }
     });
   }
 
@@ -95,6 +110,7 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame> with _Emit {
     _tiles[blank] = _tiles[p];
     _tiles[p] = 0;
     _moves++;
+    _totalMoves++;
     TonePlayer.instance.playCue(SoundCue.wood);
     if (_solved) {
       _score++;
@@ -106,6 +122,19 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame> with _Emit {
       if (_score >= _target) {
         _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         _status = GameStatus.won;
+        // A full 3-board run that genuinely beats the fewest-total-moves
+        // record is the real "did you solve it better" moment this game's
+        // own move counter is built around — give it the same milestone
+        // chime + companion celebration every other beat-your-best moment
+        // in the catalog gets, layered onto (not replacing) the win fanfare.
+        final beatMoves = _bestMoves > 0 && _totalMoves < _bestMoves;
+        GameScores.instance.submitLow(_movesId, _totalMoves).then((b) {
+          if (mounted) setState(() => _bestMoves = b);
+        });
+        if (beatMoves) {
+          TonePlayer.instance.playCue(SoundCue.milestone);
+          emit(ExperienceEvent.personalBest);
+        }
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
       } else {
@@ -119,6 +148,7 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame> with _Emit {
   void _reset() {
     setState(() {
       _score = 0;
+      _totalMoves = 0;
       _banner = null;
       _shuffle();
       _status = GameStatus.playing;
@@ -128,6 +158,13 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame> with _Emit {
   @override
   Widget build(BuildContext context) {
     drain(context);
+    final beatMoves = _status == GameStatus.won &&
+        _bestMoves > 0 &&
+        _totalMoves < _bestMoves;
+    final runWinText = beatMoves
+        ? '$_winPraise New best run: $_totalMoves moves! 🏆'
+        : '$_winPraise $_totalMoves moves'
+            '${_bestMoves > 0 ? ' (best $_bestMoves)' : ''}';
     return _Shell(
       title: '🔀 Slide Puzzle',
       introHow:
@@ -144,9 +181,10 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame> with _Emit {
       banner: _banner ??
           (_status == GameStatus.playing
               ? 'Board ${_score + 1}  ·  $_moves moves'
+                  '${_bestMoves > 0 ? ' · best run $_bestMoves' : ''}'
               : 'Slide the numbers into order'),
       winEmoji: '🔀',
-      winText: _winPraise,
+      winText: runWinText,
       accent: const Color(0xFF4CC9F0),
       onPlayAgain: _reset,
       child: LayoutBuilder(
