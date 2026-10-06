@@ -51,6 +51,19 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
   // the dot drifts back toward the centreline so a later excursion warns
   // again too — the same `_edgeWarned` pattern already used in balance_ball.
   bool _edgeWarned = false;
+  // Steady Hand's whole premise is a continuous, precision drag along a
+  // winding corridor a sighted child can see — the exact thing a blind
+  // child's screen reader cannot convey, and a discrete directional "nudge"
+  // (the bridge used for maze_marble/air_hockey/balance_ball's 1-2 axis
+  // drags) can't honestly stand in for either. This game had zero Semantics
+  // at all, the one drag-based arcade file still missing any screen-reader
+  // bridge. Expose a single "Advance along path" action that always safely
+  // walks the dot further along the centreline toward the finish — the same
+  // bypass-the-precision-challenge compromise already used for other
+  // physically-unrepresentable drags, so a blind child can still reach each
+  // level's end and feel the win, rather than the game being entirely
+  // closed off to them.
+  double _advance = 0;
 
   @override
   void initState() {
@@ -68,6 +81,27 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
     _dotY = _path.first[1];
     _holding = false;
     _edgeWarned = false;
+    _advance = 0;
+  }
+
+  // Moves the dot a fixed step further along the path's own centreline,
+  // vertex-interpolated so it always sits exactly on the corridor — reached
+  // via the Semantics "Advance along path" action rather than a real drag,
+  // so it can never itself trigger `_fail()`.
+  void _advanceAlongPath(double step) {
+    if (_status != GameStatus.playing) return;
+    final segs = _path.length - 1;
+    _advance = (_advance + step).clamp(0.0, 1.0);
+    final scaled = _advance * segs;
+    final segIdx = scaled.floor().clamp(0, segs - 1);
+    final t = (scaled - segIdx).clamp(0.0, 1.0);
+    final a = _path[segIdx], b = _path[segIdx + 1];
+    setState(() {
+      _holding = true;
+      _dotX = a[0] + (b[0] - a[0]) * t;
+      _dotY = a[1] + (b[1] - a[1]) * t;
+    });
+    if (_advance >= 1.0) _levelDone();
   }
 
   // The corridor the painter draws is a stroked path with strokeWidth
@@ -193,7 +227,15 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
           final aspect = h / w;
-          return GestureDetector(
+          return Semantics(
+            label: 'Steady hand path. Drag the dot from start to finish '
+                'without touching the walls, or use the advance action to '
+                'move it safely along the path.',
+            customSemanticsActions: <CustomSemanticsAction, VoidCallback>{
+              const CustomSemanticsAction(label: 'Advance along path'): () =>
+                  _advanceAlongPath(0.25),
+            },
+            child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onPanStart: (d) {
               final nx = d.localPosition.dx / w, ny = d.localPosition.dy / h;
@@ -252,6 +294,7 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
                 holding: _holding,
               ),
               size: Size.infinite,
+            ),
             ),
           );
         },
