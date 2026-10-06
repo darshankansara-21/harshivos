@@ -52,6 +52,11 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
   // drop the whole field one row, genre-standard "ceiling descends" pressure.
   static const int _shotsPerDrop = 8;
   int _shotsFired = 0;
+  // Mirrors stack_game/block_blast_game's live "beat your own all-time best"
+  // celebration. Bubble Shooter has no win cap either — score is a pure
+  // pop-count climb until the ceiling reaches the floor — so crossing a
+  // prior personal best mid-run deserves the same judgment-free moment.
+  bool _beatBest = false;
 
   @override
   void initState() {
@@ -165,6 +170,16 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
       _banner = 'Pop ${group.length}!';
       TonePlayer.instance.playCue(SoundCue.bubble);
       emit(ExperienceEvent.bubblePopped);
+      if (_status == GameStatus.playing &&
+          !_beatBest &&
+          _best > 0 &&
+          _score > _best) {
+        _beatBest = true;
+        // Takes priority over the pop-count banner just set above — a new
+        // all-time record is the bigger moment of the two.
+        _banner = 'New personal best! 🏆';
+        TonePlayer.instance.playCue(SoundCue.milestone);
+      }
       GameScores.instance.submit(_id, _score).then((b) {
         // Resolves after this frame's setState has already run, so updating
         // `_best` without triggering a rebuild left a new best silently
@@ -261,6 +276,7 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
       _score = 0;
       _shotsFired = 0;
       _banner = null;
+      _beatBest = false;
       _status = GameStatus.playing;
       _shot = _pal[_rnd.nextInt(_pal.length)];
       _next = _pal[_rnd.nextInt(_pal.length)];

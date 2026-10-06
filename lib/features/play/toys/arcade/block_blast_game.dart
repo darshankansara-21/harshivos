@@ -38,6 +38,13 @@ class _BlockBlastGameState extends State<BlockBlastGame> with _Emit {
   // have each cleared at least one line; resets the moment a placement
   // doesn't clear anything, mirroring stack_game's `_perfectStreak` pattern.
   int _comboStreak = 0;
+  // Mirrors stack_game/whack_game/space_dodge_game/sky_hop_game's live "beat
+  // your own all-time best" celebration. Block Blast has no win cap — score
+  // climbs purely with placements and line-clear combos until the board
+  // fills — so crossing a prior personal best mid-run is a real,
+  // judgment-free moment worth its own banner, not just a stat on the
+  // eventual game-over screen.
+  bool _beatBest = false;
 
   static const List<Color> _pieceColors = <Color>[
     Color(0xFFEF476F), Color(0xFFFFD166), Color(0xFF06D6A0),
@@ -185,6 +192,16 @@ class _BlockBlastGameState extends State<BlockBlastGame> with _Emit {
     _score += gain;
     _banner = mult > 1 ? 'Clear +$gain! Combo x$mult 🔥' : 'Clear +$gain!';
     TonePlayer.instance.playCue(mult > 1 ? SoundCue.milestone : SoundCue.success);
+    if (_status == GameStatus.playing &&
+        !_beatBest &&
+        _best > 0 &&
+        _score > _best) {
+      _beatBest = true;
+      // Takes priority over the combo banner just set above — a new
+      // all-time record is the bigger moment of the two.
+      _banner = 'New personal best! 🏆';
+      TonePlayer.instance.playCue(SoundCue.milestone);
+    }
   }
 
   void _gameOver() {
@@ -208,6 +225,7 @@ class _BlockBlastGameState extends State<BlockBlastGame> with _Emit {
       _invalidCells = const <math.Point<int>>[];
       _invalidToken++;
       _comboStreak = 0;
+      _beatBest = false;
       _status = GameStatus.playing;
       _refill();
     });
