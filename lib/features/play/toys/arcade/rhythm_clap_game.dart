@@ -42,6 +42,21 @@ class _RhythmClapGameState extends State<RhythmClapGame>
     });
   }
 
+  // Every other high-risk arcade game already feeds career skill into its
+  // opening pace (whack's `_careerDangerRamp`, space_dodge's
+  // `_careerWaveRamp`), but rhythm_clap's `_barTime` always reset to the
+  // same flat 2.6s beginner pace at the top of every run, no matter how
+  // many perfect-clap bars the child has already strung together across
+  // their whole career — the opener felt identically slow for a seasoned
+  // player and a first-timer. Nudge (never remove) the opening challenge
+  // for a proven player, capped well short of the in-run 1.6s floor so it
+  // never feels unfair.
+  double get _careerPaceRamp {
+    if (_best >= 24) return 0.5;
+    if (_best >= 12) return 0.25;
+    return 0;
+  }
+
   void _newBar() {
     final n = 3 + _rnd.nextInt(3); // 3..5 markers
     _markers = <double>[];
@@ -51,7 +66,7 @@ class _RhythmClapGameState extends State<RhythmClapGame>
     _hit = List<bool>.filled(n, false);
     _missed = List<bool>.filled(n, false);
     _head = 0;
-    _barTime = (2.6 - _score * 0.06).clamp(1.6, 2.6);
+    _barTime = (2.6 - _careerPaceRamp - _score * 0.06).clamp(1.6, 2.6);
   }
 
   @override
