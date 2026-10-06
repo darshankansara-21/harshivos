@@ -57,7 +57,20 @@ class _SoccerKickGameState extends State<SoccerKickGame>
     _keeperTarget = 0.5;
   }
 
-  double _keeperReach() => (0.085 + _score * 0.004).clamp(0.085, 0.14);
+  // The keeper's reach/accuracy only ever escalated within a single run (via
+  // `_score`) — a child who has already scored hundreds of career goals
+  // faced the exact identical opening-keeper difficulty as their very first
+  // kick ever, `_best` tracked purely as a display stat with zero feedback
+  // into challenge. Same flat-forever difficulty-curve gap already fixed
+  // catalog-wide via capped `_careerPaceRamp`/`_careerDangerRamp` getters
+  // (basketball's hoop speed, whack's danger level, etc.) — ramp the
+  // keeper's reach and prediction accuracy up a little with career goals,
+  // capped well short of unbeatable so Pico's keeper always stays genuinely
+  // scoreable, never a wall.
+  double get _careerKeeperRamp => (_best * 0.0008).clamp(0.0, 0.05);
+
+  double _keeperReach() =>
+      (0.085 + _score * 0.004 + _careerKeeperRamp).clamp(0.085, 0.16);
 
   @override
   void onTick(double dt) {
@@ -183,7 +196,8 @@ class _SoccerKickGameState extends State<SoccerKickGame>
     _spin = (_rnd.nextDouble() - 0.5) * 0.25 + _bvx * 0.12;
     final t = (_goalY - _by) / _bvy;
     final predX = (_bx + _bvx * t).clamp(_goalL, _goalR);
-    final err = (0.26 - _score * 0.015).clamp(0.04, 0.26);
+    final err =
+        (0.26 - _score * 0.015 - _careerKeeperRamp * 2).clamp(0.04, 0.26);
     _keeperTarget =
         (predX + (_rnd.nextDouble() - 0.5) * 2 * err).clamp(_goalL + 0.03, _goalR - 0.03);
     // The strike itself was silent — the ball visibly flies for several frames
