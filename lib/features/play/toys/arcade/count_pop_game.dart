@@ -50,6 +50,9 @@ class _CountPopGameState extends State<CountPopGame>
   double _pop = 0;
   double _popX = 0, _popY = 0;
   String? _banner;
+  // The round-complete banner was only ever cleared by `_reset()` — once set
+  // it stayed glued on screen through every later round of the same run.
+  double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
 
   @override
@@ -102,6 +105,10 @@ class _CountPopGameState extends State<CountPopGame>
   @override
   void onTick(double dt) {
     if (_status != GameStatus.playing) return;
+    if (_bannerT > 0) {
+      _bannerT -= dt;
+      if (_bannerT <= 0) _banner = null;
+    }
     if (_pop > 0) _pop -= dt * 3;
     for (final b in _bubbles) {
       b.x += b.vx * dt;
@@ -158,6 +165,7 @@ class _CountPopGameState extends State<CountPopGame>
             emit(ExperienceEvent.gameCompleted);
           } else {
             _banner = 'Yes! You popped $_need 🫧';
+            _bannerT = 1.3;
             _newRound();
           }
         }
@@ -176,6 +184,7 @@ class _CountPopGameState extends State<CountPopGame>
       _score = 0;
       _runMisses = 0;
       _banner = null;
+      _bannerT = 0;
       _newRound();
       _status = GameStatus.playing;
     });

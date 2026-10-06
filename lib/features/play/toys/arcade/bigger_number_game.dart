@@ -53,7 +53,24 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
   // convention as weather_sort_game's `_locked`.
   bool _locked = false;
   String? _banner;
+  // Every correct/miss/best banner was only ever cleared by `_reset()`, so
+  // the very first tap's text glued itself on screen for the rest of the run.
+  Timer? _bannerTimer;
   GameStatus _status = GameStatus.ready;
+
+  void _flashBanner(String text, {Duration duration = const Duration(milliseconds: 1100)}) {
+    _banner = text;
+    _bannerTimer?.cancel();
+    _bannerTimer = Timer(duration, () {
+      if (mounted) setState(() => _banner = null);
+    });
+  }
+
+  @override
+  void dispose() {
+    _bannerTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -112,7 +129,7 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
       _locked = true;
       TonePlayer.instance.playCue(SoundCue.correct);
       emit(ExperienceEvent.bubblePopped);
-      _banner = _correctPool[_rnd.nextInt(_correctPool.length)];
+      _flashBanner(_correctPool[_rnd.nextInt(_correctPool.length)]);
       // A child who runs out of lives right after this tap still deserves
       // the companion's loudest celebration if it's a genuine all-time
       // record, not just the routine correct-tap chime.
@@ -122,7 +139,7 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
       });
       if (crossedBest) {
         _beatBest = true;
-        _banner = 'New personal best! 🏆';
+        _flashBanner('New personal best! 🏆', duration: const Duration(milliseconds: 1300));
         TonePlayer.instance.playCue(SoundCue.milestone);
         emit(ExperienceEvent.personalBest);
       }
@@ -161,7 +178,7 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
         _banner = 'Out of lives!';
       } else {
         TonePlayer.instance.playCue(SoundCue.gentleRetry);
-        _banner = _missPool[_rnd.nextInt(_missPool.length)];
+        _flashBanner(_missPool[_rnd.nextInt(_missPool.length)]);
         // Unlike every other miss-flash in the catalog (a brief ~350-500ms
         // highlight), this one was only ever cleared by the next correct
         // answer's _newRound() call — so a child who missed then paused (or
@@ -183,6 +200,7 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
       _lives = 3;
       _beatBest = false;
       _banner = null;
+      _bannerTimer?.cancel();
       _newRound();
       _status = GameStatus.playing;
     });

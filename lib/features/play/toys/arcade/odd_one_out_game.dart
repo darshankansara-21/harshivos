@@ -39,6 +39,10 @@ class _OddOneOutGameState extends State<OddOneOutGame>
   bool _beatBest = false;
   int _wrong = -1;
   String? _banner;
+  // Every found/miss/best banner was only ever cleared by `_reset()`, so the
+  // very first tap's text glued itself on screen for the rest of the run,
+  // permanently hiding the live hearts status underneath.
+  double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
   // Every sibling tap/sort game in the catalog (fruit_catch, balloon_pop,
   // star_tap, shape_sort_chute...) bursts a few shards of colour on a
@@ -66,6 +70,10 @@ class _OddOneOutGameState extends State<OddOneOutGame>
 
   @override
   void onTick(double dt) {
+    if (_bannerT > 0) {
+      _bannerT -= dt;
+      if (_bannerT <= 0) _banner = null;
+    }
     for (var i = _bits.length - 1; i >= 0; i--) {
       final b = _bits[i];
       b.x += b.vx * dt;
@@ -157,6 +165,7 @@ class _OddOneOutGameState extends State<OddOneOutGame>
       TonePlayer.instance.playCue(SoundCue.correct);
       emit(ExperienceEvent.bubblePopped);
       _banner = _foundPool[_rnd.nextInt(_foundPool.length)];
+      _bannerT = 1.1;
       final gx = i % _cols, gy = i ~/ _cols;
       _burst((gx + 0.5) / _cols, 0.14 + (gy + 0.5) / _cols * 0.82, _oddColor);
       // A child who runs out of lives right after this tap still deserves
@@ -169,6 +178,7 @@ class _OddOneOutGameState extends State<OddOneOutGame>
       if (crossedBest) {
         _beatBest = true;
         _banner = 'New personal best! 🏆';
+        _bannerT = 1.3;
         TonePlayer.instance.playCue(SoundCue.milestone);
         emit(ExperienceEvent.personalBest);
       }
@@ -191,9 +201,11 @@ class _OddOneOutGameState extends State<OddOneOutGame>
         _overPraise = _gentleTryAgainPool[_rnd.nextInt(_gentleTryAgainPool.length)];
         TonePlayer.instance.playCue(SoundCue.gameOver);
         _banner = 'Out of lives!';
+        _bannerT = 1.3;
       } else {
         TonePlayer.instance.playCue(SoundCue.gentleRetry);
         _banner = 'Look closely…';
+        _bannerT = 1.1;
         // Without this, the red flash on a missed tile stayed stuck for the
         // rest of the round — the whole time a child kept searching for the
         // real odd one out — instead of the brief mistake cue every other
@@ -212,6 +224,7 @@ class _OddOneOutGameState extends State<OddOneOutGame>
       _lives = 3;
       _beatBest = false;
       _banner = null;
+      _bannerT = 0;
       _bits.clear();
       _newRound();
       _status = GameStatus.playing;

@@ -61,7 +61,24 @@ class _CountingBasketsGameState extends State<CountingBasketsGame> with _Emit {
   // matches what was actually put in the basket.
   final List<String> _collectedEmojis = <String>[];
   String? _banner;
+  // The round-complete banner was only ever cleared by `_reset()` — once
+  // set it stayed glued on screen through every later round of the same run.
+  Timer? _bannerTimer;
   GameStatus _status = GameStatus.ready;
+
+  void _flashBanner(String text, {Duration duration = const Duration(milliseconds: 1300)}) {
+    _banner = text;
+    _bannerTimer?.cancel();
+    _bannerTimer = Timer(duration, () {
+      if (mounted) setState(() => _banner = null);
+    });
+  }
+
+  @override
+  void dispose() {
+    _bannerTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -146,7 +163,7 @@ class _CountingBasketsGameState extends State<CountingBasketsGame> with _Emit {
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
       } else {
-        _banner = 'Yes! $_need in the basket 🧺';
+        _flashBanner('Yes! $_need in the basket 🧺');
         _newRound();
       }
     }
@@ -157,6 +174,7 @@ class _CountingBasketsGameState extends State<CountingBasketsGame> with _Emit {
       _score = 0;
       _runMisses = 0;
       _banner = null;
+      _bannerTimer?.cancel();
       _newRound();
       _status = GameStatus.playing;
     });

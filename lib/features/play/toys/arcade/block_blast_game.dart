@@ -24,6 +24,12 @@ class _BlockBlastGameState extends State<BlockBlastGame>
   int _best = 0;
   String _overPraise = _gentleTryAgainPool[0];
   String? _banner;
+  // Unlike every other transient-banner flash in the catalog, a clear's
+  // "Clear +X!" combo text (and the personal-best banner stacked on top of
+  // it) was only ever cleared by `_reset()` — once set, it stayed glued on
+  // screen for the rest of the run, silently hiding every later placement's
+  // own feedback.
+  double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
   // Cells of the last attempted-but-rejected placement, briefly flashed red
   // so tapping a cell a selected piece can't fit into (off the edge or
@@ -104,6 +110,10 @@ class _BlockBlastGameState extends State<BlockBlastGame>
       b.y += b.vy * dt;
       b.life -= dt;
       if (b.life <= 0) _bits.removeAt(i);
+    }
+    if (_bannerT > 0) {
+      _bannerT -= dt;
+      if (_bannerT <= 0) _banner = null;
     }
   }
 
@@ -223,6 +233,7 @@ class _BlockBlastGameState extends State<BlockBlastGame>
     final gain = cleared * 10 * mult;
     _score += gain;
     _banner = mult > 1 ? 'Clear +$gain! Combo x$mult 🔥' : 'Clear +$gain!';
+    _bannerT = 1.3;
     TonePlayer.instance.playCue(mult > 1 ? SoundCue.milestone : SoundCue.success);
   }
 
@@ -246,6 +257,7 @@ class _BlockBlastGameState extends State<BlockBlastGame>
       // Takes priority over the combo banner just set above — a new
       // all-time record is the bigger moment of the two.
       _banner = 'New personal best! 🏆';
+      _bannerT = 1.3;
       TonePlayer.instance.playCue(SoundCue.milestone);
       emit(ExperienceEvent.personalBest);
     }
@@ -279,6 +291,7 @@ class _BlockBlastGameState extends State<BlockBlastGame>
           List<List<Color?>>.generate(_n, (_) => List<Color?>.filled(_n, null));
       _score = 0;
       _banner = null;
+      _bannerT = 0;
       _invalidCells = const <math.Point<int>>[];
       _invalidToken++;
       _comboStreak = 0;

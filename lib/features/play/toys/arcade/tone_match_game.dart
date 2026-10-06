@@ -40,6 +40,9 @@ class _ToneMatchGameState extends State<ToneMatchGame>
   int _best = 0;
   bool _beatBest = false;
   String? _banner;
+  // Every match/miss/best banner was only ever cleared by `_reset()`, so the
+  // very first pair's text glued itself on screen for the rest of the run.
+  double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
   // A found pair only ever recoloured the two bells — every other grid
   // matching game in the catalog (memory_flip, odd_one_out, shadow_match)
@@ -76,6 +79,10 @@ class _ToneMatchGameState extends State<ToneMatchGame>
         _revealed.clear();
         setState(() {});
       }
+    }
+    if (_bannerT > 0) {
+      _bannerT -= dt;
+      if (_bannerT <= 0) _banner = null;
     }
     for (var i = _bits.length - 1; i >= 0; i--) {
       final b = _bits[i];
@@ -135,6 +142,7 @@ class _ToneMatchGameState extends State<ToneMatchGame>
           _burst(_cellCenter(b, _lastSize!.width, _lastSize!.height), color);
         }
         _banner = _matchPool[_rnd.nextInt(_matchPool.length)];
+        _bannerT = 1.1;
         // A long streak of lucky first-tries can beat the previous pair
         // count before the final pair is even found — surface that as a
         // genuine personal best, matching the pattern every other
@@ -147,6 +155,7 @@ class _ToneMatchGameState extends State<ToneMatchGame>
         if (crossedBest) {
           _beatBest = true;
           _banner = 'New personal best! 🏆';
+          _bannerT = 1.3;
           TonePlayer.instance.playCue(SoundCue.milestone);
           emit(ExperienceEvent.personalBest);
         }
@@ -166,6 +175,7 @@ class _ToneMatchGameState extends State<ToneMatchGame>
         TonePlayer.instance.playCue(SoundCue.gentleRetry);
         emit(ExperienceEvent.incorrectAnswer);
         _banner = _missPool[_rnd.nextInt(_missPool.length)];
+        _bannerT = 1.1;
       }
     }
     setState(() {});
@@ -174,6 +184,7 @@ class _ToneMatchGameState extends State<ToneMatchGame>
   void _reset() {
     setState(() {
       _banner = null;
+      _bannerT = 0;
       _beatBest = false;
       _deal();
       _status = GameStatus.playing;

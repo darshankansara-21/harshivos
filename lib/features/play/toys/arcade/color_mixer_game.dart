@@ -62,6 +62,10 @@ class _ColorMixerGameState extends State<ColorMixerGame>
   int _score = 0;
   int _best = 0;
   String? _banner;
+  // "Matched!"/"Getting warmer!"/"colder" banners were only ever cleared by
+  // `_reset()` — the first steer glued its text on screen forever, hiding
+  // the default target-colour prompt and every later pour's own feedback.
+  double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
   // `_score` (colours matched) always tops out at `_target` the moment a
   // round is actually won, so `_best` goes permanently static at 8 after the
@@ -102,6 +106,10 @@ class _ColorMixerGameState extends State<ColorMixerGame>
   @override
   void onTick(double dt) {
     if (_status != GameStatus.playing) return;
+    if (_bannerT > 0) {
+      _bannerT -= dt;
+      if (_bannerT <= 0) _banner = null;
+    }
     if (_bits.isEmpty) return;
     for (var i = _bits.length - 1; i >= 0; i--) {
       final b = _bits[i];
@@ -178,6 +186,7 @@ class _ColorMixerGameState extends State<ColorMixerGame>
       if (_drops.length >= 2 && dist < _matchThreshold) {
         _score++;
         _banner = 'Matched ${_recipeName[_recipe]}! 🎨';
+        _bannerT = 1.1;
         emit(ExperienceEvent.bubblePopped);
         // A colour match is this game's whole identity — it was playing the
         // exact same generic ascending `SoundCue.success` chime every other
@@ -223,8 +232,10 @@ class _ColorMixerGameState extends State<ColorMixerGame>
       } else if (_drops.length >= 2) {
         if (dist < prevDist - 0.01) {
           _banner = 'Getting warmer!';
+          _bannerT = 1.1;
         } else if (dist > prevDist + 0.01) {
           _banner = _colderPool[_rnd.nextInt(_colderPool.length)];
+          _bannerT = 1.1;
           TonePlayer.instance.playCue(SoundCue.gentleRetry);
           emit(ExperienceEvent.incorrectAnswer);
         }
@@ -242,6 +253,7 @@ class _ColorMixerGameState extends State<ColorMixerGame>
       _score = 0;
       _roundDrops = 0;
       _banner = null;
+      _bannerT = 0;
       _bag.clear();
       _newTarget();
       _status = GameStatus.playing;

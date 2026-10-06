@@ -75,7 +75,24 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
   int _bestTimeMs = 0;
   int _finishMs = 0;
   String? _banner;
+  // The post-constellation "next pattern" banner was only ever cleared by
+  // `_reset()`, so it stayed glued on screen through the next constellation.
+  Timer? _bannerTimer;
   GameStatus _status = GameStatus.ready;
+
+  void _flashBanner(String text, {Duration duration = const Duration(milliseconds: 1300)}) {
+    _banner = text;
+    _bannerTimer?.cancel();
+    _bannerTimer = Timer(duration, () {
+      if (mounted) setState(() => _banner = null);
+    });
+  }
+
+  @override
+  void dispose() {
+    _bannerTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -182,7 +199,7 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
           TonePlayer.instance.playCue(SoundCue.gameStart);
           emit(ExperienceEvent.gameCompleted);
         } else {
-          _banner = _nextConstellationPool[_rnd.nextInt(_nextConstellationPool.length)];
+          _flashBanner(_nextConstellationPool[_rnd.nextInt(_nextConstellationPool.length)]);
           _newShape();
         }
       }
@@ -199,6 +216,7 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
       _stars = _shapes[_shapeIdx];
       _linked = 1;
       _banner = null;
+      _bannerTimer?.cancel();
       _finishMs = 0;
       _roundStartMs = DateTime.now().millisecondsSinceEpoch;
       _status = GameStatus.playing;

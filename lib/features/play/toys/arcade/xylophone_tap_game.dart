@@ -52,8 +52,26 @@ class _XylophoneTapGameState extends State<XylophoneTapGame> with _Emit {
   int _best = 0;
   bool _beatBest = false;
   String? _banner;
+  // The post-tune "Next tune"/best banner was only ever cleared by the next
+  // wrong tap or `_start()`, so it stayed glued on screen through the whole
+  // next tune if the child played it perfectly.
+  Timer? _bannerTimer;
   GameStatus _status = GameStatus.ready;
   int _wrongBar = -1; // brief red flash on a mis-tapped bar
+
+  void _flashBanner(String text, {Duration duration = const Duration(milliseconds: 1300)}) {
+    _banner = text;
+    _bannerTimer?.cancel();
+    _bannerTimer = Timer(duration, () {
+      if (mounted) setState(() => _banner = null);
+    });
+  }
+
+  @override
+  void dispose() {
+    _bannerTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -75,6 +93,7 @@ class _XylophoneTapGameState extends State<XylophoneTapGame> with _Emit {
       _score = 0;
       _beatBest = false;
       _banner = null;
+      _bannerTimer?.cancel();
       _status = GameStatus.playing;
     });
   }
@@ -105,9 +124,9 @@ class _XylophoneTapGameState extends State<XylophoneTapGame> with _Emit {
         } else {
           _orderPos++;
           _pos = 0;
-          _banner = crossedBest
+          _flashBanner(crossedBest
               ? 'New personal best! 🏆'
-              : '${_nextTunePrefixPool[_rnd.nextInt(_nextTunePrefixPool.length)]} Next: ${_tune.name}';
+              : '${_nextTunePrefixPool[_rnd.nextInt(_nextTunePrefixPool.length)]} Next: ${_tune.name}');
           if (crossedBest) {
             TonePlayer.instance.playCue(SoundCue.milestone);
             emit(ExperienceEvent.personalBest);

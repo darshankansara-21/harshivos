@@ -45,7 +45,25 @@ class _MazeRunGameState extends State<MazeRunGame> with _Emit {
   // game gives.
   bool _beatBest = false;
   String? _banner;
+  // The post-solve best/next-maze banner was only ever cleared by
+  // `_reset()`, so once a level solved it stayed glued on screen through
+  // the whole next maze.
+  Timer? _bannerTimer;
   GameStatus _status = GameStatus.ready;
+
+  void _flashBanner(String text, {Duration duration = const Duration(milliseconds: 1300)}) {
+    _banner = text;
+    _bannerTimer?.cancel();
+    _bannerTimer = Timer(duration, () {
+      if (mounted) setState(() => _banner = null);
+    });
+  }
+
+  @override
+  void dispose() {
+    _bannerTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -151,14 +169,14 @@ class _MazeRunGameState extends State<MazeRunGame> with _Emit {
       // beating a prior all-time solved count isn't lost under the usual
       // per-maze phrase.
       setState(() {
-        _banner = 'New personal best! 🏆';
+        _flashBanner('New personal best! 🏆');
         _genMaze();
       });
       TonePlayer.instance.playCue(SoundCue.milestone);
       emit(ExperienceEvent.personalBest);
     } else {
       setState(() {
-        _banner = _nextMazePool[_rnd.nextInt(_nextMazePool.length)];
+        _flashBanner(_nextMazePool[_rnd.nextInt(_nextMazePool.length)]);
         _genMaze();
       });
     }
@@ -170,6 +188,7 @@ class _MazeRunGameState extends State<MazeRunGame> with _Emit {
       _solved = 0;
       _beatBest = false;
       _banner = null;
+      _bannerTimer?.cancel();
       _genMaze();
       _status = GameStatus.playing;
     });

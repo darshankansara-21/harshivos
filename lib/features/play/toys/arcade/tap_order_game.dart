@@ -15,8 +15,25 @@ class _TapOrderGameState extends State<TapOrderGame> with _Emit {
   int _round = 1;
   int _best = 0;
   String? _banner;
+  // Every round/best banner was only ever cleared by `_reset()`, so it
+  // glued itself on screen through the rest of the session.
+  Timer? _bannerTimer;
   int _wrongCell = -1;
   GameStatus _status = GameStatus.ready;
+
+  void _flashBanner(String text, {Duration duration = const Duration(milliseconds: 1300)}) {
+    _banner = text;
+    _bannerTimer?.cancel();
+    _bannerTimer = Timer(duration, () {
+      if (mounted) setState(() => _banner = null);
+    });
+  }
+
+  @override
+  void dispose() {
+    _bannerTimer?.cancel();
+    super.dispose();
+  }
   // Rounds repeat the exact same 1-25 shuffle forever with no escalation at
   // all, leaving the game with zero challenge curve — the quality bar every
   // other round-based game in the catalog clears. Rather than bolt on a
@@ -87,12 +104,12 @@ class _TapOrderGameState extends State<TapOrderGame> with _Emit {
         // both land on the same tap — takes priority over the routine
         // round/time banner, same convention as ball_sort/maze_run's
         // "New personal best!" vs. their own routine level banner.
-        _banner = crossedBest
+        _flashBanner(crossedBest
             ? 'New personal best! 🏆'
             : isBest
                 ? 'Round $_round! ${_fmtTime(elapsed)} · ⭐ New best time!'
                 : 'Round $_round! ${_fmtTime(elapsed)} · '
-                    'best ${_fmtTime(Duration(milliseconds: _bestRoundTimeMs))}';
+                    'best ${_fmtTime(Duration(milliseconds: _bestRoundTimeMs))}');
         TonePlayer.instance.playCue(SoundCue.success);
         emit(ExperienceEvent.gameCompleted);
         if (isBest) {
@@ -108,7 +125,7 @@ class _TapOrderGameState extends State<TapOrderGame> with _Emit {
         setState(_shuffle);
       } else if (crossedBest) {
         _beatBest = true;
-        _banner = 'New personal best! 🏆';
+        _flashBanner('New personal best! 🏆');
         TonePlayer.instance.playCue(SoundCue.milestone);
         emit(ExperienceEvent.personalBest);
         setState(() {});
@@ -136,6 +153,7 @@ class _TapOrderGameState extends State<TapOrderGame> with _Emit {
       _score = 0;
       _round = 1;
       _banner = null;
+      _bannerTimer?.cancel();
       _beatBest = false;
       _status = GameStatus.playing;
       _shuffle();

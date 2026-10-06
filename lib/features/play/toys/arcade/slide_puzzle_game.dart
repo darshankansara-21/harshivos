@@ -40,7 +40,24 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame> with _Emit {
   int _totalMoves = 0;
   int _bestMoves = 0;
   String? _banner;
+  // The post-board "Next board" banner was only ever cleared by `_reset()`,
+  // so once one board solved it stayed glued on screen through the next.
+  Timer? _bannerTimer;
   GameStatus _status = GameStatus.ready;
+
+  void _flashBanner(String text, {Duration duration = const Duration(milliseconds: 1300)}) {
+    _banner = text;
+    _bannerTimer?.cancel();
+    _bannerTimer = Timer(duration, () {
+      if (mounted) setState(() => _banner = null);
+    });
+  }
+
+  @override
+  void dispose() {
+    _bannerTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -138,7 +155,7 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame> with _Emit {
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
       } else {
-        _banner = _nextBoardPool[_rnd.nextInt(_nextBoardPool.length)];
+        _flashBanner(_nextBoardPool[_rnd.nextInt(_nextBoardPool.length)]);
         _shuffle();
       }
     }
@@ -150,6 +167,7 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame> with _Emit {
       _score = 0;
       _totalMoves = 0;
       _banner = null;
+      _bannerTimer?.cancel();
       _shuffle();
       _status = GameStatus.playing;
     });

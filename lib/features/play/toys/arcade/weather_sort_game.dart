@@ -74,6 +74,9 @@ class _WeatherSortGameState extends State<WeatherSortGame>
   int _correctFlash = -1;
   bool _locked = false;
   String? _banner;
+  // Every sort/miss/best banner was only ever cleared by `_reset()`, so the
+  // very first item's text glued itself on screen for the rest of the run.
+  double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
   // Every other sort was answerable at a dead-calm, infinite pace — zero
   // challenge curve, the same flat-forever gap already fixed across
@@ -108,6 +111,10 @@ class _WeatherSortGameState extends State<WeatherSortGame>
 
   @override
   void onTick(double dt) {
+    if (_bannerT > 0) {
+      _bannerT -= dt;
+      if (_bannerT <= 0) _banner = null;
+    }
     if (_status != GameStatus.playing || _locked) return;
     _timeLeft -= dt;
     if (_timeLeft <= 0) _timeOut();
@@ -126,6 +133,7 @@ class _WeatherSortGameState extends State<WeatherSortGame>
     } else {
       TonePlayer.instance.playCue(SoundCue.gentleRetry);
       _banner = _missPool[_rnd.nextInt(_missPool.length)];
+      _bannerT = 1.3;
       _newItem();
     }
   }
@@ -162,6 +170,7 @@ class _WeatherSortGameState extends State<WeatherSortGame>
       TonePlayer.instance.playCue(SoundCue.success);
       emit(ExperienceEvent.bubblePopped);
       _banner = 'Good sort! ${_bins[bin]}';
+      _bannerT = 1.1;
       // A child who runs out of lives right after this sort still deserves
       // the companion's loudest celebration if it's a genuine all-time
       // record, not just the routine correct-sort chime.
@@ -172,6 +181,7 @@ class _WeatherSortGameState extends State<WeatherSortGame>
       if (crossedBest) {
         _beatBest = true;
         _banner = 'New personal best! 🏆';
+        _bannerT = 1.3;
         TonePlayer.instance.playCue(SoundCue.milestone);
         emit(ExperienceEvent.personalBest);
       }
@@ -224,6 +234,7 @@ class _WeatherSortGameState extends State<WeatherSortGame>
         });
       }
       _banner = 'Which weather fits?';
+      _bannerT = 1.3;
     }
     setState(() {});
   }
@@ -235,6 +246,7 @@ class _WeatherSortGameState extends State<WeatherSortGame>
       _beatBest = false;
       _locked = false;
       _banner = null;
+      _bannerT = 0;
       _bag.clear();
       _newItem();
       _status = GameStatus.playing;

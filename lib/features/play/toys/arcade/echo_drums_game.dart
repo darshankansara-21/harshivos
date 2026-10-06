@@ -82,6 +82,10 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
   int _best = 0;
   bool _beatBest = false;
   String? _banner;
+  // Every banner here was only ever cleared by `_reset()`, so a single
+  // praise/miss/"your turn" line glued itself on screen for the rest of the
+  // run, permanently hiding the live phrase-length/hearts status underneath.
+  double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
 
   int get _score => (_seq.length - 1).clamp(0, _winLen);
@@ -128,6 +132,10 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
       _flashT -= dt;
       if (_flashT <= 0 && !_showing) _lit = -1;
     }
+    if (_bannerT > 0) {
+      _bannerT -= dt;
+      if (_bannerT <= 0) _banner = null;
+    }
     if (!_showing) {
       setState(() {});
       return;
@@ -145,6 +153,7 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
           _inputIdx = 0;
           _lit = -1;
           _banner = 'Your turn — tap it back!';
+          _bannerT = 1.3;
         } else {
           _showOn = true;
           _lit = _seq[_showStep];
@@ -183,12 +192,14 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
           TonePlayer.instance.playCue(SoundCue.success);
           emit(ExperienceEvent.bubblePopped);
           _banner = _echoPraise[_rnd.nextInt(_echoPraise.length)];
+          _bannerT = 1.1;
           // A child who runs out of lives right after this round still
           // deserves the companion's loudest celebration if it's a genuine
           // all-time record, not just the routine round-clear chime.
           if (_score > _best && !_beatBest && _best > 0) {
             _beatBest = true;
             _banner = 'New personal best! 🏆';
+            _bannerT = 1.3;
             TonePlayer.instance.playCue(SoundCue.milestone);
             emit(ExperienceEvent.personalBest);
           }
@@ -209,10 +220,12 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
         _status = GameStatus.over;
         _overPraise = _gentleTryAgainPool[_rnd.nextInt(_gentleTryAgainPool.length)];
         _banner = 'Out of lives!';
+        _bannerT = 1.3;
         TonePlayer.instance.playCue(SoundCue.gameOver);
       } else {
         TonePlayer.instance.playCue(SoundCue.gentleRetry);
         _banner = _missPool[_rnd.nextInt(_missPool.length)];
+        _bannerT = 1.1;
         _startShow();
       }
     }
@@ -222,6 +235,7 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
   void _reset() {
     setState(() {
       _banner = null;
+      _bannerT = 0;
       _begin();
       _status = GameStatus.playing;
     });

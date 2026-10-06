@@ -42,7 +42,24 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
   bool _holding = false;
   double _dotX = 0.12, _dotY = 0.8;
   String? _banner;
+  // Every miss/best/next-path banner was only ever cleared by `_reset()`,
+  // so the first message stayed glued on screen for the rest of the run.
+  Timer? _bannerTimer;
   GameStatus _status = GameStatus.ready;
+
+  void _flashBanner(String text, {Duration duration = const Duration(milliseconds: 1100)}) {
+    _banner = text;
+    _bannerTimer?.cancel();
+    _bannerTimer = Timer(duration, () {
+      if (mounted) setState(() => _banner = null);
+    });
+  }
+
+  @override
+  void dispose() {
+    _bannerTimer?.cancel();
+    super.dispose();
+  }
   // A sighted child can see the dot drifting toward the corridor wall and
   // correct before it actually touches — a blind/low-vision child had zero
   // signal of that until the sudden, unavoidable wall-touch failure. Fire a
@@ -151,7 +168,7 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
       TonePlayer.instance.playCue(SoundCue.gameOver);
     } else {
       TonePlayer.instance.playCue(SoundCue.gentleRetry);
-      _banner = 'Touched the wall — back to start';
+      _flashBanner('Touched the wall — back to start');
     }
     setState(() {});
   }
@@ -169,7 +186,7 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
     });
     if (crossedBest) {
       _beatBest = true;
-      _banner = 'New personal best! 🏆';
+      _flashBanner('New personal best! 🏆', duration: const Duration(milliseconds: 1300));
       TonePlayer.instance.playCue(SoundCue.milestone);
       emit(ExperienceEvent.personalBest);
     }
@@ -181,7 +198,7 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
     } else {
       _level++;
       if (!crossedBest) {
-        _banner = _nextPathPool[_rnd.nextInt(_nextPathPool.length)];
+        _flashBanner(_nextPathPool[_rnd.nextInt(_nextPathPool.length)]);
       }
       _startLevel();
     }
@@ -195,6 +212,7 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
       _lives = 3;
       _beatBest = false;
       _banner = null;
+      _bannerTimer?.cancel();
       _startLevel();
       _status = GameStatus.playing;
     });

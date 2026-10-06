@@ -31,7 +31,24 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with _Emit {
   bool _beatBest = false;
   int _wrongFlash = -1;
   String? _banner;
+  // Every spot/miss/best banner was only ever cleared by `_reset()`, so the
+  // very first tap's text glued itself on screen for the rest of the run.
+  Timer? _bannerTimer;
   GameStatus _status = GameStatus.ready;
+
+  void _flashBanner(String text, {Duration duration = const Duration(milliseconds: 1100)}) {
+    _banner = text;
+    _bannerTimer?.cancel();
+    _bannerTimer = Timer(duration, () {
+      if (mounted) setState(() => _banner = null);
+    });
+  }
+
+  @override
+  void dispose() {
+    _bannerTimer?.cancel();
+    super.dispose();
+  }
   // The grid-size and colour-closeness ramps below only ever read the
   // current round's `_score`, so a veteran with a high all-time `_best`
   // restarted every single playthrough at the identical easy 3x3 round 1 —
@@ -69,7 +86,7 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with _Emit {
       _score++;
       TonePlayer.instance.playCue(SoundCue.success);
       emit(ExperienceEvent.bubblePopped);
-      _banner = _spottedPool[_rnd.nextInt(_spottedPool.length)];
+      _flashBanner(_spottedPool[_rnd.nextInt(_spottedPool.length)]);
       // A child who runs out of lives right after this tap still deserves
       // the companion's loudest celebration if it's a genuine all-time
       // record, not just the routine correct-spot chime.
@@ -79,7 +96,7 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with _Emit {
       });
       if (crossedBest) {
         _beatBest = true;
-        _banner = 'New personal best! 🏆';
+        _flashBanner('New personal best! 🏆', duration: const Duration(milliseconds: 1300));
         TonePlayer.instance.playCue(SoundCue.milestone);
         emit(ExperienceEvent.personalBest);
       }
@@ -106,7 +123,7 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with _Emit {
         TonePlayer.instance.playCue(SoundCue.gameOver);
       } else {
         TonePlayer.instance.playCue(SoundCue.gentleRetry);
-        _banner = 'Look closely…';
+        _flashBanner('Look closely…');
         // Same stuck-wrong-flash bug class fixed catalog-wide (weather_sort,
         // bigger_number, odd_one_out, _ChoiceGoalGame, etc.): `_wrongFlash`
         // was previously only cleared by the NEXT correct tap's `_newRound`,
@@ -131,6 +148,7 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with _Emit {
       _lives = 3;
       _beatBest = false;
       _banner = null;
+      _bannerTimer?.cancel();
       _newRound();
       _status = GameStatus.playing;
     });

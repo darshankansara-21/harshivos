@@ -36,12 +36,29 @@ class _BallSortGameState extends State<BallSortGame> with _Emit {
   int _score = 0;
   int _best = 0;
   String? _banner;
+  // Every "Level N!"/best banner was only ever cleared by `_reset()`, so the
+  // first solved level's text glued itself on screen through the next level.
+  Timer? _bannerTimer;
   GameStatus _status = GameStatus.ready;
   // Ball Sort has no win cap — the level counter climbs forever, same open-
   // ended shape as Stack/Block Blast/Bubble Shooter, so crossing a prior
   // all-time best mid-run is a real, distinct moment worth its own banner
   // (not just the routine "Level N!" every solve already gets).
   bool _beatBest = false;
+
+  void _flashBanner(String text, {Duration duration = const Duration(milliseconds: 1300)}) {
+    _banner = text;
+    _bannerTimer?.cancel();
+    _bannerTimer = Timer(duration, () {
+      if (mounted) setState(() => _banner = null);
+    });
+  }
+
+  @override
+  void dispose() {
+    _bannerTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -161,11 +178,11 @@ class _BallSortGameState extends State<BallSortGame> with _Emit {
           _beatBest = true;
           // Takes priority over the routine "Level N!" banner below — a new
           // all-time record is the bigger moment of the two.
-          _banner = 'New personal best! 🏆';
+          _flashBanner('New personal best! 🏆');
           TonePlayer.instance.playCue(SoundCue.milestone);
           emit(ExperienceEvent.personalBest);
         } else {
-          _banner = 'Level $_level!';
+          _flashBanner('Level $_level!');
         }
         setState(_deal);
       }
@@ -192,6 +209,7 @@ class _BallSortGameState extends State<BallSortGame> with _Emit {
       _level = 0;
       _score = 0;
       _banner = null;
+      _bannerTimer?.cancel();
       _beatBest = false;
       _status = GameStatus.playing;
       _deal();

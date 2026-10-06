@@ -54,7 +54,25 @@ class _ShapeBuilderGameState extends State<ShapeBuilderGame> with _Emit {
   int _finishMs = 0;
   int _wrongFlash = -1;
   String? _banner;
+  // The post-figure best/"Built it!" banner was only ever cleared by
+  // `_reset()`, so once one figure finished its text stayed glued on
+  // screen through the whole next figure's build.
+  Timer? _bannerTimer;
   GameStatus _status = GameStatus.ready;
+
+  void _flashBanner(String text, {Duration duration = const Duration(milliseconds: 1300)}) {
+    _banner = text;
+    _bannerTimer?.cancel();
+    _bannerTimer = Timer(duration, () {
+      if (mounted) setState(() => _banner = null);
+    });
+  }
+
+  @override
+  void dispose() {
+    _bannerTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -163,11 +181,11 @@ class _ShapeBuilderGameState extends State<ShapeBuilderGame> with _Emit {
             });
             if (crossedBest) {
               _beatBest = true;
-              _banner = 'New personal best! 🏆';
+              _flashBanner('New personal best! 🏆');
               TonePlayer.instance.playCue(SoundCue.milestone);
               emit(ExperienceEvent.personalBest);
             } else {
-              _banner = 'Built it! 🛠️';
+              _flashBanner('Built it! 🛠️');
             }
             if (_score >= _target) {
               _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
@@ -221,6 +239,7 @@ class _ShapeBuilderGameState extends State<ShapeBuilderGame> with _Emit {
       _roundStartMs = DateTime.now().millisecondsSinceEpoch;
       _figOrder.shuffle(_rnd);
       _banner = null;
+      _bannerTimer?.cancel();
       _buildFigure();
       _status = GameStatus.playing;
     });

@@ -71,7 +71,24 @@ class _CalmChoicesGameState extends State<CalmChoicesGame> with _Emit {
   // beat, same convention as weather_sort_game's `_locked`.
   bool _locked = false;
   String? _banner;
+  // Every correct/miss/best banner was only ever cleared by `_reset()`, so
+  // the very first pick's text glued itself on screen for the rest of the run.
+  Timer? _bannerTimer;
   GameStatus _status = GameStatus.ready;
+
+  void _flashBanner(String text, {Duration duration = const Duration(milliseconds: 1100)}) {
+    _banner = text;
+    _bannerTimer?.cancel();
+    _bannerTimer = Timer(duration, () {
+      if (mounted) setState(() => _banner = null);
+    });
+  }
+
+  @override
+  void dispose() {
+    _bannerTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -123,7 +140,7 @@ class _CalmChoicesGameState extends State<CalmChoicesGame> with _Emit {
       _locked = true;
       TonePlayer.instance.playCue(SoundCue.calm);
       emit(ExperienceEvent.bubblePopped);
-      _banner = _helpsPool[_rnd.nextInt(_helpsPool.length)];
+      _flashBanner(_helpsPool[_rnd.nextInt(_helpsPool.length)]);
       // A child who runs out of lives right after this pick still deserves
       // the companion's loudest celebration if it's a genuine all-time
       // record, not just the routine correct-pick chime.
@@ -133,7 +150,7 @@ class _CalmChoicesGameState extends State<CalmChoicesGame> with _Emit {
       });
       if (crossedBest) {
         _beatBest = true;
-        _banner = 'New personal best! 🏆';
+        _flashBanner('New personal best! 🏆', duration: const Duration(milliseconds: 1300));
         TonePlayer.instance.playCue(SoundCue.milestone);
         emit(ExperienceEvent.personalBest);
       }
@@ -174,7 +191,7 @@ class _CalmChoicesGameState extends State<CalmChoicesGame> with _Emit {
         TonePlayer.instance.playCue(SoundCue.gameOver);
       } else {
         TonePlayer.instance.playCue(SoundCue.gentleRetry);
-        _banner = 'That might make it harder. Try a calm one.';
+        _flashBanner('That might make it harder. Try a calm one.');
         // Momentary mistake cue, not a sticky state: auto-clear the red
         // highlight so a tile doesn't stay flagged wrong indefinitely while
         // the child keeps trying this same round.
@@ -192,6 +209,7 @@ class _CalmChoicesGameState extends State<CalmChoicesGame> with _Emit {
       _lives = 3;
       _beatBest = false;
       _banner = null;
+      _bannerTimer?.cancel();
       _bag.clear();
       _newRound();
       _status = GameStatus.playing;

@@ -45,6 +45,10 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
   int _best = 0;
   String _overPraise = _gentleTryAgainPool[0];
   String? _banner;
+  // Every pop/ceiling-drop/personal-best banner was only ever cleared by
+  // `_reset()` — the first pop of a run glued its text on screen forever,
+  // silently hiding every later pop/drop's own feedback.
+  double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
   // Without this, the game never escalates: the ceiling of bubbles sits
   // still forever and a patient child can match forever at the exact same
@@ -111,6 +115,10 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
   @override
   void onTick(double dt) {
     if (_status != GameStatus.playing) return;
+    if (_bannerT > 0) {
+      _bannerT -= dt;
+      if (_bannerT <= 0) _banner = null;
+    }
     for (var i = _pops.length - 1; i >= 0; i--) {
       final s = _pops[i];
       s.x += s.vx * dt;
@@ -169,6 +177,7 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
       }
       _score += group.length;
       _banner = 'Pop ${group.length}!';
+      _bannerT = 1.1;
       TonePlayer.instance.playCue(SoundCue.bubble);
       emit(ExperienceEvent.bubblePopped);
       if (_status == GameStatus.playing &&
@@ -179,6 +188,7 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
         // Takes priority over the pop-count banner just set above — a new
         // all-time record is the bigger moment of the two.
         _banner = 'New personal best! 🏆';
+        _bannerT = 1.3;
         TonePlayer.instance.playCue(SoundCue.milestone);
         emit(ExperienceEvent.personalBest);
       }
@@ -256,6 +266,7 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
     _grid[0] = List<Color?>.generate(_cols, (_) => _pal[_rnd.nextInt(_pal.length)]);
     TonePlayer.instance.playCue(SoundCue.milestone);
     _banner = 'Ceiling drops!';
+    _bannerT = 1.1;
   }
 
   void _gameOver() {
@@ -279,6 +290,7 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
       _score = 0;
       _shotsFired = 0;
       _banner = null;
+      _bannerT = 0;
       _beatBest = false;
       _status = GameStatus.playing;
       _shot = _pal[_rnd.nextInt(_pal.length)];

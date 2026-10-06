@@ -87,6 +87,9 @@ class _JigsawFourGameState extends State<JigsawFourGame>
   // the exact same `_drop` home-position check the sighted drag uses.
   int? _selected;
   String? _banner;
+  // The "Next picture" banner was only ever cleared by `_reset()` — once a
+  // level advanced, its text glued itself on screen for that whole level.
+  double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
 
   @override
@@ -118,6 +121,10 @@ class _JigsawFourGameState extends State<JigsawFourGame>
   @override
   void onTick(double dt) {
     if (_status == GameStatus.playing) _elapsedMs += dt * 1000;
+    if (_bannerT > 0) {
+      _bannerT -= dt;
+      if (_bannerT <= 0) _banner = null;
+    }
     for (var i = _shards.length - 1; i >= 0; i--) {
       final s = _shards[i];
       s.x += s.vx * dt;
@@ -193,6 +200,7 @@ class _JigsawFourGameState extends State<JigsawFourGame>
         } else {
           _level++;
           _banner = _nextPicturePool[_rnd.nextInt(_nextPicturePool.length)];
+          _bannerT = 1.3;
           _buildBoard();
         }
       }
@@ -204,6 +212,7 @@ class _JigsawFourGameState extends State<JigsawFourGame>
       _level = 0;
       _score = 0;
       _banner = null;
+      _bannerT = 0;
       _elapsedMs = 0;
       _finishMs = 0;
       _shards.clear();

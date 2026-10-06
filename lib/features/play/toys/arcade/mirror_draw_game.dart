@@ -61,7 +61,25 @@ class _MirrorDrawGameState extends State<MirrorDrawGame> with _Emit {
   int _best = 0;
   bool _beatBest = false;
   String? _banner;
+  // The post-shape best/next-shape banner was only ever cleared by
+  // `_reset()`, so once a shape completed it stayed glued on screen through
+  // the whole next shape's tracing.
+  Timer? _bannerTimer;
   GameStatus _status = GameStatus.ready;
+
+  void _flashBanner(String text, {Duration duration = const Duration(milliseconds: 1300)}) {
+    _banner = text;
+    _bannerTimer?.cancel();
+    _bannerTimer = Timer(duration, () {
+      if (mounted) setState(() => _banner = null);
+    });
+  }
+
+  @override
+  void dispose() {
+    _bannerTimer?.cancel();
+    super.dispose();
+  }
   // Height/width ratio of the last-seen canvas. The dots are drawn as a
   // true isotropic circle (same fixed pixel radius on both axes), but
   // `_touch` is fed coordinates normalized independently by width (x) and
@@ -182,9 +200,10 @@ class _MirrorDrawGameState extends State<MirrorDrawGame> with _Emit {
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
       } else {
-        _banner = crossedBest
+        final text = crossedBest
             ? 'New personal best! 🏆'
             : _nextShapePool[_rnd.nextInt(_nextShapePool.length)];
+        _flashBanner(text);
         if (crossedBest) {
           TonePlayer.instance.playCue(SoundCue.milestone);
           emit(ExperienceEvent.personalBest);
@@ -201,6 +220,7 @@ class _MirrorDrawGameState extends State<MirrorDrawGame> with _Emit {
       _beatBest = false;
       _bag.clear();
       _banner = null;
+      _bannerTimer?.cancel();
       _newShape();
       _status = GameStatus.playing;
     });
