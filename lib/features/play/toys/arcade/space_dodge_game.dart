@@ -104,7 +104,13 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
       }
     }
 
-    if (_rnd.nextDouble() < 0.9) {
+    // The one-off hit/pickup bursts below already thin themselves under
+    // Reduce Motion via `_burstAt`'s `effectiveN`, but this continuous
+    // every-tick exhaust trail kept spawning at full density regardless —
+    // over a long run that's actually the single biggest source of ambient
+    // particles on screen, the exact overstimulation the toggle exists to
+    // relieve. Thin it the same way instead of ignoring the setting here.
+    if (_rnd.nextDouble() < (_reduceMotion ? 0.3 : 0.9)) {
       _shards.add(_Shard(
           _shipX + (_rnd.nextDouble() - 0.5) * 0.03,
           0.9,
