@@ -55,12 +55,25 @@ class _CatchBeatGameState extends State<CatchBeatGame>
   String? _banner;
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
+  // `_bestCombo` used to live only in widget state — it tracked the longest
+  // streak within a single app session (surviving replays via `_reset()`
+  // leaving it untouched) but was silently thrown away the moment the app
+  // restarted, unlike every other secondary stat in the catalog (basketball's
+  // fewest-shots record, mini_golf's fewest-strokes record): a child's
+  // all-time best combo could never actually be "all-time". Persist it the
+  // same way via `GameScores.submit`.
+  static const String _comboId = '${_id}_combo';
 
   @override
   void initState() {
     super.initState();
     GameScores.instance.ensureLoaded().then((_) {
-      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+      if (mounted) {
+        setState(() {
+          _best = GameScores.instance.best(_id);
+          _bestCombo = GameScores.instance.best(_comboId);
+        });
+      }
     });
   }
 
@@ -163,7 +176,10 @@ class _CatchBeatGameState extends State<CatchBeatGame>
       best.dead = true;
       _score++;
       _combo++;
-      if (_combo > _bestCombo) _bestCombo = _combo;
+      if (_combo > _bestCombo) {
+        _bestCombo = _combo;
+        GameScores.instance.submit(_comboId, _combo);
+      }
       _fall = _fallSpeed(_score);
       final bitCount = _reduceMotion ? 4 : 10;
       for (var i = 0; i < bitCount; i++) {
