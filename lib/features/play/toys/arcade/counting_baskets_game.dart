@@ -93,12 +93,20 @@ class _CountingBasketsGameState extends State<CountingBasketsGame> with _Emit {
     });
   }
 
+  // Only ever read this run's own `_score` (always 0 right after a fresh
+  // start), so a returning player whose all-time best is a full ten-basket
+  // run got served the identical easiest-possible opening target (2 fruit)
+  // as a first-timer — the same "flat-forever opening pace never fed by
+  // career `_best`" bug class already closed catalog-wide. Small, capped
+  // head start so a proven counter starts a little closer to their skill.
+  double get _careerSkillRamp => (_best / _target).clamp(0.0, 1.0) * 3;
+
   void _newRound() {
     // Target genuinely grows across the ten baskets (matching the file's own
     // "the target grows as you go" claim) instead of being flat random noise:
     // a steady base trend from 2 up toward 8 by the final round, plus a
     // small +0/+1 wobble so it still feels alive round to round.
-    final base = 2 + (_score * 6 / 9).round();
+    final base = 2 + (_score * 6 / 9).round() + _careerSkillRamp.round();
     _need = (base + _rnd.nextInt(2)).clamp(2, 8);
     _inBasket = 0;
     _selected = null;

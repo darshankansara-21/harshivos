@@ -79,6 +79,14 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame> with _Emit {
     return true;
   }
 
+  // Board 1 of every single run used the identical 70-move scramble
+  // regardless of a returning player's all-time best — the same
+  // "flat-forever opening pace never fed by career `_best`" bug class
+  // already closed catalog-wide (skee_ball's bands, stack's opening speed,
+  // balloon_bounce's gravity). Small, capped head start so a proven solver
+  // meets a slightly deeper opening scramble from board one.
+  double get _careerSkillRamp => (_best / _target).clamp(0.0, 1.0) * 25;
+
   void _shuffle() {
     _tiles = <int>[1, 2, 3, 4, 5, 6, 7, 8, 0];
     _moves = 0;
@@ -90,7 +98,7 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame> with _Emit {
     // board, fruit_catch's rising fall speed). A deeper random walk away
     // from solved statistically needs more real moves to undo, so scale the
     // scramble length with the board already solved (_score).
-    final scrambleMoves = 70 + _score * 35;
+    final scrambleMoves = 70 + _score * 35 + _careerSkillRamp.round();
     for (var i = 0; i < scrambleMoves; i++) {
       final n = _neighbours(blank);
       final pick = n[_rnd.nextInt(n.length)];
