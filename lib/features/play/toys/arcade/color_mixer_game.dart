@@ -128,7 +128,16 @@ class _ColorMixerGameState extends State<ColorMixerGame> with _Emit {
         _score++;
         _banner = 'Matched ${_recipeName[_recipe]}! 🎨';
         emit(ExperienceEvent.bubblePopped);
-        TonePlayer.instance.playCue(SoundCue.success);
+        // A colour match is this game's whole identity — it was playing the
+        // exact same generic ascending `SoundCue.success` chime every other
+        // quiz-style arcade game uses for "correct answer", with zero paint
+        // character of its own despite `SoundCue.paint` (a textured brush-
+        // grain synth) existing in TonePlayer specifically for this and
+        // sitting completely unused catalog-wide. Routine pours already use
+        // `playPop()`, so this swap is reserved for the rarer "matched the
+        // target" moment, giving Color Mixer its own distinct audio identity
+        // instead of sharing one with 30+ unrelated games.
+        TonePlayer.instance.playCue(SoundCue.paint);
         GameScores.instance.submit(_id, _score).then((b) {
           if (mounted) setState(() => _best = b);
         });
