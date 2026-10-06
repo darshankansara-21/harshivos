@@ -429,6 +429,17 @@ class _FruitCatchGameState extends State<FruitCatchGame>
     '🍑'
   ];
   static const int _target = 18;
+  // This game never passed a `winText:` to the shell, so every single win
+  // showed the shell's generic "You did it!" fallback, forever — the same
+  // win-screen praise-variety gap already fixed catalog-wide elsewhere this
+  // sprint, just missed here since there was no literal `winText:` to grep.
+  static const List<String> _winPraisePool = <String>[
+    'Fruit-catching champion!',
+    'Basket master!',
+    'Perfect harvest!',
+    'Sweet catch!',
+  ];
+  String _winPraise = _winPraisePool[0];
   final math.Random _rnd = math.Random();
   final List<_Faller> _items = <_Faller>[];
   final List<_Particle> _splash = <_Particle>[];
@@ -586,6 +597,9 @@ class _FruitCatchGameState extends State<FruitCatchGame>
 
   void _end(GameStatus s) {
     _status = s;
+    if (s == GameStatus.won) {
+      _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
+    }
     emit(s == GameStatus.won
         ? ExperienceEvent.gameCompleted
         : ExperienceEvent.incorrectAnswer);
@@ -617,6 +631,8 @@ class _FruitCatchGameState extends State<FruitCatchGame>
     _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _GameShell(
       title: '🧺 Catch',
+      winEmoji: '🧺',
+      winText: _winPraise,
       introHow: 'Drag the basket to catch the fruit — dodge the bombs!',
       onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
@@ -701,6 +717,15 @@ class _BalloonPopGameState extends State<BalloonPopGame>
     Color(0xFF9B5DE5),
   ];
   static const int _target = 20;
+  // Same missed gap as fruit_catch: no `winText:` was ever passed, so this
+  // game always showed the shell's generic "You did it!" on every win.
+  static const List<String> _winPraisePool = <String>[
+    'Balloon-popping champion!',
+    'Pop perfection!',
+    'Streak superstar!',
+    'Sky cleared!',
+  ];
+  String _winPraise = _winPraisePool[0];
   final math.Random _rnd = math.Random();
   final List<_Balloon> _items = <_Balloon>[];
   final List<_Particle> _pop = <_Particle>[];
@@ -847,6 +872,9 @@ class _BalloonPopGameState extends State<BalloonPopGame>
 
   void _end(GameStatus s) {
     _status = s;
+    if (s == GameStatus.won) {
+      _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
+    }
     emit(s == GameStatus.won
         ? ExperienceEvent.gameCompleted
         : ExperienceEvent.incorrectAnswer);
@@ -874,6 +902,8 @@ class _BalloonPopGameState extends State<BalloonPopGame>
     _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _GameShell(
       title: '🎈 Pop',
+      winEmoji: '🎈',
+      winText: _winPraise,
       introHow:
           'Tap the balloons to pop them — gold ones are worth bonus points. '
           'Avoid the dark bomb balloons, and pop fast for combos!',
@@ -998,6 +1028,15 @@ class _StarTapGameState extends State<StarTapGame>
   static const String _id = 'star_tap';
   static const int _target = 15;
   static const int _cells = 9;
+  // Same missed gap as fruit_catch/balloon_pop: no `winText:` was ever
+  // passed, so this game always showed the shell's generic "You did it!".
+  static const List<String> _winPraisePool = <String>[
+    'Star-catching champion!',
+    'Constellation complete!',
+    'Lightning reflexes!',
+    'Galaxy cleared!',
+  ];
+  String _winPraise = _winPraisePool[0];
   final math.Random _rnd = math.Random();
   int _active = 0;
   int _kind = 0; // 0 = normal, 1 = gold (+3), 2 = rainbow (+5, rare)
@@ -1141,6 +1180,9 @@ class _StarTapGameState extends State<StarTapGame>
 
   void _end(GameStatus s) {
     _status = s;
+    if (s == GameStatus.won) {
+      _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
+    }
     emit(ExperienceEvent.gameCompleted);
     GameScores.instance.submit(_id, _score).then((b) {
       if (mounted) setState(() => _best = b);
@@ -1167,6 +1209,8 @@ class _StarTapGameState extends State<StarTapGame>
     drainCompanion(context);
     return _GameShell(
       title: '⭐ Star Catch',
+      winEmoji: '⭐',
+      winText: _winPraise,
       introHow:
           'Tap the glowing star fast! Gold and rainbow stars are worth more '
           '— but skip the red decoy. Reach 15 points to win!',

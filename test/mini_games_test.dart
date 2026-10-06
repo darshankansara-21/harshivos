@@ -47,12 +47,15 @@ void main() {
     expect(find.textContaining('Star Catch'), findsOneWidget);
     // The grid is nine tappable cells; tapping all of them each round always
     // hits the active star, so the score climbs deterministically to a win
-    // (no reliance on where the star randomly appears).
+    // (no reliance on where the star randomly appears). The win screen's
+    // praise text is now picked from a small pool (same win-screen-variety
+    // fix applied catalog-wide), so detect the win by its stable "Play
+    // again" button instead of one hard-coded literal.
     for (var round = 0;
-        round < 60 && find.text('You did it!').evaluate().isEmpty;
+        round < 60 && find.text('Play again').evaluate().isEmpty;
         round++) {
       for (var k = 0;
-          k < 9 && find.text('You did it!').evaluate().isEmpty;
+          k < 9 && find.text('Play again').evaluate().isEmpty;
           k++) {
         final cell = find.byType(GestureDetector).at(k);
         if (cell.evaluate().isNotEmpty) {
@@ -61,7 +64,7 @@ void main() {
         }
       }
     }
-    expect(find.text('You did it!'), findsOneWidget);
+    expect(find.text('Play again'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
