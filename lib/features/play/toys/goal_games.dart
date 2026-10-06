@@ -911,6 +911,16 @@ class _PathFinderGameState extends State<PathFinderGame> with _GoalEmit {
   static const List<String> _stepPraisePool = <String>[
     'Keep going!', 'Nice step!', 'On track!', 'Great eye!',
   ];
+  // Every sibling scoring game in the catalog (GoalKeeperGame right below,
+  // plus the whole arcade/*.dart catalog) fires a live mid-run
+  // ExperienceEvent.personalBest + milestone chime the instant a run's score
+  // first overtakes the prior all-time record. Path Finder's path grows a
+  // step longer every level (`_pathLenFor`), so `_step` genuinely climbs
+  // past `_best` as a child progresses — but it only ever submitted the new
+  // best silently, leaving that real milestone uncelebrated. Guarded so it
+  // fires once per run and never on a brand-new player's first path
+  // (`_best` still 0).
+  bool _beatBest = false;
 
   @override
   void initState() {
@@ -967,11 +977,16 @@ class _PathFinderGameState extends State<PathFinderGame> with _GoalEmit {
       emit(ExperienceEvent.incorrectAnswer);
       return;
     }
+    final crossedBest = _step > _best && !_beatBest && _best > 0;
     setState(() {
       _step++;
       _message = _step == _path.length
           ? 'Treasure found!'
-          : _stepPraisePool[_rnd.nextInt(_stepPraisePool.length)];
+          : crossedBest
+              // Takes priority over the routine step-praise pool — a new
+              // all-time record is the bigger moment of the two.
+              ? 'New personal best! 🏆'
+              : _stepPraisePool[_rnd.nextInt(_stepPraisePool.length)];
       if (_step == _path.length) {
         _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         _status = GameStatus.won;
@@ -983,6 +998,15 @@ class _PathFinderGameState extends State<PathFinderGame> with _GoalEmit {
     emit(_status == GameStatus.won
         ? ExperienceEvent.gameCompleted
         : ExperienceEvent.correctAnswer);
+    if (crossedBest) {
+      _beatBest = true;
+      // Fires alongside the win-screen's own gameCompleted/correctAnswer
+      // emit just above rather than replacing it — a run that is itself a
+      // genuine all-time record still deserves the companion's distinct
+      // milestone reaction, same as every sibling scoring game.
+      TonePlayer.instance.playCue(SoundCue.milestone);
+      emit(ExperienceEvent.personalBest);
+    }
     GameScores.instance.submit(_id, _step).then((best) {
       if (mounted && best != _best) setState(() => _best = best);
     });
@@ -992,6 +1016,7 @@ class _PathFinderGameState extends State<PathFinderGame> with _GoalEmit {
         _path = _makePath(_pathLenFor(_level));
         _step = 0;
         _message = null;
+        _beatBest = false;
         _status = GameStatus.playing;
       });
 
