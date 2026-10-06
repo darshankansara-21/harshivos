@@ -88,6 +88,17 @@ class _ShapeBuilderGameState extends State<ShapeBuilderGame> with _Emit {
   int get _currentShape =>
       _placed < _order.length ? _slots[_order[_placed]].shape : -1;
 
+  // The tap-tolerance pad around each slot's drawn radius was a flat 0.03 for
+  // every figure, 1 through 5, of every playthrough — the same flat-precision
+  // gap already fixed in `letter_trace_game.dart`/`mirror_draw_game.dart`.
+  // Narrowing it as the score climbs gives this game a real difficulty curve
+  // (later figures demand a more precise tap) instead of staying identical
+  // throughout. `_figCount` figures total; clamp floor keeps the last figure
+  // still comfortably tappable.
+  static const int _figCount = 5;
+  double get _tolerancePad =>
+      (0.03 - _score * (0.03 - 0.016) / _figCount).clamp(0.016, 0.03);
+
   static const List<String> _shapeNames = <String>[
     'circle',
     'square',
@@ -110,7 +121,7 @@ class _ShapeBuilderGameState extends State<ShapeBuilderGame> with _Emit {
       // `bigger_number`, `maze_marble`, etc.
       final dx = p.dx - s.cx * w;
       final dy = p.dy - s.cy * h;
-      final tol = (s.r + 0.03) * w;
+      final tol = (s.r + _tolerancePad) * w;
       if (dx.abs() < tol && dy.abs() < tol) {
         if (s.shape == _currentShape) {
           s.filled = true;
