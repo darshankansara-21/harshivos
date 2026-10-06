@@ -50,6 +50,7 @@ class _XylophoneTapGameState extends State<XylophoneTapGame> with _Emit {
   int _pos = 0;
   int _score = 0; // tunes completed
   int _best = 0;
+  bool _beatBest = false;
   String? _banner;
   GameStatus _status = GameStatus.ready;
   int _wrongBar = -1; // brief red flash on a mis-tapped bar
@@ -72,6 +73,7 @@ class _XylophoneTapGameState extends State<XylophoneTapGame> with _Emit {
       _orderPos = 0;
       _pos = 0;
       _score = 0;
+      _beatBest = false;
       _banner = null;
       _status = GameStatus.playing;
     });
@@ -86,9 +88,15 @@ class _XylophoneTapGameState extends State<XylophoneTapGame> with _Emit {
         _score++;
         emit(ExperienceEvent.bubblePopped);
         TonePlayer.instance.playCue(SoundCue.success);
+        // A run abandoned before all 3 tunes (e.g. quitting after tune 1 of
+        // 3) still silently persisted a new best — the exact "stat that can
+        // never move" bug class already fixed catalog-wide (shape_builder,
+        // air_hockey, etc.). Celebrate the moment it's actually crossed.
+        final crossedBest = _score > _best && !_beatBest && _best > 0;
         GameScores.instance.submit(_id, _score).then((v) {
           if (mounted) setState(() => _best = v);
         });
+        if (crossedBest) _beatBest = true;
         if (_score >= _target) {
           _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
           _status = GameStatus.won;
@@ -97,7 +105,13 @@ class _XylophoneTapGameState extends State<XylophoneTapGame> with _Emit {
         } else {
           _orderPos++;
           _pos = 0;
-          _banner = '${_nextTunePrefixPool[_rnd.nextInt(_nextTunePrefixPool.length)]} Next: ${_tune.name}';
+          _banner = crossedBest
+              ? 'New personal best! 🏆'
+              : '${_nextTunePrefixPool[_rnd.nextInt(_nextTunePrefixPool.length)]} Next: ${_tune.name}';
+          if (crossedBest) {
+            TonePlayer.instance.playCue(SoundCue.milestone);
+            emit(ExperienceEvent.personalBest);
+          }
         }
       } else {
         _banner = null;
