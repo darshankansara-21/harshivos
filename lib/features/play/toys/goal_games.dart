@@ -668,6 +668,13 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> with _GoalEmit {
                     return Semantics(
                       button: true,
                       label: _round.options[index],
+                      // The tile's own name `Text` below (always shown now,
+                      // swatch or not) forms a second, redundant semantics
+                      // node with the exact same string as this button's
+                      // label — a screen reader would announce it twice.
+                      // Same unlabeled/duplicate-second-node bug class fixed
+                      // catalog-wide for `weather_sort_game`'s bin emoji.
+                      excludeSemantics: true,
                       child: Material(
                         color: swatch ?? Colors.white.withOpacity(0.14),
                         borderRadius: BorderRadius.circular(20),
@@ -1111,6 +1118,13 @@ class _PathFinderGameState extends State<PathFinderGame> with _GoalEmit {
                     return Semantics(
                       button: true,
                       label: label,
+                      // The tile's own flag/gift/dot emoji `Text` below forms
+                      // an unlabeled second semantics node (same bug class
+                      // fixed catalog-wide for `weather_sort_game`'s bin
+                      // emoji) — a screen reader would otherwise read a
+                      // stray, unexplained glyph right after this tile's
+                      // real label.
+                      excludeSemantics: true,
                       child: InkWell(
                         key: ValueKey('path-cell-$cell'),
                         onTap: () => _tap(cell),
