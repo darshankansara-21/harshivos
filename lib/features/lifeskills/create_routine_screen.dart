@@ -31,8 +31,26 @@ class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
   bool _busy = false;
 
   static const _palette = <String>[
-    '🌟', '🛒', '🚗', '🏫', '🍎', '🧴', '👕', '🦷', '🛁', '🍽️',
-    '🎒', '🧸', '📚', '🎨', '⚽', '🌳', '🐶', '☀️', '🌙', '🧼',
+    '🌟',
+    '🛒',
+    '🚗',
+    '🏫',
+    '🍎',
+    '🧴',
+    '👕',
+    '🦷',
+    '🛁',
+    '🍽️',
+    '🎒',
+    '🧸',
+    '📚',
+    '🎨',
+    '⚽',
+    '🌳',
+    '🐶',
+    '☀️',
+    '🌙',
+    '🧼',
   ];
   static const _accents = <Color>[
     Color(0xFF9B5DE5),
@@ -132,13 +150,33 @@ class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
   String _guessEmoji(String s) {
     final t = s.toLowerCase();
     const map = <String, String>{
-      'wash': '🧼', 'hand': '🧼', 'brush': '🦷', 'teeth': '🦷',
-      'shoe': '👟', 'coat': '🧥', 'shirt': '👕', 'eat': '🍽️',
-      'food': '🍎', 'car': '🚗', 'seat': '🚗', 'belt': '🚗',
-      'shop': '🛒', 'cart': '🛒', 'pay': '💳', 'bag': '🛍️',
-      'water': '💧', 'toilet': '🚽', 'potty': '🚽', 'sleep': '🌙',
-      'bed': '🛏️', 'book': '📚', 'wait': '⏳', 'breath': '🌬️',
-      'hand hold': '🤝', 'done': '🎉', 'finish': '🎉',
+      'wash': '🧼',
+      'hand': '🧼',
+      'brush': '🦷',
+      'teeth': '🦷',
+      'shoe': '👟',
+      'coat': '🧥',
+      'shirt': '👕',
+      'eat': '🍽️',
+      'food': '🍎',
+      'car': '🚗',
+      'seat': '🚗',
+      'belt': '🚗',
+      'shop': '🛒',
+      'cart': '🛒',
+      'pay': '💳',
+      'bag': '🛍️',
+      'water': '💧',
+      'toilet': '🚽',
+      'potty': '🚽',
+      'sleep': '🌙',
+      'bed': '🛏️',
+      'book': '📚',
+      'wait': '⏳',
+      'breath': '🌬️',
+      'hand hold': '🤝',
+      'done': '🎉',
+      'finish': '🎉',
     };
     for (final e in map.entries) {
       if (t.contains(e.key)) return e.value;
@@ -177,8 +215,7 @@ class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
         ),
         actions: <Widget>[
           TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel')),
+              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           TextButton(
               onPressed: () => Navigator.pop(ctx, controller.text.trim()),
               child: const Text('Save')),
@@ -327,20 +364,25 @@ class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
                             color: Colors.white.withOpacity(0.8),
                             fontWeight: FontWeight.w700)),
                     const SizedBox(width: 8),
-                    ..._accents.map((c) => GestureDetector(
-                          onTap: () => setState(() => _accent = c),
-                          child: Container(
-                            margin: const EdgeInsets.only(left: 6),
-                            width: 26,
-                            height: 26,
-                            decoration: BoxDecoration(
-                              color: c,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                  color: c.value == _accent.value
-                                      ? Colors.white
-                                      : Colors.transparent,
-                                  width: 2.5),
+                    ..._accents.map((c) => Semantics(
+                          button: true,
+                          selected: c.value == _accent.value,
+                          label: 'Routine colour',
+                          child: GestureDetector(
+                            onTap: () => setState(() => _accent = c),
+                            child: Container(
+                              margin: const EdgeInsets.only(left: 6),
+                              width: 26,
+                              height: 26,
+                              decoration: BoxDecoration(
+                                color: c,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                    color: c.value == _accent.value
+                                        ? Colors.white
+                                        : Colors.transparent,
+                                    width: 2.5),
+                              ),
                             ),
                           ),
                         )),
@@ -436,21 +478,26 @@ class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
       runSpacing: 8,
       children: _palette.map((e) {
         final on = e == _emoji;
-        return GestureDetector(
-          onTap: () => setState(() => _emoji = e),
-          child: Container(
-            width: 42,
-            height: 42,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: on
-                  ? _accent.withOpacity(0.3)
-                  : Colors.white.withOpacity(0.06),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                  color: on ? Colors.white : Colors.white12, width: 1.5),
+        return Semantics(
+          button: true,
+          selected: on,
+          label: 'Routine icon $e',
+          child: GestureDetector(
+            onTap: () => setState(() => _emoji = e),
+            child: Container(
+              width: 42,
+              height: 42,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: on
+                    ? _accent.withOpacity(0.3)
+                    : Colors.white.withOpacity(0.06),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                    color: on ? Colors.white : Colors.white12, width: 1.5),
+              ),
+              child: Text(e, style: const TextStyle(fontSize: 22)),
             ),
-            child: Text(e, style: const TextStyle(fontSize: 22)),
           ),
         );
       }).toList(),
@@ -492,9 +539,8 @@ class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
 
   Widget _stepTile(int i) {
     final s = _steps[i];
-    final hasPhoto = s.photoPath != null &&
-        !kIsWeb &&
-        File(s.photoPath!).existsSync();
+    final hasPhoto =
+        s.photoPath != null && !kIsWeb && File(s.photoPath!).existsSync();
     return Container(
       margin: const EdgeInsets.only(top: 10),
       padding: const EdgeInsets.all(12),
@@ -524,8 +570,7 @@ class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
               children: <Widget>[
                 Text('${i + 1}. ${s.title}',
                     style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700)),
+                        color: Colors.white, fontWeight: FontWeight.w700)),
                 Text(s.instruction,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -547,8 +592,8 @@ class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
             onPressed: () => _addPhoto(i),
           ),
           IconButton(
-            icon: const Icon(Icons.edit_rounded,
-                color: Colors.white54, size: 20),
+            icon:
+                const Icon(Icons.edit_rounded, color: Colors.white54, size: 20),
             onPressed: () => _editStep(i),
           ),
           IconButton(

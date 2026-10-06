@@ -93,21 +93,25 @@ class _CardDeckScreenState extends ConsumerState<CardDeckScreen> {
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.all(20),
-                  child: GestureDetector(
-                    onTap: _next,
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 320),
-                      transitionBuilder: (child, anim) => FadeTransition(
-                        opacity: anim,
-                        child: ScaleTransition(
-                            scale: Tween<double>(begin: 0.92, end: 1)
-                                .animate(anim),
-                            child: child),
-                      ),
-                      child: _CardView(
-                        key: ValueKey<int>(_index),
-                        card: card,
-                        config: config,
+                  child: Semantics(
+                    button: true,
+                    label: 'Tap to go to next card',
+                    child: GestureDetector(
+                      onTap: _next,
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 320),
+                        transitionBuilder: (child, anim) => FadeTransition(
+                          opacity: anim,
+                          child: ScaleTransition(
+                              scale: Tween<double>(begin: 0.92, end: 1)
+                                  .animate(anim),
+                              child: child),
+                        ),
+                        child: _CardView(
+                          key: ValueKey<int>(_index),
+                          card: card,
+                          config: config,
+                        ),
                       ),
                     ),
                   ),
@@ -262,7 +266,8 @@ class _CardView extends StatelessWidget {
         ),
         border: Border.all(color: color.withOpacity(0.7), width: 3),
         boxShadow: <BoxShadow>[
-          BoxShadow(color: color.withOpacity(0.4), blurRadius: 40, spreadRadius: 2),
+          BoxShadow(
+              color: color.withOpacity(0.4), blurRadius: 40, spreadRadius: 2),
         ],
       ),
       child: Column(

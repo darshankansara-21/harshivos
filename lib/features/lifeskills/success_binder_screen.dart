@@ -18,8 +18,18 @@ class SuccessBinderScreen extends ConsumerWidget {
   const SuccessBinderScreen({super.key});
 
   static const _months = <String>[
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
 
   String _prettyDate(String iso) {
@@ -112,25 +122,29 @@ class SuccessBinderScreen extends ConsumerWidget {
 
   Widget _addButton(BuildContext context) {
     return Consumer(builder: (context, ref, _) {
-      return GestureDetector(
-        onTap: () => _addWin(context, ref),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: <Color>[Color(0xFFFFD166), Color(0xFFFFB703)],
+      return Semantics(
+        button: true,
+        label: 'Add a win',
+        child: GestureDetector(
+          onTap: () => _addWin(context, ref),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: <Color>[Color(0xFFFFD166), Color(0xFFFFB703)],
+              ),
+              borderRadius: BorderRadius.circular(24),
             ),
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Icon(Icons.add_rounded, color: Color(0xFF1B1836), size: 20),
-              SizedBox(width: 4),
-              Text('Add',
-                  style: TextStyle(
-                      color: Color(0xFF1B1836), fontWeight: FontWeight.w800)),
-            ],
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Icon(Icons.add_rounded, color: Color(0xFF1B1836), size: 20),
+                SizedBox(width: 4),
+                Text('Add',
+                    style: TextStyle(
+                        color: Color(0xFF1B1836), fontWeight: FontWeight.w800)),
+              ],
+            ),
           ),
         ),
       );
@@ -138,16 +152,20 @@ class SuccessBinderScreen extends ConsumerWidget {
   }
 
   Widget _round(BuildContext context, IconData icon, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.10),
-          shape: BoxShape.circle,
+    return Semantics(
+      button: true,
+      label: 'Back',
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.10),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: Colors.white),
         ),
-        child: Icon(icon, color: Colors.white),
       ),
     );
   }
@@ -186,15 +204,25 @@ class SuccessBinderScreen extends ConsumerWidget {
     final controller = TextEditingController();
     String emoji = '⭐';
     const choices = <String>[
-      '⭐', '🎉', '🏆', '💪', '🍎', '🦷', '🚽', '👕', '🛁', '🤝', '😊', '🌟'
+      '⭐',
+      '🎉',
+      '🏆',
+      '💪',
+      '🍎',
+      '🦷',
+      '🚽',
+      '👕',
+      '🛁',
+      '🤝',
+      '😊',
+      '🌟'
     ];
     final saved = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setState) => AlertDialog(
           backgroundColor: const Color(0xFF1B1836),
-          title: const Text('Add a win',
-              style: TextStyle(color: Colors.white)),
+          title: const Text('Add a win', style: TextStyle(color: Colors.white)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -214,23 +242,28 @@ class SuccessBinderScreen extends ConsumerWidget {
                 runSpacing: 8,
                 children: <Widget>[
                   for (final e in choices)
-                    GestureDetector(
-                      onTap: () => setState(() => emoji = e),
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: emoji == e
-                              ? const Color(0xFFFFD166).withOpacity(0.3)
-                              : Colors.white.withOpacity(0.06),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
+                    Semantics(
+                      button: true,
+                      selected: emoji == e,
+                      label: 'Win icon $e',
+                      child: GestureDetector(
+                        onTap: () => setState(() => emoji = e),
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
                             color: emoji == e
-                                ? const Color(0xFFFFD166)
-                                : Colors.transparent,
-                            width: 2,
+                                ? const Color(0xFFFFD166).withOpacity(0.3)
+                                : Colors.white.withOpacity(0.06),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: emoji == e
+                                  ? const Color(0xFFFFD166)
+                                  : Colors.transparent,
+                              width: 2,
+                            ),
                           ),
+                          child: Text(e, style: const TextStyle(fontSize: 22)),
                         ),
-                        child: Text(e, style: const TextStyle(fontSize: 22)),
                       ),
                     ),
                 ],
@@ -266,8 +299,7 @@ class _WinCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasPhoto =
-        win.photoPath != null && File(win.photoPath!).existsSync();
+    final hasPhoto = win.photoPath != null && File(win.photoPath!).existsSync();
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -314,7 +346,8 @@ class _WinCard extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(dateLabel,
                       style: TextStyle(
-                          color: win.accent, fontSize: 12,
+                          color: win.accent,
+                          fontSize: 12,
                           fontWeight: FontWeight.w600)),
                 ),
               ],

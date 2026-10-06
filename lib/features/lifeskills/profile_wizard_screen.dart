@@ -193,10 +193,10 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
                       children: <Widget>[
                         Text(
                           _step >= _lastStep
-                            ? widget.fullEditor
-                              ? 'Save'
-                              : "Let's go!"
-                            : 'Next',
+                              ? widget.fullEditor
+                                  ? 'Save'
+                                  : "Let's go!"
+                              : 'Next',
                           style: const TextStyle(
                               color: Colors.white,
                               fontSize: 19,
@@ -225,7 +225,8 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
   }
 
   Widget _nameHero() {
-    final shownName = _nameCtrl.text.trim().isEmpty ? 'friend' : _nameCtrl.text.trim();
+    final shownName =
+        _nameCtrl.text.trim().isEmpty ? 'friend' : _nameCtrl.text.trim();
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 1200;
@@ -254,7 +255,10 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Colors.white70, fontSize: 13.5, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 8),
                 SizedBox(height: 150, child: avatar),
@@ -356,11 +360,13 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
     void pick(String look) {
       switch (look) {
         case 'hearing_aid':
-          _set(_draft.copyWith(device: HearingDevice.hearingAid, glasses: false));
+          _set(_draft.copyWith(
+              device: HearingDevice.hearingAid, glasses: false));
         case 'cochlear':
           _set(_draft.copyWith(device: HearingDevice.cochlear, glasses: false));
         case 'glasses':
-          _set(_draft.copyWith(device: HearingDevice.hearingAid, glasses: true));
+          _set(
+              _draft.copyWith(device: HearingDevice.hearingAid, glasses: true));
       }
     }
 
@@ -377,7 +383,9 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           for (final l in looks) ...<Widget>[
-            Expanded(child: _lookCard(l.$1, l.$2, selected == l.$1, () => pick(l.$1))),
+            Expanded(
+                child:
+                    _lookCard(l.$1, l.$2, selected == l.$1, () => pick(l.$1))),
             if (l != looks.last) const SizedBox(width: 10),
           ],
         ],
@@ -406,56 +414,63 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
           glasses: false,
         ),
     };
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.fromLTRB(8, 8, 8, 10),
-        decoration: BoxDecoration(
-          color: on ? const Color(0x3306D6A0) : Colors.white.withOpacity(0.06),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: on ? const Color(0xFF06D6A0) : Colors.white.withOpacity(0.12),
-            width: on ? 2.4 : 1.2,
+    return Semantics(
+      button: true,
+      selected: on,
+      label: label,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.fromLTRB(8, 8, 8, 10),
+          decoration: BoxDecoration(
+            color:
+                on ? const Color(0x3306D6A0) : Colors.white.withOpacity(0.06),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color:
+                  on ? const Color(0xFF06D6A0) : Colors.white.withOpacity(0.12),
+              width: on ? 2.4 : 1.2,
+            ),
           ),
-        ),
-        child: Column(
-          children: <Widget>[
-            Container(
-              height: 92,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
-                gradient: const LinearGradient(
-                  colors: <Color>[Color(0x1AFFFFFF), Color(0x05FFFFFF)],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
+          child: Column(
+            children: <Widget>[
+              Container(
+                height: 92,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  gradient: const LinearGradient(
+                    colors: <Color>[Color(0x1AFFFFFF), Color(0x05FFFFFF)],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                  border: Border.all(color: Colors.white.withOpacity(0.1)),
                 ),
-                border: Border.all(color: Colors.white.withOpacity(0.1)),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: ChildAvatar(
-                  config: lookConfig,
-                  animate: false,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: ChildAvatar(
+                    config: lookConfig,
+                    animate: false,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 18,
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(label,
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800)),
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 18,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(label,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800)),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -480,7 +495,8 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
             suffixIcon: _nameCtrl.text.trim().isEmpty
                 ? null
                 : IconButton(
-                    icon: const Icon(Icons.close_rounded, color: Colors.white70),
+                    icon:
+                        const Icon(Icons.close_rounded, color: Colors.white70),
                     onPressed: () {
                       _nameCtrl.clear();
                       setState(() {});
@@ -500,7 +516,8 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(18),
-              borderSide: const BorderSide(color: Color(0xFF06D6A0), width: 1.8),
+              borderSide:
+                  const BorderSide(color: Color(0xFF06D6A0), width: 1.8),
             ),
           ),
         ),
@@ -529,44 +546,53 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
 
   Widget _harshivButton() {
     final usingPreset = _draft == AvatarConfig.harshiv;
-    return GestureDetector(
-      onTap: usingPreset ? _applyCustom : _applyHarshiv,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(colors: usingPreset
-              ? const <Color>[Color(0xFF6D5DF6), Color(0xFF3A86FF)]
-              : const <Color>[Color(0xFF0891B2), Color(0xFF06D6A0)]),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.white.withOpacity(0.2)),
-        ),
-        child: Row(
-          children: <Widget>[
-            Text(usingPreset ? '✨' : '💙', style: const TextStyle(fontSize: 22)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
+    return Semantics(
+      button: true,
+      label: usingPreset
+          ? 'Custom Mode, tap to switch back and customize fully'
+          : 'Preset Mode, unilateral BAHA, sensory-calm',
+      child: GestureDetector(
+        onTap: usingPreset ? _applyCustom : _applyHarshiv,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+                colors: usingPreset
+                    ? const <Color>[Color(0xFF6D5DF6), Color(0xFF3A86FF)]
+                    : const <Color>[Color(0xFF0891B2), Color(0xFF06D6A0)]),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.white.withOpacity(0.2)),
+          ),
+          child: Row(
+            children: <Widget>[
+              Text(usingPreset ? '✨' : '💙',
+                  style: const TextStyle(fontSize: 22)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
                     Text(usingPreset ? 'Custom Mode' : 'Preset Mode',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900)),
+                    Text(
+                      usingPreset
+                          ? 'Tap to switch back and customize fully'
+                          : 'Preset look · unilateral BAHA · sensory-calm',
                       style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900)),
-                  Text(
-                    usingPreset
-                        ? 'Tap to switch back and customize fully'
-                        : 'Preset look · unilateral BAHA · sensory-calm',
-                    style: const TextStyle(color: Colors.white70, fontSize: 12.5),
-                  ),
-                ],
+                          color: Colors.white70, fontSize: 12.5),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Icon(
-              usingPreset ? Icons.tune_rounded : Icons.auto_awesome_rounded,
-              color: Colors.white,
-            ),
-          ],
+              Icon(
+                usingPreset ? Icons.tune_rounded : Icons.auto_awesome_rounded,
+                color: Colors.white,
+              ),
+            ],
+          ),
         ),
       ),
     );

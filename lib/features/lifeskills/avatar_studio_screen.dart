@@ -83,53 +83,58 @@ class _AvatarStudioScreenState extends ConsumerState<AvatarStudioScreen> {
             ),
           ),
           // Live preview — tap to cycle through emotions.
-          GestureDetector(
-            onTap: () => setState(
-                () => _emoIdx = (_emoIdx + 1) % _emotions.length),
-            child: Container(
-              margin: const EdgeInsets.fromLTRB(20, 12, 20, 4),
-              height: 210,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(32),
-                gradient: const RadialGradient(
-                  center: Alignment(0, -0.3),
-                  radius: 1.1,
-                  colors: <Color>[Color(0xFF2A2350), Color(0xFF12102A)],
-                ),
-                border: Border.all(
-                    color: Colors.white.withOpacity(0.12), width: 1.5),
-              ),
-              child: Stack(
-                children: <Widget>[
-                  Positioned.fill(
-                    child: AvatarWidget(
-                        config: _draft,
-                        pose: AvatarPose.wave,
-                        emotion: emotion),
+          Semantics(
+            button: true,
+            label:
+                'Avatar preview, ${_emotionLabels[emotion]}, tap to change emotion',
+            child: GestureDetector(
+              onTap: () =>
+                  setState(() => _emoIdx = (_emoIdx + 1) % _emotions.length),
+              child: Container(
+                margin: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+                height: 210,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(32),
+                  gradient: const RadialGradient(
+                    center: Alignment(0, -0.3),
+                    radius: 1.1,
+                    colors: <Color>[Color(0xFF2A2350), Color(0xFF12102A)],
                   ),
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 10,
-                    child: Center(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.35),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          '${_emotionLabels[emotion]}   ·  tap to change',
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700),
+                  border: Border.all(
+                      color: Colors.white.withOpacity(0.12), width: 1.5),
+                ),
+                child: Stack(
+                  children: <Widget>[
+                    Positioned.fill(
+                      child: AvatarWidget(
+                          config: _draft,
+                          pose: AvatarPose.wave,
+                          emotion: emotion),
+                    ),
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 10,
+                      child: Center(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.35),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '${_emotionLabels[emotion]}   ·  tap to change',
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -250,24 +255,29 @@ class _AvatarStudioScreenState extends ConsumerState<AvatarStudioScreen> {
         return Expanded(
           child: Padding(
             padding: const EdgeInsets.only(right: 10),
-            child: GestureDetector(
-              onTap: () => _set(_draft.copyWith(hearingSide: side)),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 160),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: on
-                      ? const Color(0xFF06D6A0)
-                      : Colors.white.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                      color: on ? Colors.white : Colors.white24, width: 1.5),
+            child: Semantics(
+              button: true,
+              selected: on,
+              label: labels[side]!,
+              child: GestureDetector(
+                onTap: () => _set(_draft.copyWith(hearingSide: side)),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 160),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: on
+                        ? const Color(0xFF06D6A0)
+                        : Colors.white.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                        color: on ? Colors.white : Colors.white24, width: 1.5),
+                  ),
+                  child: Text(labels[side]!,
+                      style: TextStyle(
+                          color: on ? Colors.white : Colors.white70,
+                          fontWeight: FontWeight.w800)),
                 ),
-                child: Text(labels[side]!,
-                    style: TextStyle(
-                        color: on ? Colors.white : Colors.white70,
-                        fontWeight: FontWeight.w800)),
               ),
             ),
           ),
@@ -279,32 +289,35 @@ class _AvatarStudioScreenState extends ConsumerState<AvatarStudioScreen> {
   Widget _harshivButton() {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
-      child: GestureDetector(
-        onTap: () {
-          HapticFeedback.mediumImpact();
-          setState(() => _draft = AvatarConfig.harshiv);
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-                colors: <Color>[Color(0xFF0891B2), Color(0xFF06D6A0)]),
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: const Row(
-            children: <Widget>[
-              Text('💙', style: TextStyle(fontSize: 20)),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text('Preset Mode — unilateral BAHA, sensory-calm',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800)),
-              ),
-              Icon(Icons.auto_awesome_rounded,
-                  color: Colors.white, size: 20),
-            ],
+      child: Semantics(
+        button: true,
+        label: 'Preset Mode, unilateral BAHA, sensory-calm',
+        child: GestureDetector(
+          onTap: () {
+            HapticFeedback.mediumImpact();
+            setState(() => _draft = AvatarConfig.harshiv);
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                  colors: <Color>[Color(0xFF0891B2), Color(0xFF06D6A0)]),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: const Row(
+              children: <Widget>[
+                Text('💙', style: TextStyle(fontSize: 20)),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text('Preset Mode — unilateral BAHA, sensory-calm',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800)),
+                ),
+                Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 20),
+              ],
+            ),
           ),
         ),
       ),
@@ -323,21 +336,27 @@ class _AvatarStudioScreenState extends ConsumerState<AvatarStudioScreen> {
       );
 
   Widget _pill(String label, bool on, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: on ? const Color(0xFF9B5DE5) : Colors.white.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(16),
-          border:
-              Border.all(color: on ? Colors.white : Colors.white24, width: 1.5),
+    return Semantics(
+      button: true,
+      selected: on,
+      label: label,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color:
+                on ? const Color(0xFF9B5DE5) : Colors.white.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+                color: on ? Colors.white : Colors.white24, width: 1.5),
+          ),
+          child: Text(label,
+              style: TextStyle(
+                  color: on ? Colors.white : Colors.white70,
+                  fontWeight: FontWeight.w700)),
         ),
-        child: Text(label,
-            style: TextStyle(
-                color: on ? Colors.white : Colors.white70,
-                fontWeight: FontWeight.w700)),
       ),
     );
   }
@@ -349,31 +368,36 @@ class _AvatarStudioScreenState extends ConsumerState<AvatarStudioScreen> {
       runSpacing: 12,
       children: colors.map((c) {
         final on = c.value == selected.value;
-        return GestureDetector(
-          onTap: () => onPick(c),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(
-              color: c,
-              shape: BoxShape.circle,
-              border: Border.all(
-                  color: on ? Colors.white : Colors.white24,
-                  width: on ? 3.5 : 1.5),
-              boxShadow: on
-                  ? <BoxShadow>[
-                      BoxShadow(
-                          color: c.withOpacity(0.7),
-                          blurRadius: 14,
-                          spreadRadius: 1)
-                    ]
+        return Semantics(
+          button: true,
+          selected: on,
+          label: on ? 'Selected colour' : 'Colour swatch',
+          child: GestureDetector(
+            onTap: () => onPick(c),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: c,
+                shape: BoxShape.circle,
+                border: Border.all(
+                    color: on ? Colors.white : Colors.white24,
+                    width: on ? 3.5 : 1.5),
+                boxShadow: on
+                    ? <BoxShadow>[
+                        BoxShadow(
+                            color: c.withOpacity(0.7),
+                            blurRadius: 14,
+                            spreadRadius: 1)
+                      ]
+                    : null,
+              ),
+              child: on
+                  ? const Icon(Icons.check_rounded,
+                      color: Colors.white, size: 22)
                   : null,
             ),
-            child: on
-                ? const Icon(Icons.check_rounded,
-                    color: Colors.white, size: 22)
-                : null,
           ),
         );
       }).toList(),
@@ -400,47 +424,51 @@ class _AvatarStudioScreenState extends ConsumerState<AvatarStudioScreen> {
   }
 
   Widget _toggle(String label, bool value, ValueChanged<bool> onChanged) {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        onChanged(!value);
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-              color: value ? const Color(0xFF06D6A0) : Colors.white24,
-              width: 1.5),
-        ),
-        child: Row(
-          children: <Widget>[
-            Text(label,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700)),
-            const Spacer(),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              width: 52,
-              height: 30,
-              padding: const EdgeInsets.all(3),
-              alignment:
-                  value ? Alignment.centerRight : Alignment.centerLeft,
-              decoration: BoxDecoration(
+    return Semantics(
+      button: true,
+      toggled: value,
+      label: label,
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onChanged(!value);
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
                 color: value ? const Color(0xFF06D6A0) : Colors.white24,
-                borderRadius: BorderRadius.circular(20),
+                width: 1.5),
+          ),
+          child: Row(
+            children: <Widget>[
+              Text(label,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700)),
+              const Spacer(),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                width: 52,
+                height: 30,
+                padding: const EdgeInsets.all(3),
+                alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+                decoration: BoxDecoration(
+                  color: value ? const Color(0xFF06D6A0) : Colors.white24,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Container(
+                  width: 24,
+                  height: 24,
+                  decoration: const BoxDecoration(
+                      color: Colors.white, shape: BoxShape.circle),
+                ),
               ),
-              child: Container(
-                width: 24,
-                height: 24,
-                decoration: const BoxDecoration(
-                    color: Colors.white, shape: BoxShape.circle),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

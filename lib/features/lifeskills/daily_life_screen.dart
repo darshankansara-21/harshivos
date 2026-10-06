@@ -113,8 +113,8 @@ class DailyLifeScreen extends ConsumerWidget {
               padding: const EdgeInsets.only(bottom: 14),
               child: _DeckTile(
                 deck: d,
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => CardDeckScreen(deck: d))),
+                onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => CardDeckScreen(deck: d))),
               ),
             );
           },
@@ -140,16 +140,16 @@ class DailyLifeScreen extends ConsumerWidget {
             title: 'Create Routine',
             subtitle: 'Make a new one',
             glow: const Color(0xFF9B5DE5),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => const CreateRoutineScreen())),
+            onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const CreateRoutineScreen())),
           ),
           _ToolTile(
             emoji: '🧑‍🎨',
             title: 'Avatar Studio',
             subtitle: 'Design your guide',
             glow: const Color(0xFF4CC9F0),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => const AvatarStudioScreen())),
+            onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AvatarStudioScreen())),
           ),
           _ToolTile(
             emoji: '📈',
@@ -164,8 +164,8 @@ class DailyLifeScreen extends ConsumerWidget {
             title: 'My Wins',
             subtitle: 'Our success binder',
             glow: const Color(0xFFFFD166),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => const SuccessBinderScreen())),
+            onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SuccessBinderScreen())),
           ),
         ]),
       ),
@@ -291,9 +291,7 @@ class _StatChip extends StatelessWidget {
             const SizedBox(height: 4),
             Text(value,
                 style: TextStyle(
-                    color: color,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900)),
+                    color: color, fontSize: 20, fontWeight: FontWeight.w900)),
             Text(label,
                 style: const TextStyle(color: Colors.white60, fontSize: 11)),
           ],
@@ -339,14 +337,20 @@ class _RoutineTile extends StatelessWidget {
             children: <Widget>[
               Text(routine.emoji, style: const TextStyle(fontSize: 40)),
               const Spacer(),
-              GestureDetector(
-                onTap: onFav,
-                child: Icon(
-                  favorite
-                      ? Icons.favorite_rounded
-                      : Icons.favorite_border_rounded,
-                  color: favorite ? const Color(0xFFEF476F) : Colors.white54,
-                  size: 22,
+              Semantics(
+                button: true,
+                label: favorite
+                    ? 'Remove ${routine.title} from favorites'
+                    : 'Add ${routine.title} to favorites',
+                child: GestureDetector(
+                  onTap: onFav,
+                  child: Icon(
+                    favorite
+                        ? Icons.favorite_rounded
+                        : Icons.favorite_border_rounded,
+                    color: favorite ? const Color(0xFFEF476F) : Colors.white54,
+                    size: 22,
+                  ),
                 ),
               ),
             ],
@@ -383,8 +387,7 @@ class _RoutineTile extends StatelessWidget {
                 )
               else if (done > 0)
                 Text('Done ${done}x',
-                    style:
-                        const TextStyle(color: Colors.white54, fontSize: 12))
+                    style: const TextStyle(color: Colors.white54, fontSize: 12))
               else
                 const Text('Tap to start',
                     style: TextStyle(color: Colors.white54, fontSize: 12)),
