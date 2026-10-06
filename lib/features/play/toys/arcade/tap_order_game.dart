@@ -23,15 +23,29 @@ class _TapOrderGameState extends State<TapOrderGame> with _Emit {
   // generic difficulty gimmick, track how fast each round is cleared and
   // celebrate a genuine personal-best time, so going again has a real,
   // honest goal (beat your own speed) instead of just repeating forever.
+  //
+  // This was kept as a plain in-memory `Duration?` field, so it reset to
+  // null every time the widget was recreated (leaving the game, re-opening
+  // it, or an app restart) — the exact "stat that can never move"/doesn't
+  // persist bug class already fixed via `GameScores.bestLow`/`submitLow`
+  // for jigsaw_four's fastest-rebuild-time. Mirror that same lower-is-better
+  // persisted-best pattern here so a genuinely faster round is remembered
+  // across sessions, not just within the current one.
+  static const String _timeId = '${_id}_time_ms';
   DateTime? _roundStart;
-  Duration? _bestRoundTime;
+  int _bestRoundTimeMs = 0;
 
   @override
   void initState() {
     super.initState();
     _shuffle();
     GameScores.instance.ensureLoaded().then((_) {
-      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+      if (mounted) {
+        setState(() {
+          _best = GameScores.instance.best(_id);
+          _bestRoundTimeMs = GameScores.instance.bestLow(_timeId);
+        });
+      }
     });
   }
 
@@ -57,13 +71,19 @@ class _TapOrderGameState extends State<TapOrderGame> with _Emit {
       if (_next > 25) {
         _round++;
         final elapsed = DateTime.now().difference(_roundStart!);
-        final isBest = _bestRoundTime == null || elapsed < _bestRoundTime!;
-        if (isBest) _bestRoundTime = elapsed;
+        final elapsedMs = elapsed.inMilliseconds;
+        final isBest = _bestRoundTimeMs <= 0 || elapsedMs < _bestRoundTimeMs;
         _banner = isBest
             ? 'Round $_round! ${_fmtTime(elapsed)} · ⭐ New best time!'
-            : 'Round $_round! ${_fmtTime(elapsed)} · best ${_fmtTime(_bestRoundTime!)}';
+            : 'Round $_round! ${_fmtTime(elapsed)} · '
+                'best ${_fmtTime(Duration(milliseconds: _bestRoundTimeMs))}';
         TonePlayer.instance.playCue(SoundCue.success);
         emit(ExperienceEvent.gameCompleted);
+        if (isBest) {
+          GameScores.instance.submitLow(_timeId, elapsedMs).then((v) {
+            if (mounted) setState(() => _bestRoundTimeMs = v);
+          });
+        }
         setState(_shuffle);
       } else {
         setState(() {});
