@@ -299,6 +299,16 @@ class _WeatherSortGameState extends State<WeatherSortGame>
                     button: true,
                     label: '${_binNames[i]} weather bin',
                     onTap: () => _pick(i),
+                    // Without this, the bin's own emoji Text below forms its
+                    // own separate, unlabeled semantics node nested inside
+                    // this labeled button — the one bin-tap target left in
+                    // the whole arcade catalog missing the `excludeSemantics`
+                    // every sibling Semantics-wrapping-GestureDetector tap
+                    // target already sets, which left a screen-reader user
+                    // hearing a confusing duplicate/competing node instead
+                    // of just the one clearly-labeled "sunny weather bin"
+                    // button.
+                    excludeSemantics: true,
                     child: GestureDetector(
                       onTap: () => _pick(i),
                       child: Container(
