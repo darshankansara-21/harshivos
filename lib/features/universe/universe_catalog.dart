@@ -528,7 +528,12 @@ final List<UniverseToy> kToyUniverse = <UniverseToy>[
     id: 'pinball', name: 'Pinball', emoji: '🎱',
     color: const Color(0xFFFFC857),
     category: ToyCategory.arcade,
-    inputs: const [ToyInput.hold, ToyInput.multiTouch],
+    // The plunger chute is a real pull-back-to-charge drag gesture (see
+    // `_handlePointerMove`'s `_plungerPull` tracking), not just hold
+    // (flippers) + multiTouch (two simultaneous flips) — the catalog
+    // metadata claimed only those two inputs while the actual game also
+    // requires a drag to launch every single ball.
+    inputs: const [ToyInput.drag, ToyInput.hold, ToyInput.multiTouch],
     engagement: ToyEngagement.deep, build: _play('pinball'), isNew: true,
   ),
   UniverseToy(
