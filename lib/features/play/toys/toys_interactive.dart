@@ -58,18 +58,31 @@ class _CalmCloudsToyState extends State<CalmCloudsToy>
 
   @override
   Widget build(BuildContext context) {
-    return Listener(
-      onPointerDown: (e) { _dragging = _nearest(e.localPosition); TonePlayer.instance.haptic(HapticFeedback.selectionClick); },
-      onPointerMove: (e) {
-        if (_dragging != null) _clouds[_dragging!].pos = e.localPosition;
-      },
-      onPointerUp: (_) => _dragging = null,
-      // Without this, a cancelled drag (e.g. a system gesture interrupting
-      // the touch) left `_dragging` permanently set — `onTick` skips
-      // animating whichever cloud index that is, so that one cloud would
-      // freeze in place forever instead of drifting like its siblings.
-      onPointerCancel: (_) => _dragging = null,
-      child: CustomPaint(painter: _CloudPainter(_clouds), size: Size.infinite),
+    return Stack(
+      children: <Widget>[
+        Listener(
+          onPointerDown: (e) { _dragging = _nearest(e.localPosition); TonePlayer.instance.haptic(HapticFeedback.selectionClick); },
+          onPointerMove: (e) {
+            if (_dragging != null) _clouds[_dragging!].pos = e.localPosition;
+          },
+          onPointerUp: (_) => _dragging = null,
+          // Without this, a cancelled drag (e.g. a system gesture interrupting
+          // the touch) left `_dragging` permanently set — `onTick` skips
+          // animating whichever cloud index that is, so that one cloud would
+          // freeze in place forever instead of drifting like its siblings.
+          onPointerCancel: (_) => _dragging = null,
+          child: CustomPaint(painter: _CloudPainter(_clouds), size: Size.infinite),
+        ),
+        // This free-form drag canvas had zero Semantics tree — a blind
+        // child had no way to discover the clouds exist or that they can be
+        // dragged. Same convention as `toys_light`'s onboarding hint: an
+        // invisible, IgnorePointer-wrapped label that never steals touches.
+        Positioned.fill(
+          child: IgnorePointer(
+            child: Semantics(label: 'Drag the clouds across the sky'),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -168,10 +181,22 @@ class _MusicGardenToyState extends State<MusicGardenToy>
 
   @override
   Widget build(BuildContext context) {
-    return Listener(
-      onPointerDown: (e) => _tap(e.localPosition),
-      onPointerMove: (e) => _tap(e.localPosition),
-      child: CustomPaint(painter: _GardenPainter(_flowers), size: Size.infinite),
+    return Stack(
+      children: <Widget>[
+        Listener(
+          onPointerDown: (e) => _tap(e.localPosition),
+          onPointerMove: (e) => _tap(e.localPosition),
+          child: CustomPaint(painter: _GardenPainter(_flowers), size: Size.infinite),
+        ),
+        // Same zero-Semantics gap as CalmCloudsToy above — an invisible,
+        // IgnorePointer-wrapped onboarding label so a screen-reader user can
+        // discover this toy exists and how to use it.
+        Positioned.fill(
+          child: IgnorePointer(
+            child: Semantics(label: 'Tap the flowers to bloom them and play a note'),
+          ),
+        ),
+      ],
     );
   }
 }

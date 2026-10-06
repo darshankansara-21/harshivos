@@ -75,15 +75,30 @@ class _RainbowRainToyState extends State<RainbowRainToy>
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onVerticalDragUpdate: (e) {
-        setState(() => _intensity = (_intensity - e.delta.dy / 300).clamp(0.0, 1.0));
-      },
-      onTapDown: (e) => _summon(e.localPosition),
-      child: CustomPaint(
-        painter: _RainPainter(_drops, _splashes, _intensity),
-        size: Size.infinite,
-      ),
+    return Stack(
+      children: <Widget>[
+        GestureDetector(
+          onVerticalDragUpdate: (e) {
+            setState(() => _intensity = (_intensity - e.delta.dy / 300).clamp(0.0, 1.0));
+          },
+          onTapDown: (e) => _summon(e.localPosition),
+          child: CustomPaint(
+            painter: _RainPainter(_drops, _splashes, _intensity),
+            size: Size.infinite,
+          ),
+        ),
+        // This free-form gesture canvas had zero Semantics tree — a blind
+        // child had no way to discover the rain or how to control it. Same
+        // convention as `toys_light`'s onboarding hint: an invisible,
+        // IgnorePointer-wrapped label that never steals touches.
+        Positioned.fill(
+          child: IgnorePointer(
+            child: Semantics(
+                label:
+                    'Tap to summon rain drops, drag up or down to change the rain'),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -167,29 +182,41 @@ class _LavaLampToyState extends State<LavaLampToy>
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (e) {
-        final size = context.size ?? Size.zero;
-        setState(() {
-          _blobs.add(_Blob(
-            x: e.localPosition.dx / size.width,
-            phase: _t,
-            speed: 0.2 + _r.nextDouble() * 0.25,
-            radius: 30 + _r.nextDouble() * 40,
-            hue: _r.nextDouble(),
-          ));
-          if (_blobs.length > 14) _blobs.removeAt(0);
-        });
-        // Summoning a new blob is a real discrete tactile event — unlike
-        // every sibling sensory toy, this tap previously gave zero haptic
-        // or sound confirmation. A soft "bubble" cue reads as a gentle
-        // plop, matching the lamp's slow/calm identity.
-        TonePlayer.instance.playCue(SoundCue.bubble);
-      },
-      child: CustomPaint(
-        painter: _LavaPainter(_blobs, _t),
-        size: Size.infinite,
-      ),
+    return Stack(
+      children: <Widget>[
+        GestureDetector(
+          onTapDown: (e) {
+            final size = context.size ?? Size.zero;
+            setState(() {
+              _blobs.add(_Blob(
+                x: e.localPosition.dx / size.width,
+                phase: _t,
+                speed: 0.2 + _r.nextDouble() * 0.25,
+                radius: 30 + _r.nextDouble() * 40,
+                hue: _r.nextDouble(),
+              ));
+              if (_blobs.length > 14) _blobs.removeAt(0);
+            });
+            // Summoning a new blob is a real discrete tactile event — unlike
+            // every sibling sensory toy, this tap previously gave zero haptic
+            // or sound confirmation. A soft "bubble" cue reads as a gentle
+            // plop, matching the lamp's slow/calm identity.
+            TonePlayer.instance.playCue(SoundCue.bubble);
+          },
+          child: CustomPaint(
+            painter: _LavaPainter(_blobs, _t),
+            size: Size.infinite,
+          ),
+        ),
+        // Same zero-Semantics gap as RainbowRainToy above — an invisible,
+        // IgnorePointer-wrapped onboarding label so a screen-reader user can
+        // discover this toy exists and how to use it.
+        Positioned.fill(
+          child: IgnorePointer(
+            child: Semantics(label: 'Tap to add a glowing blob to the lava lamp'),
+          ),
+        ),
+      ],
     );
   }
 }

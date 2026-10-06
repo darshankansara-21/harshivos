@@ -63,13 +63,27 @@ class _BubblePopToyState extends State<BubblePopToy>
 
   @override
   Widget build(BuildContext context) {
-    return Listener(
-      onPointerDown: (e) => _popAt(e.localPosition),
-      onPointerMove: (e) => _popAt(e.localPosition),
-      child: CustomPaint(
-        painter: _BubblePainter(_bubbles, _pops),
-        size: Size.infinite,
-      ),
+    return Stack(
+      children: <Widget>[
+        Listener(
+          onPointerDown: (e) => _popAt(e.localPosition),
+          onPointerMove: (e) => _popAt(e.localPosition),
+          child: CustomPaint(
+            painter: _BubblePainter(_bubbles, _pops),
+            size: Size.infinite,
+          ),
+        ),
+        // This free-form gesture canvas had zero Semantics tree — a blind
+        // child had no way to even discover rising bubbles exist here, let
+        // alone that touching pops them. Same convention as `toys_light`'s
+        // onboarding hint: an invisible, IgnorePointer-wrapped label so it
+        // never steals touches from the real pop gesture above.
+        Positioned.fill(
+          child: IgnorePointer(
+            child: Semantics(label: 'Tap or drag to pop the rising bubbles'),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -168,14 +182,26 @@ class _WaterRipplesToyState extends State<WaterRipplesToy>
 
   @override
   Widget build(BuildContext context) {
-    return Listener(
-      onPointerDown: (e) => _drop(e.localPosition),
-      onPointerMove: (e) {
-        if (_ripples.isEmpty || (_ripples.last.center - e.localPosition).distance > 28) {
-          _drop(e.localPosition);
-        }
-      },
-      child: CustomPaint(painter: _RipplePainter(_ripples), size: Size.infinite),
+    return Stack(
+      children: <Widget>[
+        Listener(
+          onPointerDown: (e) => _drop(e.localPosition),
+          onPointerMove: (e) {
+            if (_ripples.isEmpty || (_ripples.last.center - e.localPosition).distance > 28) {
+              _drop(e.localPosition);
+            }
+          },
+          child: CustomPaint(painter: _RipplePainter(_ripples), size: Size.infinite),
+        ),
+        // Same zero-Semantics gap as BubblePopToy above — an invisible,
+        // IgnorePointer-wrapped onboarding label so a screen-reader user can
+        // discover this toy exists and how to use it.
+        Positioned.fill(
+          child: IgnorePointer(
+            child: Semantics(label: 'Tap or drag to drop ripples into the water'),
+          ),
+        ),
+      ],
     );
   }
 }
