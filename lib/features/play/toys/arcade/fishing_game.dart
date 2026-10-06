@@ -45,12 +45,28 @@ class _FishingGameState extends State<FishingGame>
   String? _banner;
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
+  // `_score` (fish caught, target 10) is already tracked via
+  // `GameScores.submit`, but a run that lands all 10 fish without ever
+  // letting a bite's tap window expire is genuinely more skillful than one
+  // that lets several bites slip away — and nothing tracked that. Same
+  // "stat that can never move" / "real avoidable mistake isn't tracked" bug
+  // class already fixed in dot_to_dot/count_pop/counting_baskets/basketball/
+  // color_mixer/mini_golf/jigsaw_four via a separate, lower-is-better
+  // `GameScores.submitLow` personal best.
+  static const String _missesId = '${_id}_missed_bites';
+  int _runMisses = 0;
+  int _bestMisses = 0;
 
   @override
   void initState() {
     super.initState();
     GameScores.instance.ensureLoaded().then((_) {
-      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+      if (mounted) {
+        setState(() {
+          _best = GameScores.instance.best(_id);
+          _bestMisses = GameScores.instance.bestLow(_missesId);
+        });
+      }
     });
   }
 
@@ -106,6 +122,7 @@ class _FishingGameState extends State<FishingGame>
         _flash(_missPool[_rnd.nextInt(_missPool.length)]);
         TonePlayer.instance.playCue(SoundCue.gentleRetry);
         emit(ExperienceEvent.incorrectAnswer);
+        _runMisses++;
       }
       return;
     }
@@ -153,6 +170,19 @@ class _FishingGameState extends State<FishingGame>
       if (_score >= _target) {
         _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         _status = GameStatus.won;
+        // A full 10-fish run that beats the fewest-missed-bites record is
+        // the real "did you fish cleaner" moment this stat is for — same
+        // milestone chime + companion celebration every other beat-your-best
+        // moment in the catalog gets, layered onto (not replacing) the win
+        // fanfare.
+        final beatMisses = _bestMisses > 0 && _runMisses < _bestMisses;
+        GameScores.instance.submitLow(_missesId, _runMisses).then((v) {
+          if (mounted) setState(() => _bestMisses = v);
+        });
+        if (beatMisses) {
+          TonePlayer.instance.playCue(SoundCue.milestone);
+          emit(ExperienceEvent.personalBest);
+        }
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
       }
@@ -169,6 +199,7 @@ class _FishingGameState extends State<FishingGame>
     setState(() {
       _score = 0;
       _beatBest = false;
+      _runMisses = 0;
       _fish.clear();
       _bits.clear();
       _biteT = 0;
@@ -187,7 +218,10 @@ class _FishingGameState extends State<FishingGame>
       title: '🎣 Fishing',
       introHow:
           'Tap the water to move your bobber. When a fish nibbles and the bobber dips, tap fast to catch it!',
-      onStart: () => setState(() => _status = GameStatus.playing),
+      onStart: () => setState(() {
+        _runMisses = 0;
+        _status = GameStatus.playing;
+      }),
       score: _score,
       best: _best,
       target: _target,
@@ -195,7 +229,10 @@ class _FishingGameState extends State<FishingGame>
       banner: _banner ??
           (_biteT > 0 ? 'A bite! Tap now!' : 'Caught $_score/$_target'),
       winEmoji: '🎣',
-      winText: _winPraise,
+      winText: _bestMisses > 0 && _runMisses < _bestMisses
+          ? '$_winPraise New best run: $_runMisses missed bites! 🏆'
+          : '$_winPraise $_runMisses missed bites'
+              '${_bestMisses > 0 ? ' (best $_bestMisses)' : ''}',
       accent: const Color(0xFF2FA7C4),
       onPlayAgain: _reset,
       child: LayoutBuilder(
