@@ -175,7 +175,21 @@ class _AirHockeyGameState extends State<AirHockeyGame>
   // on winning, so the back half of a 7-point match is a genuinely tougher
   // defender than the front half — not just the same AI stalling the player
   // out with no growing tension.
-  double get _aiEase => 3.2 + (_playerScore / _target).clamp(0.0, 1.0) * 2.8;
+  //
+  // Same "flat-forever AI difficulty never fed by career `_best`" bug class
+  // already fixed in TicTacToeGame's Pico (batch 274) and RacingGame's rival
+  // pack (batch 395): a child who has already racked up a high all-time
+  // score faced the exact same gentle 3.2 opening defender on match point 1
+  // of every single replay forever. Small career ramp (capped well short of
+  // the in-match ramp above) so a skilled returning player meets a slightly
+  // sharper AI from the first rally, while a fresh/low-`_best` child still
+  // gets the original easy start.
+  double get _careerAiRamp => (_best / (_target * 4)).clamp(0.0, 1.0) * 0.8;
+
+  double get _aiEase =>
+      3.2 +
+      _careerAiRamp +
+      (_playerScore / _target).clamp(0.0, 1.0) * 2.8;
 
   void _updateAi(double dt) {
     double targetX, targetY;

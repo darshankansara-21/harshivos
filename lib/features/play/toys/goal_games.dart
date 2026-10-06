@@ -1228,12 +1228,26 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
       _ballTargetX =
           _kMin + 0.02 + _random.nextDouble() * (_kMax - _kMin - 0.04);
       // Curve grows with score so reading the ball gets trickier.
-      final curveChance = math.min(0.6, 0.12 + _score * 0.05);
+      //
+      // Same "flat-forever AI difficulty never fed by career `_best`" bug
+      // class already fixed in TicTacToeGame's Pico (batch 274), RacingGame's
+      // rival pack (batch 395), and AirHockeyGame's AI mallet (this batch):
+      // the shot curve/speed only ever scaled with the *current* round's
+      // `_score`, resetting to the identical gentle opener every single
+      // replay no matter how many saves the child has racked up historically.
+      // `_careerShotRamp` nudges both knobs a little from shot 1 of every
+      // match for a keeper with a high all-time `_best`, capped small so the
+      // very first save of a match stays reachable even for a seasoned
+      // player.
+      final careerShotRamp = (_best / (_target * 3)).clamp(0.0, 1.0);
+      final curveChance =
+          math.min(0.6, 0.12 + careerShotRamp * 0.08 + _score * 0.05);
       _curve = _random.nextDouble() < curveChance
           ? (_random.nextBool() ? 1 : -1) *
               (0.08 + _random.nextDouble() * 0.12)
           : 0;
-      _flightDur = math.max(0.82, 1.7 - _score * 0.085);
+      _flightDur = math.max(
+          0.82, 1.7 - careerShotRamp * 0.12 - _score * 0.085);
     }
   }
 
