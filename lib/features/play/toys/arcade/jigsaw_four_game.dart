@@ -16,7 +16,8 @@ class _JigPiece {
   bool placed = false;
 }
 
-class _JigsawFourGameState extends State<JigsawFourGame> with _Emit {
+class _JigsawFourGameState extends State<JigsawFourGame>
+    with TickerProviderStateMixin, ToyTicker, _Emit {
   static const String _id = 'jigsaw_four';
   static const int _target = 3;
   // Board region (normalized) where the assembled picture sits.
@@ -46,6 +47,14 @@ class _JigsawFourGameState extends State<JigsawFourGame> with _Emit {
   ];
 
   final List<_JigPiece> _pieces = <_JigPiece>[];
+  // Every other matching/fitting-completion game in the catalog (memory
+  // flip's pair match, maze marble's goal sink, block blast's line clear)
+  // celebrates with a small particle burst — jigsaw only ever played a
+  // sound on finishing a picture, with zero visual payoff. Mirror the
+  // shared `_Shard` convention (defined in brick_break_game.dart, usable
+  // here since every arcade/*.dart file shares one `part of` library).
+  final List<_Shard> _shards = <_Shard>[];
+  bool _reduceMotion = false;
   int _level = 0;
   int _sceneSeed = 0;
   int _score = 0;
@@ -70,6 +79,27 @@ class _JigsawFourGameState extends State<JigsawFourGame> with _Emit {
 
   double get _cellW => _bw / _cols;
   double get _cellH => _bh / _rows;
+
+  void _burst(double cx, double cy) {
+    final n = _reduceMotion ? 4 : 14;
+    for (var k = 0; k < n; k++) {
+      final a = _rnd.nextDouble() * math.pi * 2;
+      final sp = 0.15 + _rnd.nextDouble() * 0.3;
+      _shards.add(_Shard(cx, cy, math.cos(a) * sp, math.sin(a) * sp,
+          _JigsawPainter._suns[_rnd.nextInt(_JigsawPainter._suns.length)]));
+    }
+  }
+
+  @override
+  void onTick(double dt) {
+    for (var i = _shards.length - 1; i >= 0; i--) {
+      final s = _shards[i];
+      s.x += s.vx * dt;
+      s.y += s.vy * dt;
+      s.life -= dt;
+      if (s.life <= 0) _shards.removeAt(i);
+    }
+  }
 
   void _buildBoard() {
     _cols = _grids[_level][0];
@@ -110,6 +140,7 @@ class _JigsawFourGameState extends State<JigsawFourGame> with _Emit {
         _score++;
         TonePlayer.instance.playCue(SoundCue.success);
         emit(ExperienceEvent.bubblePopped);
+        _burst(_bx0 + _bw / 2, _by0 + _bh / 2);
         GameScores.instance.submit(_id, _score).then((v) {
           if (mounted) setState(() => _best = v);
         });
@@ -132,6 +163,7 @@ class _JigsawFourGameState extends State<JigsawFourGame> with _Emit {
       _level = 0;
       _score = 0;
       _banner = null;
+      _shards.clear();
       _buildBoard();
       _status = GameStatus.playing;
     });
@@ -155,6 +187,7 @@ class _JigsawFourGameState extends State<JigsawFourGame> with _Emit {
   @override
   Widget build(BuildContext context) {
     drain(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     final left = _pieces.where((p) => !p.placed).length;
     return _Shell(
       title: '🧩 Jigsaw Four',
@@ -226,6 +259,12 @@ class _JigsawFourGameState extends State<JigsawFourGame> with _Emit {
             ),
           ),
           _a11yOverlay(w, h),
+          IgnorePointer(
+            child: CustomPaint(
+              painter: _JigsawShardPainter(_shards),
+              size: Size.infinite,
+            ),
+          ),
           ]);
         },
       ),
@@ -432,4 +471,24 @@ class _JigsawPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_JigsawPainter oldDelegate) => true;
+}
+
+/// Picture-complete celebration burst, mirroring the `_MemoryShardPainter`
+/// convention shared across every other fitting/matching game.
+class _JigsawShardPainter extends CustomPainter {
+  _JigsawShardPainter(this.shards);
+  final List<_Shard> shards;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    for (final s in shards) {
+      final k = (s.life / 0.5).clamp(0.0, 1.0);
+      canvas.drawCircle(Offset(s.x * w, s.y * h), 2 + 3 * k,
+          Paint()..color = s.color.withOpacity(k));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_JigsawShardPainter oldDelegate) => true;
 }
