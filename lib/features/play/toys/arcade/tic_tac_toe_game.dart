@@ -65,11 +65,24 @@ class _TicTacToeGameState extends State<TicTacToeGame> with _Emit {
     return null;
   }
 
+  // Pico's skill used to be two flat constants (65% block chance, 60% good-
+  // square chance) for every single game forever — a child who has already
+  // beaten Pico 20 times in a row faced the exact identical opponent as their
+  // very first game, with `_best` (career win count) tracked purely as a
+  // display stat and never feeding back into challenge at all. This is the
+  // same flat-forever difficulty-curve gap already fixed via score-gated
+  // `clamp()` ramps throughout the rest of the catalog (basketball's hoop
+  // speed, air_hockey's AI ease, etc.) — ramp both chances up a little with
+  // career wins, capped well short of 1.0 so Pico always stays genuinely
+  // beatable, never perfect, matching this audience's design intent.
+  double get _blockChance => (0.65 + _best * 0.01).clamp(0.65, 0.85);
+  double get _goodSquareChance => (0.6 + _best * 0.01).clamp(0.6, 0.8);
+
   void _aiMove() {
     // Always take a win; but Pico only blocks most of the time so a child can
     // actually win — a perfect opponent is no fun for this audience.
     var move = _findMove(2);
-    if (move == null && _rnd.nextDouble() < 0.65) move = _findMove(1);
+    if (move == null && _rnd.nextDouble() < _blockChance) move = _findMove(1);
     if (move == null) {
       const prefs = <int>[4, 0, 2, 6, 8, 1, 3, 5, 7];
       final avail = <int>[
@@ -78,7 +91,7 @@ class _TicTacToeGameState extends State<TicTacToeGame> with _Emit {
       ];
       if (avail.isNotEmpty) {
         // Favour good squares but mix in some chance so it's beatable.
-        move = _rnd.nextDouble() < 0.6
+        move = _rnd.nextDouble() < _goodSquareChance
             ? avail.first
             : avail[_rnd.nextInt(avail.length)];
       }
