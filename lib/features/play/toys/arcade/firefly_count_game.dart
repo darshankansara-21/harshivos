@@ -39,6 +39,14 @@ class _FireflyCountGameState extends State<FireflyCountGame>
   String? _banner;
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
+  // Unlike every other sibling tap-the-right-answer game (tone_match,
+  // odd_one_out, jigsaw_four), a correct count tap here had zero screen-space
+  // celebration — just a banner line and a chime, identical in weight to
+  // every other quiz-style game's genuine "I got it!" moment before this
+  // class of gap was closed catalog-wide. Add the same colour-shard burst
+  // from the tapped answer pad.
+  final List<_Shard> _bits = <_Shard>[];
+  bool _reduceMotion = false;
 
   @override
   void initState() {
@@ -76,6 +84,13 @@ class _FireflyCountGameState extends State<FireflyCountGame>
       _wrongT -= dt;
       if (_wrongT <= 0) _wrongFlash = -1;
     }
+    for (var i = _bits.length - 1; i >= 0; i--) {
+      final b = _bits[i];
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.life -= dt;
+      if (b.life <= 0) _bits.removeAt(i);
+    }
     for (final f in _flies) {
       f.phase += dt * 3;
       f.x += f.vx * dt;
@@ -85,12 +100,25 @@ class _FireflyCountGameState extends State<FireflyCountGame>
     }
   }
 
+  void _burst(int idx) {
+    final cx = (idx + 0.5) / 3;
+    const cy = 0.83; // center of the answer-pad band drawn at h*0.7..h*0.96
+    final n = _reduceMotion ? 4 : 12;
+    for (var k = 0; k < n; k++) {
+      final a = _rnd.nextDouble() * math.pi * 2;
+      final sp = 0.15 + _rnd.nextDouble() * 0.3;
+      _bits.add(_Shard(cx, cy, math.cos(a) * sp, math.sin(a) * sp,
+          const Color(0xFFFFE066)));
+    }
+  }
+
   void _pick(int value, int idx) {
     if (_status != GameStatus.playing) return;
     if (value == _count) {
       _score++;
       TonePlayer.instance.playCue(SoundCue.success);
       emit(ExperienceEvent.bubblePopped);
+      _burst(idx);
       _banner = 'Yes! $_count fireflies ✨';
       _bannerT = 1.2;
       // A child who runs out of lives right after this tap still deserves
@@ -145,6 +173,7 @@ class _FireflyCountGameState extends State<FireflyCountGame>
       _beatBest = false;
       _banner = null;
       _bannerT = 0;
+      _bits.clear();
       _newRound();
       _status = GameStatus.playing;
     });
@@ -153,6 +182,7 @@ class _FireflyCountGameState extends State<FireflyCountGame>
   @override
   Widget build(BuildContext context) {
     drain(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _Shell(
       title: '✨ Firefly Count',
       introHow:
@@ -195,6 +225,12 @@ class _FireflyCountGameState extends State<FireflyCountGame>
                   size: Size.infinite,
                 ),
               ),
+              if (_bits.isNotEmpty)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: CustomPaint(painter: _FireflyShardPainter(_bits)),
+                  ),
+                ),
               // The tappable answer numbers are drawn only onto the canvas,
               // so a screen-reader user couldn't even discover what the
               // choices were. These invisible Semantics overlays mirror the
@@ -272,5 +308,23 @@ class _FireflyPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_FireflyPainter old) => true;
+}
+
+class _FireflyShardPainter extends CustomPainter {
+  _FireflyShardPainter(this.bits);
+  final List<_Shard> bits;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    for (final s in bits) {
+      final k = (s.life / 0.5).clamp(0.0, 1.0);
+      canvas.drawCircle(Offset(s.x * w, s.y * h), 2 + 3 * k,
+          Paint()..color = s.color.withOpacity(k));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_FireflyShardPainter oldDelegate) => true;
 }
 
