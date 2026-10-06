@@ -201,13 +201,19 @@ class _SpinnerState extends State<_Spinner>
   Widget build(BuildContext context) {
     return _Panel(
       label: 'SPIN',
-      child: GestureDetector(
-        onPanUpdate: (e) => _vel += e.delta.dx * 0.08 + e.delta.dy * 0.08,
-        onTap: () => _vel += 6,
-        child: Transform.rotate(
-          angle: _angle,
-          child: CustomPaint(
-              size: const Size(140, 140), painter: _SpinnerPainter()),
+      // The spinner panel had zero Semantics tree, unlike its clicky-button
+      // and toggle-switch siblings on the same screen — a blind child
+      // couldn't discover this gesture area exists at all.
+      child: Semantics(
+        label: 'Spinner, drag or tap to spin',
+        child: GestureDetector(
+          onPanUpdate: (e) => _vel += e.delta.dx * 0.08 + e.delta.dy * 0.08,
+          onTap: () => _vel += 6,
+          child: Transform.rotate(
+            angle: _angle,
+            child: CustomPaint(
+                size: const Size(140, 140), painter: _SpinnerPainter()),
+          ),
         ),
       ),
     );
@@ -321,44 +327,52 @@ class _GlideRollerState extends State<_GlideRoller> {
     return _Panel(
       label: 'GLIDE',
       child: LayoutBuilder(builder: (context, c) {
-        return GestureDetector(
-          onPanUpdate: (e) {
-            setState(() =>
-                _value = (_value + e.delta.dy / c.maxHeight).clamp(0.0, 1.0));
-            if ((_value * 12).round() !=
-                ((_value - e.delta.dy / c.maxHeight) * 12).round()) {
-              TonePlayer.instance.haptic(HapticFeedback.selectionClick);
-              // Same gap as the spinner: this panel's step clicks were
-              // haptic-only while its siblings on the same screen already
-              // pair haptic with sound.
-              TonePlayer.instance.playCue(SoundCue.selection);
-            }
-          },
-          child: Container(
-            width: 56,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(28),
-              color: Colors.black26,
-            ),
-            child: Stack(
-              alignment: Alignment.topCenter,
-              children: <Widget>[
-                Align(
-                  alignment: Alignment(0, _value * 2 - 1),
-                  child: Container(
-                    margin: const EdgeInsets.all(6),
-                    width: 44,
-                    height: 44,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: RadialGradient(colors: <Color>[
-                        Color(0xFFFFD194),
-                        Color(0xFFF79D00)
-                      ]),
+        // The glide roller panel had zero Semantics tree, unlike its
+        // clicky-button and toggle-switch siblings — a blind child couldn't
+        // discover or read the current position of this drag slider.
+        return Semantics(
+          slider: true,
+          label: 'Glide roller',
+          value: '${(_value * 100).round()} percent',
+          child: GestureDetector(
+            onPanUpdate: (e) {
+              setState(() =>
+                  _value = (_value + e.delta.dy / c.maxHeight).clamp(0.0, 1.0));
+              if ((_value * 12).round() !=
+                  ((_value - e.delta.dy / c.maxHeight) * 12).round()) {
+                TonePlayer.instance.haptic(HapticFeedback.selectionClick);
+                // Same gap as the spinner: this panel's step clicks were
+                // haptic-only while its siblings on the same screen already
+                // pair haptic with sound.
+                TonePlayer.instance.playCue(SoundCue.selection);
+              }
+            },
+            child: Container(
+              width: 56,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(28),
+                color: Colors.black26,
+              ),
+              child: Stack(
+                alignment: Alignment.topCenter,
+                children: <Widget>[
+                  Align(
+                    alignment: Alignment(0, _value * 2 - 1),
+                    child: Container(
+                      margin: const EdgeInsets.all(6),
+                      width: 44,
+                      height: 44,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(colors: <Color>[
+                          Color(0xFFFFD194),
+                          Color(0xFFF79D00)
+                        ]),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );

@@ -33,7 +33,18 @@ class _SandGardenToyState extends State<SandGardenToy> {
         // Grainy rake texture while the finger drags, matching what's drawn.
         TonePlayer.instance.playCue(SoundCue.sand);
       }),
-      child: CustomPaint(painter: _SandPainter(_strokes), size: Size.infinite),
+      child: Stack(
+        children: <Widget>[
+          CustomPaint(painter: _SandPainter(_strokes), size: Size.infinite),
+          // The onboarding hint is drawn only onto the canvas (invisible to
+          // screen readers); IgnorePointer keeps it from stealing touches.
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Semantics(label: 'Drag your finger to rake the sand'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
