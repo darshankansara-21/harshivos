@@ -93,6 +93,7 @@ class _FishingGameState extends State<FishingGame>
       if (_biteT <= 0) {
         _flash('It got away…');
         TonePlayer.instance.playCue(SoundCue.gentleRetry);
+        emit(ExperienceEvent.incorrectAnswer);
       }
       return;
     }
