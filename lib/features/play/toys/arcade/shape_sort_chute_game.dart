@@ -31,6 +31,14 @@ class _ShapeSortChuteGameState extends State<ShapeSortChuteGame>
   static const List<String> _missPool = <String>[
     'Wrong hole!', 'Try another hole!', 'Not that one!', 'Different hole!',
   ];
+  // A correct sort never flashed its own banner text at all — every other
+  // routine-outcome pool in the catalog (the miss pool just above, every
+  // win/over pool) pairs with a visible, time-limited banner. Gives the
+  // plain "sorted it right" moment the same feedback variety its sibling
+  // games already get.
+  static const List<String> _sortPool = <String>[
+    'Sorted!', 'Nice drop!', 'Right hole!', 'Good eye!',
+  ];
   List<int> _holes = <int>[0, 1, 2]; // shape index per hole (3 holes)
   int _shape = 0;
   double _x = 0.5, _y = 0.0, _fall = 0.28;
@@ -39,6 +47,14 @@ class _ShapeSortChuteGameState extends State<ShapeSortChuteGame>
   double _flashT = 0;
   bool _flashGood = false;
   String? _banner;
+  // Unlike every other arcade file (which decrements a `_bannerT` each tick
+  // and clears `_banner` back to null on expiry), this file never declared
+  // `_bannerT` at all — once any banner text was set (a miss, "Out of
+  // lives!", a personal best), it stayed glued on screen forever, silently
+  // covering the default "Sort the shapes" status line even through later
+  // *correct* sorts that set no banner of their own. Mirrors the countdown
+  // convention every sibling game already uses.
+  double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
   // Every other aim-into-a-matching-target game in the catalog
   // (hoop_toss, sorting_train, basketball, bug_catch, penalty_dash...)
@@ -85,6 +101,10 @@ class _ShapeSortChuteGameState extends State<ShapeSortChuteGame>
   void onTick(double dt) {
     if (_status != GameStatus.playing) return;
     if (_flashT > 0) _flashT -= dt;
+    if (_bannerT > 0) {
+      _bannerT -= dt;
+      if (_bannerT <= 0) _banner = null;
+    }
     _y += _fall * dt;
     if (_y >= 0.82) {
       _land();
@@ -119,14 +139,17 @@ class _ShapeSortChuteGameState extends State<ShapeSortChuteGame>
       TonePlayer.instance.playCue(SoundCue.wood);
       emit(ExperienceEvent.bubblePopped);
       _burst((hole + 0.5) / 3, 0.82, _shapeColors[_shape]);
+      _banner = _sortPool[_rnd.nextInt(_sortPool.length)];
+      _bannerT = 0.9;
       GameScores.instance.submit(_id, _score).then((b) {
         if (mounted) setState(() => _best = b);
       });
       if (!_beatBest && _best > 0 && _score > _best) {
         _beatBest = true;
-        // Takes priority over the good-sort flash this method already set
+        // Takes priority over the good-sort banner this method already set
         // above — a new all-time record is the bigger moment of the two.
         _banner = 'New personal best! 🏆';
+        _bannerT = 1.3;
         TonePlayer.instance.playCue(SoundCue.milestone);
         emit(ExperienceEvent.personalBest);
       }
@@ -154,6 +177,7 @@ class _ShapeSortChuteGameState extends State<ShapeSortChuteGame>
       } else {
         TonePlayer.instance.playCue(SoundCue.gentleRetry);
         _banner = _missPool[_rnd.nextInt(_missPool.length)];
+        _bannerT = 0.9;
       }
     }
     _arrange();
@@ -164,6 +188,7 @@ class _ShapeSortChuteGameState extends State<ShapeSortChuteGame>
       _score = 0;
       _lives = 3;
       _banner = null;
+      _bannerT = 0;
       _bits.clear();
       _beatBest = false;
       _arrange();
