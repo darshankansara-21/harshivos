@@ -427,6 +427,24 @@ class _ChoiceGoalGame extends StatefulWidget {
 
 class _ChoiceGoalGameState extends State<_ChoiceGoalGame> with _GoalEmit {
   static const int _target = 8;
+  // Mid-round banner text seen up to 8 times per round, every round, forever
+  // — a much higher-frequency repetition than the once-per-playthrough
+  // win-screen text fixed in batches 245-248, so a flat single phrase here is
+  // the bigger "robotic repetition" gap. Small pools + _random.nextInt() pick
+  // keep every wrong/right tap feeling fresh instead of printing the exact
+  // same word hundreds of times across a sitting.
+  static const List<String> _tryAgainPool = <String>[
+    'Try another one',
+    'Almost — try again',
+    'Not quite, give it a go',
+    'Close! Pick again',
+  ];
+  static const List<String> _correctPool = <String>[
+    'Correct!',
+    'Nice one!',
+    'Well done!',
+    'Great pick!',
+  ];
   final math.Random _random = math.Random();
   int _score = 0;
   int _best = 0;
@@ -459,7 +477,7 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> with _GoalEmit {
         _wrong++;
         _streak = 0;
         _wrongIndex = index;
-        _message = 'Try another one';
+        _message = _tryAgainPool[_random.nextInt(_tryAgainPool.length)];
       });
       TonePlayer.instance.playCue(SoundCue.gentleRetry);
       emit(ExperienceEvent.incorrectAnswer);
@@ -487,7 +505,7 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> with _GoalEmit {
           ? 'Quick! ⚡'
           : _streak >= 3
               ? 'Streak x$_streak! 🔥'
-              : 'Correct!';
+              : _correctPool[_random.nextInt(_correctPool.length)];
       if (_score >= _target) {
         final pool = widget.winTextPool;
         if (pool != null && pool.isNotEmpty) {
@@ -1034,6 +1052,16 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
   // so a save that visibly shows glove-on-ball always registers as a save
   // instead of a child seeing contact and still being told "Goal in!".
   static const double _reach = 0.15;
+  // Every non-streak save (up to 10 per playthrough) flashed the exact same
+  // "SAVE! 🧤" banner — the same flat mid-round repetition gap fixed in
+  // _ChoiceGoalGameState above. A small pool + _random pick keeps each save
+  // feeling distinct instead of printing one identical word every time.
+  static const List<String> _savePool = <String>[
+    'SAVE! 🧤',
+    'Great dive! 🧤',
+    'Keeper ball! 🧤',
+    'Shut out! 🧤',
+  ];
   double _kMin = _goalLeft + 0.05;
   double _kMax = _goalRight - 0.05;
 
@@ -1168,7 +1196,7 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
       _score++;
       _streak++;
       _lastSaved = true;
-      _message = _streak >= 3 ? 'SAVE! Streak x$_streak 🧤' : 'SAVE! 🧤';
+      _message = _streak >= 3 ? 'SAVE! Streak x$_streak 🧤' : _savePool[_random.nextInt(_savePool.length)];
       TonePlayer.instance.playCue(SoundCue.success);
       emit(ExperienceEvent.correctAnswer);
       _burst(_keeperX, _lineY, const Color(0xFFFFE066), 14, 0.5);
