@@ -29,6 +29,14 @@ class _CatchBeatGameState extends State<CatchBeatGame>
     Color(0xFF8CE99A),
     Color(0xFF66D9E8),
   ];
+  // A dropped orb (the routine, non-life-ending miss) previously always
+  // flashed the exact identical "Missed!" banner — up to a dozen times in a
+  // single run as the catalog's other quiz/catch-style games already vary
+  // this (echo_drums' "Nice echo!" pool, spot_difference's "Spotted it!"
+  // pool, etc.). Give it the same small-pool treatment.
+  static const List<String> _missPool = <String>[
+    'Missed!', 'So close!', 'Next one!', 'Keep going!',
+  ];
   final math.Random _rnd = math.Random();
   final List<_Orb> _orbs = <_Orb>[];
   final List<_Shard> _bits = <_Shard>[];
@@ -120,7 +128,7 @@ class _CatchBeatGameState extends State<CatchBeatGame>
           TonePlayer.instance.playCue(SoundCue.gameOver);
           emit(ExperienceEvent.incorrectAnswer);
         } else {
-          _flash('Missed!');
+          _flash(_missPool[_rnd.nextInt(_missPool.length)]);
           TonePlayer.instance.playCue(SoundCue.gentleRetry);
         }
         _orbs.removeAt(i);
