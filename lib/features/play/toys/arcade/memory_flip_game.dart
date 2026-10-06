@@ -61,6 +61,18 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
   // where the pattern already fits despite the eventual win cap.
   bool _beatBest = false;
 
+  // Every sibling "find the match" game in the catalog (shadow_match,
+  // odd_one_out, pattern_weaver...) bursts a few shards of colour on a
+  // correct hit; this one only ever gave a scale-pop + glow on the two
+  // matched tiles themselves, with zero screen-space celebration — the one
+  // feeling this whole game is built around (finding a pair) landed flatter
+  // than every other matching sibling. `_lastSize` mirrors mini_games.dart's
+  // StarTapGame cache so `_tap` (which has no direct LayoutBuilder access)
+  // can still resolve a card index to its real on-screen centre.
+  final List<_Shard> _bits = <_Shard>[];
+  bool _reduceMotion = false;
+  Size? _lastSize;
+
   // Per-level think-fast timer: running out costs a life (same as a wrong
   // match) but banking leftover time pays out a bonus, so players choose
   // between careful memorising and a faster, riskier pace.
@@ -86,6 +98,31 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
   // with the real card count so the training-wheels grow with the board.
   double get _previewDuration => 0.8 + _pairsThisLevel * 0.25;
 
+  // Card index -> fractional (0..1) centre, matching the GridView.count
+  // layout built below (20/120/20/70 padding, `_cols` columns, 12px spacing,
+  // square cells since `childAspectRatio` is left at the GridView.count
+  // default of 1.0).
+  Offset _cellCenter(int i, double w, double h) {
+    final cols = _cols;
+    const padLeft = 20.0, padTop = 120.0, spacing = 12.0;
+    final availW = w - padLeft - 20.0;
+    final cellW = (availW - spacing * (cols - 1)) / cols;
+    final col = i % cols, row = i ~/ cols;
+    final cx = padLeft + col * (cellW + spacing) + cellW / 2;
+    final cy = padTop + row * (cellW + spacing) + cellW / 2;
+    return Offset(cx / w, cy / h);
+  }
+
+  void _burst(Offset fracPos, Color color) {
+    final n = _reduceMotion ? 4 : 12;
+    for (var k = 0; k < n; k++) {
+      final a = _rnd.nextDouble() * math.pi * 2;
+      final sp = 0.15 + _rnd.nextDouble() * 0.3;
+      _bits.add(_Shard(fracPos.dx, fracPos.dy, math.cos(a) * sp,
+          math.sin(a) * sp, color));
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -98,6 +135,16 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
   @override
   void onTick(double dt) {
     if (_status != GameStatus.playing) return;
+    // Shards keep animating through the preview/locked beats below (a
+    // level-clear burst shouldn't freeze mid-flight just because the board
+    // is momentarily locked for the next deal).
+    for (var i = _bits.length - 1; i >= 0; i--) {
+      final b = _bits[i];
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.life -= dt;
+      if (b.life <= 0) _bits.removeAt(i);
+    }
     if (_previewing) {
       _previewLeft -= dt;
       if (_previewLeft <= 0) _previewing = false;
@@ -210,6 +257,12 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
           _streak++;
           _score += 10 + (_streak >= 3 ? 5 : 0);
           TonePlayer.instance.playCue(SoundCue.learnGood);
+          final size = _lastSize;
+          if (size != null) {
+            const matchGlow = Color(0xFF06D6A0);
+            _burst(_cellCenter(_first, size.width, size.height), matchGlow);
+            _burst(_cellCenter(_second, size.width, size.height), matchGlow);
+          }
           if (_streak >= 3) _flash('Streak x$_streak!');
           if (_status == GameStatus.playing &&
               !_beatBest &&
@@ -280,6 +333,7 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
       _previewing = false;
       _previewLeft = 0;
       _finalTimeBonus = 0;
+      _bits.clear();
       _deal();
       _status = GameStatus.playing;
     });
@@ -350,15 +404,22 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
             colors: <Color>[Color(0xFF10233A), Color(0xFF0A1626)],
           ),
         ),
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 120, 20, 70),
-            child: GridView.count(
-              crossAxisCount: cols,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              physics: const NeverScrollableScrollPhysics(),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            _lastSize = Size(constraints.maxWidth, constraints.maxHeight);
+            _reduceMotion = MediaQuery.disableAnimationsOf(context);
+            return Stack(
+              fit: StackFit.expand,
               children: <Widget>[
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 120, 20, 70),
+                    child: GridView.count(
+                      crossAxisCount: cols,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      physics: const NeverScrollableScrollPhysics(),
+                      children: <Widget>[
                 for (var i = 0; i < _cards.length; i++)
                   Builder(builder: (context) {
                     final faceUp = _previewing ||
@@ -433,13 +494,40 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
                       ),
                     );
                   }),
+                      ],
+                    ),
+                  ),
+                ),
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: CustomPaint(painter: _MemoryShardPainter(_bits)),
+                  ),
+                ),
               ],
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
   }
+}
+
+class _MemoryShardPainter extends CustomPainter {
+  _MemoryShardPainter(this.bits);
+  final List<_Shard> bits;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    for (final s in bits) {
+      final k = (s.life / 0.5).clamp(0.0, 1.0);
+      canvas.drawCircle(Offset(s.x * w, s.y * h), 2 + 3 * k,
+          Paint()..color = s.color.withOpacity(k));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_MemoryShardPainter oldDelegate) => true;
 }
 
 // ===========================================================================
