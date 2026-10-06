@@ -1101,6 +1101,13 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
     'Wall between the posts!',
   ];
   String _winPraise = _winPraisePool[0];
+  // Goal Keeper has the same shape as balloon_bounce/sky_hop/whack: a fixed
+  // win target (10 saves) reached by a slowly climbing score, but a single
+  // missed dive costs a life and 5 missed dives ends the run well short of
+  // the target — so most playthroughs never see the win screen at all. The
+  // identical live "beat your own all-time best" celebration belongs here
+  // too, not just on the eventual win/over screen.
+  bool _beatBest = false;
 
   double _keeperX = 0.5;
   double _keeperTargetX = 0.5;
@@ -1141,6 +1148,7 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
     _keeperX = 0.5;
     _keeperTargetX = 0.5;
     _sparks.clear();
+    _beatBest = false;
     _message = 'Read the shot — slide to save!';
     _startShot();
   }
@@ -1228,6 +1236,13 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
       if (_score >= _target) {
         _finish(GameStatus.won);
         return;
+      } else if (!_beatBest && _best > 0 && _score > _best) {
+        _beatBest = true;
+        // Takes priority over the streak/save banner just set above — a new
+        // all-time record is the bigger moment of the two.
+        _message = 'New personal best! 🏆';
+        TonePlayer.instance.playCue(SoundCue.milestone);
+        emit(ExperienceEvent.personalBest);
       }
     } else {
       _lives--;
