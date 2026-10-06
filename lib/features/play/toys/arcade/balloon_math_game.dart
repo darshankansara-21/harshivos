@@ -150,7 +150,7 @@ class _BalloonMathGameState extends State<BalloonMathGame>
             final sp = 0.15 + _rnd.nextDouble() * 0.35;
             _bits.add(_Shard(b.x, b.y, math.cos(a) * sp, math.sin(a) * sp, b.color));
           }
-          TonePlayer.instance.playCue(SoundCue.success);
+          TonePlayer.instance.playCue(SoundCue.balloon);
           emit(ExperienceEvent.bubblePopped);
           _banner = 'Pop! $_a ${_sub ? '−' : '+'} $_b = $_answer';
           _bannerT = 1.2;
