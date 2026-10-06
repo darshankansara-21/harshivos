@@ -54,6 +54,14 @@ class _SkyHopGameState extends State<SkyHopGame>
   // — well before the fixed 18-point win goal — is a real, judgment-free
   // moment worth its own banner.
   bool _beatBest = false;
+  // `_bestCoinCombo` used to live only in widget state — it tracked the
+  // longest coin streak within a single app session (surviving replays via
+  // `_reset()` leaving it untouched) but was silently thrown away the moment
+  // the app restarted, unlike every other secondary stat in the catalog
+  // (basketball's fewest-shots record, catch-the-beat's best-combo record):
+  // a child's all-time best coin streak could never actually be "all-time".
+  // Persist it the same way via `GameScores.submit`.
+  static const String _comboId = '${_id}_coin_combo';
 
   // Clearing a pipe always said the identical "Nice hop!" — up to 18 times
   // in a single winning run — which reads as flat/robotic well before the
@@ -73,7 +81,12 @@ class _SkyHopGameState extends State<SkyHopGame>
   void initState() {
     super.initState();
     GameScores.instance.ensureLoaded().then((_) {
-      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+      if (mounted) {
+        setState(() {
+          _best = GameScores.instance.best(_id);
+          _bestCoinCombo = GameScores.instance.best(_comboId);
+        });
+      }
     });
   }
 
@@ -137,7 +150,10 @@ class _SkyHopGameState extends State<SkyHopGame>
           (_birdY - p.coinY).abs() < 0.06) {
         p.coinTaken = true;
         _coinCombo += 1;
-        if (_coinCombo > _bestCoinCombo) _bestCoinCombo = _coinCombo;
+        if (_coinCombo > _bestCoinCombo) {
+          _bestCoinCombo = _coinCombo;
+          GameScores.instance.submit(_comboId, _coinCombo);
+        }
         final bonus = 2 + (_coinCombo - 1);
         _score += bonus;
         _banner = _coinCombo > 1 ? 'Coin streak x$_coinCombo!' : 'Coin grab!';
@@ -209,7 +225,10 @@ class _SkyHopGameState extends State<SkyHopGame>
       _pipeSpeed = _basePipeSpeed;
       _score = 0;
       _coinCombo = 0;
-      _bestCoinCombo = 0;
+      // `_bestCoinCombo` is now the persisted all-time record (see
+      // `_comboId`/`GameScores.submit` above) and must survive replays the
+      // same way `_best` does — only `_coinCombo` (the live in-run streak)
+      // resets here.
       _beatBest = false;
       _banner = null;
       _bannerT = 0;
