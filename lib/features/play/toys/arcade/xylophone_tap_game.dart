@@ -198,13 +198,14 @@ class _XyloBar extends StatelessWidget {
   Widget build(BuildContext context) {
     // Bars are tappable only via a bare GestureDetector with zero Semantics
     // tree, making this "free-play + follow the glowing bar" premise
-    // silently unplayable by a blind child. The label states only the bar's
-    // own number, never which bar is currently lit, so a screen-reader user
-    // must still track the tune's progress announcement exactly as a
-    // sighted child watches the glow.
+    // silently unplayable by a blind child. The label now includes whether
+    // THIS bar is the one currently lit (matching shape_builder_game's
+    // "current piece" convention) so a screen-reader user can follow the
+    // guided tune the same way a sighted child follows the glow, instead of
+    // having to separately track the progress banner text.
     return Semantics(
       button: true,
-      label: 'Bar ${index + 1}',
+      label: 'Bar ${index + 1}${lit ? ', glowing, tap now' : ''}',
       onTap: onTap,
       excludeSemantics: true,
       child: GestureDetector(
