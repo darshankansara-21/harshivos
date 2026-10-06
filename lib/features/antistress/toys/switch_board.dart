@@ -50,7 +50,11 @@ class _SwitchBoardToyState extends State<SwitchBoardToy> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: <Color>[Color(0xFF101826), Color(0xFF1B2740), Color(0xFF0B1220)],
+          colors: <Color>[
+            Color(0xFF101826),
+            Color(0xFF1B2740),
+            Color(0xFF0B1220)
+          ],
         ),
       ),
       child: SafeArea(
@@ -70,6 +74,7 @@ class _SwitchBoardToyState extends State<SwitchBoardToy> {
                   childAspectRatio: 1.35,
                 ),
                 itemBuilder: (BuildContext context, int i) => _SwitchPlate(
+                  index: i,
                   on: _on[i],
                   hue: _hues[i],
                   onTap: () => _toggle(i),
@@ -86,51 +91,61 @@ class _SwitchBoardToyState extends State<SwitchBoardToy> {
 /// A single rocker/lever switch mounted on a metallic plate.
 class _SwitchPlate extends StatelessWidget {
   const _SwitchPlate({
+    required this.index,
     required this.on,
     required this.hue,
     required this.onTap,
   });
 
+  final int index;
   final bool on;
   final Color hue;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOut,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          gradient: const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: <Color>[Color(0xFF2B3650), Color(0xFF1A2236)],
-          ),
-          border: Border.all(color: Colors.white.withOpacity(0.06), width: 1.5),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: Colors.black.withOpacity(0.45),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
+    return Semantics(
+      button: true,
+      toggled: on,
+      label: 'Switch ${index + 1}, ${on ? 'on' : 'off'}',
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: <Color>[Color(0xFF2B3650), Color(0xFF1A2236)],
             ),
-            if (on)
+            border:
+                Border.all(color: Colors.white.withOpacity(0.06), width: 1.5),
+            boxShadow: <BoxShadow>[
               BoxShadow(
-                color: hue.withOpacity(0.35),
-                blurRadius: 26,
-                spreadRadius: 1,
+                color: Colors.black.withOpacity(0.45),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
               ),
-          ],
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-        child: Row(
-          children: <Widget>[
-            _IndicatorLight(on: on, hue: hue),
-            const SizedBox(width: 14),
-            Expanded(child: _Lever(on: on, hue: hue)),
-          ],
+              if (on)
+                BoxShadow(
+                  color: hue.withOpacity(0.35),
+                  blurRadius: 26,
+                  spreadRadius: 1,
+                ),
+            ],
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+          child: ExcludeSemantics(
+            child: Row(
+              children: <Widget>[
+                _IndicatorLight(on: on, hue: hue),
+                const SizedBox(width: 14),
+                Expanded(child: _Lever(on: on, hue: hue)),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -156,7 +171,8 @@ class _IndicatorLight extends StatelessWidget {
         border: Border.all(color: Colors.black.withOpacity(0.4), width: 2),
         boxShadow: <BoxShadow>[
           if (on)
-            BoxShadow(color: hue.withOpacity(0.9), blurRadius: 16, spreadRadius: 2),
+            BoxShadow(
+                color: hue.withOpacity(0.9), blurRadius: 16, spreadRadius: 2),
         ],
       ),
     );

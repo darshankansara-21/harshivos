@@ -85,34 +85,62 @@ class _CalmMeScreenState extends State<CalmMeScreen> {
   // Genuinely calming, no-fail interactive experiences — Calm is a place, not
   // a single screen. Breathing keeps its own dedicated entry above.
   static final List<_CalmActivity> _calmActivities = <_CalmActivity>[
-    _CalmActivity('Water Ripples', '💧', const <Color>[
-      Color(0x6638B2F9),
-      Color(0x6600BBF9),
-    ], () => const WaterDropToy()),
-    _CalmActivity('Kinetic Sand', '🏜️', const <Color>[
-      Color(0x66FFB703),
-      Color(0x66FB8500),
-    ], () => const SandFallToy()),
-    _CalmActivity('Floating Lights', '🫧', const <Color>[
-      Color(0x66F15BB5),
-      Color(0x669B5DE5),
-    ], () => const LavaBlobsToy()),
-    _CalmActivity('Star Weaver', '✨', const <Color>[
-      Color(0x665C7CFA),
-      Color(0x669B5DE5),
-    ], () => const StarWeaverToy()),
-    _CalmActivity('Firefly Glow', '🪰', const <Color>[
-      Color(0x66B6FF9E),
-      Color(0x662BD4B4),
-    ], () => const FireflyGlowToy()),
-    _CalmActivity('Gravity Garden', '🪐', const <Color>[
-      Color(0x668FD0FF),
-      Color(0x66B6A8FF),
-    ], () => const GravityGardenToy()),
-    _CalmActivity('Zen Stones', '🪨', const <Color>[
-      Color(0x66B8A99A),
-      Color(0x669FB0A6),
-    ], () => const ZenStonesToy()),
+    _CalmActivity(
+        'Water Ripples',
+        '💧',
+        const <Color>[
+          Color(0x6638B2F9),
+          Color(0x6600BBF9),
+        ],
+        () => const WaterDropToy()),
+    _CalmActivity(
+        'Kinetic Sand',
+        '🏜️',
+        const <Color>[
+          Color(0x66FFB703),
+          Color(0x66FB8500),
+        ],
+        () => const SandFallToy()),
+    _CalmActivity(
+        'Floating Lights',
+        '🫧',
+        const <Color>[
+          Color(0x66F15BB5),
+          Color(0x669B5DE5),
+        ],
+        () => const LavaBlobsToy()),
+    _CalmActivity(
+        'Star Weaver',
+        '✨',
+        const <Color>[
+          Color(0x665C7CFA),
+          Color(0x669B5DE5),
+        ],
+        () => const StarWeaverToy()),
+    _CalmActivity(
+        'Firefly Glow',
+        '🪰',
+        const <Color>[
+          Color(0x66B6FF9E),
+          Color(0x662BD4B4),
+        ],
+        () => const FireflyGlowToy()),
+    _CalmActivity(
+        'Gravity Garden',
+        '🪐',
+        const <Color>[
+          Color(0x668FD0FF),
+          Color(0x66B6A8FF),
+        ],
+        () => const GravityGardenToy()),
+    _CalmActivity(
+        'Zen Stones',
+        '🪨',
+        const <Color>[
+          Color(0x66B8A99A),
+          Color(0x669FB0A6),
+        ],
+        () => const ZenStonesToy()),
   ];
 
   @override
@@ -130,13 +158,17 @@ class _CalmMeScreenState extends State<CalmMeScreen> {
                 Row(
                   children: <Widget>[
                     IconButton(
-                      icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                      icon: const Icon(Icons.arrow_back_rounded,
+                          color: Colors.white),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                     const SizedBox(width: 4),
                     const Expanded(
                       child: Text('How do you feel?',
-                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white)),
+                          style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white)),
                     ),
                     const SizedBox(
                       width: 52,
@@ -146,107 +178,112 @@ class _CalmMeScreenState extends State<CalmMeScreen> {
                     const SizedBox(width: 8),
                   ],
                 ),
-              const Padding(
-                padding: EdgeInsets.fromLTRB(20, 4, 20, 6),
-                child: Text('Try a calming idea with Hari, or tell me how you feel.',
-                    style: TextStyle(color: Colors.white70)),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                child: GlassCard(
-                  onTap: _openBreathingBubble,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  gradient: const LinearGradient(
-                    colors: <Color>[Color(0x6638B2F9), Color(0x662BD4B4)],
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                  ),
-                  child: const Row(
-                    children: <Widget>[
-                      Text('🌬️', style: TextStyle(fontSize: 24)),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'Breathing Bubble',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 17,
-                            fontWeight: FontWeight.w800,
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(20, 4, 20, 6),
+                  child: Text(
+                      'Try a calming idea with Hari, or tell me how you feel.',
+                      style: TextStyle(color: Colors.white70)),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: GlassCard(
+                    onTap: _openBreathingBubble,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 14),
+                    gradient: const LinearGradient(
+                      colors: <Color>[Color(0x6638B2F9), Color(0x662BD4B4)],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                    child: const Row(
+                      children: <Widget>[
+                        Text('🌬️', style: TextStyle(fontSize: 24)),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Breathing Bubble',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
-                      ),
-                      Text(
-                        'Start',
-                        style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w700),
-                      ),
-                      SizedBox(width: 4),
-                      Icon(Icons.chevron_right_rounded, color: Colors.white70),
-                    ],
-                  ),
-                ),
-              ),
-              SizedBox(
-                height: 116,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-                  itemCount: _calmActivities.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 12),
-                  itemBuilder: (context, i) => _CalmActivityCard(
-                    activity: _calmActivities[i],
-                    onTap: () => _openCalmActivity(_calmActivities[i]),
-                  ),
-                ),
-              ),
-              SizedBox(
-                height: 300,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-                  itemCount: kCalmingStrategies.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 12),
-                  itemBuilder: (context, i) => SizedBox(
-                    width: 200,
-                    child: CalmingStrategyCard(
-                      strategy: kCalmingStrategies[i],
-                      onTry: _companion.calm,
+                        Text(
+                          'Start',
+                          style: TextStyle(
+                              color: Colors.white70,
+                              fontWeight: FontWeight.w700),
+                        ),
+                        SizedBox(width: 4),
+                        Icon(Icons.chevron_right_rounded,
+                            color: Colors.white70),
+                      ],
                     ),
                   ),
                 ),
-              ),
-              const Padding(
-                padding: EdgeInsets.fromLTRB(20, 10, 20, 4),
-                child: Text('How do you feel right now?',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800)),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(0, 8, 0, 130),
-                child: Column(
-                  children: <Widget>[
-                    for (final mood in CalmMood.values) ...<Widget>[
-                      _MoodButton(
-                        mood: mood,
-                        color: _colors[mood]!,
-                        onTap: () {
-                          _companion.calm();
-                          HapticFeedback.mediumImpact();
-                          Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) => CalmSequenceScreen(mood: mood),
-                            ),
-                          );
-                        },
-                      ),
-                      if (mood != CalmMood.values.last)
-                        const SizedBox(height: 14),
-                    ],
-                  ],
+                SizedBox(
+                  height: 116,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                    itemCount: _calmActivities.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 12),
+                    itemBuilder: (context, i) => _CalmActivityCard(
+                      activity: _calmActivities[i],
+                      onTap: () => _openCalmActivity(_calmActivities[i]),
+                    ),
+                  ),
                 ),
-              ),
-            ],
+                SizedBox(
+                  height: 300,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+                    itemCount: kCalmingStrategies.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 12),
+                    itemBuilder: (context, i) => SizedBox(
+                      width: 200,
+                      child: CalmingStrategyCard(
+                        strategy: kCalmingStrategies[i],
+                        onTry: _companion.calm,
+                      ),
+                    ),
+                  ),
+                ),
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(20, 10, 20, 4),
+                  child: Text('How do you feel right now?',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800)),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(0, 8, 0, 130),
+                  child: Column(
+                    children: <Widget>[
+                      for (final mood in CalmMood.values) ...<Widget>[
+                        _MoodButton(
+                          mood: mood,
+                          color: _colors[mood]!,
+                          onTap: () {
+                            _companion.calm();
+                            HapticFeedback.mediumImpact();
+                            Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => CalmSequenceScreen(mood: mood),
+                              ),
+                            );
+                          },
+                        ),
+                        if (mood != CalmMood.values.last)
+                          const SizedBox(height: 14),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
           Positioned(
@@ -265,7 +302,8 @@ class _CalmMeScreenState extends State<CalmMeScreen> {
 }
 
 class _MoodButton extends StatelessWidget {
-  const _MoodButton({required this.mood, required this.color, required this.onTap});
+  const _MoodButton(
+      {required this.mood, required this.color, required this.onTap});
   final CalmMood mood;
   final Color color;
   final VoidCallback onTap;
@@ -285,9 +323,13 @@ class _MoodButton extends StatelessWidget {
           Text(mood.emoji, style: const TextStyle(fontSize: 44)),
           const SizedBox(width: 18),
           Text(mood.label,
-              style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700)),
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700)),
           const Spacer(),
-          const Icon(Icons.chevron_right_rounded, color: Colors.white70, size: 30),
+          const Icon(Icons.chevron_right_rounded,
+              color: Colors.white70, size: 30),
         ],
       ),
     );
@@ -310,33 +352,39 @@ class _CalmActivityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 132,
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: activity.gradient,
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+    return Semantics(
+      button: true,
+      label: '${activity.title} calming activity',
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 132,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: activity.gradient,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.white24),
           ),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white24),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: <Widget>[
-            Text(activity.emoji, style: const TextStyle(fontSize: 30)),
-            Text(activity.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800)),
-          ],
+          child: ExcludeSemantics(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: <Widget>[
+                Text(activity.emoji, style: const TextStyle(fontSize: 30)),
+                Text(activity.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800)),
+              ],
+            ),
+          ),
         ),
       ),
     );

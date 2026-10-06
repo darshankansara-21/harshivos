@@ -39,10 +39,18 @@ class _KeypadToyState extends State<KeypadToy> {
   @override
   Widget build(BuildContext context) {
     const List<String> keys = <String>[
-      '7', '8', '9',
-      '4', '5', '6',
-      '1', '2', '3',
-      'C', '0', '.',
+      '7',
+      '8',
+      '9',
+      '4',
+      '5',
+      '6',
+      '1',
+      '2',
+      '3',
+      'C',
+      '0',
+      '.',
     ];
 
     return DecoratedBox(
@@ -50,7 +58,11 @@ class _KeypadToyState extends State<KeypadToy> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: <Color>[Color(0xFF0E1726), Color(0xFF182338), Color(0xFF0B1220)],
+          colors: <Color>[
+            Color(0xFF0E1726),
+            Color(0xFF182338),
+            Color(0xFF0B1220)
+          ],
         ),
       ),
       child: SafeArea(
@@ -206,62 +218,68 @@ class _KeyButtonState extends State<_KeyButton>
     final Color top =
         widget.isAccent ? const Color(0xFFFF6B8B) : const Color(0xFF3A4866);
 
-    return GestureDetector(
-      onTapDown: _down,
-      onTapUp: (TapUpDetails _) {
-        _up();
-        widget.onPressed();
-      },
-      onTapCancel: _up,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (BuildContext context, Widget? child) {
-          final double t = _controller.value;
-          final double scale = 1 - 0.08 * t;
-          final double depth = 8 * (1 - t);
-          return Transform.scale(
-            scale: scale,
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(18),
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: <Color>[top, base],
-                ),
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.08),
-                  width: 1.5,
-                ),
-                boxShadow: <BoxShadow>[
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.45),
-                    blurRadius: depth + 4,
-                    offset: Offset(0, depth * 0.7),
-                  ),
-                  if (widget.isAccent)
-                    BoxShadow(
-                      color: const Color(0xFFEF476F).withOpacity(0.35),
-                      blurRadius: 20,
-                    ),
-                ],
-              ),
-              child: child,
-            ),
-          );
+    return Semantics(
+      button: true,
+      label: widget.isAccent ? 'Clear' : 'Key ${widget.label}',
+      child: GestureDetector(
+        onTapDown: _down,
+        onTapUp: (TapUpDetails _) {
+          _up();
+          widget.onPressed();
         },
-        child: Center(
-          child: widget.isAccent
-              ? const Icon(Icons.backspace_outlined,
-                  color: Colors.white, size: 30)
-              : Text(
-                  widget.label,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 34,
-                    fontWeight: FontWeight.w700,
+        onTapCancel: _up,
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (BuildContext context, Widget? child) {
+            final double t = _controller.value;
+            final double scale = 1 - 0.08 * t;
+            final double depth = 8 * (1 - t);
+            return Transform.scale(
+              scale: scale,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: <Color>[top, base],
                   ),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.08),
+                    width: 1.5,
+                  ),
+                  boxShadow: <BoxShadow>[
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.45),
+                      blurRadius: depth + 4,
+                      offset: Offset(0, depth * 0.7),
+                    ),
+                    if (widget.isAccent)
+                      BoxShadow(
+                        color: const Color(0xFFEF476F).withOpacity(0.35),
+                        blurRadius: 20,
+                      ),
+                  ],
                 ),
+                child: child,
+              ),
+            );
+          },
+          child: ExcludeSemantics(
+            child: Center(
+              child: widget.isAccent
+                  ? const Icon(Icons.backspace_outlined,
+                      color: Colors.white, size: 30)
+                  : Text(
+                      widget.label,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 34,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+            ),
+          ),
         ),
       ),
     );

@@ -334,9 +334,11 @@ class _ToyUniverseScreenState extends ConsumerState<ToyUniverseScreen> {
           if (puzzles.isNotEmpty)
             _RailSliver(title: 'Puzzles & Brain', emoji: '🧩', toys: puzzles),
           if (favorites.isNotEmpty)
-            _RailSliver(title: 'Favorites', emoji: '\u2764\uFE0F', toys: favorites),
+            _RailSliver(
+                title: 'Favorites', emoji: '\u2764\uFE0F', toys: favorites),
           if (recents.isNotEmpty)
-            _RailSliver(title: 'Recently Played', emoji: '\u23F1\uFE0F', toys: recents),
+            _RailSliver(
+                title: 'Recently Played', emoji: '\u23F1\uFE0F', toys: recents),
           if (sensory.isNotEmpty)
             _RailSliver(title: 'Sensory Play', emoji: '🫧', toys: sensory),
           if (smart.isNotEmpty)
@@ -477,13 +479,17 @@ class _MeetHariPicoSheetState extends State<_MeetHariPicoSheet> {
               const SizedBox(height: 8),
               const Text(
                 'Meet Hari and Pico',
-                style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900),
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 6),
               Text(
                 'They play with you, celebrate with you, and help you feel calm.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white.withOpacity(0.78), fontSize: 14.5),
+                style: TextStyle(
+                    color: Colors.white.withOpacity(0.78), fontSize: 14.5),
               ),
               const SizedBox(height: 14),
               SizedBox(
@@ -570,7 +576,7 @@ class _HariGreetingState extends State<_HariGreeting> {
                           fontSize: 18,
                           fontWeight: FontWeight.w900)),
                   const SizedBox(height: 2),
-                    Text('Hari and Pico are ready to explore with you.',
+                  Text('Hari and Pico are ready to explore with you.',
                       style: TextStyle(
                           color: Colors.white.withOpacity(0.75),
                           fontSize: 13,
@@ -732,8 +738,7 @@ class _DestinationCard extends StatelessWidget {
                 bottom: -10,
                 child: Text(emoji,
                     style: TextStyle(
-                        fontSize: 56,
-                        color: Colors.white.withOpacity(0.16))),
+                        fontSize: 56, color: Colors.white.withOpacity(0.16))),
               ),
               Padding(
                 padding: const EdgeInsets.all(11),
@@ -1066,13 +1071,18 @@ class _HeartButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Icon(
-        active ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-        color: active ? const Color(0xFFFF375F) : Colors.white54,
-        size: 22,
+    return Semantics(
+      button: true,
+      toggled: active,
+      label: active ? 'Remove from favorites' : 'Add to favorites',
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Icon(
+          active ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+          color: active ? const Color(0xFFFF375F) : Colors.white54,
+          size: 22,
+        ),
       ),
     );
   }
@@ -1332,7 +1342,8 @@ class _ProgressCard extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: 3),
-                      Text('${p.xpIntoLevel} / ${p.xpForLevel} XP to level ${p.level + 1}',
+                      Text(
+                          '${p.xpIntoLevel} / ${p.xpForLevel} XP to level ${p.level + 1}',
                           style: TextStyle(
                               color: Colors.white.withOpacity(0.6),
                               fontSize: 11,
@@ -1429,8 +1440,8 @@ class _AchievementTile extends StatelessWidget {
         children: <Widget>[
           Opacity(
             opacity: unlocked ? 1 : 0.35,
-            child: Text(achievement.emoji,
-                style: const TextStyle(fontSize: 26)),
+            child:
+                Text(achievement.emoji, style: const TextStyle(fontSize: 26)),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -1449,9 +1460,8 @@ class _AchievementTile extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                        color: unlocked
-                            ? const Color(0xFF06D6A0)
-                            : Colors.white38,
+                        color:
+                            unlocked ? const Color(0xFF06D6A0) : Colors.white38,
                         fontSize: 10.5,
                         fontWeight: FontWeight.w600)),
               ],

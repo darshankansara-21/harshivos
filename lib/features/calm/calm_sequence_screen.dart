@@ -127,10 +127,15 @@ class _CalmSequenceScreenState extends ConsumerState<CalmSequenceScreen> {
                   Row(
                     children: <Widget>[
                       _glassPill(Text('${widget.mood.emoji}  ${step.label}',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700))),
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700))),
                       const Spacer(),
-                      _glassPill(Text('0:${_remaining.toString().padLeft(2, '0')}',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700))),
+                      _glassPill(Text(
+                          '0:${_remaining.toString().padLeft(2, '0')}',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700))),
                     ],
                   ),
                   const SizedBox(height: 10),
@@ -140,7 +145,8 @@ class _CalmSequenceScreenState extends ConsumerState<CalmSequenceScreen> {
                       value: progress.clamp(0.0, 1.0),
                       minHeight: 6,
                       backgroundColor: Colors.white24,
-                      valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                      valueColor:
+                          const AlwaysStoppedAnimation<Color>(Colors.white),
                     ),
                   ),
                   const Spacer(),
@@ -186,12 +192,12 @@ class _OutcomeCheckIn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const faces = <(String, double)>[
-      ('😣', 0.2),
-      ('😐', 0.45),
-      ('🙂', 0.7),
-      ('😊', 0.9),
-      ('🤩', 1.0),
+    const faces = <(String, double, String)>[
+      ('😣', 0.2, 'Still very upset'),
+      ('😐', 0.45, 'A little calmer'),
+      ('🙂', 0.7, 'Pretty calm'),
+      ('😊', 0.9, 'Calm and good'),
+      ('🤩', 1.0, 'Completely calm and happy'),
     ];
     return Scaffold(
       backgroundColor: const Color(0xFF101830),
@@ -202,7 +208,10 @@ class _OutcomeCheckIn extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               const Text('How do you feel now?',
-                  style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800)),
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800)),
               const SizedBox(height: 8),
               const Text('There is no wrong answer.',
                   style: TextStyle(color: Colors.white70)),
@@ -213,18 +222,25 @@ class _OutcomeCheckIn extends StatelessWidget {
                 alignment: WrapAlignment.center,
                 children: <Widget>[
                   for (final f in faces)
-                    GestureDetector(
-                      onTap: () => onDone(f.$2),
-                      child: Container(
-                        width: 84,
-                        height: 84,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.08),
-                          border: Border.all(color: Colors.white24),
+                    Semantics(
+                      button: true,
+                      label: f.$3,
+                      child: GestureDetector(
+                        onTap: () => onDone(f.$2),
+                        child: Container(
+                          width: 84,
+                          height: 84,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white.withOpacity(0.08),
+                            border: Border.all(color: Colors.white24),
+                          ),
+                          child: ExcludeSemantics(
+                            child: Text(f.$1,
+                                style: const TextStyle(fontSize: 40)),
+                          ),
                         ),
-                        child: Text(f.$1, style: const TextStyle(fontSize: 40)),
                       ),
                     ),
                 ],
