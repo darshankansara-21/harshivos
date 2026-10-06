@@ -40,6 +40,11 @@ class _XylophoneTapGameState extends State<XylophoneTapGame> with _Emit {
     'All 3 tunes played!', 'Melody master!', 'Perfect performance!', 'Musical star!',
   ];
   String _winPraise = _winPraisePool[0];
+  // Pool of per-tune completion prefixes so finishing a tune doesn't always
+  // flash the identical "Lovely!" prefix (the tune name itself already varies).
+  static const List<String> _nextTunePrefixPool = <String>[
+    'Lovely!', 'Beautiful!', 'Well played!', 'Nice music!',
+  ];
   late List<int> _order; // shuffled tune order for this playthrough
   int _orderPos = 0;
   int _pos = 0;
@@ -92,7 +97,7 @@ class _XylophoneTapGameState extends State<XylophoneTapGame> with _Emit {
         } else {
           _orderPos++;
           _pos = 0;
-          _banner = 'Lovely! Next: ${_tune.name}';
+          _banner = '${_nextTunePrefixPool[_rnd.nextInt(_nextTunePrefixPool.length)]} Next: ${_tune.name}';
         }
       } else {
         _banner = null;

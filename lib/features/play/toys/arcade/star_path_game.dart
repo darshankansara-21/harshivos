@@ -32,6 +32,14 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
     'Stargazer!', 'Star mapper!', 'Constellation champ!', 'Night sky master!',
   ];
   String _winPraise = _winPraisePool[0];
+  // Pool of per-constellation completion phrases so finishing a star shape
+  // doesn't always flash the identical "Beautiful! Next constellation" line.
+  static const List<String> _nextConstellationPool = <String>[
+    'Beautiful! Next constellation',
+    'Shape complete! Next stars',
+    'Nicely traced! New shape',
+    'Well connected! Keep going',
+  ];
   late List<int> _order; // shuffled shape indices, replayed each pass
   int _orderPos = 0;
   late List<List<double>> _stars;
@@ -102,7 +110,7 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
           TonePlayer.instance.playCue(SoundCue.gameStart);
           emit(ExperienceEvent.gameCompleted);
         } else {
-          _banner = 'Beautiful! Next constellation';
+          _banner = _nextConstellationPool[_rnd.nextInt(_nextConstellationPool.length)];
           _newShape();
         }
       }

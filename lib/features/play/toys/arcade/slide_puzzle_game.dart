@@ -16,6 +16,14 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame> with _Emit {
     'Puzzle master!', 'Sliding star!', 'Puzzle pro!', 'Great solving!',
   ];
   String _winPraise = _winPraisePool[0];
+  // Pool of per-board completion phrases so solving a slide puzzle board
+  // doesn't always flash the identical "Solved! Next board" line.
+  static const List<String> _nextBoardPool = <String>[
+    'Solved! Next board',
+    'Nice sliding! New board',
+    'Puzzle solved! One more',
+    'Great work! Next board',
+  ];
   // Position -> tile value; 0 is the empty space. Solved = [1..8, 0].
   List<int> _tiles = <int>[1, 2, 3, 4, 5, 6, 7, 8, 0];
   int _score = 0;
@@ -101,7 +109,7 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame> with _Emit {
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
       } else {
-        _banner = 'Solved! Next board';
+        _banner = _nextBoardPool[_rnd.nextInt(_nextBoardPool.length)];
         _shuffle();
       }
     }

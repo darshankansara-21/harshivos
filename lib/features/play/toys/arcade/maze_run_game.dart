@@ -19,6 +19,14 @@ class _MazeRunGameState extends State<MazeRunGame> with _Emit {
     'Exit found!',
   ];
   String _winPraise = _winPraisePool.first;
+  // Pool of per-maze completion phrases so solving a maze doesn't always
+  // flash the identical "Solved! Bigger maze…" line.
+  static const List<String> _nextMazePool = <String>[
+    'Solved! Bigger maze…',
+    'Found it! Next maze',
+    'Nice navigating! New maze',
+    'Exit found! Harder next',
+  ];
   int _cols = 5, _rows = 6;
   List<int> _cell = <int>[]; // bitmask: 1=up,2=right,4=down,8=left
   int _px = 0, _py = 0;
@@ -130,7 +138,7 @@ class _MazeRunGameState extends State<MazeRunGame> with _Emit {
       emit(ExperienceEvent.gameCompleted);
     } else {
       setState(() {
-        _banner = 'Solved! Bigger maze…';
+        _banner = _nextMazePool[_rnd.nextInt(_nextMazePool.length)];
         _genMaze();
       });
     }

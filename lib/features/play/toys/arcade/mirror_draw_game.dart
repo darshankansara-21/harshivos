@@ -26,6 +26,14 @@ class _MirrorDrawGameState extends State<MirrorDrawGame> with _Emit {
     'Artist supreme!',
   ];
   String _winPraise = _winPraisePool.first;
+  // Pool of per-shape completion phrases so finishing a symmetry drawing
+  // doesn't always flash the identical "Beautiful symmetry! Next" line.
+  static const List<String> _nextShapePool = <String>[
+    'Beautiful symmetry! Next',
+    'Lovely mirroring! Next',
+    'Nice matching! New shape',
+    'Well drawn! Keep going',
+  ];
 
   // Half-figures in the left pane, each a polyline of [x,y] with x in [0,0.5].
   static const List<List<List<double>>> _half = <List<List<double>>>[
@@ -142,7 +150,7 @@ class _MirrorDrawGameState extends State<MirrorDrawGame> with _Emit {
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
       } else {
-        _banner = 'Beautiful symmetry! Next';
+        _banner = _nextShapePool[_rnd.nextInt(_nextShapePool.length)];
         _newShape();
       }
     }

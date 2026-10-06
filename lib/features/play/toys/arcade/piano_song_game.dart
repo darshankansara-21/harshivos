@@ -34,6 +34,11 @@ class _PianoSongGameState extends State<PianoSongGame> with _Emit {
     'Musical star!',
   ];
   String _winPraise = _winPraisePool.first;
+  // Pool of per-song completion prefixes so finishing a song doesn't always
+  // flash the identical "Lovely!" prefix (the song name itself already varies).
+  static const List<String> _nextSongPrefixPool = <String>[
+    'Lovely!', 'Beautiful!', 'Well played!', 'Nice music!',
+  ];
 
   // Shuffled song order for this playthrough — without this, every single
   // run played 'Twinkle Twinkle', 'Mary Had a Lamb', 'Row Your Boat' in the
@@ -92,7 +97,7 @@ class _PianoSongGameState extends State<PianoSongGame> with _Emit {
         } else {
           _orderPos++;
           _notePos = 0;
-          _banner = 'Lovely! Next: ${_song.name}';
+          _banner = '${_nextSongPrefixPool[_rnd.nextInt(_nextSongPrefixPool.length)]} Next: ${_song.name}';
         }
       } else {
         _banner = null;

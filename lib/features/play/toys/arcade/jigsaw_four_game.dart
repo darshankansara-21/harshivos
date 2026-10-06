@@ -36,6 +36,14 @@ class _JigsawFourGameState extends State<JigsawFourGame> with _Emit {
   ];
   String _winPraise = _winPraisePool[0];
   final math.Random _rnd = math.Random();
+  // Pool of per-level completion phrases so finishing a picture doesn't
+  // always flash the identical "Picture done! Next one" line.
+  static const List<String> _nextPicturePool = <String>[
+    'Picture done! Next one',
+    'All pieces placed! Next',
+    'Nice fitting! New picture',
+    'Puzzle solved! One more',
+  ];
 
   final List<_JigPiece> _pieces = <_JigPiece>[];
   int _level = 0;
@@ -112,7 +120,7 @@ class _JigsawFourGameState extends State<JigsawFourGame> with _Emit {
           emit(ExperienceEvent.gameCompleted);
         } else {
           _level++;
-          _banner = 'Picture done! Next one';
+          _banner = _nextPicturePool[_rnd.nextInt(_nextPicturePool.length)];
           _buildBoard();
         }
       }

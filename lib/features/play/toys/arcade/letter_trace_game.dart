@@ -29,6 +29,14 @@ class _LetterTraceGameState extends State<LetterTraceGame> with _Emit {
   ];
   String _winPraise = _winPraisePool[0];
   final math.Random _rnd = math.Random();
+  // Pool of per-letter completion phrases so tracing the next letter doesn't
+  // always flash the identical "Nice tracing! Next letter" line.
+  static const List<String> _nextLetterPool = <String>[
+    'Nice tracing! Next letter',
+    'Well traced! One more',
+    'Lovely lines! Next letter',
+    'Great strokes! Keep going',
+  ];
 
   // Each glyph is a set of straight strokes in a [0,1] box (x right, y down).
   static const Map<String, List<List<List<double>>>> _glyphs =
@@ -178,7 +186,7 @@ class _LetterTraceGameState extends State<LetterTraceGame> with _Emit {
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
       } else {
-        _banner = 'Nice tracing! Next letter';
+        _banner = _nextLetterPool[_rnd.nextInt(_nextLetterPool.length)];
         _newGlyph();
       }
     } else {

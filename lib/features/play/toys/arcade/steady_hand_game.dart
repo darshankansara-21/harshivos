@@ -30,6 +30,14 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
     'So steady!', 'Rock steady!', 'Calm hands!', 'Precision master!',
   ];
   String _winPraise = _winPraisePool[0];
+  // Pool of per-path completion phrases so finishing a steady-hand path
+  // doesn't always flash the identical "Steady! Next path" line.
+  static const List<String> _nextPathPool = <String>[
+    'Steady! Next path',
+    'Smooth hands! Next path',
+    'Nice and calm! New path',
+    'Well guided! Keep going',
+  ];
   bool _holding = false;
   double _dotX = 0.12, _dotY = 0.8;
   String? _banner;
@@ -124,7 +132,7 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
       emit(ExperienceEvent.gameCompleted);
     } else {
       _level++;
-      _banner = 'Steady! Next path';
+      _banner = _nextPathPool[_rnd.nextInt(_nextPathPool.length)];
       _startLevel();
     }
     setState(() {});
