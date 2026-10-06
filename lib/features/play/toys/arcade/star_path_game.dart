@@ -111,10 +111,22 @@ class _StarPathGameState extends State<StarPathGame> with _Emit {
   // isotropic circles, same radius on both axes).
   double _aspect = 1;
 
+  // Catch tolerance for reaching the next star. Flat at 0.07 on both axes
+  // regardless of score meant constellation 1 and constellation 5 of the
+  // same playthrough were exactly as forgiving to connect — no real
+  // difficulty curve at all, the same flat-pacing gap already fixed in this
+  // tier's own sibling tracing games (`letter_trace_game.dart`'s
+  // `_catchTolerance`, `mirror_draw_game.dart`'s `_catchTolerance`,
+  // `shape_builder_game.dart`'s `_tolerancePad`), just missed here. Narrows a
+  // little as `_score` climbs across the five constellations, clamped so the
+  // last one still stays comfortably reachable for small fingers.
+  double get _catchTolerance => (0.07 - _score * 0.005).clamp(0.05, 0.07);
+
   void _touch(double nx, double ny) {
     if (_status != GameStatus.playing || _linked >= _stars.length) return;
     final s = _stars[_linked];
-    if ((s[0] - nx).abs() < 0.07 && ((s[1] - ny) * _aspect).abs() < 0.07) {
+    final tol = _catchTolerance;
+    if ((s[0] - nx).abs() < tol && ((s[1] - ny) * _aspect).abs() < tol) {
       _linked++;
       TonePlayer.instance.playNote((_linked * 2) % 12, seconds: 0.2);
       if (_linked >= _stars.length) {
