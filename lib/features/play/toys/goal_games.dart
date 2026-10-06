@@ -1255,6 +1255,20 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
   double _keeperX = 0.5;
   double _keeperTargetX = 0.5;
   double _lean = 0; // -1..1 dive lean for the keeper
+  // Real goalkeeping isn't just sliding under the ball's x-position — a
+  // keeper also has to commit to staying grounded for a low shot or
+  // leaping for a chip, and guessing the wrong one means a correctly
+  // positioned keeper still concedes. `_keeperJump` (0 = grounded, 1 =
+  // fully leaping) is driven by how high up the play area the child's
+  // finger is while dragging (see `_moveTo`), smoothed the same way
+  // `_keeperX` already eases toward the drag target in `onTick`.
+  double _keeperJump = 0;
+  double _keeperTargetJump = 0;
+  // 0 = a normal ground shot (save by x-position alone, as before); 1 = a
+  // chip that sails over a grounded keeper and can only be saved by also
+  // committing to a leap (`_keeperJump` high enough) — the height-reading
+  // decision a real goalkeeper has to make shot-to-shot.
+  double _shotHeight = 0;
 
   Offset _ballPos = const Offset(0.5, _spotY);
   double _ballTargetX = 0.5;
@@ -1262,6 +1276,7 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
   double _flightT = 0;
   double _flightDur = 1.7;
   double _ballScale = 0.4;
+  double _ballLift = 0; // visual arc height for a chip, read by the painter
 
   int _phase = 0; // 0 = between shots, 1 = flying, 2 = result flash
   double _phaseT = 0;
@@ -1290,6 +1305,8 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
     _shotNum = 0;
     _keeperX = 0.5;
     _keeperTargetX = 0.5;
+    _keeperJump = 0;
+    _keeperTargetJump = 0;
     _sparks.clear();
     _beatBest = false;
     _message = 'Read the shot — slide to save!';
@@ -1302,11 +1319,13 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
     _flightT = 0;
     _ballPos = const Offset(0.5, _spotY);
     _ballScale = 0.4;
-    if (_shotNum == 1) {
-      // Gentle first shot: straight down the middle so the child learns.
+    if (_shotNum <= 2) {
+      // Gentle first two shots: straight, grounded, down the middle so the
+      // child learns the basic slide-to-save move before height is added.
       _ballTargetX = 0.5;
       _curve = 0;
       _flightDur = 1.8;
+      _shotHeight = 0;
     } else {
       _ballTargetX =
           _kMin + 0.02 + _random.nextDouble() * (_kMax - _kMin - 0.04);
@@ -1331,6 +1350,13 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
           : 0;
       _flightDur = math.max(
           0.82, 1.7 - careerShotRamp * 0.12 - _score * 0.085);
+      // A chip needs reading, not just sliding: it grows rarer->common as
+      // the child proves they can already slide-save ground shots, and
+      // (like curve) a little with career skill, capped so it never
+      // dominates a match.
+      final chipChance =
+          math.min(0.42, 0.14 + careerShotRamp * 0.1 + _score * 0.035);
+      _shotHeight = _random.nextDouble() < chipChance ? 1.0 : 0.0;
     }
   }
 
@@ -1350,6 +1376,10 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
     // Keeper glides toward the finger.
     _keeperX += (_keeperTargetX - _keeperX) * math.min(1, dt * 13);
     _keeperX = _keeperX.clamp(_kMin, _kMax);
+    // Leap commitment eases in a touch slower than the horizontal slide —
+    // a real dive takes a beat to leave the ground — so a last-instant
+    // flip-flop doesn't fully register either way.
+    _keeperJump += (_keeperTargetJump - _keeperJump) * math.min(1, dt * 9);
     for (var i = _sparks.length - 1; i >= 0; i--) {
       final s = _sparks[i];
       s.x += s.vx * dt;
@@ -1367,6 +1397,11 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
       final by = _lerp(_spotY, _lineY, ease);
       _ballPos = Offset(bx, by);
       _ballScale = 0.4 + t * 0.9;
+      // A chip's real visual tell: it arcs up off the ground mid-flight
+      // before dropping into the goal, instead of skimming the turf the
+      // whole way like a ground shot — the cue a child reads to decide
+      // whether to stay grounded or commit a leap.
+      _ballLift = _shotHeight * math.sin(math.pi * t);
       // Keeper leans toward the incoming ball as it nears.
       final want = ((bx - _keeperX) / _reach).clamp(-1.0, 1.0);
       _lean += (want * t - _lean) * math.min(1, dt * 8);
@@ -1380,7 +1415,15 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
 
   void _resolveShot() {
     final dist = (_ballTargetX - _keeperX).abs();
-    if (dist <= _reach) {
+    // Being under the ball's x isn't enough any more: a chip only concedes
+    // if the keeper actually left the ground (`_keeperJump` committed high),
+    // and a ground shot only concedes if the keeper stayed down — leaping
+    // for a shot that never left the turf means the glove sails clean over
+    // it. This is the real height-reading decision a goalkeeper makes every
+    // shot, not just left/right tracking.
+    final jumped = _keeperJump >= 0.5;
+    final heightOk = _shotHeight >= 0.5 ? jumped : !jumped;
+    if (dist <= _reach && heightOk) {
       _score++;
       _streak++;
       _lastSaved = true;
@@ -1405,11 +1448,23 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
       _lives--;
       _streak = 0;
       _lastSaved = false;
+      // A positioned-right-but-wrong-height miss is a different mistake
+      // from being on the wrong side entirely — tell the child which one
+      // happened so the height cue is something they can learn from, not a
+      // mystery penalty.
+      final String openLine;
+      if (dist <= _reach && !heightOk) {
+        openLine = _shotHeight >= 0.5
+            ? 'Chip over your head!'
+            : 'Dove too early — it stayed low!';
+      } else {
+        openLine = 'Goal in!';
+      }
       // Remaining lives are a keeper's gloves, not soccer balls — a ⚽ here
       // reads as "goals scored", the opposite of what this stat means, right
       // in the same breath as "Goal in!". Match the glove used by the
       // "SAVE! 🧤" message so the icon matches what the stat represents.
-      _message = 'Goal in! Lives ${'🧤' * _lives}${'·' * (5 - _lives)}';
+      _message = '$openLine Lives ${'🧤' * _lives}${'·' * (5 - _lives)}';
       TonePlayer.instance.playCue(SoundCue.crash);
       emit(ExperienceEvent.incorrectAnswer);
       _burst(_ballTargetX, _lineY, const Color(0xFFEF476F), 10, 0.35);
@@ -1444,19 +1499,26 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
     if (status == GameStatus.won) emit(ExperienceEvent.gameCompleted);
   }
 
-  void _moveTo(double localX, double width) {
+  void _moveTo(double localX, double localY, double width, double height) {
     if (_status != GameStatus.playing) return;
     _keeperTargetX = (localX / width).clamp(_kMin, _kMax);
+    // Sliding the finger up toward the goal commits a leap (for a chip);
+    // staying low near the penalty spot keeps the keeper grounded (for a
+    // ground shot). Reuses the same continuous drag already used to aim
+    // left/right, so there is no second gesture to learn — just a second
+    // axis to read and commit.
+    _keeperTargetJump = (1 - (localY / height)).clamp(0.0, 1.0);
   }
 
-  // Screen-reader bridge: dives straight to the shot's real target x, the
-  // same number the sighted `aimHint` overlay already reveals for the first
-  // three saves. The keeper still eases toward it at the same speed as a
-  // sighted drag (see `onTick`'s lerp), so this is a faithful stand-in for
-  // "slide under the ball" rather than an auto-win.
+  // Screen-reader bridge: dives straight to the shot's real target x AND
+  // commits the correct height, the same full "ideal dive" stand-in
+  // `_diveToTarget` already gave for x alone — a blind child can't see the
+  // chip's visual arc cue a sighted child reads, so the single tap performs
+  // both halves of the real decision rather than leaving height to chance.
   void _diveToTarget() {
     if (_status != GameStatus.playing) return;
     _keeperTargetX = _ballTargetX.clamp(_kMin, _kMax);
+    _keeperTargetJump = _shotHeight;
   }
 
   void _reset() => setState(() {
@@ -1474,7 +1536,9 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
       title: '🥅 Goal Keeper',
       goal: 'Read the shot, slide and dive · Make 10 saves',
       introHow:
-          'A ball is kicked at your goal — slide left/right to get your gloves in its path and save it! You have 5 lives, so don\u2019t let too many past.',
+          'A ball is kicked at your goal — slide left/right to get your gloves in its path, '
+          'and slide up to leap for a high chip or stay low near the spot for a grounded shot. '
+          'Watch how the ball arcs! You have 5 lives, so don\u2019t let too many past.',
       onStart: () => setState(() {
         _status = GameStatus.playing;
         _begin();
@@ -1499,15 +1563,20 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
             excludeSemantics: true,
             child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTapDown: (d) => _moveTo(d.localPosition.dx, c.maxWidth),
-            onPanDown: (d) => _moveTo(d.localPosition.dx, c.maxWidth),
-            onPanUpdate: (d) => _moveTo(d.localPosition.dx, c.maxWidth),
+            onTapDown: (d) =>
+                _moveTo(d.localPosition.dx, d.localPosition.dy, c.maxWidth, c.maxHeight),
+            onPanDown: (d) =>
+                _moveTo(d.localPosition.dx, d.localPosition.dy, c.maxWidth, c.maxHeight),
+            onPanUpdate: (d) =>
+                _moveTo(d.localPosition.dx, d.localPosition.dy, c.maxWidth, c.maxHeight),
             child: CustomPaint(
               painter: _KeeperPainter(
                 keeperX: _keeperX,
                 lean: _lean,
+                jump: _keeperJump,
                 ball: _ballPos,
                 ballScale: _ballScale,
+                ballLift: _ballLift,
                 phase: _phase,
                 lastSaved: _lastSaved,
                 sparks: _sparks,
@@ -1530,8 +1599,10 @@ class _KeeperPainter extends CustomPainter {
   _KeeperPainter({
     required this.keeperX,
     required this.lean,
+    required this.jump,
     required this.ball,
     required this.ballScale,
+    required this.ballLift,
     required this.phase,
     required this.lastSaved,
     required this.sparks,
@@ -1540,8 +1611,15 @@ class _KeeperPainter extends CustomPainter {
   });
   final double keeperX;
   final double lean;
+  // 0 = grounded crouch, 1 = fully committed leap — drives the keeper's
+  // vertical pose so a child can see (not just feel) which height they've
+  // committed to before the ball arrives.
+  final double jump;
   final Offset ball;
   final double ballScale;
+  // 0..~1 visual arc height for a chip; always 0 for a ground shot. Lifts
+  // the ball's drawn position so a chip visibly rises off the turf.
+  final double ballLift;
   final int phase;
   final bool lastSaved;
   final List<_Spark> sparks;
@@ -1635,60 +1713,71 @@ class _KeeperPainter extends CustomPainter {
             ..color = const Color(0xFFFFE066).withOpacity(0.7));
     }
 
-    // Penalty spot + ball shadow.
+    // Penalty spot + ball shadow. The shadow stays pinned to the ground
+    // track while the ball itself lifts for a chip — the gap between them
+    // is the real "is this one grounded or airborne?" tell a child reads.
     canvas.drawCircle(Offset(sx(0.5), sy(0.88)), 4,
         Paint()..color = Colors.white.withOpacity(0.7));
     final ballR = w * 0.03 * ballScale;
+    final liftPx = ballLift * h * 0.14;
     canvas.drawOval(
         Rect.fromCenter(
             center: Offset(sx(ball.dx), sy(ball.dy) + ballR * 0.9),
-            width: ballR * 1.8,
-            height: ballR * 0.7),
-        Paint()..color = Colors.black.withOpacity(0.22));
+            width: ballR * (1.8 - ballLift * 0.6),
+            height: ballR * (0.7 - ballLift * 0.25)),
+        Paint()..color = Colors.black.withOpacity(0.22 - ballLift * 0.08));
 
-    // Keeper — body + outstretched gloves, leaning into the dive.
+    // Keeper — body + outstretched gloves, leaning into the dive and
+    // rising into a real leap (or staying in a grounded crouch) to match
+    // the height the child has committed to via `jump`.
     final kx = sx(keeperX);
-    final ky = sy(_lineY);
+    final jump = this.jump.clamp(0.0, 1.0);
+    final ky = sy(_lineY) - jump * h * 0.09 + (1 - jump) * h * 0.015;
     final lean = this.lean.clamp(-1.0, 1.0);
     final armSpan = w * 0.12;
     final bodyPaint = Paint()..color = const Color(0xFF2D6CDF);
     canvas.save();
     canvas.translate(kx, ky);
     canvas.rotate(lean * 0.5);
-    // Torso.
+    // Torso — stretches taller mid-leap, squat while grounded.
     canvas.drawRRect(
         RRect.fromRectAndRadius(
             Rect.fromCenter(
                 center: const Offset(0, 0),
                 width: w * 0.07,
-                height: h * 0.09),
+                height: h * (0.09 + jump * 0.02)),
             const Radius.circular(10)),
         bodyPaint);
     // Head.
     canvas.drawCircle(
         Offset(0, -h * 0.065), w * 0.028, Paint()..color = const Color(0xFFFFCDA8));
-    // Arms + gloves.
+    // Arms + gloves — low and wide for a grounded save, raised overhead for
+    // a committed leap, so the pose itself telegraphs which height the
+    // keeper is actually covering right now.
+    final armY = h * (0.01 - jump * 0.1);
     final glove = Paint()..color = const Color(0xFFFFE066);
     canvas.drawLine(
         const Offset(0, -6),
-        Offset(-armSpan, -h * 0.02),
+        Offset(-armSpan, armY),
         Paint()
           ..color = bodyPaint.color
           ..strokeWidth = 7
           ..strokeCap = StrokeCap.round);
     canvas.drawLine(
         const Offset(0, -6),
-        Offset(armSpan, -h * 0.02),
+        Offset(armSpan, armY),
         Paint()
           ..color = bodyPaint.color
           ..strokeWidth = 7
           ..strokeCap = StrokeCap.round);
-    canvas.drawCircle(Offset(-armSpan, -h * 0.02), w * 0.03, glove);
-    canvas.drawCircle(Offset(armSpan, -h * 0.02), w * 0.03, glove);
+    canvas.drawCircle(Offset(-armSpan, armY), w * 0.03, glove);
+    canvas.drawCircle(Offset(armSpan, armY), w * 0.03, glove);
     canvas.restore();
 
-    // The ball itself.
-    final bc = Offset(sx(ball.dx), sy(ball.dy));
+    // The ball itself — lifted above its shadow for a chip (see `liftPx`
+    // above) so the arc is something a child can actually track, not just
+    // a number under the hood.
+    final bc = Offset(sx(ball.dx), sy(ball.dy) - liftPx);
     canvas.drawCircle(bc, ballR, Paint()..color = Colors.white);
     canvas.drawCircle(bc, ballR, Paint()..color = Colors.black12);
     for (var i = 0; i < 5; i++) {
