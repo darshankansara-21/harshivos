@@ -36,7 +36,15 @@ class _BalloonBounceGameState extends State<BalloonBounceGame>
   bool _floorWarned = false;
   Color _color = const Color(0xFFFF5DA2);
   String? _banner;
+  double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
+  // Mirrors sky_hop_game.dart/whack_game.dart's live "beat your own all-time
+  // best" celebration: Balloon Bounce has the identical shape (a fixed win
+  // target of 20, but a single floor touch ends most runs well short of
+  // it), so crossing a prior personal best mid-run is a real, frequent,
+  // judgment-free moment worth its own banner — not just the eventual
+  // win/over screen.
+  bool _beatBest = false;
 
   static const List<Color> _colors = <Color>[
     Color(0xFFFF5DA2), Color(0xFF48CAE4), Color(0xFF80ED99),
@@ -62,6 +70,10 @@ class _BalloonBounceGameState extends State<BalloonBounceGame>
   void onTick(double dt) {
     if (_status != GameStatus.playing) return;
     if (_squash > 0) _squash -= dt * 3;
+    if (_bannerT > 0) {
+      _bannerT -= dt;
+      if (_bannerT <= 0) _banner = null;
+    }
     // Gravity ramps up gently as the streak grows, so bounce 20 genuinely
     // demands quicker reflexes than bounce 1 instead of feeling identical.
     final gravity = 0.5 + (_score / _target).clamp(0.0, 1.0) * 0.45;
@@ -119,6 +131,12 @@ class _BalloonBounceGameState extends State<BalloonBounceGame>
         _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
+      } else if (!_beatBest && _best > 0 && _score > _best) {
+        _beatBest = true;
+        _banner = 'New personal best! 🏆';
+        _bannerT = 1.6;
+        TonePlayer.instance.playCue(SoundCue.milestone);
+        emit(ExperienceEvent.personalBest);
       }
       setState(() {});
     }
@@ -128,6 +146,8 @@ class _BalloonBounceGameState extends State<BalloonBounceGame>
     setState(() {
       _score = 0;
       _banner = null;
+      _bannerT = 0;
+      _beatBest = false;
       _floorWarned = false;
       _launch();
       _status = GameStatus.playing;
