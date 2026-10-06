@@ -6,7 +6,8 @@ class MergeGame extends StatefulWidget {
   State<MergeGame> createState() => _MergeGameState();
 }
 
-class _MergeGameState extends State<MergeGame> with _Emit {
+class _MergeGameState extends State<MergeGame>
+    with TickerProviderStateMixin, ToyTicker, _Emit {
   static const String _id = 'merge';
   static const int _n = 4;
   static const int _target = 64;
@@ -28,6 +29,45 @@ class _MergeGameState extends State<MergeGame> with _Emit {
   bool _beatBest = false;
   String? _banner;
   GameStatus _status = GameStatus.ready;
+  // Every other scoring game in the catalog that shares this `_Shard`
+  // convention (jigsaw_four, tone_match, color_mixer, maze_marble…) bursts a
+  // few shards of colour the instant something genuinely worth celebrating
+  // happens; Merge never did, despite sharing the exact same class, leaving
+  // its biggest moments — a new highest tile, a crossed personal best, the
+  // win itself — exactly as flat as every routine slide. Bursting on every
+  // single merge would be distracting noise for this calmer, more cognitive
+  // puzzle, so this is reserved for those genuine milestones only.
+  final List<_Shard> _bits = <_Shard>[];
+  bool _reduceMotion = false;
+
+  @override
+  void onTick(double dt) {
+    for (var i = _bits.length - 1; i >= 0; i--) {
+      final b = _bits[i];
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.vy += 300 * dt;
+      b.life -= dt;
+      if (b.life <= 0) _bits.removeAt(i);
+    }
+    // ToyTicker already triggers a repaint every frame; no extra setState
+    // needed here even while bits are empty and idling.
+  }
+
+  void _burst(Color color) {
+    final n = _reduceMotion ? 4 : 14;
+    for (var i = 0; i < n; i++) {
+      final a = _rnd.nextDouble() * math.pi * 2;
+      final sp = 60 + _rnd.nextDouble() * 140;
+      _bits.add(_Shard(_lastSize.width / 2, _lastSize.height / 2,
+          math.cos(a) * sp, math.sin(a) * sp, color));
+    }
+  }
+
+  // Burst origin in real pixels, captured by the LayoutBuilder below — the
+  // board itself is the obvious, central celebration point since a merge
+  // can land on any of the 16 cells.
+  Size _lastSize = Size.zero;
 
   @override
   void initState() {
@@ -38,6 +78,12 @@ class _MergeGameState extends State<MergeGame> with _Emit {
     GameScores.instance.ensureLoaded().then((_) {
       if (mounted) setState(() => _best = GameScores.instance.best(_id));
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
   }
 
   void _spawn() {
@@ -114,6 +160,7 @@ class _MergeGameState extends State<MergeGame> with _Emit {
     if (_milestone > 0 && _status != GameStatus.won) {
       _banner = 'New best: $_milestone! 🎉';
       TonePlayer.instance.playCue(SoundCue.milestone);
+      _burst(_tileColor(_milestone));
       _milestone = 0;
     }
     if (!_beatBest &&
@@ -125,10 +172,12 @@ class _MergeGameState extends State<MergeGame> with _Emit {
       // new all-time record is the bigger moment of the two.
       _banner = 'New personal best! 🏆';
       TonePlayer.instance.playCue(SoundCue.milestone);
+      _burst(const Color(0xFFFFD166));
       emit(ExperienceEvent.personalBest);
     }
     if (_status == GameStatus.won) {
       TonePlayer.instance.playCue(SoundCue.success);
+      _burst(const Color(0xFFFFD166));
       emit(ExperienceEvent.gameCompleted);
     } else if (_isStuck()) {
       _status = GameStatus.over;
@@ -232,7 +281,34 @@ class _MergeGameState extends State<MergeGame> with _Emit {
               padding: const EdgeInsets.all(20),
               child: AspectRatio(
                 aspectRatio: 1,
-                child: GridView.count(
+                child: LayoutBuilder(
+                  builder: (ctx, c) {
+                    _lastSize = Size(c.maxWidth, c.maxHeight);
+                    return Stack(
+                      children: <Widget>[
+                        _grid(),
+                        if (_bits.isNotEmpty)
+                          IgnorePointer(
+                            child: CustomPaint(
+                              size: _lastSize,
+                              painter: _ShardPainter(_bits),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        ),
+        ),
+      ),
+    );
+  }
+
+  Widget _grid() {
+    return GridView.count(
                   crossAxisCount: _n,
                   mainAxisSpacing: 8,
                   crossAxisSpacing: 8,
@@ -274,15 +350,24 @@ class _MergeGameState extends State<MergeGame> with _Emit {
                           ),
                         ),
                   ],
-                ),
-              ),
-            ),
-          ),
-        ),
-        ),
-      ),
-    );
+                );
   }
+}
+
+class _ShardPainter extends CustomPainter {
+  _ShardPainter(this.shards);
+  final List<_Shard> shards;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (final s in shards) {
+      final paint = Paint()..color = s.color.withOpacity(s.life.clamp(0, 1) * 2);
+      canvas.drawCircle(Offset(s.x, s.y), 4, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ShardPainter oldDelegate) => true;
 }
 
 // ===========================================================================
