@@ -12,7 +12,8 @@ class _BlockPiece {
   final Color color;
 }
 
-class _BlockBlastGameState extends State<BlockBlastGame> with _Emit {
+class _BlockBlastGameState extends State<BlockBlastGame>
+    with TickerProviderStateMixin, ToyTicker, _Emit {
   static const String _id = 'block_blast';
   static const int _n = 8;
   final math.Random _rnd = math.Random();
@@ -45,6 +46,13 @@ class _BlockBlastGameState extends State<BlockBlastGame> with _Emit {
   // judgment-free moment worth its own banner, not just a stat on the
   // eventual game-over screen.
   bool _beatBest = false;
+  // Line-clear is this spatial puzzle's one big payoff moment, yet it only
+  // ever flashed a text banner + sound — every "big moment" elsewhere in the
+  // catalog (mini_golf's cup sink, soccer_kick's goal, stack's perfect drop)
+  // also bursts a few shards of colour. Reuses the shared `_Shard` class and
+  // the identical onTick-decay convention via `ToyTicker`.
+  final List<_Shard> _bits = <_Shard>[];
+  bool _reduceMotion = false;
 
   static const List<Color> _pieceColors = <Color>[
     Color(0xFFEF476F), Color(0xFFFFD166), Color(0xFF06D6A0),
@@ -85,6 +93,17 @@ class _BlockBlastGameState extends State<BlockBlastGame> with _Emit {
     GameScores.instance.ensureLoaded().then((_) {
       if (mounted) setState(() => _best = GameScores.instance.best(_id));
     });
+  }
+
+  @override
+  void onTick(double dt) {
+    for (var i = _bits.length - 1; i >= 0; i--) {
+      final b = _bits[i];
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.life -= dt;
+      if (b.life <= 0) _bits.removeAt(i);
+    }
   }
 
   _BlockPiece _randomPiece() => _BlockPiece(
@@ -175,6 +194,17 @@ class _BlockBlastGameState extends State<BlockBlastGame> with _Emit {
       _comboStreak = 0;
       return;
     }
+    // Capture each cleared line's own colour + normalised midpoint before
+    // the cells are wiped below, so the burst matches what was actually on
+    // the board instead of a single fixed colour.
+    for (final r in fullRows) {
+      final color = _grid[r][_n ~/ 2] ?? _grid[r].firstWhere((v) => v != null)!;
+      _spawnClearBurst((_n ~/ 2 + 0.5) / _n, (r + 0.5) / _n, color);
+    }
+    for (final c in fullCols) {
+      final color = _grid[_n ~/ 2][c] ?? _grid.map((row) => row[c]).firstWhere((v) => v != null)!;
+      _spawnClearBurst((c + 0.5) / _n, (_n ~/ 2 + 0.5) / _n, color);
+    }
     for (final r in fullRows) {
       for (var c = 0; c < _n; c++) {
         _grid[r][c] = null;
@@ -205,6 +235,15 @@ class _BlockBlastGameState extends State<BlockBlastGame> with _Emit {
     }
   }
 
+  void _spawnClearBurst(double x, double y, Color color) {
+    final bitCount = _reduceMotion ? 4 : 12;
+    for (var i = 0; i < bitCount; i++) {
+      final a = _rnd.nextDouble() * math.pi * 2;
+      final sp = 0.15 + _rnd.nextDouble() * 0.35;
+      _bits.add(_Shard(x, y, math.cos(a) * sp, math.sin(a) * sp, color));
+    }
+  }
+
   void _gameOver() {
     final prev = GameScores.instance.best(_id);
     _status = GameStatus.over;
@@ -227,6 +266,7 @@ class _BlockBlastGameState extends State<BlockBlastGame> with _Emit {
       _invalidToken++;
       _comboStreak = 0;
       _beatBest = false;
+      _bits.clear();
       _status = GameStatus.playing;
       _refill();
     });
@@ -235,6 +275,7 @@ class _BlockBlastGameState extends State<BlockBlastGame> with _Emit {
   @override
   Widget build(BuildContext context) {
     drain(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _Shell(
       title: '🟦 Block Blast',
       // The actual mechanic is tap-to-select then tap-to-place (there is no
@@ -267,7 +308,9 @@ class _BlockBlastGameState extends State<BlockBlastGame> with _Emit {
               padding: const EdgeInsets.all(14),
               child: AspectRatio(
                 aspectRatio: 1,
-                child: GridView.count(
+                child: Stack(
+                  children: <Widget>[
+                    GridView.count(
                   crossAxisCount: _n,
                   mainAxisSpacing: 3,
                   crossAxisSpacing: 3,
@@ -314,6 +357,17 @@ class _BlockBlastGameState extends State<BlockBlastGame> with _Emit {
                           ),
                           ),
                         ),
+                  ],
+                    ),
+                    // Celebratory shard burst on a line clear, matching the
+                    // "big moment" `_Shard` convention used catalog-wide
+                    // (mini_golf's cup sink, stack's perfect drop, etc).
+                    IgnorePointer(
+                      child: CustomPaint(
+                        painter: _BlockBurstPainter(_bits),
+                        size: Size.infinite,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -394,6 +448,23 @@ class _PiecePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_PiecePainter oldDelegate) => true;
+}
+
+class _BlockBurstPainter extends CustomPainter {
+  _BlockBurstPainter(this.bits);
+  final List<_Shard> bits;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (final s in bits) {
+      final k = (s.life / 0.5).clamp(0.0, 1.0);
+      canvas.drawCircle(Offset(s.x * size.width, s.y * size.height), 2 + 3 * k,
+          Paint()..color = s.color.withOpacity(k));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_BlockBurstPainter oldDelegate) => true;
 }
 
 // ===========================================================================
