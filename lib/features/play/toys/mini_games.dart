@@ -2273,7 +2273,25 @@ class _SnakeGameState extends State<SnakeGame>
               Positioned(
                 right: 14,
                 top: 176,
-                child: _SnakeLeaderboard(playerScore: _score, ai: _ai),
+                // Unlike every other floating HUD pill in this game (the
+                // shared `_GameShellState` title/banner pill above, both
+                // capped to `maxScaleFactor: 1.3`), this leaderboard had no
+                // text-scale cap or width bound at all — at a large
+                // accessibility text scale its rows grow wide enough to be
+                // clipped by the Stack's edge (same bug class already fixed
+                // catalog-wide for other unbounded HUD text). Cap its own
+                // text scale and give it a sane max width so it only ever
+                // shrinks, never grows past its author-intended footprint.
+                child: MediaQuery(
+                  data: MediaQuery.of(context).copyWith(
+                    textScaler: MediaQuery.textScalerOf(context)
+                        .clamp(maxScaleFactor: 1.3),
+                  ),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 130),
+                    child: _SnakeLeaderboard(playerScore: _score, ai: _ai),
+                  ),
+                ),
               ),
               Positioned(
                 left: 14,
@@ -2331,6 +2349,8 @@ class _SnakeLeaderboard extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           const Text('ORB RACE',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                   color: Colors.white54,
                   fontSize: 10,
@@ -2338,6 +2358,8 @@ class _SnakeLeaderboard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 2),
             child: Text('You  $playerScore / 30',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                     color: Color(0xFFFFD166),
                     fontSize: 12,
@@ -2347,6 +2369,8 @@ class _SnakeLeaderboard extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 1),
               child: Text('${i + 1}  ${rivals[i].key}  ${rivals[i].value}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 12,
