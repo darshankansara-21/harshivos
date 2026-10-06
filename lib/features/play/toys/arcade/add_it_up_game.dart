@@ -26,6 +26,11 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
   int _sum = 5;
   int _selected = -1;
   int _wrong = -1;
+  // Same gap as bigger_number: a wrong pair flashes red, but a correct pair
+  // gave zero tile-level feedback — the two tiles just silently swapped out
+  // for fresh numbers. Flash both tapped tiles green for a beat first.
+  int _correctA = -1;
+  int _correctB = -1;
   int _score = 0;
   int _lives = 3;
   int _best = 0;
@@ -52,6 +57,8 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
     _tiles = List<int>.generate(_tileCount, (_) => 1 + _rnd.nextInt(_maxVal));
     _selected = -1;
     _wrong = -1;
+    _correctA = -1;
+    _correctB = -1;
     _newTarget();
   }
 
@@ -75,11 +82,9 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
     } else {
       if (_tiles[_selected] + _tiles[k] == _sum) {
         _score++;
-        _tiles[_selected] = 1 + _rnd.nextInt(_maxVal);
-        _tiles[k] = 1 + _rnd.nextInt(_maxVal);
-        if (_tiles.length < _tileCount) {
-          _tiles.add(1 + _rnd.nextInt(_maxVal));
-        }
+        final a = _selected, b = k;
+        _correctA = a;
+        _correctB = b;
         _selected = -1;
         TonePlayer.instance.playCue(SoundCue.correct);
         emit(ExperienceEvent.bubblePopped);
@@ -93,7 +98,21 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
           TonePlayer.instance.playCue(SoundCue.gameStart);
           emit(ExperienceEvent.gameCompleted);
         } else {
-          _newTarget();
+          // Let the green flash above actually be seen before the two
+          // tiles silently swap out for fresh numbers.
+          Future.delayed(const Duration(milliseconds: 220), () {
+            if (!mounted || _status != GameStatus.playing) return;
+            setState(() {
+              _tiles[a] = 1 + _rnd.nextInt(_maxVal);
+              _tiles[b] = 1 + _rnd.nextInt(_maxVal);
+              if (_tiles.length < _tileCount) {
+                _tiles.add(1 + _rnd.nextInt(_maxVal));
+              }
+              _correctA = -1;
+              _correctB = -1;
+              _newTarget();
+            });
+          });
         }
       } else {
         _wrong = k;
@@ -176,6 +195,7 @@ class _AddItUpGameState extends State<AddItUpGame> with _Emit {
                         value: _tiles[i],
                         selected: _selected == i,
                         wrong: _wrong == i,
+                        correct: _correctA == i || _correctB == i,
                         onTap: () => _tap(i),
                       ),
                   ],
@@ -195,17 +215,18 @@ class _NumberTile extends StatelessWidget {
     required this.value,
     required this.selected,
     required this.wrong,
+    required this.correct,
     required this.onTap,
   });
   final int value;
-  final bool selected, wrong;
+  final bool selected, wrong, correct;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final Color bg = wrong
         ? const Color(0xFFE23B3B)
-        : selected
+        : (selected || correct)
             ? const Color(0xFF80ED99)
             : Colors.white10;
     return Semantics(
@@ -227,7 +248,7 @@ class _NumberTile extends StatelessWidget {
           alignment: Alignment.center,
           child: Text('$value',
               style: TextStyle(
-                  color: selected ? Colors.black : Colors.white,
+                  color: (selected || correct) ? Colors.black : Colors.white,
                   fontSize: 34,
                   fontWeight: FontWeight.w900)),
         ),

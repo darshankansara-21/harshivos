@@ -59,6 +59,13 @@ class _WeatherSortGameState extends State<WeatherSortGame>
   int _lives = 3;
   int _best = 0;
   int _wrongFlash = -1;
+  // Unlike the wrong tap (which flashes the bin red), a correct sort gave
+  // zero tile-level feedback — the item just silently swapped for the next
+  // one. Flash the tapped bin green for a beat first, same convention. The
+  // timer freezes for this same beat (via `_locked`) so a correct answer can
+  // never itself cost a life to a timeout while its own flash is showing.
+  int _correctFlash = -1;
+  bool _locked = false;
   String? _banner;
   GameStatus _status = GameStatus.ready;
   // Every other sort was answerable at a dead-calm, infinite pace — zero
@@ -85,7 +92,7 @@ class _WeatherSortGameState extends State<WeatherSortGame>
 
   @override
   void onTick(double dt) {
-    if (_status != GameStatus.playing) return;
+    if (_status != GameStatus.playing || _locked) return;
     _timeLeft -= dt;
     if (_timeLeft <= 0) _timeOut();
   }
@@ -123,13 +130,16 @@ class _WeatherSortGameState extends State<WeatherSortGame>
       flat -= _items[bin].length;
     }
     _wrongFlash = -1;
+    _correctFlash = -1;
     _timeLeft = _timeLimit;
   }
 
   void _pick(int bin) {
-    if (_status != GameStatus.playing) return;
+    if (_status != GameStatus.playing || _locked) return;
     if (bin == _answer) {
       _score++;
+      _correctFlash = bin;
+      _locked = true;
       TonePlayer.instance.playCue(SoundCue.success);
       emit(ExperienceEvent.bubblePopped);
       _banner = 'Good sort! ${_bins[bin]}';
@@ -142,7 +152,15 @@ class _WeatherSortGameState extends State<WeatherSortGame>
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
       } else {
-        _newItem();
+        // Let the green flash above actually be seen before the item swaps
+        // out for the next one; `_locked` freezes the countdown meanwhile.
+        Future.delayed(const Duration(milliseconds: 220), () {
+          if (!mounted || _status != GameStatus.playing) return;
+          setState(() {
+            _locked = false;
+            _newItem();
+          });
+        });
       }
     } else {
       _wrongFlash = bin;
@@ -173,6 +191,7 @@ class _WeatherSortGameState extends State<WeatherSortGame>
     setState(() {
       _score = 0;
       _lives = 3;
+      _locked = false;
       _banner = null;
       _bag.clear();
       _newItem();
@@ -260,7 +279,9 @@ class _WeatherSortGameState extends State<WeatherSortGame>
                         decoration: BoxDecoration(
                           color: _wrongFlash == i
                               ? const Color(0xFFE23B3B)
-                              : Colors.white.withOpacity(0.14),
+                              : _correctFlash == i
+                                  ? const Color(0xFF80ED99)
+                                  : Colors.white.withOpacity(0.14),
                           borderRadius: BorderRadius.circular(18),
                           border: Border.all(
                               color: Colors.white.withOpacity(0.3), width: 2),

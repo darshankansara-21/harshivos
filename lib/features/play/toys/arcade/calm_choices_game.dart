@@ -57,6 +57,10 @@ class _CalmChoicesGameState extends State<CalmChoicesGame> with _Emit {
   List<String> _options = <String>[];
   int _score = 0, _lives = 3, _best = 0;
   int _wrong = -1;
+  // Unlike the wrong tap (which flashes red), a calm tap gave zero
+  // tile-level feedback — the options just silently swapped for the next
+  // scene. Flash the tapped option green for a beat first, same convention.
+  int _correct = -1;
   String? _banner;
   GameStatus _status = GameStatus.ready;
 
@@ -86,6 +90,7 @@ class _CalmChoicesGameState extends State<CalmChoicesGame> with _Emit {
 
   void _newRound() {
     _wrong = -1;
+    _correct = -1;
     _scene = _scenes[_drawScene()];
     final List<String> distractors = <String>[_scene.other1, _scene.other2, _scene.other3]
       ..shuffle(_rnd);
@@ -96,6 +101,7 @@ class _CalmChoicesGameState extends State<CalmChoicesGame> with _Emit {
     if (_status != GameStatus.playing) return;
     if (choice == _scene.healthy) {
       _score++;
+      _correct = idx;
       TonePlayer.instance.playCue(SoundCue.calm);
       emit(ExperienceEvent.bubblePopped);
       _banner = _helpsPool[_rnd.nextInt(_helpsPool.length)];
@@ -108,7 +114,13 @@ class _CalmChoicesGameState extends State<CalmChoicesGame> with _Emit {
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
       } else {
-        _newRound();
+        // Let the green flash above actually be seen before the options
+        // swap out for the next scene.
+        Future.delayed(const Duration(milliseconds: 220), () {
+          if (mounted && _status == GameStatus.playing) {
+            setState(_newRound);
+          }
+        });
       }
     } else {
       _wrong = idx;
@@ -202,6 +214,7 @@ class _CalmChoicesGameState extends State<CalmChoicesGame> with _Emit {
                     child: _CalmOption(
                       text: _options[i],
                       wrong: _wrong == i,
+                      correct: _correct == i,
                       onTap: () => _pick(_options[i], i),
                     ),
                   ),
@@ -216,9 +229,10 @@ class _CalmChoicesGameState extends State<CalmChoicesGame> with _Emit {
 }
 
 class _CalmOption extends StatelessWidget {
-  const _CalmOption({required this.text, required this.wrong, required this.onTap});
+  const _CalmOption({required this.text, required this.wrong, required this.correct, required this.onTap});
   final String text;
   final bool wrong;
+  final bool correct;
   final VoidCallback onTap;
 
   @override
@@ -235,7 +249,11 @@ class _CalmOption extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 18),
           decoration: BoxDecoration(
-            color: wrong ? const Color(0xFFE23B3B) : Colors.white12,
+            color: wrong
+                ? const Color(0xFFE23B3B)
+                : correct
+                    ? const Color(0xFF80ED99)
+                    : Colors.white12,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: Colors.white24, width: 2),
           ),

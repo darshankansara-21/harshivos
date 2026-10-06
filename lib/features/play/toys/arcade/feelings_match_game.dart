@@ -45,6 +45,10 @@ class _FeelingsMatchGameState extends State<FeelingsMatchGame> with _Emit {
   int _score = 0;
   int _lives = 3;
   int _wrong = -1;
+  // Unlike the wrong tap (which flashes red), a correct tap gave zero
+  // tile-level feedback — the faces just silently swapped out for the next
+  // round. Flash the tapped face green for a beat first, same convention.
+  int _correct = -1;
   int _best = 0;
   String? _banner;
   GameStatus _status = GameStatus.ready;
@@ -77,6 +81,7 @@ class _FeelingsMatchGameState extends State<FeelingsMatchGame> with _Emit {
 
   void _newRound() {
     _wrong = -1;
+    _correct = -1;
     _prompt = _feelings[_drawPrompt()];
     final count = _optionCount;
     final set = <_Feeling>{_prompt};
@@ -90,6 +95,7 @@ class _FeelingsMatchGameState extends State<FeelingsMatchGame> with _Emit {
     if (_status != GameStatus.playing) return;
     if (f.name == _prompt.name) {
       _score++;
+      _correct = idx;
       TonePlayer.instance.playCue(SoundCue.correct);
       emit(ExperienceEvent.bubblePopped);
       _banner = '${_prompt.face} ${_prompt.name}!';
@@ -102,7 +108,13 @@ class _FeelingsMatchGameState extends State<FeelingsMatchGame> with _Emit {
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
       } else {
-        _newRound();
+        // Let the green flash above actually be seen before the faces swap
+        // out for the next round.
+        Future.delayed(const Duration(milliseconds: 220), () {
+          if (mounted && _status == GameStatus.playing) {
+            setState(_newRound);
+          }
+        });
       }
     } else {
       _wrong = idx;
@@ -202,6 +214,7 @@ class _FeelingsMatchGameState extends State<FeelingsMatchGame> with _Emit {
                         face: _options[i].face,
                         name: _options[i].name,
                         wrong: _wrong == i,
+                        correct: _correct == i,
                         onTap: () => _pick(_options[i], i),
                       ),
                   ],
@@ -221,10 +234,12 @@ class _FaceOption extends StatelessWidget {
       {required this.face,
       required this.name,
       required this.wrong,
+      required this.correct,
       required this.onTap});
   final String face;
   final String name;
   final bool wrong;
+  final bool correct;
   final VoidCallback onTap;
 
   @override
@@ -246,10 +261,18 @@ class _FaceOption extends StatelessWidget {
           width: 92,
           height: 92,
           decoration: BoxDecoration(
-            color: wrong ? const Color(0xFFE23B3B) : Colors.white10,
+            color: wrong
+                ? const Color(0xFFE23B3B)
+                : correct
+                    ? const Color(0xFF80ED99)
+                    : Colors.white10,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-                color: wrong ? const Color(0xFFE23B3B) : Colors.white24,
+                color: wrong
+                    ? const Color(0xFFE23B3B)
+                    : correct
+                        ? const Color(0xFF80ED99)
+                        : Colors.white24,
                 width: 2),
           ),
           alignment: Alignment.center,

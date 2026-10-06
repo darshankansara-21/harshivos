@@ -31,6 +31,13 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
   bool _biggest = true;
   int _score = 0, _lives = 3, _best = 0;
   int _wrong = -1;
+  // Unlike the wrong tap (which flashes the tile red), a correct tap gave
+  // zero tile-level visual feedback at all — the numbers just silently
+  // swapped out for the next round under the banner text. Flash the tapped
+  // tile green for a beat, same convention as the red wrong-flash, so a
+  // correct answer is visibly confirmed, not just announced in text a
+  // child might not be looking at.
+  int _correct = -1;
   String? _banner;
   GameStatus _status = GameStatus.ready;
 
@@ -44,6 +51,7 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
 
   void _newRound() {
     _wrong = -1;
+    _correct = -1;
     _biggest = _rnd.nextBool();
     final max = _maxForScore(_score);
     final set = <int>{};
@@ -76,6 +84,7 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
     if (_status != GameStatus.playing) return;
     if (_nums[i] == _answer) {
       _score++;
+      _correct = i;
       TonePlayer.instance.playCue(SoundCue.correct);
       emit(ExperienceEvent.bubblePopped);
       _banner = _correctPool[_rnd.nextInt(_correctPool.length)];
@@ -88,7 +97,13 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
       } else {
-        _newRound();
+        // Let the green flash above actually be seen before the tiles swap
+        // out for the next round.
+        Future.delayed(const Duration(milliseconds: 220), () {
+          if (mounted && _status == GameStatus.playing) {
+            setState(_newRound);
+          }
+        });
       }
     } else {
       _wrong = i;
@@ -185,7 +200,11 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
                           width: 92,
                           height: 110,
                           decoration: BoxDecoration(
-                            color: _wrong == i ? const Color(0xFFE23B3B) : Colors.white12,
+                            color: _wrong == i
+                                ? const Color(0xFFE23B3B)
+                                : _correct == i
+                                    ? const Color(0xFF80ED99)
+                                    : Colors.white12,
                             borderRadius: BorderRadius.circular(18),
                             border: Border.all(color: Colors.white24, width: 2),
                           ),

@@ -55,6 +55,10 @@ class _KindnessMatchGameState extends State<KindnessMatchGame> with _Emit {
   int _score = 0;
   int _lives = 3;
   int _wrong = -1;
+  // Unlike the wrong tap (which flashes red), a kind tap gave zero
+  // tile-level feedback — the options just silently swapped for the next
+  // scene. Flash the tapped option green for a beat first, same convention.
+  int _correct = -1;
   int _best = 0;
   String? _banner;
   GameStatus _status = GameStatus.ready;
@@ -84,6 +88,7 @@ class _KindnessMatchGameState extends State<KindnessMatchGame> with _Emit {
 
   void _newRound() {
     _wrong = -1;
+    _correct = -1;
     _scene = _scenes[_drawScene()];
     final List<String> distractors = <String>[_scene.other1, _scene.other2, _scene.other3]
       ..shuffle(_rnd);
@@ -94,6 +99,7 @@ class _KindnessMatchGameState extends State<KindnessMatchGame> with _Emit {
     if (_status != GameStatus.playing) return;
     if (choice == _scene.kind) {
       _score++;
+      _correct = idx;
       TonePlayer.instance.playCue(SoundCue.correct);
       emit(ExperienceEvent.bubblePopped);
       _banner = _kindPool[_rnd.nextInt(_kindPool.length)];
@@ -106,7 +112,13 @@ class _KindnessMatchGameState extends State<KindnessMatchGame> with _Emit {
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
       } else {
-        _newRound();
+        // Let the green flash above actually be seen before the options
+        // swap out for the next scene.
+        Future.delayed(const Duration(milliseconds: 220), () {
+          if (mounted && _status == GameStatus.playing) {
+            setState(_newRound);
+          }
+        });
       }
     } else {
       _wrong = idx;
@@ -200,6 +212,7 @@ class _KindnessMatchGameState extends State<KindnessMatchGame> with _Emit {
                     child: _KindOption(
                       text: _options[i],
                       wrong: _wrong == i,
+                      correct: _correct == i,
                       onTap: () => _pick(_options[i], i),
                     ),
                   ),
@@ -214,9 +227,10 @@ class _KindnessMatchGameState extends State<KindnessMatchGame> with _Emit {
 }
 
 class _KindOption extends StatelessWidget {
-  const _KindOption({required this.text, required this.wrong, required this.onTap});
+  const _KindOption({required this.text, required this.wrong, required this.correct, required this.onTap});
   final String text;
   final bool wrong;
+  final bool correct;
   final VoidCallback onTap;
 
   @override
@@ -237,7 +251,11 @@ class _KindOption extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 18),
           decoration: BoxDecoration(
-            color: wrong ? const Color(0xFFE23B3B) : Colors.white12,
+            color: wrong
+                ? const Color(0xFFE23B3B)
+                : correct
+                    ? const Color(0xFF80ED99)
+                    : Colors.white12,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: Colors.white24, width: 2),
           ),
