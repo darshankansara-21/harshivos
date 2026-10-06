@@ -32,6 +32,7 @@ class _ToneMatchGameState extends State<ToneMatchGame>
   double _hideT = 0;
   int _score = 0; // pairs found
   int _best = 0;
+  bool _beatBest = false;
   String? _banner;
   GameStatus _status = GameStatus.ready;
   // A found pair only ever recoloured the two bells — every other grid
@@ -128,9 +129,21 @@ class _ToneMatchGameState extends State<ToneMatchGame>
           _burst(_cellCenter(b, _lastSize!.width, _lastSize!.height), color);
         }
         _banner = _matchPool[_rnd.nextInt(_matchPool.length)];
+        // A long streak of lucky first-tries can beat the previous pair
+        // count before the final pair is even found — surface that as a
+        // genuine personal best, matching the pattern every other
+        // variable-scoring game in the catalog already uses, instead of
+        // leaving `_best` to silently update with no celebration at all.
+        final crossedBest = _score > _best && !_beatBest && _best > 0;
         GameScores.instance.submit(_id, _score).then((v) {
           if (mounted) setState(() => _best = v);
         });
+        if (crossedBest) {
+          _beatBest = true;
+          _banner = 'New personal best! 🏆';
+          TonePlayer.instance.playCue(SoundCue.milestone);
+          emit(ExperienceEvent.personalBest);
+        }
         if (_matched.length >= _tones.length) {
           _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
           _status = GameStatus.won;
@@ -155,6 +168,7 @@ class _ToneMatchGameState extends State<ToneMatchGame>
   void _reset() {
     setState(() {
       _banner = null;
+      _beatBest = false;
       _deal();
       _status = GameStatus.playing;
     });

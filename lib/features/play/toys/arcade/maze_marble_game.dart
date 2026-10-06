@@ -55,6 +55,7 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
   int _level = 1;
   int _score = 0;
   int _best = 0;
+  bool _beatBest = false;
   String? _banner;
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
@@ -220,9 +221,22 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
     }
     TonePlayer.instance.playCue(SoundCue.success);
     emit(ExperienceEvent.bubblePopped);
+    // A steady run of boards cleared with no mishaps can beat the previous
+    // best board count before the final target board — surface that as a
+    // genuine personal best, matching the pattern every other
+    // variable-scoring game in the catalog already uses, instead of leaving
+    // `_best` to silently update with no celebration at all.
+    final crossedBest = _score > _best && !_beatBest && _best > 0;
     GameScores.instance.submit(_id, _score).then((b) {
       if (mounted) setState(() => _best = b);
     });
+    if (crossedBest) {
+      _beatBest = true;
+      _banner = 'New personal best! 🏆';
+      _bannerT = 1.2;
+      TonePlayer.instance.playCue(SoundCue.milestone);
+      emit(ExperienceEvent.personalBest);
+    }
     if (_score >= _target) {
       _status = GameStatus.won;
       _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
@@ -230,8 +244,10 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
       emit(ExperienceEvent.gameCompleted);
     } else {
       _level++;
-      _banner = 'Through! Board $_level';
-      _bannerT = 1.2;
+      if (!crossedBest) {
+        _banner = 'Through! Board $_level';
+        _bannerT = 1.2;
+      }
       _buildLevel();
     }
   }
@@ -242,6 +258,7 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
       _score = 0;
       _banner = null;
       _bannerT = 0;
+      _beatBest = false;
       _bits.clear();
       _buildLevel();
       _status = GameStatus.playing;
