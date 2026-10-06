@@ -756,9 +756,18 @@ class ColorQuestGame extends StatelessWidget {
           'Color Quest complete!', 'Color champion!', 'Rainbow master!', 'Great colors!',
         ],
         buildRound: (round, random) {
+          // Flat 4-of-6 choices every round of every playthrough gave round 1
+          // and round 8 the exact same odds — a genuine difficulty-curve gap
+          // (the same class already fixed catalog-wide: kindness_match's
+          // 3->4 distractor growth, sorting_train's 3->6 wagon growth).
+          // Grows the choice set from 3 up to the full 6-colour pool as the
+          // round count climbs toward the 8-correct target, narrowing the
+          // odds of a lucky guess without changing the colours/names shown.
+          final optionCount =
+              (3 + round ~/ 3).clamp(3, _colors.length);
           final choices = List<String>.of(_colors)..shuffle(random);
-          final options = choices.take(4).toList();
-          final answer = random.nextInt(4);
+          final options = choices.take(optionCount).toList();
+          final answer = random.nextInt(optionCount);
           return _ChoiceRound('Tap ${options[answer]}', options, answer,
               colors: <Color>[for (final o in options) _swatch[o]!]);
         },
@@ -784,9 +793,14 @@ class ShapeScoutGame extends StatelessWidget {
           'Shape Scout champion!', 'Shape master!', 'Great matching!', 'Sharp eyes!',
         ],
         buildRound: (round, random) {
+          // Same flat-4-choices difficulty-curve gap fixed in ColorQuestGame
+          // above — grows from 3 up to the full 8-shape pool as the round
+          // count climbs toward the 8-correct target.
+          final optionCount =
+              (3 + round ~/ 3).clamp(3, _shapes.length);
           final choices = List<String>.of(_shapes)..shuffle(random);
-          final options = choices.take(4).toList();
-          final answer = random.nextInt(4);
+          final options = choices.take(optionCount).toList();
+          final answer = random.nextInt(optionCount);
           return _ChoiceRound('Match  ${options[answer]}', options, answer);
         },
       );
