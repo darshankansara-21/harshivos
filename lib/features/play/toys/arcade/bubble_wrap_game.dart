@@ -138,8 +138,12 @@ class _BubbleWrapGameState extends State<BubbleWrapGame>
       target: _sheet,
       status: _status,
       banner: _banner ?? 'Popped $_sheetPopped/$_sheet · total $_total',
-      winEmoji: '🫧',
-      winText: 'So satisfying!',
+      // Bubble Wrap is deliberately no-fail: sheets refill forever and
+      // `_status` never becomes `GameStatus.won` (see the intro's "no rush,
+      // no fail"), so the shell's win screen can never actually show —
+      // `winEmoji`/`winText` here were dead code that would never render.
+      // The sheet-clear moment is already celebrated honestly via the
+      // `_flash('Sheet clear! 🎉 …')` banner above instead.
       accent: const Color(0xFF5FB2E6),
       onPlayAgain: _reset,
       child: LayoutBuilder(
