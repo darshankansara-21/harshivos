@@ -35,6 +35,20 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
   // faster to watch — and harder to track — than round 1's, not just longer.
   double _showDur = 0.5;
   double _gapDur = 0.18;
+
+  // Every correctly echoed round used to flash the identical "Nice echo!" —
+  // up to seven times in a single winning run — reading as flat/robotic well
+  // before the run ends, the same "child delight" gap already fixed in
+  // sky_hop's per-clear banner. A small random phrase pool keeps every
+  // correct round feeling freshly celebrated without changing scoring,
+  // timing, or difficulty at all.
+  static const List<String> _echoPraise = <String>[
+    'Nice echo!',
+    'Great memory!',
+    'Spot on!',
+    'Right on beat!',
+    'You got it!',
+  ];
   int _inputIdx = 0;
   int _lit = -1;
   double _flashT = 0;
@@ -139,7 +153,7 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
         } else {
           TonePlayer.instance.playCue(SoundCue.success);
           emit(ExperienceEvent.bubblePopped);
-          _banner = 'Nice echo!';
+          _banner = _echoPraise[_rnd.nextInt(_echoPraise.length)];
           GameScores.instance.submit(_id, _score).then((b) {
             if (mounted) setState(() => _best = b);
           });
