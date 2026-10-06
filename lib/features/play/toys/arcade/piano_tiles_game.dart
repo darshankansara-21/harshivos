@@ -18,10 +18,22 @@ class _PianoTilesGameState extends State<PianoTilesGame>
   static const String _id = 'piano_tiles';
   static const int _cols = 4;
   static const double _gap = 0.26;
-  // A gentle pentatonic motif — tapping tiles in time plays a real little tune.
-  static const List<int> _melody = <int>[
-    0, 2, 4, 7, 4, 2, 0, 2, 4, 5, 7, 9, 7, 5, 4, 2
+  // Four gentle pentatonic motifs — tapping tiles in time plays a real
+  // little tune. Piano Tiles is the Phase-5 "immediate-interaction
+  // benchmark" game and the one every other audited lens treated as fully
+  // exhausted, but it only ever drew from a single fixed 16-note loop: a
+  // replaying child heard the literal identical tune, forever, every single
+  // playthrough. A small pool picked once per run (same pattern as the
+  // star_path/trace_it constellation/shape pool fixes) keeps the melody
+  // feeling freshly composed without touching tile speed, spacing, or the
+  // hit-test mechanic at all.
+  static const List<List<int>> _melodyPool = <List<int>>[
+    <int>[0, 2, 4, 7, 4, 2, 0, 2, 4, 5, 7, 9, 7, 5, 4, 2],
+    <int>[0, 2, 4, 5, 4, 2, 0, 4, 7, 9, 7, 4, 2, 4, 5, 7],
+    <int>[2, 4, 5, 7, 9, 7, 5, 4, 2, 0, 2, 4, 5, 4, 2, 0],
+    <int>[0, 4, 2, 5, 4, 7, 5, 9, 7, 4, 5, 2, 4, 0, 2, 4],
   ];
+  List<int> _melody = _melodyPool[0];
   final math.Random _rnd = math.Random();
   final List<_PRow> _rows = <_PRow>[];
   int _mPos = 0;
@@ -54,6 +66,7 @@ class _PianoTilesGameState extends State<PianoTilesGame>
   @override
   void initState() {
     super.initState();
+    _melody = _melodyPool[_rnd.nextInt(_melodyPool.length)];
     for (var i = 0; i < 4; i++) {
       _rows.add(_spawnRow(-0.05 - i * _gap));
     }
@@ -161,6 +174,7 @@ class _PianoTilesGameState extends State<PianoTilesGame>
       _score = 0;
       _lastCol = -1;
       _mPos = 0;
+      _melody = _melodyPool[_rnd.nextInt(_melodyPool.length)];
       _flashCol = -1;
       _flashT = 0;
       _flashWrong = false;
