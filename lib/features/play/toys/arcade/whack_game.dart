@@ -62,6 +62,19 @@ class _WhackGameState extends State<WhackGame>
   // worth its own banner — not just the eventual win/over screen.
   bool _beatBest = false;
 
+  // Same "flat-forever difficulty never fed by career `_best`" bug class
+  // already fixed in air_hockey/goal_keeper/snake/racing (batches 395-396):
+  // every single replay opened at the identical round-1/dangerLevel-0 mole
+  // pace regardless of how many times this child has already mastered that
+  // exact opener. A small, capped nudge — never reaching the in-run max
+  // dangerLevel of 3 — keeps a seasoned player's opener a bit livelier
+  // without ever starting as hard as the late-game ramp.
+  int get _careerDangerRamp {
+    if (_best >= 30) return 2;
+    if (_best >= 15) return 1;
+    return 0;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -235,7 +248,7 @@ class _WhackGameState extends State<WhackGame>
       _lives = 3;
       _round = 1;
       _roundTarget = 10;
-      _dangerLevel = 0;
+      _dangerLevel = _careerDangerRamp;
       _beatBest = false;
       _banner = 'Whack 35 points to win!';
       _bannerT = 1.4;
