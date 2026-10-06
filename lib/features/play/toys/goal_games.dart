@@ -482,6 +482,18 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> with _GoalEmit {
   int _wrong = 0;
   int _streak = 0;
   int _wrongIndex = -1;
+  // `_score`/`_best` both cap flat at `_target` the moment a run is won (the
+  // same "stat that can never move" shape as counting_baskets/count_pop),
+  // so they can't carry a skill signal across playthroughs — but this
+  // family's own `buildRound` closures already scale distractor count with
+  // `round`, so a persistent "how many times has this child beaten this
+  // game before" counter can genuinely raise the OPENING round's challenge
+  // too. Unlike the capped `_best`, a times-won tally only ever grows, so it
+  // mirrors the career-skill-ramp lens already applied catalog-wide
+  // (whack's opener, snake's rival pace, path_finder's step) — a child who
+  // has already solved Color Quest/Shape Scout/Number Splash a dozen times
+  // no longer faces the exact same easy round 1 as their very first try.
+  int _timesWon = 0;
   DateTime _shownAt = DateTime.now();
   String? _message;
   String? _winPraise;
@@ -490,14 +502,24 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> with _GoalEmit {
 
   int get _stars => _wrong == 0 ? 3 : (_wrong <= 2 ? 2 : 1);
 
+  // Capped well short of overwhelming: at most 6 "virtual rounds" of head
+  // start, reached only after ~12 completions, so a veteran player still
+  // starts with a genuinely playable (if less trivial) first round.
+  int get _experienceRamp => (_timesWon ~/ 2).clamp(0, 6);
+
   @override
   void initState() {
     super.initState();
+    GameScores.instance.ensureLoaded().then((_) {
+      if (!mounted) return;
+      setState(() {
+        _best = GameScores.instance.best(widget.id);
+        _timesWon = GameScores.instance.best('${widget.id}_times');
+        _round = widget.buildRound(_roundNumber + _experienceRamp, _random);
+      });
+    });
     _round = widget.buildRound(_roundNumber, _random);
     _shownAt = DateTime.now();
-    GameScores.instance.ensureLoaded().then((_) {
-      if (mounted) setState(() => _best = GameScores.instance.best(widget.id));
-    });
   }
 
   void _choose(int index) {
@@ -544,7 +566,7 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> with _GoalEmit {
         _status = GameStatus.won;
         TonePlayer.instance.playCue(SoundCue.success);
       } else {
-        _round = widget.buildRound(_roundNumber, _random);
+        _round = widget.buildRound(_roundNumber + _experienceRamp, _random);
         _shownAt = DateTime.now();
       }
     });
@@ -554,6 +576,16 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> with _GoalEmit {
     GameScores.instance.submit(widget.id, _score).then((best) {
       if (mounted && best != _best) setState(() => _best = best);
     });
+    if (_status == GameStatus.won) {
+      // Grows every completed run, never capped by `_target` the way
+      // `_score`/`_best` are — the real "has this child played this before"
+      // signal `_experienceRamp` above reads back.
+      GameScores.instance
+          .submit('${widget.id}_times', _timesWon + 1)
+          .then((v) {
+        if (mounted) setState(() => _timesWon = v);
+      });
+    }
   }
 
   void _reset() {
@@ -565,7 +597,7 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> with _GoalEmit {
       _wrongIndex = -1;
       _message = null;
       _status = GameStatus.playing;
-      _round = widget.buildRound(_roundNumber, _random);
+      _round = widget.buildRound(_roundNumber + _experienceRamp, _random);
       _shownAt = DateTime.now();
     });
   }
