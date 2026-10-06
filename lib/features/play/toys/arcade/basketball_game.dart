@@ -49,6 +49,7 @@ class _BasketballGameState extends State<BasketballGame>
   int _shots = 0;
   int _streak = 0;
   int _best = 0;
+  bool _beatBest = false;
   String? _banner;
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
@@ -208,9 +209,20 @@ class _BasketballGameState extends State<BasketballGame>
     // score 4/8 thresholds — a smooth ramp from the first wobble to full
     // speed feels fair rather than a sudden jolt right after a basket.
     _hoopSpeed = _score < 4 ? 0 : (0.22 * (_score - 4) / (_target - 1)).clamp(0.0, 0.22);
+    // A child who wins right after this basket still deserves the
+    // companion's loudest celebration if it's a genuine all-time record,
+    // not just the routine swish chime — every other scoring game in the
+    // catalog already fires this mid-run "beat your best" moment.
+    final crossedBest = _score > _best && !_beatBest && _best > 0;
     GameScores.instance.submit(_id, _score).then((b) {
       if (mounted) setState(() => _best = b);
     });
+    if (crossedBest) {
+      _beatBest = true;
+      _flash('New personal best! 🏆');
+      TonePlayer.instance.playCue(SoundCue.milestone);
+      emit(ExperienceEvent.personalBest);
+    }
     if (_score >= _target) {
       _status = GameStatus.won;
       _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
@@ -264,6 +276,7 @@ class _BasketballGameState extends State<BasketballGame>
       _score = 0;
       _shots = 0;
       _streak = 0;
+      _beatBest = false;
       _hoopX = 0.5;
       _hoopSpeed = 0;
       _hoopDir = 1;
