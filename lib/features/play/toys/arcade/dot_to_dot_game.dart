@@ -93,7 +93,15 @@ class _DotToDotGameState extends State<DotToDotGame>
     if (_status != GameStatus.playing || _next >= _dots.length) return;
     final nx = p.dx / w, ny = p.dy / h;
     final target = _dots[_next];
-    if ((target.dx - nx).abs() < 0.08 && (target.dy - ny).abs() < 0.08) {
+    // Compare in true pixel space (both diffs scaled back to real on-screen
+    // distance), not raw normalized units — a 0.08-of-width-AND-0.08-of-height
+    // box is a square in normalized space but a rectangle stretched taller
+    // on a typical portrait phone, mismatching the isotropic fixed-pixel-
+    // radius circle _DotPainter actually draws. Same bug class already
+    // fixed in mini_golf/air_hockey/star_path's circular hit tests.
+    final hitPx = 0.08 * w;
+    if (((target.dx - nx) * w).abs() < hitPx &&
+        ((target.dy - ny) * h).abs() < hitPx) {
       _next++;
       TonePlayer.instance.playNote(2 + _next, seconds: 0.14);
       if (_next >= _dots.length) {
@@ -131,7 +139,7 @@ class _DotToDotGameState extends State<DotToDotGame>
     for (var i = 0; i < _dots.length; i++) {
       if (i == _next) continue;
       final d = _dots[i];
-      if ((d.dx - nx).abs() < 0.08 && (d.dy - ny).abs() < 0.08) {
+      if (((d.dx - nx) * w).abs() < hitPx && ((d.dy - ny) * h).abs() < hitPx) {
         _wrongDot = i;
         _wrongFlashT = 0.3;
         TonePlayer.instance.playCue(SoundCue.gentleRetry);
