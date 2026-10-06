@@ -181,6 +181,12 @@ class _OddOneOutGameState extends State<OddOneOutGame>
         _bannerT = 1.3;
         TonePlayer.instance.playCue(SoundCue.milestone);
         emit(ExperienceEvent.personalBest);
+        // Layer a gold milestone burst onto the correct-tap burst above —
+        // every other beat-your-best moment in the catalog (slide_puzzle,
+        // jigsaw_four, merge) gets its own distinctly-coloured celebration,
+        // not just the routine correct-tap one re-used silently.
+        _burst((gx + 0.5) / _cols, 0.14 + (gy + 0.5) / _cols * 0.82,
+            const Color(0xFFFFD166));
       }
       if (_score >= _target) {
         _status = GameStatus.won;

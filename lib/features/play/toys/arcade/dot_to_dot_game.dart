@@ -147,6 +147,16 @@ class _DotToDotGameState extends State<DotToDotGame>
           _bannerT = 1.2;
           TonePlayer.instance.playCue(SoundCue.milestone);
           emit(ExperienceEvent.personalBest);
+          // Layer a distinctly-coloured milestone burst onto the picture-
+          // complete gold burst above, the same personal-best celebration
+          // every other beat-your-best moment in the catalog gets.
+          final n2 = _reduceMotion ? 5 : 18;
+          for (var i = 0; i < n2; i++) {
+            final a = _rnd.nextDouble() * math.pi * 2;
+            final sp = 0.15 + _rnd.nextDouble() * 0.4;
+            _bits.add(_Shard(0.5, 0.42, math.cos(a) * sp, math.sin(a) * sp,
+                const Color(0xFF4CC9F0)));
+          }
         }
         if (_score >= _target) {
           _status = GameStatus.won;
@@ -164,6 +174,13 @@ class _DotToDotGameState extends State<DotToDotGame>
           if (beatWrongTaps) {
             TonePlayer.instance.playCue(SoundCue.milestone);
             emit(ExperienceEvent.personalBest);
+            final n3 = _reduceMotion ? 5 : 18;
+            for (var i = 0; i < n3; i++) {
+              final a = _rnd.nextDouble() * math.pi * 2;
+              final sp = 0.15 + _rnd.nextDouble() * 0.4;
+              _bits.add(_Shard(0.5, 0.42, math.cos(a) * sp, math.sin(a) * sp,
+                  const Color(0xFF4CC9F0)));
+            }
           }
           TonePlayer.instance.playCue(SoundCue.success);
           emit(ExperienceEvent.gameCompleted);

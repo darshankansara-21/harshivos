@@ -145,6 +145,10 @@ class _ShadowMatchGameState extends State<ShadowMatchGame>
         _bannerT = 1.3;
         TonePlayer.instance.playCue(SoundCue.milestone);
         emit(ExperienceEvent.personalBest);
+        // Layer a gold milestone burst onto the correct-match burst above,
+        // the same distinctly-coloured personal-best celebration every
+        // other beat-your-best moment in the catalog gets.
+        _burst((idx + 0.5) / n, 0.72, const Color(0xFFFFD166));
       }
       if (_score >= _target) {
         _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
