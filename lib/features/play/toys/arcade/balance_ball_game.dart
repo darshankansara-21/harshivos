@@ -166,7 +166,31 @@ class _BalanceBallGameState extends State<BalanceBallGame>
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth;
-          return GestureDetector(
+          // Unlike every other drag-to-steer game in the catalog
+          // (maze_run's slide actions, pinball's flip/launch bridge), this
+          // whole-screen drag-to-tilt surface had zero Semantics anywhere —
+          // a screen-reader user had no way to even discover the beam was
+          // interactive. "Tilt left/right" nudge the beam exactly like a
+          // finger holding one side, and "Release" mirrors lifting the
+          // finger (onPanEnd) so the beam can settle back toward level.
+          return Semantics(
+            label: 'Balance beam. Ball position ${_s <= -0.15 ? 'left of centre' : _s >= 0.15 ? 'right of centre' : 'centred'}. '
+                'Use Tilt left, Tilt right and Release to keep the ball on the beam.',
+            customSemanticsActions: <CustomSemanticsAction, VoidCallback>{
+              const CustomSemanticsAction(label: 'Tilt left'): () =>
+                  setState(() {
+                    _dragging = true;
+                    _tilt = (_tilt - 0.15).clamp(-0.5, 0.5);
+                  }),
+              const CustomSemanticsAction(label: 'Tilt right'): () =>
+                  setState(() {
+                    _dragging = true;
+                    _tilt = (_tilt + 0.15).clamp(-0.5, 0.5);
+                  }),
+              const CustomSemanticsAction(label: 'Release'): () =>
+                  setState(() => _dragging = false),
+            },
+            child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onPanStart: (d) {
               _dragging = true;
@@ -186,6 +210,7 @@ class _BalanceBallGameState extends State<BalanceBallGame>
             child: CustomPaint(
               painter: _BalanceBallPainter(beam: _beam, s: _s),
               size: Size.infinite,
+            ),
             ),
           );
         },
