@@ -252,6 +252,25 @@ class _RipplePainter extends CustomPainter {
           colors: <Color>[Color(0xFF013A63), Color(0xFF01497C), Color(0xFF014F86)],
         ).createShader(Offset.zero & size),
     );
+    // Unlike this file's sibling BubblePopToy (an ever-present stream of
+    // rising bubbles gives automatic first-3-seconds visual feedback) and
+    // the other blank-canvas toys that already show a fading hint until the
+    // first touch (PaintWithLightToy, FireworksToy, CarTrackBuilderToy),
+    // this toy is purely reactive with no fallback: a child who hasn't
+    // tapped yet sees only an unchanging blue gradient with no clue it
+    // responds to touch at all. Show the same onboarding hint pattern until
+    // the first ripple is dropped.
+    if (ripples.isEmpty) {
+      final tp = TextPainter(
+        text: const TextSpan(
+          text: 'Tap or drag to make ripples 💧',
+          style: TextStyle(color: Colors.white70, fontSize: 20, fontWeight: FontWeight.w600),
+        ),
+        textDirection: TextDirection.ltr,
+        textAlign: TextAlign.center,
+      )..layout(maxWidth: size.width - 40);
+      tp.paint(canvas, Offset((size.width - tp.width) / 2, (size.height - tp.height) / 2));
+    }
     for (final r in ripples) {
       final color = rainbow(r.hue, s: 0.4, v: 1).withOpacity(r.life.clamp(0.0, 1.0) * 0.8);
       for (var i = 0; i < 3; i++) {
