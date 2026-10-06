@@ -19,6 +19,12 @@ class _BalloonBounceGameState extends State<BalloonBounceGame>
   double _x = 0.5, _y = 0.4, _vx = 0.1, _vy = 0;
   int _score = 0, _best = 0;
   double _squash = 0;
+  // Tracks whether the near-floor warning cue has already fired for the
+  // current descent, same pattern as balance_ball/steady_hand's
+  // `_edgeWarned`. A sighted child can see the balloon sinking toward the
+  // floor and tap in time; a blind/low-vision child had zero signal of that
+  // until the sudden, unavoidable game-over cue on floor touch itself.
+  bool _floorWarned = false;
   Color _color = const Color(0xFFFF5DA2);
   String? _banner;
   GameStatus _status = GameStatus.ready;
@@ -61,6 +67,18 @@ class _BalloonBounceGameState extends State<BalloonBounceGame>
       _y = _r;
       _vy = _vy.abs() * 0.5;
     }
+    // Fire a one-shot warning as the balloon sinks into the danger zone,
+    // well before the actual floor-touch loss, so there is real time to
+    // react; re-arm once it rises back to safety so a later descent warns
+    // again too.
+    if (_y > 0.8) {
+      if (!_floorWarned) {
+        _floorWarned = true;
+        TonePlayer.instance.playCue(SoundCue.wood);
+      }
+    } else if (_y < 0.6) {
+      _floorWarned = false;
+    }
     if (_y > 1 - _r * 0.4) {
       // The balloon touching the floor ends the round — it must not be
       // silent; play a distinct game-over cue, same as every other game's
@@ -79,6 +97,7 @@ class _BalloonBounceGameState extends State<BalloonBounceGame>
       _vx += (_x - nx) * 1.6; // bop away from the finger
       _vx = _vx.clamp(-0.6, 0.6);
       _squash = 0.3;
+      _floorWarned = false;
       _score++;
       TonePlayer.instance.playCue(SoundCue.balloon);
       emit(ExperienceEvent.bubblePopped);
@@ -99,6 +118,7 @@ class _BalloonBounceGameState extends State<BalloonBounceGame>
     setState(() {
       _score = 0;
       _banner = null;
+      _floorWarned = false;
       _launch();
       _status = GameStatus.playing;
     });
@@ -113,6 +133,7 @@ class _BalloonBounceGameState extends State<BalloonBounceGame>
           'Tap the balloon to bop it up before it reaches the floor. Keep it '
           'up for twenty bounces to win!',
       onStart: () => setState(() {
+        _floorWarned = false;
         _launch();
         _status = GameStatus.playing;
       }),
