@@ -27,6 +27,15 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
   int _best = 0;
   bool _beatBest = false;
   final math.Random _rnd = math.Random();
+  // Every run always opened on `_paths[0]` (the widest 0.08 corridor)
+  // regardless of career `_best` — the same "flat-forever opening
+  // difficulty never fed by career `_best`" bug class already closed in
+  // maze_marble/maze_run/ball_sort. `_best` tops out at `_target` (3) the
+  // moment a run is won, so a proven player who has already cleared all
+  // three paths once gets a small, capped head start onto the second
+  // (narrower) path instead of re-walking the easiest one forever; a
+  // first-time/low-`_best` child still opens on the original easy path 0.
+  int get _careerLevelRamp => (_best ~/ _target).clamp(0, 1);
   static const List<String> _winPraisePool = <String>[
     'So steady!', 'Rock steady!', 'Calm hands!', 'Precision master!',
   ];
@@ -207,7 +216,7 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
 
   void _reset() {
     setState(() {
-      _level = 0;
+      _level = _careerLevelRamp;
       _score = 0;
       _lives = 3;
       _beatBest = false;
@@ -228,6 +237,7 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
           'without touching the walls. Three paths to win! Touching a wall '
           'costs one of your 3 lives.',
       onStart: () => setState(() {
+        _level = _careerLevelRamp;
         _startLevel();
         _status = GameStatus.playing;
       }),
