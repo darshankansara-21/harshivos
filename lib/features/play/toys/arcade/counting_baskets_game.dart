@@ -40,6 +40,12 @@ class _CountingBasketsGameState extends State<CountingBasketsGame> with _Emit {
   // selects it, then a tap on the basket collects it via the same _collect
   // path a successful sighted drag uses.
   int? _selected;
+  // The painter's "peeking out of the basket" preview used to always draw a
+  // hardcoded apple regardless of which fruit was actually dragged in — a
+  // child collecting bananas or grapes saw apples poking out instead. Track
+  // the real emoji of each collected fruit, in order, so the peek always
+  // matches what was actually put in the basket.
+  final List<String> _collectedEmojis = <String>[];
   String? _banner;
   GameStatus _status = GameStatus.ready;
 
@@ -61,6 +67,7 @@ class _CountingBasketsGameState extends State<CountingBasketsGame> with _Emit {
     _inBasket = 0;
     _selected = null;
     _fruits.clear();
+    _collectedEmojis.clear();
     final count = _need + 2;
     for (var i = 0; i < count; i++) {
       _fruits.add(_Fruit(
@@ -92,6 +99,7 @@ class _CountingBasketsGameState extends State<CountingBasketsGame> with _Emit {
   void _collect(_Fruit f) {
     f.collected = true;
     _inBasket++;
+    _collectedEmojis.add(f.emoji);
     TonePlayer.instance.playCue(SoundCue.fruit);
     if (_inBasket >= _need) {
       _score++;
@@ -200,7 +208,11 @@ class _CountingBasketsGameState extends State<CountingBasketsGame> with _Emit {
               }
             },
             child: CustomPaint(
-              painter: _FruitBasketPainter(fruits: _fruits, need: _need, inBasket: _inBasket),
+              painter: _FruitBasketPainter(
+                fruits: _fruits,
+                need: _need,
+                inBasket: _inBasket,
+                collectedEmojis: _collectedEmojis),
               size: Size.infinite,
             ),
           );
@@ -256,9 +268,14 @@ class _CountingBasketsGameState extends State<CountingBasketsGame> with _Emit {
 }
 
 class _FruitBasketPainter extends CustomPainter {
-  _FruitBasketPainter({required this.fruits, required this.need, required this.inBasket});
+  _FruitBasketPainter(
+      {required this.fruits,
+      required this.need,
+      required this.inBasket,
+      required this.collectedEmojis});
   final List<_Fruit> fruits;
   final int need, inBasket;
+  final List<String> collectedEmojis;
 
   void _emoji(Canvas canvas, String s, Offset c, double size) {
     final tp = TextPainter(
@@ -307,10 +324,13 @@ class _FruitBasketPainter extends CustomPainter {
     // Big target number on the basket.
     _emoji(canvas, '$need', Offset(bx, by), 44);
 
-    // Collected fruits peeking out of the basket.
+    // Collected fruits peeking out of the basket — each drawn with its own
+    // real emoji (the fruit the child actually dragged in), not a fixed
+    // apple regardless of what was collected.
     for (var i = 0; i < inBasket; i++) {
       final a = (i / math.max(1, need)) * 1.4 - 0.7;
-      _emoji(canvas, '🍎', Offset(bx + a * bw * 0.4, by - bh / 2 - 6), 20);
+      final emoji = i < collectedEmojis.length ? collectedEmojis[i] : '🍎';
+      _emoji(canvas, emoji, Offset(bx + a * bw * 0.4, by - bh / 2 - 6), 20);
     }
 
     // Loose fruits.
