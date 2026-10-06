@@ -1275,6 +1275,16 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
     _keeperTargetX = (localX / width).clamp(_kMin, _kMax);
   }
 
+  // Screen-reader bridge: dives straight to the shot's real target x, the
+  // same number the sighted `aimHint` overlay already reveals for the first
+  // three saves. The keeper still eases toward it at the same speed as a
+  // sighted drag (see `onTick`'s lerp), so this is a faithful stand-in for
+  // "slide under the ball" rather than an auto-win.
+  void _diveToTarget() {
+    if (_status != GameStatus.playing) return;
+    _keeperTargetX = _ballTargetX.clamp(_kMin, _kMax);
+  }
+
   void _reset() => setState(() {
         _status = GameStatus.playing;
         _begin();
@@ -1308,7 +1318,12 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
       overText: 'Out of lives!',
       child: LayoutBuilder(
         builder: (context, c) {
-          return GestureDetector(
+          return Semantics(
+            button: true,
+            label: 'Saves $_score of $_target. Dive to the ball\'s path.',
+            onTap: _diveToTarget,
+            excludeSemantics: true,
+            child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTapDown: (d) => _moveTo(d.localPosition.dx, c.maxWidth),
             onPanDown: (d) => _moveTo(d.localPosition.dx, c.maxWidth),
@@ -1329,6 +1344,7 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
             ),
             // A hidden hit target keeps the old save affordance working for
             // tests and for taps near the keeper.
+            ),
           );
         },
       ),

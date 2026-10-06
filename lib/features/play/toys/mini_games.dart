@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart' show CustomSemanticsAction;
 import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -879,42 +880,65 @@ class _BalloonPopGameState extends State<BalloonPopGame>
       final bx = (b.x + math.sin(_t * 1.5 + b.sway) * 0.03) * w;
       final by = b.y * h;
       if ((px - bx).abs() < 52 && (py - by).abs() < 62) {
-        _items.removeAt(i);
-        final vx = b.x + math.sin(_t * 1.5 + b.sway) * 0.03;
-        if (b.kind == 2) {
-          _combo = 0;
-          _popBurst(vx, b.y, const Color(0xFF9AA0B5), 10);
-          TonePlayer.instance.playCue(SoundCue.gentleRetry);
-          // Same companion-silence gap fixed above for the floated-away
-          // miss: a bomb pop is a real penalty event that deserves the
-          // same emit the catalog's other non-terminal misses already get.
-          emit(ExperienceEvent.incorrectAnswer);
-          _flash(_bombPool[_rnd.nextInt(_bombPool.length)]);
-          return;
-        }
-        _combo++;
-        _score += (b.kind == 1 ? 3 : 1) + (_combo >= 4 ? 1 : 0);
-        _popBurst(vx, b.y, b.color, b.kind == 1 ? 18 : 12);
-        TonePlayer.instance.playCue(SoundCue.balloon);
-        emit(ExperienceEvent.bubblePopped);
-        if (b.kind == 1) {
-          _flash(_bonusPool[_rnd.nextInt(_bonusPool.length)]);
-        } else if (_combo >= 4) {
-          _flash('Combo x$_combo!');
-        }
-        if (!_beatBest && _best > 0 && _score > _best) {
-          _beatBest = true;
-          // Takes priority over the combo/bonus flash just set above — a
-          // new all-time record is the bigger moment of the two.
-          _banner = 'New personal best! 🏆';
-          _bannerT = 1.6;
-          TonePlayer.instance.playCue(SoundCue.milestone);
-          emit(ExperienceEvent.personalBest);
-        }
-        if (_score >= _target) _end(GameStatus.won);
+        _resolvePop(_items.removeAt(i));
         return;
       }
     }
+  }
+
+  // Screen-reader bridge for the whole-screen tap-to-pop gesture above: picks
+  // the real non-bomb balloon closest to floating off the top (smallest `y`)
+  // so the discrete action drives the exact same `_resolvePop` scoring path a
+  // sighted tap would, rather than offering no way to play at all.
+  void _popNearestSafe() {
+    if (_status != GameStatus.playing) return;
+    _Balloon? nearest;
+    var nearestIndex = -1;
+    for (var i = 0; i < _items.length; i++) {
+      final b = _items[i];
+      if (b.kind == 2) continue;
+      if (nearest == null || b.y < nearest.y) {
+        nearest = b;
+        nearestIndex = i;
+      }
+    }
+    if (nearest == null) return;
+    _resolvePop(_items.removeAt(nearestIndex));
+  }
+
+  void _resolvePop(_Balloon b) {
+    final vx = b.x + math.sin(_t * 1.5 + b.sway) * 0.03;
+    if (b.kind == 2) {
+      _combo = 0;
+      _popBurst(vx, b.y, const Color(0xFF9AA0B5), 10);
+      TonePlayer.instance.playCue(SoundCue.gentleRetry);
+      // Same companion-silence gap fixed above for the floated-away
+      // miss: a bomb pop is a real penalty event that deserves the
+      // same emit the catalog's other non-terminal misses already get.
+      emit(ExperienceEvent.incorrectAnswer);
+      _flash(_bombPool[_rnd.nextInt(_bombPool.length)]);
+      return;
+    }
+    _combo++;
+    _score += (b.kind == 1 ? 3 : 1) + (_combo >= 4 ? 1 : 0);
+    _popBurst(vx, b.y, b.color, b.kind == 1 ? 18 : 12);
+    TonePlayer.instance.playCue(SoundCue.balloon);
+    emit(ExperienceEvent.bubblePopped);
+    if (b.kind == 1) {
+      _flash(_bonusPool[_rnd.nextInt(_bonusPool.length)]);
+    } else if (_combo >= 4) {
+      _flash('Combo x$_combo!');
+    }
+    if (!_beatBest && _best > 0 && _score > _best) {
+      _beatBest = true;
+      // Takes priority over the combo/bonus flash just set above — a
+      // new all-time record is the bigger moment of the two.
+      _banner = 'New personal best! 🏆';
+      _bannerT = 1.6;
+      TonePlayer.instance.playCue(SoundCue.milestone);
+      emit(ExperienceEvent.personalBest);
+    }
+    if (_score >= _target) _end(GameStatus.won);
   }
 
   void _flash(String s) {
@@ -985,7 +1009,13 @@ class _BalloonPopGameState extends State<BalloonPopGame>
         builder: (context, c) {
           final w = c.maxWidth;
           final h = c.maxHeight;
-          return GestureDetector(
+          return Semantics(
+            button: true,
+            label: 'Balloons $_score of $_target. Pop the nearest safe '
+                'balloon, avoiding bombs.',
+            onTap: _popNearestSafe,
+            excludeSemantics: true,
+            child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTapDown: (d) =>
                 _tap(d.localPosition.dx, d.localPosition.dy, w, h),
@@ -1010,6 +1040,7 @@ class _BalloonPopGameState extends State<BalloonPopGame>
                   ),
                 ],
               ),
+            ),
             ),
           );
         },
@@ -2714,7 +2745,14 @@ class _RacingGameState extends State<RacingGame>
           // Finish line rolls into view over the final 150 m.
           final finishY =
               remaining <= 150 ? 0.08 + (1 - remaining / 150) * 0.72 : -1.0;
-          return GestureDetector(
+          return Semantics(
+            label: 'P$_place of $_fieldSize. Move left or right to change '
+                'lanes.',
+            customSemanticsActions: <CustomSemanticsAction, VoidCallback>{
+              const CustomSemanticsAction(label: 'Move left'): () => _move(-1),
+              const CustomSemanticsAction(label: 'Move right'): () => _move(1),
+            },
+            child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTapDown: (d) => _move(d.localPosition.dx < w / 2 ? -1 : 1),
             onHorizontalDragEnd: (d) =>
@@ -2768,6 +2806,7 @@ class _RacingGameState extends State<RacingGame>
                   ),
                 ),
               ],
+            ),
             ),
           );
         },
