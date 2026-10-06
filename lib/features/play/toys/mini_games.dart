@@ -441,6 +441,21 @@ class _FruitCatchGameState extends State<FruitCatchGame>
   ];
   String _winPraise = _winPraisePool[0];
   final math.Random _rnd = math.Random();
+  // The missed-fruit and bomb-catch flashes fired the exact same literal
+  // every time, up to a dozen times per playthrough — the same flat-
+  // repeated-banner gap batch 250 fixed catalog-wide across arcade/*.dart,
+  // just missed here since mini_games.dart wasn't in that sweep's grep set.
+  static const List<String> _missPool = <String>[
+    'Missed it! Combo reset', 'So close! Combo reset',
+    'Oops, slipped by! Combo reset', 'Almost! Combo reset',
+  ];
+  static const List<String> _bombPool = <String>[
+    'Oops! -2 — dodge bombs', 'Ouch! -2 — dodge bombs',
+    'Watch out! -2 — dodge bombs', 'Careful! -2 — dodge bombs',
+  ];
+  static const List<String> _bonusPool = <String>[
+    'Bonus +3!', 'Sweet bonus +3!', 'Nice find! +3', 'Juicy! +3',
+  ];
   final List<_Faller> _items = <_Faller>[];
   final List<_Particle> _splash = <_Particle>[];
   double _basketX = 0.5;
@@ -518,7 +533,7 @@ class _FruitCatchGameState extends State<FruitCatchGame>
         // combo here would cost a child a streak for a reason they never
         // saw happen.
         if (f.kind != 2 && _combo > 0) {
-          _flash('Missed it! Combo reset');
+          _flash(_missPool[_rnd.nextInt(_missPool.length)]);
           // The banner above is a purely visual setback cue — a blind or
           // low-vision child relying on audio got zero feedback that their
           // streak just broke, unlike the bomb-catch path a few lines down
@@ -556,7 +571,7 @@ class _FruitCatchGameState extends State<FruitCatchGame>
       // scoring penalty deserves the same emit(incorrectAnswer) the
       // catalog's non-terminal wrong-answer games already pair with it.
       emit(ExperienceEvent.incorrectAnswer);
-      _flash('Oops! -2 — dodge bombs');
+      _flash(_bombPool[_rnd.nextInt(_bombPool.length)]);
       return;
     }
     _combo++;
@@ -570,7 +585,7 @@ class _FruitCatchGameState extends State<FruitCatchGame>
     TonePlayer.instance.playCue(SoundCue.fruit);
     emit(ExperienceEvent.bubblePopped);
     if (f.kind == 1) {
-      _flash('Bonus +3!');
+      _flash(_bonusPool[_rnd.nextInt(_bonusPool.length)]);
     } else if (_combo >= 3) {
       _flash('Combo x$_combo!');
     }
@@ -727,6 +742,20 @@ class _BalloonPopGameState extends State<BalloonPopGame>
   ];
   String _winPraise = _winPraisePool[0];
   final math.Random _rnd = math.Random();
+  // Same flat-repeated-banner gap just fixed in fruit_catch above — these
+  // fired the exact same literal on every miss/bonus, up to a dozen times
+  // per playthrough.
+  static const List<String> _missPool = <String>[
+    'Floated away! Combo reset', 'Drifted off! Combo reset',
+    'So close! Combo reset', 'Almost! Combo reset',
+  ];
+  static const List<String> _bombPool = <String>[
+    'Oops! Avoid bombs', 'Ouch! Avoid bombs',
+    'Watch out for bombs!', 'Careful! Avoid bombs',
+  ];
+  static const List<String> _bonusPool = <String>[
+    'Bonus +3!', 'Sweet bonus +3!', 'Nice pop! +3', 'Brilliant! +3',
+  ];
   final List<_Balloon> _items = <_Balloon>[];
   final List<_Particle> _pop = <_Particle>[];
   bool _reduceMotion = false;
@@ -795,7 +824,7 @@ class _BalloonPopGameState extends State<BalloonPopGame>
         // setback message here so a reset streak is never a mystery.
         if (b.kind != 2) {
           if (_combo > 0) {
-            _flash('Floated away! Combo reset');
+            _flash(_missPool[_rnd.nextInt(_missPool.length)]);
             // Same audio-parity gap as fruit_catch's identical miss path: the
             // flash above is visual-only, so a blind/low-vision child got no
             // signal their streak just broke, unlike the bomb-pop path which
@@ -833,7 +862,7 @@ class _BalloonPopGameState extends State<BalloonPopGame>
           // miss: a bomb pop is a real penalty event that deserves the
           // same emit the catalog's other non-terminal misses already get.
           emit(ExperienceEvent.incorrectAnswer);
-          _flash('Oops! Avoid bombs');
+          _flash(_bombPool[_rnd.nextInt(_bombPool.length)]);
           return;
         }
         _combo++;
@@ -842,7 +871,7 @@ class _BalloonPopGameState extends State<BalloonPopGame>
         TonePlayer.instance.playCue(SoundCue.balloon);
         emit(ExperienceEvent.bubblePopped);
         if (b.kind == 1) {
-          _flash('Bonus +3!');
+          _flash(_bonusPool[_rnd.nextInt(_bonusPool.length)]);
         } else if (_combo >= 4) {
           _flash('Combo x$_combo!');
         }
@@ -1038,6 +1067,21 @@ class _StarTapGameState extends State<StarTapGame>
   ];
   String _winPraise = _winPraisePool[0];
   final math.Random _rnd = math.Random();
+  // Same flat-repeated-banner gap just fixed in fruit_catch/balloon_pop
+  // above — these fired the exact same literal on every miss, up to a
+  // dozen times per playthrough.
+  static const List<String> _fadePool = <String>[
+    'Star faded! Combo reset', 'Too slow! Combo reset',
+    'Missed it! Combo reset', 'So close! Combo reset',
+  ];
+  static const List<String> _decoyPool = <String>[
+    'Skip the red one!', 'That one is a decoy!',
+    'Not the red star!', 'Careful, that\u2019s a decoy!',
+  ];
+  static const List<String> _emptyMissPool = <String>[
+    'Missed! Combo reset', 'So close! Combo reset',
+    'Try the glowing star!', 'Almost! Combo reset',
+  ];
   int _active = 0;
   int _kind = 0; // 0 = normal, 1 = gold (+3), 2 = rainbow (+5, rare)
   int _decoy = -1; // a red star to avoid (-1 = none)
@@ -1113,7 +1157,7 @@ class _StarTapGameState extends State<StarTapGame>
       // balloon_pop/fruit_catch: the decoy-tap miss already flashes 'Skip
       // the red one!', so letting a combo vanish here with no message at
       // all would cost a streak for a reason a child never saw happen.
-      if (_combo > 0) _flash('Star faded! Combo reset');
+      if (_combo > 0) _flash(_fadePool[_rnd.nextInt(_fadePool.length)]);
       _combo = 0; // missed — the star faded away
       _spawnStar();
     }
@@ -1126,7 +1170,7 @@ class _StarTapGameState extends State<StarTapGame>
       if (_score > 0) _score -= 1;
       _pops.add(_StarPop(i, '-1'));
       TonePlayer.instance.playCue(SoundCue.gentleRetry);
-      _flash('Skip the red one!');
+      _flash(_decoyPool[_rnd.nextInt(_decoyPool.length)]);
       setState(() {});
       return;
     }
@@ -1167,7 +1211,7 @@ class _StarTapGameState extends State<StarTapGame>
       // the star-fade timeout above already fixed: it resets a combo with
       // only a sound cue and no banner, so a child losing a streak here
       // never saw why. Match the star-fade/decoy-tap wording pattern.
-      if (_combo > 0) _flash('Missed! Combo reset');
+      if (_combo > 0) _flash(_emptyMissPool[_rnd.nextInt(_emptyMissPool.length)]);
       _combo = 0;
       TonePlayer.instance.playCue(SoundCue.gentleRetry);
     }
@@ -1485,6 +1529,15 @@ class _SnakeGameState extends State<SnakeGame>
   ];
   String _winPraise = _winPraisePool[0];
   final math.Random _rnd = math.Random();
+  // Same flat-repeated-banner gap fixed in fruit_catch/balloon_pop/star_tap
+  // above — a rival takedown can happen many times in one run, and all
+  // reinforcement waves fired the exact same literal every time.
+  static const List<String> _rivalDownPool = <String>[
+    'Snake down! +3', 'Rival down! +3', 'Takedown! +3', 'Got one! +3',
+  ];
+  static const List<String> _rivalInPool = <String>[
+    'Rival incoming!', 'Another worm joins!', 'New rival ahead!', 'Watch out, newcomer!',
+  ];
 
   Offset _head = Offset.zero;
   double _angle = 0;
@@ -1613,7 +1666,7 @@ class _SnakeGameState extends State<SnakeGame>
         _score >= _aiReinforceScores[_aiReinforcementsSpawned]) {
       _ai.add(_spawnAiWorm());
       _aiReinforcementsSpawned++;
-      _flash('Rival incoming!');
+      _flash(_rivalInPool[_rnd.nextInt(_rivalInPool.length)]);
     }
 
     // Steer toward the target heading with a capped turn rate.
@@ -1713,7 +1766,7 @@ class _SnakeGameState extends State<SnakeGame>
         _ai.removeAt(wi);
         _ai.add(_spawnAiWorm());
         _score += 3;
-        _flash('Snake down! +3');
+        _flash(_rivalDownPool[_rnd.nextInt(_rivalDownPool.length)]);
         TonePlayer.instance.playCue(SoundCue.success);
         // A rival going down is a great mid-run moment, not the actual end
         // of the game — _finish (below) already fires the full "You did
