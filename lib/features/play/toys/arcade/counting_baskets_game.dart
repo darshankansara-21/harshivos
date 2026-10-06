@@ -34,6 +34,20 @@ class _CountingBasketsGameState extends State<CountingBasketsGame> with _Emit {
   int _inBasket = 0;
   int _score = 0;
   int _best = 0;
+  // `_score` (baskets filled) always tops out at `_target` the moment the
+  // round is actually won, so `_best` goes permanently static at 10 after the
+  // first completed run — it can never again reflect a genuinely better run,
+  // the same "stat that can never move" bug class already fixed in
+  // mini_golf/jigsaw_four/basketball/color_mixer. Every successful drag
+  // collects regardless of count, so there is no "extra fruit" overshoot to
+  // track — but a dragged fruit released outside the basket mouth is a real,
+  // avoidable mistake. Track misses across the whole ten-basket run as a
+  // separate, lower-is-better personal best via `GameScores.submitLow`:
+  // zero misses across all ten baskets is a genuinely tighter, more
+  // skillful run.
+  static const String _missesId = '${_id}_misses';
+  int _runMisses = 0;
+  int _bestMisses = 0;
   int? _dragging;
   // Screen-reader-only selection: a blind child cannot perform the pixel
   // precision drag the sighted gesture relies on, so a tap on a fruit
@@ -53,7 +67,12 @@ class _CountingBasketsGameState extends State<CountingBasketsGame> with _Emit {
   void initState() {
     super.initState();
     GameScores.instance.ensureLoaded().then((_) {
-      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+      if (mounted) {
+        setState(() {
+          _best = GameScores.instance.best(_id);
+          _bestMisses = GameScores.instance.bestLow(_missesId);
+        });
+      }
     });
   }
 
@@ -111,6 +130,19 @@ class _CountingBasketsGameState extends State<CountingBasketsGame> with _Emit {
       if (_score >= _target) {
         _status = GameStatus.won;
         _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
+        // A full ten-basket run that genuinely beats the fewest-misses
+        // record is the real "did you count better" moment this stat is
+        // for — give it the same milestone chime + companion celebration
+        // every other beat-your-best moment in the catalog gets, layered
+        // onto (not replacing) the win fanfare.
+        final beatMisses = _bestMisses > 0 && _runMisses < _bestMisses;
+        GameScores.instance.submitLow(_missesId, _runMisses).then((v) {
+          if (mounted) setState(() => _bestMisses = v);
+        });
+        if (beatMisses) {
+          TonePlayer.instance.playCue(SoundCue.milestone);
+          emit(ExperienceEvent.personalBest);
+        }
         TonePlayer.instance.playCue(SoundCue.gameStart);
         emit(ExperienceEvent.gameCompleted);
       } else {
@@ -123,6 +155,7 @@ class _CountingBasketsGameState extends State<CountingBasketsGame> with _Emit {
   void _reset() {
     setState(() {
       _score = 0;
+      _runMisses = 0;
       _banner = null;
       _newRound();
       _status = GameStatus.playing;
@@ -151,6 +184,7 @@ class _CountingBasketsGameState extends State<CountingBasketsGame> with _Emit {
           'Read the number on the basket, then drag exactly that many fruits '
           'into it. Fill ten baskets to win!',
       onStart: () => setState(() {
+        _runMisses = 0;
         _newRound();
         _status = GameStatus.playing;
       }),
@@ -163,7 +197,10 @@ class _CountingBasketsGameState extends State<CountingBasketsGame> with _Emit {
               ? 'Put $_need in the basket  ·  $_inBasket/$_need'
               : 'Drag fruits to match the number'),
       winEmoji: '🧺',
-      winText: _winPraise,
+      winText: _bestMisses > 0 && _runMisses < _bestMisses
+          ? '$_winPraise New best run: $_runMisses misses! 🏆'
+          : '$_winPraise $_runMisses misses'
+              '${_bestMisses > 0 ? ' (best $_bestMisses)' : ''}',
       accent: const Color(0xFFF4A261),
       onPlayAgain: _reset,
       child: LayoutBuilder(
@@ -190,6 +227,11 @@ class _CountingBasketsGameState extends State<CountingBasketsGame> with _Emit {
               // Basket mouth is the lower-centre area.
               if (f.y > 0.7 && f.x > 0.28 && f.x < 0.72) {
                 setState(() => _collect(f));
+              } else if (_status == GameStatus.playing) {
+                // A fruit released outside the basket mouth is a genuine,
+                // avoidable miss — tally it toward the run's fewest-misses
+                // personal best.
+                setState(() => _runMisses++);
               }
             },
             // A cancelled pan (gesture arena interruption) never calls
@@ -205,6 +247,8 @@ class _CountingBasketsGameState extends State<CountingBasketsGame> with _Emit {
               final f = _fruits[i];
               if (f.y > 0.7 && f.x > 0.28 && f.x < 0.72) {
                 setState(() => _collect(f));
+              } else if (_status == GameStatus.playing) {
+                setState(() => _runMisses++);
               }
             },
             child: CustomPaint(
