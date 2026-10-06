@@ -59,6 +59,12 @@ class _BrickBreakGameState extends State<BrickBreakGame>
   String? _banner;
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
+  // Mirrors stack_game/block_blast_game/bubble_shooter_game's live "beat your
+  // own all-time best" celebration. Brick Break has no win cap either — level
+  // ramps forever and score climbs purely with hits/combos until lives run
+  // out — so crossing a prior personal best mid-run deserves the same
+  // judgment-free moment.
+  bool _beatBest = false;
 
   static const double _paddleW = 0.24;
   static const double _ballR = 0.022;
@@ -270,6 +276,16 @@ class _BrickBreakGameState extends State<BrickBreakGame>
           TonePlayer.instance.playCue(SoundCue.ball);
         }
         emit(ExperienceEvent.bubblePopped);
+        if (_status == GameStatus.playing &&
+            !_beatBest &&
+            _best > 0 &&
+            _score > _best) {
+          _beatBest = true;
+          // Takes priority over the combo/crack banner just set above — a
+          // new all-time record is the bigger moment of the two.
+          _flash('New personal best! 🏆');
+          TonePlayer.instance.playCue(SoundCue.milestone);
+        }
         GameScores.instance.submit(_id, _score).then((b) {
           if (mounted && b != _best) setState(() => _best = b);
         });
@@ -328,6 +344,7 @@ class _BrickBreakGameState extends State<BrickBreakGame>
       _score = 0;
       _banner = null;
       _bannerT = 0;
+      _beatBest = false;
       _status = GameStatus.playing;
     });
   }

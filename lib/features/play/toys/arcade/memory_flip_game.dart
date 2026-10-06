@@ -54,6 +54,12 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
   double _previewLeft = 0;
   String? _banner;
   GameStatus _status = GameStatus.ready;
+  // Mirrors whack_game/fruit_catch_game's live "beat your own all-time best"
+  // celebration. MemoryFlipGame has a fixed _maxLevel cap, but score varies
+  // per run with streak bonuses and most runs end early on a lost life well
+  // short of the final level — the same shape as WhackGame/FruitCatchGame,
+  // where the pattern already fits despite the eventual win cap.
+  bool _beatBest = false;
 
   // Per-level think-fast timer: running out costs a life (same as a wrong
   // match) but banking leftover time pays out a bonus, so players choose
@@ -202,6 +208,16 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
           _score += 10 + (_streak >= 3 ? 5 : 0);
           TonePlayer.instance.playCue(SoundCue.learnGood);
           if (_streak >= 3) _flash('Streak x$_streak!');
+          if (_status == GameStatus.playing &&
+              !_beatBest &&
+              _best > 0 &&
+              _score > _best) {
+            _beatBest = true;
+            // Takes priority over the streak banner just set above — a new
+            // all-time record is the bigger moment of the two.
+            _flash('New personal best! 🏆');
+            TonePlayer.instance.playCue(SoundCue.milestone);
+          }
           _first = -1;
           _second = -1;
           if (_pairs >= _pairsThisLevel) {
@@ -256,6 +272,7 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
       _score = 0;
       _lives = 3;
       _banner = null;
+      _beatBest = false;
       _previewing = false;
       _previewLeft = 0;
       _finalTimeBonus = 0;
