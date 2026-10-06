@@ -34,6 +34,13 @@ class _StackGameState extends State<StackGame>
   String? _banner;
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
+  // Mirrors mini_games.dart's FruitCatchGame/BalloonPopGame/StarTapGame/
+  // SnakeGame/RacingGame/BowlingGame live "beat your own all-time best"
+  // celebration. Stack has no win cap at all — score climbs purely with
+  // tower height and precision multipliers until the player topples — so
+  // crossing a prior personal best mid-tower is a real, judgment-free
+  // moment worth its own banner.
+  bool _beatBest = false;
 
   @override
   void initState() {
@@ -146,6 +153,14 @@ class _StackGameState extends State<StackGame>
     final nb = _tower.last;
     _impact((nb.left + nb.width / 2) * _view.width, _view.height - 70, perfect);
     emit(ExperienceEvent.bubblePopped);
+    if (!_beatBest && _best > 0 && _score > _best) {
+      _beatBest = true;
+      // Takes priority over the perfect/save banner just set above — a
+      // new all-time record is the bigger moment of the two.
+      _banner = 'New personal best! 🏆';
+      _bannerT = 1.6;
+      TonePlayer.instance.playCue(SoundCue.milestone);
+    }
     GameScores.instance.submit(_id, _score).then((b) {
       if (mounted && b != _best) setState(() => _best = b);
     });
@@ -192,6 +207,7 @@ class _StackGameState extends State<StackGame>
       _dashTimer = 2.6;
       _dashActive = 0;
       _seenDash = false;
+      _beatBest = false;
       _banner = null;
       _bannerT = 0;
       _status = GameStatus.playing;

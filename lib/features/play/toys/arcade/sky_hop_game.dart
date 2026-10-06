@@ -47,6 +47,13 @@ class _SkyHopGameState extends State<SkyHopGame>
   String? _banner;
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
+  // Mirrors mini_games.dart's FruitCatchGame/BalloonPopGame/StarTapGame/
+  // SnakeGame/RacingGame/BowlingGame live "beat your own all-time best"
+  // celebration. Sky Hop's score only ever climbs (pipe clears + coin
+  // bonuses, never decreases), so crossing a prior personal best mid-flight
+  // — well before the fixed 18-point win goal — is a real, judgment-free
+  // moment worth its own banner.
+  bool _beatBest = false;
 
   // Clearing a pipe always said the identical "Nice hop!" — up to 18 times
   // in a single winning run — which reads as flat/robotic well before the
@@ -150,6 +157,17 @@ class _SkyHopGameState extends State<SkyHopGame>
         return;
       }
     }
+    if (_status == GameStatus.playing &&
+        !_beatBest &&
+        _best > 0 &&
+        _score > _best) {
+      _beatBest = true;
+      // Takes priority over the hop/coin banner just set above this tick —
+      // a new all-time record is the bigger moment of the two.
+      _banner = 'New personal best! 🏆';
+      _bannerT = 1.6;
+      TonePlayer.instance.playCue(SoundCue.milestone);
+    }
     _pipes.removeWhere((p) => p.x < -0.2);
     if (_birdY > 0.98 || _birdY < 0.02) _over();
   }
@@ -191,6 +209,7 @@ class _SkyHopGameState extends State<SkyHopGame>
       _score = 0;
       _coinCombo = 0;
       _bestCoinCombo = 0;
+      _beatBest = false;
       _banner = null;
       _bannerT = 0;
       _started = false;

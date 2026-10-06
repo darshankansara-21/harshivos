@@ -54,6 +54,13 @@ class _WhackGameState extends State<WhackGame>
   double _bannerT = 0;
   String? _banner;
   GameStatus _status = GameStatus.ready;
+  // Mirrors mini_games.dart's FruitCatchGame/BalloonPopGame/StarTapGame/
+  // SnakeGame/RacingGame/BowlingGame live "beat your own all-time best"
+  // celebration: Whack has the identical shape (a fixed win target of 35,
+  // but most runs end early on a lost life well short of it), so crossing a
+  // prior personal best mid-run is a real, frequent, judgment-free moment
+  // worth its own banner — not just the eventual win/over screen.
+  bool _beatBest = false;
 
   @override
   void initState() {
@@ -195,6 +202,20 @@ class _WhackGameState extends State<WhackGame>
         _banner = 'Combo x$_combo!';
         _bannerT = 1.0;
       }
+      if (_status == GameStatus.playing &&
+          !_beatBest &&
+          _best > 0 &&
+          _score > _best) {
+        _beatBest = true;
+        // Takes priority over the combo/milestone banner just set above — a
+        // new all-time record is the bigger moment of the two. Guarded to
+        // `GameStatus.playing` only: `_checkWin` above may have already
+        // flipped to `won` and set its own win banner, which must not be
+        // clobbered here.
+        _banner = 'New personal best! 🏆';
+        _bannerT = 1.6;
+        TonePlayer.instance.playCue(SoundCue.milestone);
+      }
       GameScores.instance.submit(_id, _score).then((b) {
         if (mounted && b != _best) setState(() => _best = b);
       });
@@ -214,6 +235,7 @@ class _WhackGameState extends State<WhackGame>
       _round = 1;
       _roundTarget = 10;
       _dangerLevel = 0;
+      _beatBest = false;
       _banner = 'Whack 35 points to win!';
       _bannerT = 1.4;
       _spawnIn = 0.7;

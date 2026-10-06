@@ -50,6 +50,13 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
   String? _banner;
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
+  // Mirrors mini_games.dart's FruitCatchGame/BalloonPopGame/StarTapGame/
+  // SnakeGame/RacingGame/BowlingGame live "beat your own all-time best"
+  // celebration. Space Dodge's score is a pure monotonic climb (elapsed
+  // time + gem bonus, never decreases), so crossing a prior personal best
+  // mid-flight — well before the fixed 180-point win goal — is a real,
+  // judgment-free moment worth its own banner.
+  bool _beatBest = false;
   // Collision math below runs in normalized (0..1) coordinates, but every
   // shape on screen is drawn with a pixel radius scaled only by the canvas
   // *width* (see _SpacePainter), so on a typical taller-than-wide phone a
@@ -118,6 +125,17 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
     }
 
     _score = (_elapsed * 5).round() + _bonus;
+    if (!_beatBest && _best > 0 && _score > _best) {
+      _beatBest = true;
+      // Takes priority over the wave/pickup banner just set above this tick
+      // — a new all-time record is the bigger moment. The win-goal check
+      // right below runs after this and will overwrite it if the same tick
+      // also crosses the 180-point goal, since winning the whole game is
+      // the bigger moment still.
+      _banner = 'New personal best! 🏆';
+      _bannerT = 1.6;
+      TonePlayer.instance.playCue(SoundCue.milestone);
+    }
     if (_score >= _goalScore && _status == GameStatus.playing) {
       _status = GameStatus.won;
       _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
@@ -324,6 +342,7 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
       _shield = false;
       _seenSeeker = false;
       _seenSplitter = false;
+      _beatBest = false;
       _banner = null;
       _bannerT = 0;
       _status = GameStatus.playing;
