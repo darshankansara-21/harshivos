@@ -59,6 +59,14 @@ class _JigsawFourGameState extends State<JigsawFourGame>
   int _sceneSeed = 0;
   int _score = 0;
   int _best = 0;
+  // `_level` only ever started a fresh playthrough at index 0 (the easiest
+  // 2x2 grid), so a veteran with a high all-time `_best` rebuilt the same
+  // trivial first picture every single run regardless of career skill — the
+  // same "flat-forever difficulty never fed by career `_best`" bug class
+  // already closed for the quiz-game family. Nudge the opening level up a
+  // little for a seasoned player, capped so it never skips straight past
+  // the hardest grid this game has.
+  int get _careerSkillRamp => (_best ~/ 2).clamp(0, _grids.length - 1);
   // Jigsaw has no fail state at all — a round always eventually finishes
   // all 3 pictures, so the regular higher-is-better `best` (picture count)
   // freezes at `_target` forever after the very first completed round,
@@ -120,8 +128,9 @@ class _JigsawFourGameState extends State<JigsawFourGame>
   }
 
   void _buildBoard() {
-    _cols = _grids[_level][0];
-    _rows = _grids[_level][1];
+    final gridIndex = (_level + _careerSkillRamp).clamp(0, _grids.length - 1);
+    _cols = _grids[gridIndex][0];
+    _rows = _grids[gridIndex][1];
     _sceneSeed = _rnd.nextInt(1 << 30);
     _pieces.clear();
     for (var r = 0; r < _rows; r++) {

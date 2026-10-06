@@ -32,6 +32,14 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with _Emit {
   int _wrongFlash = -1;
   String? _banner;
   GameStatus _status = GameStatus.ready;
+  // The grid-size and colour-closeness ramps below only ever read the
+  // current round's `_score`, so a veteran with a high all-time `_best`
+  // restarted every single playthrough at the identical easy 3x3 round 1 —
+  // the same "flat-forever difficulty never fed by career `_best`" bug
+  // class already closed for the quiz-game family. Nudge the effective
+  // score a little from round 1 for a seasoned player, capped small so
+  // round 1 stays genuinely playable even for them.
+  int get _careerSkillRamp => (_best ~/ 3).clamp(0, 3);
 
   @override
   void initState() {
@@ -43,14 +51,14 @@ class _SpotDifferenceGameState extends State<SpotDifferenceGame> with _Emit {
   }
 
   void _newRound() {
-    final n = (3 + _score ~/ 3).clamp(3, 5);
+    final n = (3 + (_score + _careerSkillRamp) ~/ 3).clamp(3, 5);
     _cols = n;
     _rows = n;
     _odd = _rnd.nextInt(n * n);
     final hue = _rnd.nextDouble() * 360;
     _base = HSVColor.fromAHSV(1, hue, 0.6, 0.85).toColor();
     // The odd tile is a subtly different shade; closer as score rises.
-    final delta = (0.32 - _score * 0.02).clamp(0.14, 0.32);
+    final delta = (0.32 - (_score + _careerSkillRamp) * 0.02).clamp(0.14, 0.32);
     _oddColor = HSVColor.fromAHSV(1, (hue + 18) % 360, 0.6, 0.85 - delta).toColor();
     _wrongFlash = -1;
   }

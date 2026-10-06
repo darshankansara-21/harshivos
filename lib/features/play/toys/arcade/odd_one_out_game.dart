@@ -47,6 +47,14 @@ class _OddOneOutGameState extends State<OddOneOutGame>
   // odd tile — land flatter than every other reaction-tap sibling.
   final List<_Shard> _bits = <_Shard>[];
   bool _reduceMotion = false;
+  // The grid size and colour-closeness ramps below only ever read the
+  // current round's `_score`, so a veteran with a high all-time `_best`
+  // restarted every single playthrough at the identical easy 2x1 round 1 —
+  // the same "flat-forever difficulty never fed by career `_best`" bug
+  // class already closed for the quiz-game family. Nudge the effective
+  // score a little from round 1 for a seasoned player, capped small so
+  // round 1 stays genuinely playable even for them.
+  int get _careerSkillRamp => (_best ~/ 3).clamp(0, 3);
 
   @override
   void initState() {
@@ -115,7 +123,8 @@ class _OddOneOutGameState extends State<OddOneOutGame>
   }
 
   Color _subtleOddColor(Color base) {
-    final progress = (_score / (_target - 1)).clamp(0.0, 1.0);
+    final progress =
+        ((_score + _careerSkillRamp) / (_target - 1)).clamp(0.0, 1.0);
     final delta = 0.24 - progress * 0.14;
     final hsl = HSLColor.fromColor(base);
     final lighten = (0.88 - hsl.lightness) >= (hsl.lightness - 0.12);
@@ -127,7 +136,7 @@ class _OddOneOutGameState extends State<OddOneOutGame>
 
   void _newRound() {
     _wrong = -1;
-    _cols = (2 + _score ~/ 3).clamp(2, 5);
+    _cols = (2 + (_score + _careerSkillRamp) ~/ 3).clamp(2, 5);
     _baseShape = _rnd.nextInt(6);
     _baseColor = _palette[_rnd.nextInt(_palette.length)];
     _oddIndex = _rnd.nextInt(_count);

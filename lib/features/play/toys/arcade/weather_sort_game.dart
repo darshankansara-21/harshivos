@@ -86,7 +86,16 @@ class _WeatherSortGameState extends State<WeatherSortGame>
   // visibly countered by the on-screen timer bar below, never a silent clock.
   double _timeLeft = 0;
   double get _timeLimit =>
-      (6.0 - _score * (6.0 - 3.0) / _target).clamp(3.0, 6.0);
+      (6.0 - (_score + _careerSkillRamp) * (6.0 - 3.0) / _target)
+          .clamp(3.0, 6.0);
+  // The think-time ramp above only ever read the current round's `_score`,
+  // so a veteran with a high all-time `_best` restarted every single
+  // playthrough at the identical easy 6-second round 1 — the same
+  // "flat-forever difficulty never fed by career `_best`" bug class already
+  // closed for the quiz-game family. Nudge the effective score a little
+  // from round 1 for a seasoned player, capped small so round 1 stays
+  // genuinely playable even for them.
+  int get _careerSkillRamp => (_best ~/ 3).clamp(0, 2);
 
   @override
   void initState() {
