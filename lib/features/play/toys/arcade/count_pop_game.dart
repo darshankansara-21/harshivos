@@ -34,6 +34,19 @@ class _CountPopGameState extends State<CountPopGame>
   int _popped = 0;
   int _score = 0;
   int _best = 0;
+  // `_score` always tops out at `_target` the instant the round is actually
+  // won (round ends the moment `_popped >= _need`, with no way to overshoot
+  // and pop extra bubbles), so `_best` goes permanently static after the
+  // first completed run — the same "stat that can never move" bug class
+  // already fixed in mini_golf/jigsaw_four/basketball/color_mixer/
+  // counting_baskets. Since overshoot can't happen, the real avoidable
+  // mistake here is a tap that misses every bubble entirely. Track misses
+  // across the whole ten-round run as a separate, lower-is-better personal
+  // best via `GameScores.submitLow`: zero misses across all ten rounds is a
+  // genuinely tighter, more skillful run.
+  static const String _missesId = '${_id}_misses';
+  int _runMisses = 0;
+  int _bestMisses = 0;
   double _pop = 0;
   double _popX = 0, _popY = 0;
   String? _banner;
@@ -43,7 +56,12 @@ class _CountPopGameState extends State<CountPopGame>
   void initState() {
     super.initState();
     GameScores.instance.ensureLoaded().then((_) {
-      if (mounted) setState(() => _best = GameScores.instance.best(_id));
+      if (mounted) {
+        setState(() {
+          _best = GameScores.instance.best(_id);
+          _bestMisses = GameScores.instance.bestLow(_missesId);
+        });
+      }
     });
   }
 
@@ -115,6 +133,19 @@ class _CountPopGameState extends State<CountPopGame>
           if (_score >= _target) {
             _status = GameStatus.won;
             _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
+            // A full ten-round run that genuinely beats the fewest-misses
+            // record is the real "did you count better" moment this stat is
+            // for — give it the same milestone chime + companion celebration
+            // every other beat-your-best moment in the catalog gets, layered
+            // onto (not replacing) the win fanfare.
+            final beatMisses = _bestMisses > 0 && _runMisses < _bestMisses;
+            GameScores.instance.submitLow(_missesId, _runMisses).then((v) {
+              if (mounted) setState(() => _bestMisses = v);
+            });
+            if (beatMisses) {
+              TonePlayer.instance.playCue(SoundCue.milestone);
+              emit(ExperienceEvent.personalBest);
+            }
             TonePlayer.instance.playCue(SoundCue.gameStart);
             emit(ExperienceEvent.gameCompleted);
           } else {
@@ -126,11 +157,16 @@ class _CountPopGameState extends State<CountPopGame>
         return;
       }
     }
+    // The loop fell through without hitting any bubble — a genuine,
+    // avoidable miss — tally it toward the run's fewest-misses personal
+    // best.
+    setState(() => _runMisses++);
   }
 
   void _reset() {
     setState(() {
       _score = 0;
+      _runMisses = 0;
       _banner = null;
       _newRound();
       _status = GameStatus.playing;
@@ -146,6 +182,7 @@ class _CountPopGameState extends State<CountPopGame>
           'Read the number, then pop exactly that many bubbles. The round '
           'finishes when you reach it. Ten rounds to win!',
       onStart: () => setState(() {
+        _runMisses = 0;
         _newRound();
         _status = GameStatus.playing;
       }),
@@ -158,7 +195,10 @@ class _CountPopGameState extends State<CountPopGame>
               ? 'Pop $_need bubbles  ·  $_popped/$_need'
               : 'Pop the right number of bubbles'),
       winEmoji: '🔢',
-      winText: _winPraise,
+      winText: _bestMisses > 0 && _runMisses < _bestMisses
+          ? '$_winPraise New best run: $_runMisses misses! 🏆'
+          : '$_winPraise $_runMisses misses'
+              '${_bestMisses > 0 ? ' (best $_bestMisses)' : ''}',
       accent: const Color(0xFF48CAE4),
       onPlayAgain: _reset,
       child: LayoutBuilder(
