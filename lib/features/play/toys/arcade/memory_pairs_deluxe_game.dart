@@ -133,6 +133,7 @@ class _MemoryPairsDeluxeGameState extends State<MemoryPairsDeluxeGame>
         } else {
           _hideT = 0.8;
           TonePlayer.instance.playThock();
+          emit(ExperienceEvent.incorrectAnswer);
         }
       }
     });
