@@ -195,11 +195,11 @@ class _CalmMeScreenState extends State<CalmMeScreen> {
                       begin: Alignment.centerLeft,
                       end: Alignment.centerRight,
                     ),
-                    child: const Row(
+                    child: Row(
                       children: <Widget>[
-                        Text('🌬️', style: TextStyle(fontSize: 24)),
-                        SizedBox(width: 10),
-                        Expanded(
+                        const Text('🌬️', style: TextStyle(fontSize: 24)),
+                        const SizedBox(width: 10),
+                        const Expanded(
                           child: Text(
                             'Breathing Bubble',
                             style: TextStyle(
@@ -209,15 +209,30 @@ class _CalmMeScreenState extends State<CalmMeScreen> {
                             ),
                           ),
                         ),
-                        Text(
-                          'Start',
-                          style: TextStyle(
-                              color: Colors.white70,
-                              fontWeight: FontWeight.w700),
+                        const SizedBox(width: 8),
+                        // Flexible+FittedBox so the "Start" label shrinks
+                        // together with the chevron instead of overflowing
+                        // the row at large accessibility text scales.
+                        Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerRight,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: const <Widget>[
+                                Text(
+                                  'Start',
+                                  style: TextStyle(
+                                      color: Colors.white70,
+                                      fontWeight: FontWeight.w700),
+                                ),
+                                SizedBox(width: 4),
+                                Icon(Icons.chevron_right_rounded,
+                                    color: Colors.white70),
+                              ],
+                            ),
+                          ),
                         ),
-                        SizedBox(width: 4),
-                        Icon(Icons.chevron_right_rounded,
-                            color: Colors.white70),
                       ],
                     ),
                   ),
@@ -322,12 +337,18 @@ class _MoodButton extends StatelessWidget {
         children: <Widget>[
           Text(mood.emoji, style: const TextStyle(fontSize: 44)),
           const SizedBox(width: 18),
-          Text(mood.label,
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700)),
-          const Spacer(),
+          Expanded(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(mood.label,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700)),
+            ),
+          ),
+          const SizedBox(width: 8),
           const Icon(Icons.chevron_right_rounded,
               color: Colors.white70, size: 30),
         ],
@@ -370,19 +391,24 @@ class _CalmActivityCard extends StatelessWidget {
             border: Border.all(color: Colors.white24),
           ),
           child: ExcludeSemantics(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: <Widget>[
-                Text(activity.emoji, style: const TextStyle(fontSize: 30)),
-                Text(activity.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800)),
-              ],
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(activity.emoji, style: const TextStyle(fontSize: 30)),
+                  const SizedBox(height: 18),
+                  Text(activity.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800)),
+                ],
+              ),
             ),
           ),
         ),

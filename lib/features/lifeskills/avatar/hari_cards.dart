@@ -253,47 +253,53 @@ class _CalmingStrategyCardState extends ConsumerState<CalmingStrategyCard> {
         border: Border.all(color: Colors.white.withOpacity(0.12)),
       ),
       padding: const EdgeInsets.all(14),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          SizedBox(
-            height: 104,
-            child: Hari(emotion: s.emotion, pose: s.pose),
-          ),
-          const SizedBox(height: 8),
-          Text(s.title,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900)),
-          const SizedBox(height: 4),
-          Text(_tried ? "You've got this. 💙" : s.phrase,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                  color: Colors.white.withOpacity(0.8), fontSize: 13)),
-          const SizedBox(height: 10),
-          Material(
-            color: s.color,
-            borderRadius: BorderRadius.circular(16),
-            clipBehavior: Clip.antiAlias,
-            child: InkWell(
-              onTap: _try,
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                child: Text('Try it with me',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800)),
+      // At large accessibility text scales the title/phrase/button labels
+      // below can grow taller than the card's fixed horizontal-list height
+      // even with maxLines+ellipsis capping their width; scroll rather than
+      // overflow so every line stays reachable.
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            SizedBox(
+              height: 104,
+              child: Hari(emotion: s.emotion, pose: s.pose),
+            ),
+            const SizedBox(height: 8),
+            Text(s.title,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900)),
+            const SizedBox(height: 4),
+            Text(_tried ? "You've got this. 💙" : s.phrase,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    color: Colors.white.withOpacity(0.8), fontSize: 13)),
+            const SizedBox(height: 10),
+            Material(
+              color: s.color,
+              borderRadius: BorderRadius.circular(16),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onTap: _try,
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                  child: Text('Try it with me',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800)),
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -126,10 +126,14 @@ class _CalmSequenceScreenState extends ConsumerState<CalmSequenceScreen> {
                 children: <Widget>[
                   Row(
                     children: <Widget>[
-                      _glassPill(Text('${widget.mood.emoji}  ${step.label}',
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700))),
+                      Flexible(
+                        child: _glassPill(Text(
+                            '${widget.mood.emoji}  ${step.label}',
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700))),
+                      ),
                       const Spacer(),
                       _glassPill(Text(
                           '0:${_remaining.toString().padLeft(2, '0')}',
