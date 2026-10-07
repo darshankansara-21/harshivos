@@ -41,6 +41,7 @@ class _AirHockeyGameState extends State<AirHockeyGame>
   double _ppx = 0.5, _ppy = 0.84; // player mallet (bottom half)
   double _prevPpx = 0.5, _prevPpy = 0.84;
   double _aix = 0.5, _aiy = 0.16; // ai mallet (top half)
+  double _prevAix = 0.5, _prevAiy = 0.16;
   // The puck/paddle collision below runs in mixed-normalized coordinates (x
   // as a fraction of canvas width, y as a fraction of canvas height), but
   // every circle is drawn with radius scaled only by canvas width (see
@@ -147,7 +148,19 @@ class _AirHockeyGameState extends State<AirHockeyGame>
     _collide(_ppx, _ppy, ppvx, ppvy);
 
     _updateAi(dt);
-    _collide(_aix, _aiy, 0, 0);
+    // Mirror the player mallet's own real-velocity momentum transfer above
+    // (ppvx/ppvy from its actual frame-to-frame drag) — this previously
+    // always passed a hardcoded 0,0 for the AI mallet, so no matter how
+    // fast it visibly chased the puck (especially once `_aiEase` ramps up
+    // late in a match), every AI hit felt like the exact same soft, static
+    // bump. A child could watch the defender lunge for the puck at full
+    // speed and still see it bounce off barely moving — motion the eye
+    // sees but the puck never actually feels.
+    final aivx = (_aix - _prevAix) / math.max(dt, 1e-3);
+    final aivy = (_aiy - _prevAiy) / math.max(dt, 1e-3);
+    _prevAix = _aix;
+    _prevAiy = _aiy;
+    _collide(_aix, _aiy, aivx, aivy);
 
     final sp = math.sqrt(_pvx * _pvx + _pvy * _pvy);
     if (sp > 1.5) {
@@ -304,6 +317,8 @@ class _AirHockeyGameState extends State<AirHockeyGame>
       _ppy = 0.84;
       _aix = 0.5;
       _aiy = 0.16;
+      _prevAix = 0.5;
+      _prevAiy = 0.16;
       _status = GameStatus.playing;
       _serve(towardPlayer: true);
     });
