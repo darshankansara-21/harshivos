@@ -168,6 +168,18 @@ class _WhackGameState extends State<WhackGame>
     GameScores.instance.submit(_id, _score).then((b) {
       if (mounted) setState(() => _best = b);
     });
+    // The winning hit (reaching 35) is guarded out of the ordinary
+    // `!_beatBest` check in `_hit` below once `_status` flips to `won` here
+    // — so a final blow that ALSO crosses the player's all-time best used
+    // to submit the record silently with no milestone chime or
+    // `ExperienceEvent.personalBest`, the same win-branch-skips-the-
+    // celebration-the-routine-branch-already-gets bug class fixed in
+    // mirror_draw/xylophone_tap/drum_garden/echo_drums.
+    if (!_beatBest && _best > 0 && _score > _best) {
+      _beatBest = true;
+      TonePlayer.instance.playCue(SoundCue.milestone);
+      emit(ExperienceEvent.personalBest);
+    }
   }
 
   void _advanceRound() {
