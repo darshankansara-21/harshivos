@@ -138,16 +138,39 @@ class _RecommendedChip extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: <Widget>[
-              Text(toy.emoji, style: const TextStyle(fontSize: 34)),
-              Text(toy.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-            ],
+          // This chip sits in a fixed `height: 120` row (see the
+          // `SliverToBoxAdapter` above) that never grows to fit its
+          // content. At a large accessibility `TextScaler`, the 34px emoji
+          // glyph and the 2-line title both scale up with it and genuinely
+          // overflowed that fixed height — the same bug class just fixed in
+          // `_ToyTile` below. A single `FittedBox(fit: scaleDown)` around
+          // the whole (naturally-sized, `mainAxisSize: min`) content Column
+          // scales the entire chip body down only as far as needed to keep
+          // fitting, while still growing (up to that limit) for a child who
+          // needs bigger text. The inner `SizedBox(width: ...)` fixes the
+          // title's wrap width *before* scaling — a bare `FittedBox` gives
+          // its child unbounded width, which would stop the 2-line title
+          // from ever wrapping at all.
+          child: LayoutBuilder(
+            builder: (context, constraints) => FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.topLeft,
+              child: SizedBox(
+                width: constraints.maxWidth,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(toy.emoji, style: const TextStyle(fontSize: 34)),
+                    const SizedBox(height: 10),
+                    Text(toy.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ),
@@ -164,30 +187,78 @@ class _ToyTile extends StatelessWidget {
     return GlassCard(
       onTap: () => openToy(context, toy),
       padding: const EdgeInsets.all(16),
+      // This grid tile's height is fixed by the parent `SliverGrid`'s
+      // `childAspectRatio` (0.92) — it never grows to fit its content. The
+      // old `Spacer()` + fixed-size icon/text below only ever worked at
+      // normal text scale; at a large accessibility `TextScaler` (every
+      // title/subtitle Text here scales with it by default, and even the
+      // emoji glyph's own `Text` widget does too, outgrowing its fixed
+      // 56x56 box) the Column genuinely overflowed its bounded height —
+      // every single tile in the main toybox grid, the very first screen a
+      // child picks a game from. `FittedBox(fit: scaleDown)` around both
+      // the icon and the text block scales each down just enough to keep
+      // fitting the fixed tile height instead of clipping/overflowing,
+      // while still growing (up to that limit) for a child who needs
+      // bigger text.
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Container(
+          SizedBox(
             width: 56,
             height: 56,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              gradient: LinearGradient(colors: toy.gradient),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Container(
+                width: 56,
+                height: 56,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  gradient: LinearGradient(colors: toy.gradient),
+                ),
+                child: Text(toy.emoji, style: const TextStyle(fontSize: 30)),
+              ),
             ),
-            child: Text(toy.emoji, style: const TextStyle(fontSize: 30)),
           ),
-          const Spacer(),
-          Text(toy.title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
-          const SizedBox(height: 4),
-          Text(toy.implemented ? 'Tap to play' : 'Coming soon',
-              style: TextStyle(
-                color: toy.implemented ? Colors.white60 : Colors.amberAccent.withOpacity(0.8),
-                fontSize: 12,
-              )),
+          const SizedBox(height: 8),
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) => Align(
+                alignment: Alignment.bottomLeft,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  // A bare `FittedBox` gives its child unbounded width, so
+                  // `Text(maxLines: 2)` below would never actually wrap —
+                  // it would lay out as one long line, then get scaled down
+                  // as a whole, defeating the 2-line title entirely. Fixing
+                  // the inner Column's width to this tile's real available
+                  // width lets the title still wrap normally; only the
+                  // resulting block's height is then scaled to fit.
+                  child: SizedBox(
+                    width: constraints.maxWidth,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(toy.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+                        const SizedBox(height: 4),
+                        Text(toy.implemented ? 'Tap to play' : 'Coming soon',
+                            style: TextStyle(
+                              color: toy.implemented ? Colors.white60 : Colors.amberAccent.withOpacity(0.8),
+                              fontSize: 12,
+                            )),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
