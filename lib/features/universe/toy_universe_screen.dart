@@ -742,34 +742,51 @@ class _DestinationCard extends StatelessWidget {
               ),
               Padding(
                 padding: const EdgeInsets.all(11),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: <Widget>[
-                    Text(emoji, style: const TextStyle(fontSize: 26)),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Text(label,
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w900)),
-                        ),
-                        Text(subtitle,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                color: Colors.white.withOpacity(0.82),
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w600)),
-                      ],
+                // FittedBox(scaleDown) around the whole block: this card has
+                // a fixed 96px height, so at large accessibility text scales
+                // the header emoji + label + subtitle (all of which scale
+                // with the system text scale) can grow taller than the card
+                // and overflow. Scaling the whole block down to fit — same
+                // convention as PlayHubScreen's tile fix — keeps it legible
+                // instead of clipping/overflowing. The inner fixed-width
+                // SizedBox (from LayoutBuilder's real available width) lets
+                // the subtitle's ellipsis still measure correctly — a bare
+                // FittedBox gives its child unbounded width, which would stop
+                // the ellipsis from ever kicking in.
+                child: LayoutBuilder(
+                  builder: (context, constraints) => FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.topLeft,
+                    child: SizedBox(
+                      width: constraints.maxWidth,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          Text(emoji, style: const TextStyle(fontSize: 26)),
+                          const SizedBox(height: 18),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              Text(label,
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w900)),
+                              Text(subtitle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      color: Colors.white.withOpacity(0.82),
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w600)),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
+                  ),
                 ),
               ),
             ],
@@ -1343,17 +1360,28 @@ class _ProgressCard extends ConsumerWidget {
                     children: <Widget>[
                       Row(
                         children: <Widget>[
-                          Text('Level ${p.level}',
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w900)),
+                          Flexible(
+                            child: Text('Level ${p.level}',
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w900)),
+                          ),
                           const Spacer(),
-                          Text('⭐ ${p.records}   🏅 $unlocked',
-                              style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w800)),
+                          // Flexible: at large accessibility text scales, a
+                          // long-running player's record/achievement counts
+                          // can grow wide enough to overflow this Row
+                          // alongside the "Level N" label on the left.
+                          Flexible(
+                            child: Text('⭐ ${p.records}   🏅 $unlocked',
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.right,
+                                style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w800)),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 6),
@@ -1403,17 +1431,28 @@ void _showProgressSheet(BuildContext context, PlayerProgress p) {
           children: <Widget>[
             Row(
               children: <Widget>[
-                Text('Level ${p.level}',
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900)),
+                Flexible(
+                  child: Text('Level ${p.level}',
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900)),
+                ),
                 const Spacer(),
-                Text('⭐ ${p.records} records   ·   🎮 ${p.plays} plays',
+                // Flexible: same overflow risk as the inline progress card —
+                // a long-running player's record/play counts can grow wide
+                // enough to collide with the "Level N" label at large
+                // accessibility text scales.
+                Flexible(
+                  child: Text('⭐ ${p.records} records   ·   🎮 ${p.plays} plays',
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.right,
                     style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 13,
                         fontWeight: FontWeight.w700)),
+                ),
               ],
             ),
             const SizedBox(height: 14),
