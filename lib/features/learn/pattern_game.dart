@@ -18,7 +18,12 @@ class PatternGameScreen extends StatefulWidget {
 
 class _PatternGameScreenState extends State<PatternGameScreen> {
   static const List<String> _tokens = <String>[
-    '🔴', '🔵', '🟡', '🟢', '🟣', '🟠',
+    '🔴',
+    '🔵',
+    '🟡',
+    '🟢',
+    '🟣',
+    '🟠',
   ];
 
   static const Map<String, String> _tokenNames = <String, String>{
@@ -106,118 +111,137 @@ class _PatternGameScreenState extends State<PatternGameScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF1B1140),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        title: const Text('What comes next?'),
-        actions: <Widget>[
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: Center(
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(12),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+              textScaler:
+                  MediaQuery.textScalerOf(context).clamp(maxScaleFactor: 1.3)),
+          child: AppBar(
+            backgroundColor: Colors.transparent,
+            title: const Text('What comes next?'),
+            actions: <Widget>[
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: Center(
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text('Level $_difficulty',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700)),
+                  ),
                 ),
-                child: Text('Level $_difficulty',
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700)),
               ),
-            ),
+              Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: Center(
+                  child: Text('⭐ $_score',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
           ),
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Center(
-              child: Text('⭐ $_score',
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold)),
-            ),
-          ),
-        ],
+        ),
       ),
       body: SafeArea(
         child: Stack(
           children: <Widget>[
             Padding(
               padding: const EdgeInsets.all(20),
-              child: Column(
-                children: <Widget>[
-                  const Spacer(),
-                  Text('Finish the pattern',
-                      style: TextStyle(
-                          color: Colors.white.withOpacity(0.85),
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 20),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    alignment: WrapAlignment.center,
-                    children: <Widget>[
-                      for (final t in _sequence)
-                        Text(t, style: const TextStyle(fontSize: 46)),
-                      Container(
-                        width: 54,
-                        height: 54,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                              color: Colors.white54, width: 2),
-                        ),
-                        child: const Text('?',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 30,
-                                fontWeight: FontWeight.w900)),
+              child: LayoutBuilder(
+                builder: (context, box) => SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: box.maxHeight),
+                    child: IntrinsicHeight(
+                      child: Column(
+                        children: <Widget>[
+                          const Spacer(),
+                          Text('Finish the pattern',
+                              style: TextStyle(
+                                  color: Colors.white.withOpacity(0.85),
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w700)),
+                          const SizedBox(height: 20),
+                          Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            alignment: WrapAlignment.center,
+                            children: <Widget>[
+                              for (final t in _sequence)
+                                Text(t, style: const TextStyle(fontSize: 46)),
+                              Container(
+                                width: 54,
+                                height: 54,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                      color: Colors.white54, width: 2),
+                                ),
+                                child: const Text('?',
+                                    style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 30,
+                                        fontWeight: FontWeight.w900)),
+                              ),
+                            ],
+                          ),
+                          SizedBox(
+                            height: 26,
+                            child: _justWrong
+                                ? const Padding(
+                                    padding: EdgeInsets.only(top: 12),
+                                    child: Text('Look at the colors again! 💪',
+                                        style: TextStyle(
+                                            color: Colors.amberAccent)),
+                                  )
+                                : const SizedBox.shrink(),
+                          ),
+                          const Spacer(),
+                          Wrap(
+                            spacing: 16,
+                            runSpacing: 16,
+                            alignment: WrapAlignment.center,
+                            children: <Widget>[
+                              for (final c in _choices)
+                                Semantics(
+                                  button: true,
+                                  label: _tokenNames[c] ?? 'choice',
+                                  child: GestureDetector(
+                                    onTap: () => _pick(c),
+                                    child: Container(
+                                      width: 92,
+                                      height: 92,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(24),
+                                        color: Colors.white.withOpacity(0.10),
+                                        border:
+                                            Border.all(color: Colors.white24),
+                                      ),
+                                      child: Text(c,
+                                          style: const TextStyle(fontSize: 52)),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const Spacer(),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                  SizedBox(
-                    height: 26,
-                    child: _justWrong
-                        ? const Padding(
-                            padding: EdgeInsets.only(top: 12),
-                            child: Text('Look at the colors again! 💪',
-                                style: TextStyle(color: Colors.amberAccent)),
-                          )
-                        : const SizedBox.shrink(),
-                  ),
-                  const Spacer(),
-                  Wrap(
-                    spacing: 16,
-                    runSpacing: 16,
-                    alignment: WrapAlignment.center,
-                    children: <Widget>[
-                      for (final c in _choices)
-                        Semantics(
-                          button: true,
-                          label: _tokenNames[c] ?? 'choice',
-                          child: GestureDetector(
-                          onTap: () => _pick(c),
-                          child: Container(
-                            width: 92,
-                            height: 92,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(24),
-                              color: Colors.white.withOpacity(0.10),
-                              border: Border.all(color: Colors.white24),
-                            ),
-                            child:
-                                Text(c, style: const TextStyle(fontSize: 52)),
-                          ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const Spacer(),
-                ],
+                ),
               ),
             ),
             Positioned(

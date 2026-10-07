@@ -91,72 +91,99 @@ class _EmotionMatchGameState extends State<EmotionMatchGame>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF1B1140),
-      appBar: AppBar(
-        title: const Text('Find the feeling'),
-        actions: <Widget>[
-          const Padding(
-            padding: EdgeInsets.only(right: 4),
-            child: Center(child: MuteButton(size: 40)),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+              textScaler:
+                  MediaQuery.textScalerOf(context).clamp(maxScaleFactor: 1.3)),
+          child: AppBar(
+            title: const Text('Find the feeling'),
+            actions: <Widget>[
+              const Padding(
+                padding: EdgeInsets.only(right: 4),
+                child: Center(child: MuteButton(size: 40)),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: Center(
+                  child: Text('⭐ $_score',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
           ),
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Center(
-              child: Text('⭐ $_score',
-                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-            ),
-          ),
-        ],
+        ),
       ),
       body: SafeArea(
         child: Stack(
           children: <Widget>[
             Padding(
               padding: const EdgeInsets.all(24),
-              child: Column(
-                children: <Widget>[
-                  const Spacer(),
-                  Text('Tap the face that is',
-                      style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 20)),
-                  const SizedBox(height: 8),
-                  Text(_target.$2,
-                      style: const TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.w800)),
-                  if (_justWrong)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 10),
-                      child: Text('Try again — you can do it! 💪',
-                          style: TextStyle(color: Colors.amberAccent)),
-                    ),
-                  const Spacer(),
-                  Wrap(
-                    spacing: 18,
-                    runSpacing: 18,
-                    alignment: WrapAlignment.center,
-                    children: <Widget>[
-                      for (final c in _choices)
-                        Semantics(
-                          button: true,
-                          label: '${c.$2} face',
-                          child: GestureDetector(
-                          onTap: () => _pick(c),
-                          child: Container(
-                            width: 110,
-                            height: 110,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(28),
-                              color: Colors.white.withOpacity(0.10),
-                              border: Border.all(color: Colors.white24),
+              child: LayoutBuilder(
+                builder: (context, box) => SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: box.maxHeight),
+                    child: IntrinsicHeight(
+                      child: Column(
+                        children: <Widget>[
+                          const Spacer(),
+                          Text('Tap the face that is',
+                              style: TextStyle(
+                                  color: Colors.white.withOpacity(0.8),
+                                  fontSize: 20)),
+                          const SizedBox(height: 8),
+                          Text(_target.$2,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 40,
+                                  fontWeight: FontWeight.w800)),
+                          if (_justWrong)
+                            const Padding(
+                              padding: EdgeInsets.only(top: 10),
+                              child: Text('Try again — you can do it! 💪',
+                                  style: TextStyle(color: Colors.amberAccent)),
                             ),
-                            child: Text(c.$1, style: const TextStyle(fontSize: 64)),
+                          const Spacer(),
+                          Wrap(
+                            spacing: 18,
+                            runSpacing: 18,
+                            alignment: WrapAlignment.center,
+                            children: <Widget>[
+                              for (final c in _choices)
+                                Semantics(
+                                  button: true,
+                                  label: '${c.$2} face',
+                                  child: GestureDetector(
+                                    onTap: () => _pick(c),
+                                    child: Container(
+                                      width: 110,
+                                      height: 110,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(28),
+                                        color: Colors.white.withOpacity(0.10),
+                                        border:
+                                            Border.all(color: Colors.white24),
+                                      ),
+                                      child: Text(c.$1,
+                                          style: const TextStyle(fontSize: 64)),
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
-                          ),
-                        ),
-                    ],
+                          const Spacer(),
+                          Text('Level $_difficulty',
+                              style: const TextStyle(color: Colors.white38)),
+                        ],
+                      ),
+                    ),
                   ),
-                  const Spacer(),
-                  Text('Level $_difficulty',
-                      style: const TextStyle(color: Colors.white38)),
-                ],
+                ),
               ),
             ),
             Positioned(
