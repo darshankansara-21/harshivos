@@ -268,8 +268,14 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
           icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 28),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        const Text('Help Me Talk',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white)),
+        const Flexible(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text('Help Me Talk',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white)),
+          ),
+        ),
       ],
     );
   }
@@ -788,18 +794,24 @@ class _ItemTileState extends State<_ItemTile> {
                       ? <BoxShadow>[BoxShadow(color: widget.color.withOpacity(0.5), blurRadius: 22)]
                       : const <BoxShadow>[],
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    Text(widget.item.emoji, style: const TextStyle(fontSize: 52)),
-                    const SizedBox(height: 8),
-                    Text(
-                      widget.item.label,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18),
+                child: Padding(
+                  padding: const EdgeInsets.all(6),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        Text(widget.item.emoji, style: const TextStyle(fontSize: 52)),
+                        const SizedBox(height: 8),
+                        Text(
+                          widget.item.label,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
               if (widget.favorite)
