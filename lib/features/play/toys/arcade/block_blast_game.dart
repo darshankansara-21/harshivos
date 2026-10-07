@@ -37,6 +37,18 @@ class _BlockBlastGameState extends State<BlockBlastGame>
   // feedback" bug class fixed in slide_puzzle/color_mixer, applied here.
   List<math.Point<int>> _invalidCells = const <math.Point<int>>[];
   int _invalidToken = 0;
+  // Placement used to commit the instant a finger touched a cell
+  // (`onTapDown`), so a child could never actually SEE where a multi-cell
+  // shape would land before it was already placed — the only way to learn
+  // "where does this L-piece's far corner actually go?" was trial and
+  // error after the fact. Track the cell currently under the finger while
+  // pressing/dragging across the board so a live ghost preview (green =
+  // fits, red = blocked) can render before the touch is released, and only
+  // commit the placement on release — the same preview-before-commit
+  // courtesy a sighted child gets from seeing the shape in the hand tray
+  // already, now extended onto the board itself.
+  int _hoverR = -1;
+  int _hoverC = -1;
   // Every placement scored the exact same flat `cleared * 10`, so chaining
   // line clears back-to-back (the genre-defining "combo" reward every real
   // block-puzzle game — Tetris, Block Blast, etc. — gives for consecutive
@@ -144,6 +156,53 @@ class _BlockBlastGameState extends State<BlockBlastGame>
       }
     }
     return false;
+  }
+
+  // The cells the selected piece would actually occupy if released at the
+  // current hover position — empty while nothing is selected/hovered yet.
+  Set<math.Point<int>> get _hoverFootprint {
+    if (_sel < 0 || _hoverR < 0) return const <math.Point<int>>{};
+    final p = _hand[_sel];
+    if (p == null) return const <math.Point<int>>{};
+    return p.cells
+        .map((o) => math.Point<int>(_hoverR + o.x, _hoverC + o.y))
+        .toSet();
+  }
+
+  bool get _hoverFits {
+    if (_sel < 0 || _hoverR < 0) return false;
+    final p = _hand[_sel];
+    return p != null && _fits(p, _hoverR, _hoverC);
+  }
+
+  void _updateHover(Offset local, double boardSize) {
+    if (_sel < 0) return;
+    final cell = boardSize / _n;
+    final r = (local.dy / cell).floor().clamp(0, _n - 1);
+    final c = (local.dx / cell).floor().clamp(0, _n - 1);
+    if (r != _hoverR || c != _hoverC) {
+      setState(() {
+        _hoverR = r;
+        _hoverC = c;
+      });
+    }
+  }
+
+  void _commitHover() {
+    final r = _hoverR, c = _hoverC;
+    setState(() {
+      _hoverR = -1;
+      _hoverC = -1;
+    });
+    if (r >= 0 && c >= 0) _place(r, c);
+  }
+
+  void _clearHover() {
+    if (_hoverR < 0 && _hoverC < 0) return;
+    setState(() {
+      _hoverR = -1;
+      _hoverC = -1;
+    });
   }
 
   void _place(int r, int c) {
@@ -294,6 +353,8 @@ class _BlockBlastGameState extends State<BlockBlastGame>
       _bannerT = 0;
       _invalidCells = const <math.Point<int>>[];
       _invalidToken++;
+      _hoverR = -1;
+      _hoverC = -1;
       _comboStreak = 0;
       _beatBest = false;
       _bits.clear();
@@ -338,67 +399,104 @@ class _BlockBlastGameState extends State<BlockBlastGame>
               padding: const EdgeInsets.all(14),
               child: AspectRatio(
                 aspectRatio: 1,
-                child: Stack(
-                  children: <Widget>[
-                    GridView.count(
-                  crossAxisCount: _n,
-                  mainAxisSpacing: 3,
-                  crossAxisSpacing: 3,
-                  physics: const NeverScrollableScrollPhysics(),
-                  children: <Widget>[
-                    for (var r = 0; r < _n; r++)
-                      for (var c = 0; c < _n; c++)
-                        Semantics(
-                          button: true,
-                          // Only the cell's own current state is spoken
-                          // (empty vs filled) plus whether a piece is ready to
-                          // place there — never whether this is a *valid*
-                          // fit for the selected piece, so the real spatial
-                          // planning challenge (does this shape fit here?)
-                          // stays intact for screen-reader users exactly as a
-                          // sighted child must work it out visually.
-                          label: 'Row ${r + 1}, column ${c + 1}, '
-                              '${_grid[r][c] != null ? 'filled' : 'empty'}.'
-                              '${_sel >= 0 ? ' Tap to place the selected block here.' : ''}',
-                          onTap: () => _place(r, c),
-                          excludeSemantics: true,
-                          child: GestureDetector(
-                          onTapDown: (_) => _place(r, c),
-                          child: TweenAnimationBuilder<double>(
-                            key: ValueKey(
-                                'bb-$r-$c-${_grid[r][c]?.hashCode ?? 0}'),
-                            tween: Tween<double>(
-                                begin: _grid[r][c] != null ? 1.25 : 1.0,
-                                end: 1.0),
-                            duration: const Duration(milliseconds: 180),
-                            curve: Curves.easeOutBack,
-                            builder: (ctx, s, child) =>
-                                Transform.scale(scale: s, child: child),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: _invalidCells.contains(
-                                        math.Point<int>(r, c))
-                                    ? Colors.redAccent.withOpacity(0.55)
-                                    : _grid[r][c] ??
-                                        Colors.white.withOpacity(0.05),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                            ),
-                          ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final boardSize = constraints.maxWidth;
+                    final hover = _hoverFootprint;
+                    final hoverOk = _hoverFits;
+                    return Stack(
+                      children: <Widget>[
+                        GridView.count(
+                          crossAxisCount: _n,
+                          mainAxisSpacing: 3,
+                          crossAxisSpacing: 3,
+                          physics: const NeverScrollableScrollPhysics(),
+                          children: <Widget>[
+                            for (var r = 0; r < _n; r++)
+                              for (var c = 0; c < _n; c++)
+                                Semantics(
+                                  button: true,
+                                  // Only the cell's own current state is
+                                  // spoken (empty vs filled) plus whether a
+                                  // piece is ready to place there — never
+                                  // whether this is a *valid* fit for the
+                                  // selected piece, so the real spatial
+                                  // planning challenge (does this shape fit
+                                  // here?) stays intact for screen-reader
+                                  // users exactly as a sighted child must
+                                  // work it out visually. The direct
+                                  // semantics action still commits instantly
+                                  // (no equivalent of "seeing" the ghost
+                                  // preview applies off-screen).
+                                  label: 'Row ${r + 1}, column ${c + 1}, '
+                                      '${_grid[r][c] != null ? 'filled' : 'empty'}.'
+                                      '${_sel >= 0 ? ' Tap to place the selected block here.' : ''}',
+                                  onTap: () => _place(r, c),
+                                  excludeSemantics: true,
+                                  child: TweenAnimationBuilder<double>(
+                                    key: ValueKey(
+                                        'bb-$r-$c-${_grid[r][c]?.hashCode ?? 0}'),
+                                    tween: Tween<double>(
+                                        begin:
+                                            _grid[r][c] != null ? 1.25 : 1.0,
+                                        end: 1.0),
+                                    duration: const Duration(milliseconds: 180),
+                                    curve: Curves.easeOutBack,
+                                    builder: (ctx, s, child) =>
+                                        Transform.scale(scale: s, child: child),
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: _invalidCells.contains(
+                                                math.Point<int>(r, c))
+                                            ? Colors.redAccent.withOpacity(0.55)
+                                            : _grid[r][c] ??
+                                                (hover.contains(
+                                                        math.Point<int>(r, c))
+                                                    ? (hoverOk
+                                                            ? Colors.greenAccent
+                                                            : Colors.redAccent)
+                                                        .withOpacity(0.4)
+                                                    : Colors.white
+                                                        .withOpacity(0.05)),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                          ],
+                        ),
+                        // Celebratory shard burst on a line clear, matching
+                        // the "big moment" `_Shard` convention used
+                        // catalog-wide (mini_golf's cup sink, stack's
+                        // perfect drop, etc).
+                        IgnorePointer(
+                          child: CustomPaint(
+                            painter: _BlockBurstPainter(_bits),
+                            size: Size.infinite,
                           ),
                         ),
-                  ],
-                    ),
-                    // Celebratory shard burst on a line clear, matching the
-                    // "big moment" `_Shard` convention used catalog-wide
-                    // (mini_golf's cup sink, stack's perfect drop, etc).
-                    IgnorePointer(
-                      child: CustomPaint(
-                        painter: _BlockBurstPainter(_bits),
-                        size: Size.infinite,
-                      ),
-                    ),
-                  ],
+                        // A single gesture layer over the whole board tracks
+                        // the finger continuously (instead of each cell
+                        // committing the instant it's first touched) so a
+                        // child can see the ghost preview above react before
+                        // the placement actually commits on release — the
+                        // real "where will this L-piece's far corner land?"
+                        // answer a sighted child could previously only learn
+                        // by trial and error after the fact.
+                        Positioned.fill(
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onPanDown: (d) =>
+                                _updateHover(d.localPosition, boardSize),
+                            onPanUpdate: (d) =>
+                                _updateHover(d.localPosition, boardSize),
+                            onPanEnd: (_) => _commitHover(),
+                            onPanCancel: _clearHover,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
             ),
