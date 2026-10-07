@@ -110,15 +110,27 @@ class _ToyPlayerScreenState extends ConsumerState<ToyPlayerScreen> {
                           onTap: () => Navigator.of(context).pop(),
                         ),
                         const SizedBox(width: 12),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.35),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            '${widget.toy.emoji}  ${widget.toy.title}',
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                        // Flexible + FittedBox: at large accessibility text
+                        // scales a long real toy title (e.g. "Kaleidoscope
+                        // Mirror") plus the back/mute/hide buttons no longer
+                        // overflows the Row — the chip shrinks to fit the
+                        // space the Spacer leaves it instead of forcing a
+                        // fixed-width RenderFlex overflow.
+                        Flexible(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.35),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                '${widget.toy.emoji}  ${widget.toy.title}',
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                              ),
+                            ),
                           ),
                         ),
                         const Spacer(),
