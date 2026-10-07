@@ -137,13 +137,19 @@ class _ChoiceBoardScreenState extends State<ChoiceBoardScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         const SizedBox(width: 4),
-        const Text(
-          'I Choose',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 32,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.3,
+        const Expanded(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'I Choose',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 32,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.3,
+              ),
+            ),
           ),
         ),
       ],
