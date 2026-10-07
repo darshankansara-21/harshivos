@@ -205,13 +205,19 @@ class _VisualTimerScreenState extends State<VisualTimerScreen>
           onPressed: () => Navigator.of(context).pop(),
         ),
         const SizedBox(width: 4),
-        const Text(
-          'Timer',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 30,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.2,
+        const Expanded(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Timer',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 30,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.2,
+              ),
+            ),
           ),
         ),
       ],
@@ -257,47 +263,60 @@ class _VisualTimerScreenState extends State<VisualTimerScreen>
   }
 
   Widget _buildCenterLabel() {
+    // This label sits centred in a fixed 280x280 circle (see _buildDial)
+    // that never grows to fit its content. At a large accessibility
+    // TextScaler the big 58px countdown digits (and the "All done"/"🌟"
+    // finished state) genuinely overflowed that fixed circle by 813px.
+    // FittedBox(scaleDown) shrinks the whole label just enough to keep
+    // fitting, while still growing (up to that limit) for a child who
+    // needs bigger text.
     if (_finished) {
-      return const Column(
+      return const FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Text('🌟', style: TextStyle(fontSize: 40)),
+            SizedBox(height: 6),
+            Text(
+              'All done',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 26,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Text('🌟', style: TextStyle(fontSize: 40)),
-          SizedBox(height: 6),
           Text(
-            'All done',
-            style: TextStyle(
+            _formatTime(_remaining),
+            style: const TextStyle(
               color: Colors.white,
-              fontSize: 26,
-              fontWeight: FontWeight.w700,
+              fontSize: 58,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.5,
+              fontFeatures: <FontFeature>[FontFeature.tabularFigures()],
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _running ? 'remaining' : (_remaining <= 0 ? '' : 'paused'),
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.55),
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              letterSpacing: 1.2,
             ),
           ),
         ],
-      );
-    }
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Text(
-          _formatTime(_remaining),
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 58,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 1.5,
-            fontFeatures: <FontFeature>[FontFeature.tabularFigures()],
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          _running ? 'remaining' : (_remaining <= 0 ? '' : 'paused'),
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.55),
-            fontSize: 15,
-            fontWeight: FontWeight.w500,
-            letterSpacing: 1.2,
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -337,24 +356,32 @@ class _VisualTimerScreenState extends State<VisualTimerScreen>
               end: Alignment.bottomRight,
             ),
             padding: const EdgeInsets.symmetric(vertical: 22),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Icon(
-                  _running ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                  color: Colors.white,
-                  size: 30,
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  _running ? 'Pause' : 'Start',
-                  style: const TextStyle(
+            // These Start/Pause and Reset buttons sit in fixed-width
+            // Expanded cards; at a large accessibility TextScaler the
+            // icon+label Row genuinely overflowed the narrower card's width
+            // by 53px. FittedBox(scaleDown) keeps both the icon and label
+            // fitting while still growing (up to that limit) for bigger text.
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Icon(
+                    _running ? Icons.pause_rounded : Icons.play_arrow_rounded,
                     color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
+                    size: 30,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 10),
+                  Text(
+                    _running ? 'Pause' : 'Start',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -365,20 +392,23 @@ class _VisualTimerScreenState extends State<VisualTimerScreen>
             onTap: _reset,
             glowColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 22),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Icon(Icons.refresh_rounded, color: Colors.white, size: 26),
-                SizedBox(width: 8),
-                Text(
-                  'Reset',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 19,
-                    fontWeight: FontWeight.w700,
+            child: const FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Icon(Icons.refresh_rounded, color: Colors.white, size: 26),
+                  SizedBox(width: 8),
+                  Text(
+                    'Reset',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 19,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
