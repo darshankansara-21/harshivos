@@ -133,18 +133,28 @@ class _CardDeckScreenState extends ConsumerState<CardDeckScreen> {
                         child: InkWell(
                           onTap: _next,
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 18),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 18),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: <Widget>[
-                                Text(
-                                    _index == _cards.length - 1
-                                        ? 'Done'
-                                        : 'Next',
-                                    style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w900)),
+                                // Flexible + FittedBox(scaleDown) so the
+                                // label shrinks to fit the button width
+                                // instead of overflowing at large
+                                // accessibility text scales.
+                                Flexible(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                        _index == _cards.length - 1
+                                            ? 'Done'
+                                            : 'Next',
+                                        style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w900)),
+                                  ),
+                                ),
                                 const SizedBox(width: 8),
                                 const Icon(Icons.arrow_forward_rounded,
                                     color: Colors.white),

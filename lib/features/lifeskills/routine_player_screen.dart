@@ -723,15 +723,23 @@ class _BigButton extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 18),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 18),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              Text(label,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900)),
+              // Flexible + FittedBox(scaleDown) so the label shrinks to fit
+              // the button width instead of overflowing at large
+              // accessibility text scales.
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(label,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900)),
+                ),
+              ),
               const SizedBox(width: 8),
               Icon(icon, color: Colors.white, size: 26),
             ],

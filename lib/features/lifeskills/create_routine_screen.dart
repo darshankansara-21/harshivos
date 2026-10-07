@@ -335,11 +335,20 @@ class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
                   _round(Icons.arrow_back_rounded,
                       () => Navigator.of(context).pop()),
                   const SizedBox(width: 12),
-                  const Text('Create Routine',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900)),
+                  // Flexible + FittedBox(scaleDown) so the title shrinks to
+                  // fit the remaining width instead of overflowing past the
+                  // screen edge at large accessibility text scales.
+                  const Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text('Create Routine',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.w900)),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -350,42 +359,59 @@ class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
               children: <Widget>[
                 _field(),
                 const SizedBox(height: 14),
-                Row(
+                // Wrap (not Row+Spacer) so the icon/colour groups flow onto
+                // their own line instead of overflowing the screen edge at
+                // large accessibility text scales — the labels + 6 colour
+                // swatches no longer fit on one row once scaled up.
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 12,
+                  runSpacing: 10,
                   children: <Widget>[
-                    Text('Icon:',
-                        style: TextStyle(
-                            color: Colors.white.withOpacity(0.8),
-                            fontWeight: FontWeight.w700)),
-                    const SizedBox(width: 8),
-                    Text(_emoji, style: const TextStyle(fontSize: 26)),
-                    const Spacer(),
-                    Text('Colour:',
-                        style: TextStyle(
-                            color: Colors.white.withOpacity(0.8),
-                            fontWeight: FontWeight.w700)),
-                    const SizedBox(width: 8),
-                    ..._accents.map((c) => Semantics(
-                          button: true,
-                          selected: c.value == _accent.value,
-                          label: 'Routine colour',
-                          child: GestureDetector(
-                            onTap: () => setState(() => _accent = c),
-                            child: Container(
-                              margin: const EdgeInsets.only(left: 6),
-                              width: 26,
-                              height: 26,
-                              decoration: BoxDecoration(
-                                color: c,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                    color: c.value == _accent.value
-                                        ? Colors.white
-                                        : Colors.transparent,
-                                    width: 2.5),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        Text('Icon:',
+                            style: TextStyle(
+                                color: Colors.white.withOpacity(0.8),
+                                fontWeight: FontWeight.w700)),
+                        const SizedBox(width: 8),
+                        Text(_emoji, style: const TextStyle(fontSize: 26)),
+                      ],
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        Text('Colour:',
+                            style: TextStyle(
+                                color: Colors.white.withOpacity(0.8),
+                                fontWeight: FontWeight.w700)),
+                        const SizedBox(width: 8),
+                        ..._accents.map((c) => Semantics(
+                              button: true,
+                              selected: c.value == _accent.value,
+                              label: 'Routine colour',
+                              child: GestureDetector(
+                                onTap: () => setState(() => _accent = c),
+                                child: Container(
+                                  margin: const EdgeInsets.only(left: 6),
+                                  width: 26,
+                                  height: 26,
+                                  decoration: BoxDecoration(
+                                    color: c,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                        color: c.value == _accent.value
+                                            ? Colors.white
+                                            : Colors.transparent,
+                                        width: 2.5),
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                        )),
+                            )),
+                      ],
+                    ),
                   ],
                 ),
                 const SizedBox(height: 10),
@@ -396,11 +422,20 @@ class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
                 if (_steps.isNotEmpty) ...<Widget>[
                   Row(
                     children: <Widget>[
-                      const Text('Steps',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800)),
+                      // Flexible + FittedBox(scaleDown) so the label shrinks
+                      // to leave room for the "Add" button instead of
+                      // overflowing at large accessibility text scales.
+                      const Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text('Steps',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800)),
+                        ),
+                      ),
                       const Spacer(),
                       TextButton.icon(
                         onPressed: _addManual,
@@ -428,17 +463,26 @@ class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
                   child: InkWell(
                     onTap: _save,
                     child: const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 18),
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 12, vertical: 18),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: <Widget>[
                           Icon(Icons.check_rounded, color: Colors.white),
                           SizedBox(width: 8),
-                          Text('Save Routine',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 19,
-                                  fontWeight: FontWeight.w900)),
+                          // Flexible + FittedBox(scaleDown) so the label
+                          // shrinks to fit the button width instead of
+                          // overflowing at large accessibility text scales.
+                          Flexible(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text('Save Routine',
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 19,
+                                      fontWeight: FontWeight.w900)),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -512,7 +556,8 @@ class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
       child: InkWell(
         onTap: _busy ? null : _generate,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
@@ -525,11 +570,19 @@ class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
               else
                 const Icon(Icons.auto_awesome_rounded, color: Colors.white),
               const SizedBox(width: 10),
-              Text(_busy ? 'Thinking…' : 'Generate with AI',
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900)),
+              // Flexible + FittedBox(scaleDown) so the label shrinks to fit
+              // the button width instead of overflowing at large
+              // accessibility text scales.
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(_busy ? 'Thinking…' : 'Generate with AI',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900)),
+                ),
+              ),
             ],
           ),
         ),
