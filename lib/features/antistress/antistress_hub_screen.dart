@@ -216,11 +216,22 @@ class _ToyTile extends StatelessWidget {
             child: Text(fidget.emoji, style: const TextStyle(fontSize: 28)),
           ),
           const Spacer(),
-          Text(fidget.title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                  color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800)),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.bottomLeft,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 170),
+                child: Text(fidget.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800)),
+              ),
+            ),
+          ),
         ],
       ),
     );
