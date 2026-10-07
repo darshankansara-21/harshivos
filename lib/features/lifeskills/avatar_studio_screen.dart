@@ -73,11 +73,22 @@ class _AvatarStudioScreenState extends ConsumerState<AvatarStudioScreen> {
                   _round(Icons.arrow_back_rounded,
                       () => Navigator.of(context).pop()),
                   const SizedBox(width: 12),
-                  const Text('Avatar Studio',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900)),
+                  // Flexible + FittedBox(scaleDown) so the title shrinks to
+                  // fit the remaining width instead of overflowing past the
+                  // screen edge at large accessibility text scales (the
+                  // same convention used catalog-wide, e.g. the
+                  // `ToyPlayerScreen` chrome title chip).
+                  const Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text('Avatar Studio',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.w900)),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -184,18 +195,32 @@ class _AvatarStudioScreenState extends ConsumerState<AvatarStudioScreen> {
                 clipBehavior: Clip.antiAlias,
                 child: InkWell(
                   onTap: _save,
+                  // The icon + label previously had no flexible space, so
+                  // at large accessibility text scales the scaled-up
+                  // label alone (with mainAxisSize.max + center
+                  // alignment) overflowed past the button's fixed width
+                  // instead of shrinking to fit. `Flexible` +
+                  // `FittedBox(scaleDown)` lets it shrink like every
+                  // other scaled chrome label in the catalog, while
+                  // staying full-size at normal text scale.
                   child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 18),
+                    padding: EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 18),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: <Widget>[
                         Icon(Icons.check_rounded, color: Colors.white),
                         SizedBox(width: 8),
-                        Text('Save My Character',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 19,
-                                fontWeight: FontWeight.w900)),
+                        Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text('Save My Character',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 19,
+                                    fontWeight: FontWeight.w900)),
+                          ),
+                        ),
                       ],
                     ),
                   ),
