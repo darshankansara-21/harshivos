@@ -58,8 +58,14 @@ class _SocialStoriesScreenState extends ConsumerState<SocialStoriesScreen> {
                 icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
                 onPressed: () => Navigator.of(context).pop(),
               ),
-              const Text('Social Stories',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white)),
+              const Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text('Social Stories',
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white)),
+                ),
+              ),
             ],
           ),
           const Padding(

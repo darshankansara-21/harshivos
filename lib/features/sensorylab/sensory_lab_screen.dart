@@ -56,13 +56,24 @@ class SensoryLabScreen extends StatelessWidget {
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                   const SizedBox(width: 4),
-                  const Text('Sensory Lab',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 30,
-                          fontWeight: FontWeight.w800)),
-                  const SizedBox(width: 10),
-                  const Text('🔭', style: TextStyle(fontSize: 26)),
+                  const Expanded(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          Text('Sensory Lab',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 30,
+                                  fontWeight: FontWeight.w800)),
+                          SizedBox(width: 10),
+                          Text('🔭', style: TextStyle(fontSize: 26)),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -106,39 +117,78 @@ class _LabTile extends StatelessWidget {
         ),
       ),
       padding: const EdgeInsets.all(18),
+      // This grid tile's height is fixed by the parent SliverGrid's
+      // childAspectRatio (0.95) — it never grows to fit its content. At a
+      // large accessibility TextScaler the icon circle (and its emoji Text)
+      // and the title/subtitle text block both scale up with it and
+      // genuinely overflowed that fixed height (334px at 2.5x), the same
+      // bug class already fixed in play_hub's _ToyTile. FittedBox(fit:
+      // scaleDown) around both scales each down just enough to keep fitting
+      // the fixed tile height, while still growing (up to that limit) for a
+      // child who needs bigger text.
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Container(
+          SizedBox(
             width: 64,
             height: 64,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(
-                colors: <Color>[
-                  lab.glow.withOpacity(0.9),
-                  lab.glow.withOpacity(0.4),
-                ],
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Container(
+                width: 64,
+                height: 64,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: <Color>[
+                      lab.glow.withOpacity(0.9),
+                      lab.glow.withOpacity(0.4),
+                    ],
+                  ),
+                  boxShadow: <BoxShadow>[
+                    BoxShadow(
+                        color: lab.glow.withOpacity(0.5),
+                        blurRadius: 22,
+                        spreadRadius: 1),
+                  ],
+                ),
+                child: Text(lab.emoji, style: const TextStyle(fontSize: 32)),
               ),
-              boxShadow: <BoxShadow>[
-                BoxShadow(
-                    color: lab.glow.withOpacity(0.5),
-                    blurRadius: 22,
-                    spreadRadius: 1),
-              ],
             ),
-            child: Text(lab.emoji, style: const TextStyle(fontSize: 32)),
           ),
-          const Spacer(),
-          Text(lab.title,
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 19,
-                  fontWeight: FontWeight.w800)),
-          const SizedBox(height: 3),
-          Text(lab.subtitle,
-              style: const TextStyle(color: Colors.white70, fontSize: 13)),
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) => Align(
+                alignment: Alignment.bottomLeft,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  // A bare FittedBox gives its child unbounded width; fixing
+                  // the inner Column's width to the tile's real available
+                  // width before scaling keeps the normal layout intact.
+                  child: SizedBox(
+                    width: constraints.maxWidth,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(lab.title,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 19,
+                                fontWeight: FontWeight.w800)),
+                        const SizedBox(height: 3),
+                        Text(lab.subtitle,
+                            style: const TextStyle(
+                                color: Colors.white70, fontSize: 13)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );

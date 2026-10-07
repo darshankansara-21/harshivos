@@ -23,11 +23,17 @@ class SensorySettingsScreen extends ConsumerWidget {
                   icon: const Icon(Icons.arrow_back_rounded,
                       color: Colors.white),
                 ),
-                const Text('Sensory settings',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800)),
+                const Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text('Sensory settings',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w800)),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 24),
