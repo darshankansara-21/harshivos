@@ -1803,6 +1803,11 @@ class _SnakeGameState extends State<SnakeGame>
   final List<Offset> _path = <Offset>[];
   int _length = 24;
   bool _boost = false;
+  // Single source of truth for whether holding boost right now would
+  // actually do anything (see `onTick`'s speed formula and the boost
+  // button's Semantics/visual state below, which both read this so the
+  // button never claims to be active when it mechanically isn't).
+  bool get _boostUsable => _length > 26;
   double _boostAcc = 0;
   double _t = 0;
   final List<_Orb> _orbs = <_Orb>[];
@@ -1940,7 +1945,7 @@ class _SnakeGameState extends State<SnakeGame>
 
     final speed = _baseSpeed *
         (1.0 + math.min(_score, 40) * 0.012) *
-        (_boost && _length > 26 ? 1.85 : 1.0);
+        (_boost && _boostUsable ? 1.85 : 1.0);
     _head += Offset(math.cos(_angle), math.sin(_angle)) * speed * dt;
 
     if (_path.isEmpty || (_head - _path.first).distance >= _spacing) {
@@ -1949,7 +1954,7 @@ class _SnakeGameState extends State<SnakeGame>
     _trimPath(_length * _seg + _seg);
 
     // Boost slowly trims length and drops a glowing orb behind.
-    if (_boost && _length > 26) {
+    if (_boost && _boostUsable) {
       _boostAcc += dt;
       if (_boostAcc >= 0.14) {
         _boostAcc = 0;
@@ -2266,9 +2271,22 @@ class _SnakeGameState extends State<SnakeGame>
                 // discover a boost control exists. Add both: an animated
                 // glow/scale while held, plus a discoverable, announced
                 // on/off label matching the toggle-switch convention.
+                //
+                // Separately: `onTick` only actually speeds the snake up
+                // once `_length > 26` (a brand-new run starts at 24), so a
+                // child holding this button for the first few seconds of
+                // every single game got the FULL celebratory charged glow
+                // (colour fill, scale-up, glowing shadow) while the snake
+                // visibly did not move any faster — the control was lying
+                // about being active. `_boostUsable` splits "held" from
+                // "actually doing something": held-but-not-yet-usable now
+                // shows a dimmer amber "charging" look instead of the full
+                // green glow, so the feedback always matches reality.
                 child: Semantics(
-                  label: 'Boost, hold to speed up',
-                  toggled: _boost,
+                  label: _boostUsable
+                      ? 'Boost, hold to speed up'
+                      : 'Boost, grow a little more to unlock',
+                  toggled: _boost && _boostUsable,
                   excludeSemantics: true,
                   child: Listener(
                     onPointerDown: (_) => setState(() => _boost = true),
@@ -2280,15 +2298,19 @@ class _SnakeGameState extends State<SnakeGame>
                       height: _boost ? 84 : 76,
                       decoration: BoxDecoration(
                         color: _boost
-                            ? const Color(0xFF06D6A0).withOpacity(0.55)
+                            ? (_boostUsable
+                                ? const Color(0xFF06D6A0).withOpacity(0.55)
+                                : const Color(0xFFFFA726).withOpacity(0.3))
                             : Colors.white.withOpacity(0.14),
                         shape: BoxShape.circle,
                         border: Border.all(
                             color: _boost
-                                ? const Color(0xFF06D6A0)
+                                ? (_boostUsable
+                                    ? const Color(0xFF06D6A0)
+                                    : const Color(0xFFFFA726))
                                 : Colors.white30,
                             width: 2),
-                        boxShadow: _boost
+                        boxShadow: _boost && _boostUsable
                             ? const <BoxShadow>[
                                 BoxShadow(
                                     color: Color(0x8006D6A0),
