@@ -75,11 +75,11 @@ the existing companion system. Ordinary tapping stays silent.
 ## 7. Batch discipline (Phases 8–10)
 Each worker does ONE substantial batch then exits cleanly:
 `AUDIT → DESIGN → IMPLEMENT → TEST → FIX → ANALYZE → COMMIT+PUSH → UPDATE STATE`.
-- **PRODUCT PROGRESS IS MANDATORY.** Every launch MUST edit at least one file under
-  `lib/` (a real gameplay/UX/audio/logic improvement) and commit+push it. A commit that
+- **TESTED PRODUCT PROGRESS IS MANDATORY.** Every launch MUST edit at least one file under
+  `lib/` and add or update a focused regression test under `test/`, then commit+push both. A commit that
   changes ONLY `docs/`, the state file, `CLAUDE.md`, or `scripts/` is **NOT progress** —
-  the orchestrator treats a docs-only / audit-only launch as a STALL and halts the factory
-  after a few of them. Updating the state file is the WRAP-UP, never the whole job.
+  nor is an untested code change. The orchestrator treats either as a STALL. Updating the
+  state file is the WRAP-UP, never the whole job.
 - **Never conclude "all games are QUALITY_A, nothing to do" and exit with a docs-only
   commit.** The catalog is large; there is ALWAYS one concrete improvement to make (feel,
   timing, difficulty curve, audio identity, animation, accessibility, delight). Pick the

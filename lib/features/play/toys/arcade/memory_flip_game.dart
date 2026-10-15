@@ -163,7 +163,7 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
     _timeLeft -= dt;
     if (_timeLeft <= 0) {
       _timeLeft = _timeLimit;
-      _loseLife('Too slow! $_lives left');
+      _loseLife('Too slow!');
     }
   }
 
@@ -194,7 +194,7 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
 
   /// Shared penalty path for a wrong match or a timeout: drops a life, ends
   /// the game if that was the last one, otherwise flashes [missMessage].
-  void _loseLife(String missMessage) {
+  void _loseLife(String missReason) {
     _streak = 0;
     _lives--;
     // Every wrong match or timeout deserves the companion's gentle
@@ -214,7 +214,7 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
       return;
     }
     TonePlayer.instance.playCue(SoundCue.gentleRetry);
-    _flash(missMessage);
+    _flash('$missReason $_lives left');
   }
 
   bool get _gameOver => _status == GameStatus.over;
@@ -316,7 +316,7 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
             emit(ExperienceEvent.bubblePopped);
           }
         } else {
-          _loseLife('Miss! $_lives left');
+          _loseLife('Miss!');
           if (_gameOver) return;
           _locked = true;
           Future<void>.delayed(const Duration(milliseconds: 700), () {

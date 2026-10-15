@@ -14,6 +14,13 @@ Future<void> _pump(WidgetTester tester, Widget game) async {
   await tester.pump(const Duration(milliseconds: 200));
 }
 
+Future<void> _pumpTicker(WidgetTester tester, Duration duration) async {
+  const step = Duration(milliseconds: 80);
+  for (var elapsed = Duration.zero; elapsed < duration; elapsed += step) {
+    await tester.pump(step);
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -127,6 +134,17 @@ void main() {
     await tester.tapAt(const Offset(540, 1000));
     await tester.pump(const Duration(milliseconds: 900));
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Memory Flip timeout reports the remaining lives', (tester) async {
+    await _pump(tester, const MemoryFlipGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await _pumpTicker(tester, const Duration(milliseconds: 31600));
+
+    expect(find.textContaining('Too slow! 2 left'), findsOneWidget);
+    expect(find.textContaining('Too slow! 3 left'), findsNothing);
+    expect(tester.takeException(), isNull);
+    await tester.pump(const Duration(milliseconds: 1200));
   });
 
   testWidgets('Quick Tap builds and reacts to taps', (tester) async {

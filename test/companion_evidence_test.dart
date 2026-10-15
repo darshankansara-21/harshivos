@@ -7,14 +7,18 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:harshivos/features/antistress/antistress_player_screen.dart';
 import 'package:harshivos/features/antistress/toys/bubble_wrap.dart';
 import 'package:harshivos/features/calm/breathing_exercise.dart';
 import 'package:harshivos/features/companion/companion.dart';
+import 'package:harshivos/services/storage/local_storage.dart';
+import 'package:harshivos/state/providers.dart';
 
 Future<void> _grab(WidgetTester tester, GlobalKey key, String path) async {
   // Wait past any reaction swap and let the authored art fully decode.
@@ -24,7 +28,7 @@ Future<void> _grab(WidgetTester tester, GlobalKey key, String path) async {
   await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 400)));
   await tester.pump(const Duration(milliseconds: 200));
-  while (tester.takeException() != null) {}
+  expect(tester.takeException(), isNull);
   await tester.runAsync(() async {
     final boundary =
         key.currentContext!.findRenderObject() as RenderRepaintBoundary;
@@ -40,24 +44,29 @@ Future<void> _grab(WidgetTester tester, GlobalKey key, String path) async {
 Future<GlobalKey> _pump(WidgetTester tester, Widget child, Size size) async {
   await tester.binding.setSurfaceSize(size);
   final key = GlobalKey();
-  await tester.pumpWidget(RepaintBoundary(
-    key: key,
-    child: MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark(),
-      home: child,
+  final storage = LocalStorage(await SharedPreferences.getInstance());
+  await tester.pumpWidget(ProviderScope(
+    overrides: <Override>[localStorageProvider.overrideWithValue(storage)],
+    child: RepaintBoundary(
+      key: key,
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData.dark(),
+        home: child,
+      ),
     ),
   ));
   // Let authored art decode.
   await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 300)));
   await tester.pump(const Duration(milliseconds: 300));
-  while (tester.takeException() != null) {}
+  expect(tester.takeException(), isNull);
   return key;
 }
 
 void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
   setUp(() {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
             const MethodChannel('flutter_tts'), (call) async => 1);

@@ -20,12 +20,10 @@ SAFE unit of work (per CLAUDE.md's batch definition: AUDIT -> DESIGN -> IMPLEMEN
 TEST -> FIX -> ANALYZE -> COMMIT+PUSH -> UPDATE STATE).
 
 PRODUCT PROGRESS IS MANDATORY — THIS IS THE #1 RULE:
-Every launch MUST change real product code. You MUST end the session having edited at
-least one file under lib/ (a concrete gameplay/UX/audio/logic improvement) AND committed
-and pushed it. A commit that touches ONLY docs/, the state file, CLAUDE.md, or scripts is
-NOT progress — the orchestrator now treats a docs-only / audit-only launch as a STALL and
-will halt the factory after a few of them. Auditing and updating the state file is the
-WRAP-UP of your work, never the whole of it.
+Every launch MUST change real product code and its regression coverage. You MUST end the
+session having edited at least one file under lib/ AND added or updated a focused test
+under test/, then commit and push both. Docs-only/audit-only work and untested code do NOT
+count as progress. Auditing and updating the state file is the WRAP-UP, never the whole job.
 
 Therefore your loop is strictly: AUDIT (find ONE concrete, specific weakness in a real
 game under lib/features/play/) -> IMPLEMENT that improvement in lib/ -> run flutter test

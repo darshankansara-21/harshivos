@@ -27,7 +27,7 @@
 #>
 [CmdletBinding()]
 param(
-  [int]$MaxIterations = 500,
+  [int]$MaxIterations = 1,
   [int]$MaxAutopilotContinues = 60,
   [int]$StallLimit = 4,           # consecutive exit-0-but-no-commit iterations before stopping
   [int]$FailLimit = 3,            # consecutive worker FAILURES (exit != 0) before stopping
@@ -138,6 +138,14 @@ function Measure-StepProductFiles {
   $names = & git -C $repo diff --name-only "$FromHead..$ToHead" 2>$null
   if (-not $names) { return 0 }
   return (@($names | Where-Object { $_ -match '^lib/' }) | Measure-Object).Count
+}
+
+function Measure-StepTestFiles {
+  param([string]$FromHead, [string]$ToHead)
+  if (-not $FromHead -or -not $ToHead -or $FromHead -eq $ToHead) { return 0 }
+  $names = & git -C $repo diff --name-only "$FromHead..$ToHead" 2>$null
+  if (-not $names) { return 0 }
+  return (@($names | Where-Object { $_ -match '^test/' }) | Measure-Object).Count
 }
 
 # Workers must operate ONLY in the repo root. A nested clone (observed as
@@ -290,24 +298,22 @@ while ($true) {
       Write-Halt "Oversized change this step: $($d.Files) files / $($d.Lines) lines (limits $MaxFilesPerStep / $MaxLinesPerStep) between $lastHead..$head. This looks like a bulk/accidental rewrite, not a bounded product change. Review 'git diff $lastHead..$head' before resuming."
       break
     }
-    # Only a change under lib/ is real product progress. A commit that touches
-    # ONLY docs/state/CLAUDE/scripts is an audit/documentation step -- the human
-    # explicitly ruled that does NOT count. Advance the baselines either way (so
-    # the same commits are never re-counted), but a docs-only step is a STALL.
     $prod = Measure-StepProductFiles $lastHead $head
+    $tests = Measure-StepTestFiles $lastHead $head
     $prevHead   = $lastHead
+    $prevRemote = $lastRemote
     $lastHead   = $head
     $lastRemote = $remote
-    if ($prod -gt 0) {
-      Write-Log "PROGRESS: local $prevHead -> $head ; origin $lastRemote -> $remote ($($d.Files) files / $($d.Lines) lines, $prod under lib/)"
+    if ($prod -gt 0 -and $tests -gt 0) {
+      Write-Log "PROGRESS: local $prevHead -> $head ; origin $prevRemote -> $remote ($($d.Files) files / $($d.Lines) lines, $prod under lib/, $tests under test/)"
       $stall = 0
       $fail = 0
     }
     else {
       $stall++
-      Write-Log "NON-PRODUCT STEP: $prevHead..$head changed only docs/state/non-lib files ($($d.Files) files / $($d.Lines) lines, 0 under lib/). This does NOT count as product progress (consecutive stalls=$stall of $StallLimit)."
+      Write-Log "NON-PRODUCT STEP: $prevHead..$head lacks a product change plus regression test ($($d.Files) files / $($d.Lines) lines, $prod under lib/, $tests under test/). This does NOT count as progress (consecutive stalls=$stall of $StallLimit)."
       if ($stall -ge $StallLimit) {
-        Write-Halt "$StallLimit consecutive workers produced NO product-code change (only docs/state churn or clean no-ops). The mission requires AUDIT -> IMPLEMENT a real lib/ improvement -> TEST -> COMMIT -> PUSH. Review the newest worker_*.log and NEXT_ACTION: workers are auditing/documenting instead of implementing."
+        Write-Halt "$StallLimit consecutive workers produced no tested product change. Progress requires a real lib/ improvement plus a test/ regression test."
         break
       }
     }
