@@ -653,7 +653,10 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> with _GoalEmit {
       title: widget.title,
       goal: widget.goal,
       introHow: 'Tap the right answer. Get 8 correct to win!',
-      onStart: () => setState(() => _status = GameStatus.playing),
+      onStart: () => setState(() {
+        _status = GameStatus.playing;
+        _shownAt = DateTime.now();
+      }),
       score: _score,
       target: _target,
       best: _best,

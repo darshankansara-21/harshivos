@@ -813,6 +813,26 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('Color Quest times first answer from Play, not instructions',
+      (tester) async {
+    await _pump(tester, const ColorQuestGame());
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 2300)),
+    );
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 16));
+    final prompt = tester.widget<Text>(find.byWidgetPredicate(
+      (widget) => widget is Text && (widget.data?.startsWith('Tap ') ?? false),
+    ).first).data!;
+    final answer = prompt.substring('Tap '.length);
+    await tester.tap(find.text(answer).last);
+    await tester.pump(const Duration(milliseconds: 16));
+
+    expect(find.text('Quick! ⚡'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 300));
+  });
+
   testWidgets('Shape Scout states its target and accepts a choice', (tester) async {
     await _pump(tester, const ShapeScoutGame());
     await tester.tap(find.widgetWithText(FilledButton, 'Play'));
