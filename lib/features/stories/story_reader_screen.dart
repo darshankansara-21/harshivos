@@ -1,20 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
 import '../../models/social_story.dart';
+import '../../state/providers.dart';
 
 /// Reads a generated social story page-by-page with narration and a gentle
 /// "Practice Mode" prompt on the final page.
-class StoryReaderScreen extends StatefulWidget {
+class StoryReaderScreen extends ConsumerStatefulWidget {
   const StoryReaderScreen({super.key, required this.story});
 
   final SocialStory story;
 
   @override
-  State<StoryReaderScreen> createState() => _StoryReaderScreenState();
+  ConsumerState<StoryReaderScreen> createState() =>
+      _StoryReaderScreenState();
 }
 
-class _StoryReaderScreenState extends State<StoryReaderScreen> {
+class _StoryReaderScreenState extends ConsumerState<StoryReaderScreen> {
   final PageController _pages = PageController();
   final FlutterTts _tts = FlutterTts();
   int _index = 0;
@@ -25,11 +28,13 @@ class _StoryReaderScreenState extends State<StoryReaderScreen> {
     _tts
       ..setSpeechRate(0.42)
       ..setPitch(1.05);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _narrate(0));
   }
 
   Future<void> _narrate(int i) async {
     await _tts.stop();
+    final volume = ref.read(sensoryPreferencesProvider).volumeScale;
+    if (volume <= 0) return;
+    await _tts.setVolume(volume);
     await _tts.speak(widget.story.pages[i].text);
   }
 
@@ -42,6 +47,12 @@ class _StoryReaderScreenState extends State<StoryReaderScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<double>(
+      sensoryPreferencesProvider.select((value) => value.volumeScale),
+      (_, volume) {
+        if (volume <= 0) _tts.stop();
+      },
+    );
     final pages = widget.story.pages;
     final isLast = _index == pages.length - 1;
     return Scaffold(
@@ -61,6 +72,7 @@ class _StoryReaderScreenState extends State<StoryReaderScreen> {
                           color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
                 ),
                 IconButton(
+                  tooltip: 'Read this page aloud',
                   icon: const Icon(Icons.replay_rounded, color: Colors.white),
                   onPressed: () => _narrate(_index),
                 ),
@@ -72,7 +84,7 @@ class _StoryReaderScreenState extends State<StoryReaderScreen> {
                 itemCount: pages.length,
                 onPageChanged: (i) {
                   setState(() => _index = i);
-                  _narrate(i);
+                  _tts.stop();
                 },
                 itemBuilder: (context, i) => _StoryPageView(page: pages[i], index: i, total: pages.length),
               ),

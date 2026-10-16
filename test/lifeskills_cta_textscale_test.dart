@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -20,9 +21,28 @@ import 'package:harshivos/state/providers.dart';
 /// `CreateRoutineScreen`'s "Save Routine" / "Generate with AI" buttons.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  late List<MethodCall> ttsCalls;
 
-  Future<LocalStorage> storage() async {
-    SharedPreferences.setMockInitialValues(<String, Object>{});
+  setUp(() {
+    ttsCalls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('flutter_tts'),
+      (call) async {
+        ttsCalls.add(call);
+        return 1;
+      },
+    );
+  });
+
+  Future<LocalStorage> storage({
+    String audioLevel = 'normal',
+    bool muted = false,
+  }) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'audio_level': audioLevel,
+      'audio_muted': muted,
+    });
     return LocalStorage(await SharedPreferences.getInstance());
   }
 
@@ -108,6 +128,83 @@ void main() {
     await tester.tap(find.text('Next'));
     await tester.pump(const Duration(milliseconds: 350));
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('card deck pages stay silent until explicit read-aloud',
+      (tester) async {
+    const deck = LessonDeck(
+      id: 'quiet-deck',
+      title: 'Quiet cards',
+      subtitle: 'Visual first',
+      emoji: '🧭',
+      gradient: <Color>[Color(0xFF4CC9F0), Color(0xFF9B5DE5)],
+      cards: <LessonCard>[
+        LessonCard(
+          title: 'First',
+          narration: 'First narration',
+          emoji: '1️⃣',
+          kind: LessonKind.info,
+        ),
+        LessonCard(
+          title: 'Second',
+          narration: 'Second narration',
+          emoji: '2️⃣',
+          kind: LessonKind.info,
+        ),
+      ],
+    );
+    await tester.pumpWidget(ProviderScope(
+      overrides: <Override>[
+        localStorageProvider.overrideWithValue(
+          await storage(audioLevel: 'soft'),
+        ),
+      ],
+      child: const MaterialApp(home: CardDeckScreen(deck: deck)),
+    ));
+    await tester.pump();
+    expect(ttsCalls.where((call) => call.method == 'speak'), isEmpty);
+
+    await tester.tap(find.text('Next'));
+    await tester.pump();
+    expect(ttsCalls.where((call) => call.method == 'speak'), isEmpty);
+
+    await tester.tap(find.byIcon(Icons.volume_up_rounded));
+    await tester.pump();
+    expect(
+      ttsCalls.where((call) => call.method == 'setVolume').last.arguments,
+      closeTo(0.35, 0.001),
+    );
+    expect(ttsCalls.where((call) => call.method == 'speak').single.arguments,
+        'Second narration');
+  });
+
+  testWidgets('routine narration stays silent while muted', (tester) async {
+    const routine = LifeRoutine(
+      id: 'quiet-routine',
+      title: 'Quiet routine',
+      subtitle: 'Visual steps',
+      emoji: '🌞',
+      gradient: <Color>[Color(0xFF4CC9F0), Color(0xFF9B5DE5)],
+      steps: <RoutineStep>[
+        RoutineStep(
+          title: 'First step',
+          instruction: 'Do the first step',
+          emoji: '1️⃣',
+          pose: AvatarPose.idle,
+        ),
+      ],
+    );
+    await tester.pumpWidget(ProviderScope(
+      overrides: <Override>[
+        localStorageProvider.overrideWithValue(await storage(muted: true)),
+      ],
+      child: const MaterialApp(home: RoutinePlayerScreen(routine: routine)),
+    ));
+    await tester.pump();
+    await tester.tap(find.text("Let's Go!"));
+    await tester.pump();
+
+    expect(ttsCalls.where((call) => call.method == 'speak'), isEmpty);
   });
 
   testWidgets(

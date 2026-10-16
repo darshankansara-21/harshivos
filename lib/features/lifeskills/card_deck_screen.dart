@@ -8,6 +8,8 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'avatar/avatar.dart';
 import 'models/life_models.dart';
 import 'state/lifeskills_providers.dart';
+import '../../services/audio/tone_player.dart';
+import '../../state/providers.dart';
 
 /// Plays a [LessonDeck] (Do's & Don'ts, Social Skills, Stay Safe) as a stack of
 /// big, clearly colour-coded teaching cards with avatar + narration.
@@ -27,7 +29,6 @@ class _CardDeckScreenState extends ConsumerState<CardDeckScreen> {
   void initState() {
     super.initState();
     _initTts();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _speakCurrent());
   }
 
   Future<void> _initTts() async {
@@ -48,29 +49,36 @@ class _CardDeckScreenState extends ConsumerState<CardDeckScreen> {
   Future<void> _speakCurrent() async {
     try {
       await _tts.stop();
+      final volume = ref.read(sensoryPreferencesProvider).volumeScale;
+      if (volume <= 0) return;
+      await _tts.setVolume(volume);
       await _tts.speak(_cards[_index].narration);
     } catch (_) {}
   }
 
   void _next() {
-    HapticFeedback.selectionClick();
+    TonePlayer.instance.haptic(HapticFeedback.selectionClick);
     if (_index >= _cards.length - 1) {
       Navigator.of(context).pop();
       return;
     }
     setState(() => _index++);
-    _speakCurrent();
   }
 
   void _prev() {
-    HapticFeedback.selectionClick();
+    TonePlayer.instance.haptic(HapticFeedback.selectionClick);
     if (_index <= 0) return;
     setState(() => _index--);
-    _speakCurrent();
   }
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<double>(
+      sensoryPreferencesProvider.select((value) => value.volumeScale),
+      (_, volume) {
+        if (volume <= 0) _tts.stop();
+      },
+    );
     final config = ref.watch(avatarConfigProvider);
     final card = _cards[_index];
     return Scaffold(

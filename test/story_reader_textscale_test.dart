@@ -1,20 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:harshivos/features/stories/story_reader_screen.dart';
 import 'package:harshivos/models/social_story.dart';
+import 'package:harshivos/services/storage/local_storage.dart';
+import 'package:harshivos/state/providers.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  late List<MethodCall> ttsCalls;
 
   setUp(() {
+    ttsCalls = <MethodCall>[];
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
       const MethodChannel('flutter_tts'),
-      (call) async => 1,
+      (call) async {
+        ttsCalls.add(call);
+        return 1;
+      },
     );
   });
+
+  Future<LocalStorage> storage({String audioLevel = 'normal'}) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'audio_level': audioLevel,
+    });
+    return LocalStorage(await SharedPreferences.getInstance());
+  }
 
   testWidgets(
       'story reader bottom action row at 2.5x text scale has no overflow',
@@ -39,9 +55,14 @@ void main() {
             imagePrompt: 'teeth'),
       ],
     );
-    await tester.pumpWidget(MaterialApp(
-      builder: _applyLargeTextScale,
-      home: StoryReaderScreen(story: story),
+    await tester.pumpWidget(ProviderScope(
+      overrides: <Override>[
+        localStorageProvider.overrideWithValue(await storage()),
+      ],
+      child: MaterialApp(
+        builder: _applyLargeTextScale,
+        home: StoryReaderScreen(story: story),
+      ),
     ));
     await tester.pump(const Duration(milliseconds: 400));
     expect(tester.takeException(), isNull);
@@ -51,6 +72,53 @@ void main() {
     await tester.drag(find.byType(PageView), const Offset(-2000, 0));
     await tester.pump(const Duration(milliseconds: 400));
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('story narration is explicit and follows the soft volume',
+      (tester) async {
+    final story = SocialStory(
+      title: 'A quiet story',
+      situation: 'Reading together',
+      pages: <SocialStoryPage>[
+        SocialStoryPage(
+            text: 'First page.', emoji: '1️⃣', imagePrompt: 'first'),
+        SocialStoryPage(
+            text: 'Second page.', emoji: '2️⃣', imagePrompt: 'second'),
+      ],
+    );
+    await tester.pumpWidget(ProviderScope(
+      overrides: <Override>[
+        localStorageProvider.overrideWithValue(
+          await storage(audioLevel: 'soft'),
+        ),
+      ],
+      child: MaterialApp(home: StoryReaderScreen(story: story)),
+    ));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(ttsCalls.where((call) => call.method == 'speak'), isEmpty);
+    await tester.drag(find.byType(PageView), const Offset(-1000, 0));
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(ttsCalls.where((call) => call.method == 'speak'), isEmpty);
+
+    await tester.tap(find.byTooltip('Read this page aloud'));
+    await tester.pump();
+    expect(
+      ttsCalls.where((call) => call.method == 'setVolume').last.arguments,
+      closeTo(0.35, 0.001),
+    );
+    expect(ttsCalls.where((call) => call.method == 'speak').single.arguments,
+        'Second page.');
+
+    ttsCalls.clear();
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(StoryReaderScreen)),
+    );
+    await container
+        .read(sensoryPreferencesProvider.notifier)
+        .setQuietMode(true);
+    await tester.pump();
+    expect(ttsCalls.any((call) => call.method == 'stop'), true);
   });
 }
 

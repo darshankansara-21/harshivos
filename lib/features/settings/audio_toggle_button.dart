@@ -6,9 +6,8 @@ import '../../state/providers.dart';
 
 /// The single, reusable sound on/off control for WonderPlay.
 ///
-/// It reads and writes the one global [SensoryPreferences.muted] flag, so every
-/// placement (home, any game, any toy) shares the exact same state — there is
-/// no second audio switch and no way for one screen to disagree with another.
+/// It reflects quick mute and persistent quiet mode, so every placement (home,
+/// any game, any toy) agrees about whether audio is currently suppressed.
 class MuteButton extends ConsumerWidget {
   const MuteButton({super.key, this.size = 44});
 
@@ -16,15 +15,20 @@ class MuteButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final muted =
-        ref.watch(sensoryPreferencesProvider.select((p) => p.muted));
+    final preferences = ref.watch(sensoryPreferencesProvider);
+    final muted = preferences.soundSuppressed;
     return AudioToggleButton(
       muted: muted,
       size: size,
       onPressed: () {
         final notifier = ref.read(sensoryPreferencesProvider.notifier);
         final wasMuted = muted;
-        notifier.toggleMuted();
+        if (muted) {
+          notifier.setQuietMode(false);
+          notifier.setMuted(false);
+        } else {
+          notifier.setMuted(true);
+        }
         // A soft confirmation only when turning sound back ON, so the child
         // hears that it worked. volumeScale is updated by the root rebuild, so
         // play on the next frame.

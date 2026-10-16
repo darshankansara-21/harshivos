@@ -19,6 +19,9 @@ void main() {
     await first
         .read(sensoryPreferencesProvider.notifier)
         .setReduceMotion(true);
+    await first
+      .read(sensoryPreferencesProvider.notifier)
+      .setQuietMode(true);
     first.dispose();
 
     final restored = ProviderContainer(overrides: <Override>[
@@ -27,7 +30,39 @@ void main() {
     expect(restored.read(sensoryPreferencesProvider).audioLevel,
         AudioLevel.soft);
     expect(restored.read(sensoryPreferencesProvider).reduceMotion, true);
+    expect(restored.read(sensoryPreferencesProvider).quietMode, true);
+    expect(restored.read(sensoryPreferencesProvider).volumeScale, 0);
     restored.dispose();
+  });
+
+  test('new installs use a soft, music-off sensory default', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final storage = LocalStorage(await SharedPreferences.getInstance());
+    final container = ProviderContainer(overrides: <Override>[
+      localStorageProvider.overrideWithValue(storage),
+    ]);
+
+    final preferences = container.read(sensoryPreferencesProvider);
+    expect(preferences.audioLevel, AudioLevel.soft);
+    expect(preferences.volumeScale, closeTo(0.35, 0.001));
+    expect(preferences.musicEnabled, false);
+    expect(preferences.quietMode, false);
+    container.dispose();
+  });
+
+  test('quiet mode suppresses sound and music without losing choices', () {
+    const preferences = SensoryPreferences(
+      audioLevel: AudioLevel.normal,
+      quietMode: true,
+      musicEnabled: true,
+    );
+    expect(preferences.soundSuppressed, true);
+    expect(preferences.volumeScale, 0);
+    expect(preferences.effectiveMusicEnabled, false);
+
+    final restored = preferences.copyWith(quietMode: false);
+    expect(restored.volumeScale, 1);
+    expect(restored.effectiveMusicEnabled, true);
   });
 
   group('global mute', () {
@@ -65,7 +100,8 @@ void main() {
       expect(restored.read(sensoryPreferencesProvider).muted, true);
       await restored.read(sensoryPreferencesProvider.notifier).setMuted(false);
       expect(restored.read(sensoryPreferencesProvider).muted, false);
-      expect(restored.read(sensoryPreferencesProvider).volumeScale, 1);
+        expect(restored.read(sensoryPreferencesProvider).volumeScale,
+          closeTo(0.35, 0.001));
       restored.dispose();
     });
   });

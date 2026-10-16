@@ -62,8 +62,7 @@ class _GlassCardState extends State<GlassCard> {
             onTap: widget.onTap == null
                 ? null
                 : () {
-                    HapticFeedback.selectionClick();
-                    TonePlayer.instance.playCue(SoundCue.navigation);
+                    TonePlayer.instance.haptic(HapticFeedback.selectionClick);
                     widget.onTap!.call();
                   },
             onHighlightChanged: _setPressed,

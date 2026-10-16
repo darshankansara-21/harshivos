@@ -170,7 +170,6 @@ class _RoundButton extends StatelessWidget {
         customBorder: const CircleBorder(),
         onTap: () {
           TonePlayer.instance.haptic(HapticFeedback.selectionClick);
-          TonePlayer.instance.playCue(SoundCue.navigation);
           onTap();
         },
         child: Padding(

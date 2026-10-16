@@ -10,12 +10,24 @@ void main() {
           lessThan(WonderAudioPolicy.scale(WonderAudioKind.gameplay)));
     });
 
-    test('celebration and success are at least as loud as gameplay', () {
+    test('success remains distinct without reaching full scale', () {
       final gameplay = WonderAudioPolicy.scale(WonderAudioKind.gameplay);
       expect(WonderAudioPolicy.scale(WonderAudioKind.celebration),
           greaterThanOrEqualTo(gameplay));
       expect(WonderAudioPolicy.scale(WonderAudioKind.success),
           greaterThanOrEqualTo(gameplay));
+      expect(WonderAudioPolicy.scale(WonderAudioKind.celebration),
+        lessThan(1.0));
+      expect(WonderAudioPolicy.scale(WonderAudioKind.success), lessThan(1.0));
+    });
+
+    test('frequent cues have conservative sensory ceilings', () {
+      expect(WonderAudioPolicy.scale(WonderAudioKind.interaction),
+        lessThanOrEqualTo(0.35));
+      expect(WonderAudioPolicy.scale(WonderAudioKind.navigation),
+        lessThanOrEqualTo(0.35));
+      expect(WonderAudioPolicy.scale(WonderAudioKind.gameplay),
+        lessThanOrEqualTo(0.75));
     });
 
     test('every kind maps to a sane 0..1 multiplier', () {

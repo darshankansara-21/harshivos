@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/theme/app_theme.dart';
 import 'services/audio/tone_player.dart';
+import 'services/voice/hari_voice.dart';
 import 'features/lifeskills/profile_wizard_screen.dart';
 import 'features/universe/toy_universe_screen.dart';
 import 'state/providers.dart';
@@ -17,8 +18,10 @@ class HarshivApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profileDone = ref.watch(profileCompleteProvider);
     final sensory = ref.watch(sensoryPreferencesProvider);
-    TonePlayer.instance.applyAudio(sensory.volumeScale, sensory.musicEnabled,
+    TonePlayer.instance.applyAudio(
+      sensory.volumeScale, sensory.effectiveMusicEnabled,
         haptics: sensory.hapticsEnabled);
+    if (sensory.volumeScale <= 0) HariVoice.instance.stop();
     return MaterialApp(
       title: 'WonderPlay',
       debugShowCheckedModeBanner: false,

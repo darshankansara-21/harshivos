@@ -35,7 +35,7 @@ class ToyUniverseScreen extends ConsumerStatefulWidget {
   /// Opens a toy immersively and records the play for the rails.
   static Future<void> open(
       BuildContext context, WidgetRef ref, UniverseToy toy) async {
-    HapticFeedback.selectionClick();
+    TonePlayer.instance.haptic(HapticFeedback.selectionClick);
     ref.read(toyUsageProvider.notifier).record(toy.id);
     await GameScores.instance.ensureLoaded();
     final beforeBest = GameScores.instance.best(toy.id);
@@ -215,23 +215,29 @@ class _ToyUniverseScreenState extends ConsumerState<ToyUniverseScreen> {
                         // Hidden debug entry: long-press the counter chip.
                         IconButton(
                           tooltip: ref.watch(sensoryPreferencesProvider
-                                  .select((p) => p.muted))
+                                  .select((p) => p.soundSuppressed))
                               ? 'Turn sound on'
                               : 'Turn sound off',
                           icon: Icon(
                             ref.watch(sensoryPreferencesProvider
-                                    .select((p) => p.muted))
+                                    .select((p) => p.soundSuppressed))
                                 ? Icons.volume_off_rounded
                                 : Icons.volume_up_rounded,
                             color: Colors.white,
                             size: 26,
                           ),
                           onPressed: () {
-                            final wasMuted = ref.read(sensoryPreferencesProvider
-                                .select((p) => p.muted));
-                            ref
-                                .read(sensoryPreferencesProvider.notifier)
-                                .toggleMuted();
+                            final preferences =
+                                ref.read(sensoryPreferencesProvider);
+                            final wasMuted = preferences.soundSuppressed;
+                            final notifier = ref
+                                .read(sensoryPreferencesProvider.notifier);
+                            if (wasMuted) {
+                              notifier.setQuietMode(false);
+                              notifier.setMuted(false);
+                            } else {
+                              notifier.setMuted(true);
+                            }
                             if (wasMuted) {
                               WidgetsBinding.instance.addPostFrameCallback((_) {
                                 TonePlayer.instance
@@ -278,7 +284,7 @@ class _ToyUniverseScreenState extends ConsumerState<ToyUniverseScreen> {
                         ),
                         GestureDetector(
                           onLongPress: () {
-                            HapticFeedback.mediumImpact();
+                            TonePlayer.instance.haptic(HapticFeedback.mediumImpact);
                             Navigator.of(context).push(MaterialPageRoute<void>(
                                 builder: (_) => const ToyDebugScreen()));
                           },
@@ -711,7 +717,7 @@ class _DestinationCard extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
         onTap: () {
-          HapticFeedback.selectionClick();
+          TonePlayer.instance.haptic(HapticFeedback.selectionClick);
           onTap();
         },
         child: Ink(
@@ -1016,7 +1022,7 @@ class _ToyCard extends ConsumerWidget {
                       child: _HeartButton(
                         active: isFav,
                         onTap: () {
-                          HapticFeedback.selectionClick();
+                          TonePlayer.instance.haptic(HapticFeedback.selectionClick);
                           ref.read(favoritesProvider.notifier).toggle(toy.id);
                         },
                       ),
@@ -1098,7 +1104,7 @@ class _ToyCard extends ConsumerWidget {
   }
 
   void _showPreview(BuildContext context, WidgetRef ref) {
-    HapticFeedback.mediumImpact();
+    TonePlayer.instance.haptic(HapticFeedback.mediumImpact);
     showDialog<void>(
       context: context,
       barrierColor: Colors.black87,

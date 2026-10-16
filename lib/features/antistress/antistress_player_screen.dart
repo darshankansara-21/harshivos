@@ -84,8 +84,7 @@ class _AntistressPlayerScreenState extends State<AntistressPlayerScreen> {
                     _RoundButton(
                       icon: Icons.arrow_back_rounded,
                       onTap: () {
-                        HapticFeedback.lightImpact();
-                        TonePlayer.instance.playCue(SoundCue.navigation);
+                        TonePlayer.instance.haptic(HapticFeedback.lightImpact);
                         Navigator.of(context).pop();
                       },
                     ),

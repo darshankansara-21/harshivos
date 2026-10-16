@@ -76,12 +76,12 @@ class WonderAudioPolicy {
   const WonderAudioPolicy._();
 
   static double scale(WonderAudioKind kind) => switch (kind) {
-        WonderAudioKind.ambient => 0.7,
-        WonderAudioKind.navigation => 0.45,
-        WonderAudioKind.interaction => 0.4,
-        WonderAudioKind.gameplay => 1.0,
-        WonderAudioKind.success => 1.0,
-        WonderAudioKind.celebration => 1.0,
+      WonderAudioKind.ambient => 0.5,
+      WonderAudioKind.navigation => 0.3,
+      WonderAudioKind.interaction => 0.3,
+      WonderAudioKind.gameplay => 0.7,
+      WonderAudioKind.success => 0.75,
+      WonderAudioKind.celebration => 0.75,
       };
 }
 
@@ -309,7 +309,7 @@ class TonePlayer {
       case SoundCue.bubble:
         await _playKeyed('bubble', () => _synthPop(520), volume: 0.7);
       case SoundCue.balloon:
-        await _playKeyed('balloon', () => _synthPop(280), volume: 0.95);
+        await _playKeyed('balloon', () => _synthPop(280), volume: 0.7);
       case SoundCue.ball:
         await _playNoise(
             'ball', () => _synthClick(420, 0.06, 60, 0.4), volume: 0.7);
@@ -322,7 +322,7 @@ class TonePlayer {
         await _playNoise(
             'wood', () => _synthClick(300, 0.07, 45, 0.35), volume: 0.7);
       case SoundCue.metal:
-        await _playKeyed('metal', () => _synthRing(1250, 0.22), volume: 0.55);
+        await _playKeyed('metal', () => _synthRing(1100, 0.18), volume: 0.4);
       case SoundCue.coin:
         await playNote(5, seconds: 0.10);
         await Future<void>.delayed(const Duration(milliseconds: 55));
@@ -336,10 +336,10 @@ class TonePlayer {
       case SoundCue.engine:
         await _playKeyed('engine', () => _synthEngine(0.18), volume: 0.5);
       case SoundCue.crash:
-        await _playNoise(
-            'crash', () => _synthClick(140, 0.20, 16, 0.85), volume: 0.8);
+        await _play(165,
+            seconds: 0.18, wave: _Wave.sine, attack: 0.025, decay: 8);
       case SoundCue.laser:
-        await _playKeyed('laser', () => _synthLaser(0.22), volume: 0.55);
+        await _playKeyed('laser', () => _synthLaser(0.18), volume: 0.4);
       case SoundCue.brick:
         await _playNoise(
             'brick', () => _synthClick(1000, 0.04, 120, 0.4), volume: 0.6);
@@ -372,14 +372,10 @@ class TonePlayer {
         await Future<void>.delayed(const Duration(milliseconds: 70));
         await playNote(9, seconds: 0.34);
       case SoundCue.gameStart:
-        // A short, bright "let's go" fanfare to kick off a game.
-        await playNote(3, seconds: 0.11);
-        await Future<void>.delayed(const Duration(milliseconds: 60));
-        await playNote(5, seconds: 0.11);
-        await Future<void>.delayed(const Duration(milliseconds: 60));
-        await playNote(7, seconds: 0.10);
-        await Future<void>.delayed(const Duration(milliseconds: 55));
-        await playNote(10, seconds: 0.30);
+        // Two gentle notes confirm an explicit start without a long fanfare.
+        await playNote(3, seconds: 0.10);
+        await Future<void>.delayed(const Duration(milliseconds: 65));
+        await playNote(7, seconds: 0.22);
       case SoundCue.gameOver:
         await _play(300,
             seconds: 0.20, wave: _Wave.sine, attack: 0.02, decay: 5);
@@ -413,12 +409,12 @@ class TonePlayer {
     try {
       switch (cue) {
         case SoundCue.success:
-        case SoundCue.gameStart:
         case SoundCue.milestone:
         case SoundCue.completion:
         case SoundCue.bowling:
         case SoundCue.gameOver:
           HapticFeedback.heavyImpact();
+        case SoundCue.gameStart:
         case SoundCue.crash:
           HapticFeedback.mediumImpact();
         case SoundCue.tap:
@@ -464,7 +460,7 @@ class TonePlayer {
     final p = pitch.clamp(0.0, 1.0);
     final freq = 320 + p * 520;
     final key = 'pop_${(p * 20).round()}';
-    await _playKeyed(key, () => _synthPop(freq), volume: 0.95);
+    await _playKeyed(key, () => _synthPop(freq), volume: 0.7);
   }
 
   // ---------------------------------------------------------------------------
@@ -479,41 +475,41 @@ class TonePlayer {
   /// [pitch] scales the body frequency (1.0 = default).
   Future<void> playClick({double pitch = 1.0}) async {
     await _playNoise('click_${(pitch * 20).round()}',
-        () => _synthClick(900 * pitch, 0.05, 90, 0.6), volume: 0.7);
+        () => _synthClick(760 * pitch, 0.045, 100, 0.45), volume: 0.45);
   }
 
   /// A deeper, softer key press "thock".
   Future<void> playThock({double pitch = 1.0}) async {
     await _playNoise('thock_${(pitch * 20).round()}',
-        () => _synthClick(260 * pitch, 0.08, 55, 0.45), volume: 0.75);
+        () => _synthClick(240 * pitch, 0.075, 60, 0.35), volume: 0.55);
   }
 
   /// A light detent "tick" — rotary dial notches, combo-lock wheels.
   Future<void> playTick() async {
     await _playNoise(
-        'tick', () => _synthClick(1500, 0.03, 140, 0.7), volume: 0.5);
+        'tick', () => _synthClick(1200, 0.025, 150, 0.5), volume: 0.35);
   }
 
   /// A toggle click; slightly brighter for the "on" position.
   Future<void> playSwitch({required bool on}) async {
     await _playNoise('switch_$on',
-        () => _synthClick(on ? 1100 : 700, 0.045, 100, 0.65), volume: 0.65);
+        () => _synthClick(on ? 900 : 650, 0.04, 110, 0.45), volume: 0.45);
   }
 
   /// A soft low "squish" for the stress ball.
   Future<void> playSquish() async {
     await _playNoise(
-        'squish', () => _synthClick(180, 0.16, 22, 0.35), volume: 0.65);
+        'squish', () => _synthClick(180, 0.14, 24, 0.25), volume: 0.5);
   }
 
   /// A rising ratchet buzz for the zipper.
   Future<void> playZip() async {
-    await _playNoise('zip', () => _synthZip(0.20), volume: 0.6);
+    await _playNoise('zip', () => _synthZip(0.18), volume: 0.4);
   }
 
   /// A soft airy whir for the fidget spinner (call once per flick).
   Future<void> playWhir() async {
-    await _playNoise('whir', () => _synthWhir(0.55), volume: 0.7);
+    await _playNoise('whir', () => _synthWhir(0.45), volume: 0.45);
   }
 
   Future<void> _playNoise(String key, Uint8List Function() build,
@@ -793,6 +789,11 @@ class TonePlayer {
     hapticsEnabled = haptics;
     if (scale <= 0 || !musicOn) {
       stopMusic();
+      if (scale <= 0) {
+        for (final player in _pool) {
+          player.stop();
+        }
+      }
     } else {
       _musicPlayer?.setVolume((0.22 * scale).clamp(0.0, 1.0));
     }

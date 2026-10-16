@@ -107,7 +107,7 @@ class _LearningGameScreenState extends ConsumerState<LearningGameScreen> {
     if (choice.label == _target.label) {
       _companion.reactToEvent(ExperienceEvent.correctAnswer);
       if ((_score + 1) % 4 == 0) _companion.reactToEvent(ExperienceEvent.musicStarted);
-      HapticFeedback.mediumImpact();
+      TonePlayer.instance.haptic(HapticFeedback.mediumImpact);
         TonePlayer.instance.playCue((_score + 1) % 4 == 0
           ? SoundCue.milestone
           : SoundCue.learnGood);
@@ -125,7 +125,7 @@ class _LearningGameScreenState extends ConsumerState<LearningGameScreen> {
       if (!_done) _speakPrompt();
     } else {
       _companion.reactToEvent(ExperienceEvent.incorrectAnswer);
-      HapticFeedback.selectionClick();
+      TonePlayer.instance.haptic(HapticFeedback.selectionClick);
       TonePlayer.instance.playCue(SoundCue.gentleRetry);
       setState(() {
         _streak = 0;
@@ -630,7 +630,7 @@ class _SortingGameScreenState extends ConsumerState<SortingGameScreen> {
       } else {
         _companion.react(CompanionReaction.proud);
       }
-      HapticFeedback.mediumImpact();
+      TonePlayer.instance.haptic(HapticFeedback.mediumImpact);
         TonePlayer.instance.playCue((_score + 1) % 4 == 0
           ? SoundCue.milestone
           : SoundCue.learnGood);
@@ -646,7 +646,7 @@ class _SortingGameScreenState extends ConsumerState<SortingGameScreen> {
       if (!_done) _speakPrompt();
     } else {
       _companion.encourage();
-      HapticFeedback.selectionClick();
+      TonePlayer.instance.haptic(HapticFeedback.selectionClick);
       TonePlayer.instance.playCue(SoundCue.gentleRetry);
       setState(() => _justWrong = true);
     }

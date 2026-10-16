@@ -37,6 +37,20 @@ class SensorySettingsScreen extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 24),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              secondary: const Icon(Icons.volume_off_rounded,
+                color: Colors.white70),
+              title: const Text('Quiet mode',
+                style: TextStyle(
+                  color: Colors.white, fontWeight: FontWeight.w800)),
+              subtitle: const Text(
+                'Silence sound, narration and music until turned off',
+                style: TextStyle(color: Colors.white70)),
+              value: preferences.quietMode,
+              onChanged: notifier.setQuietMode,
+            ),
+            const SizedBox(height: 20),
             const Text('Sound and voice',
                 style: TextStyle(
                     color: Colors.white,

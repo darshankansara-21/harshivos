@@ -59,6 +59,9 @@ class _RoutinePlayerScreenState extends ConsumerState<RoutinePlayerScreen>
   Future<void> _speak(String text) async {
     try {
       await _tts.stop();
+      final volume = ref.read(sensoryPreferencesProvider).volumeScale;
+      if (volume <= 0) return;
+      await _tts.setVolume(volume);
       await _tts.speak(text);
     } catch (_) {}
   }
@@ -80,7 +83,7 @@ class _RoutinePlayerScreenState extends ConsumerState<RoutinePlayerScreen>
   }
 
   void _next() {
-    HapticFeedback.mediumImpact();
+    TonePlayer.instance.haptic(HapticFeedback.mediumImpact);
     if (_index >= _steps.length - 1) {
       _finish();
       return;
@@ -91,7 +94,7 @@ class _RoutinePlayerScreenState extends ConsumerState<RoutinePlayerScreen>
   }
 
   void _back() {
-    HapticFeedback.selectionClick();
+    TonePlayer.instance.haptic(HapticFeedback.selectionClick);
     if (_index <= 0) {
       setState(() => _index = -1);
       _tts.stop();
@@ -125,7 +128,7 @@ class _RoutinePlayerScreenState extends ConsumerState<RoutinePlayerScreen>
   }
 
   void _restart() {
-    HapticFeedback.mediumImpact();
+    TonePlayer.instance.haptic(HapticFeedback.mediumImpact);
     setState(() {
       _index = 0;
       _completed = false;
@@ -135,6 +138,12 @@ class _RoutinePlayerScreenState extends ConsumerState<RoutinePlayerScreen>
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<double>(
+      sensoryPreferencesProvider.select((value) => value.volumeScale),
+      (_, volume) {
+        if (volume <= 0) _tts.stop();
+      },
+    );
     final config = ref.watch(avatarConfigProvider);
     final name = ref.watch(childNameProvider);
     return Scaffold(

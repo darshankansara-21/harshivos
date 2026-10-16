@@ -119,9 +119,10 @@ enum AudioLevel { off, soft, normal }
 
 class SensoryPreferences {
   const SensoryPreferences({
-    this.audioLevel = AudioLevel.normal,
+    this.audioLevel = AudioLevel.soft,
     this.reduceMotion = false,
     this.muted = false,
+    this.quietMode = false,
     this.musicEnabled = false,
     this.hapticsEnabled = true,
   });
@@ -133,6 +134,11 @@ class SensoryPreferences {
   /// regardless of [audioLevel] — one switch a child or parent can reach from
   /// the home screen and from inside any game.
   final bool muted;
+
+  /// Persistent audio-only silence. Unlike quick mute, this is an intentional
+  /// sensory mode that also suppresses optional music while preserving the
+  /// family's chosen sound level for when quiet mode is turned off.
+  final bool quietMode;
 
   /// Optional soft background music during games. Off by default — many
   /// children are sound-sensitive, so ambient music is something a parent opts
@@ -146,7 +152,11 @@ class SensoryPreferences {
   /// uncontrollable from settings.
   final bool hapticsEnabled;
 
-  double get volumeScale => muted
+  bool get soundSuppressed => muted || quietMode;
+
+  bool get effectiveMusicEnabled => musicEnabled && !soundSuppressed;
+
+  double get volumeScale => soundSuppressed
       ? 0
       : switch (audioLevel) {
           AudioLevel.off => 0,
@@ -158,6 +168,7 @@ class SensoryPreferences {
     AudioLevel? audioLevel,
     bool? reduceMotion,
     bool? muted,
+    bool? quietMode,
     bool? musicEnabled,
     bool? hapticsEnabled,
   }) =>
@@ -165,6 +176,7 @@ class SensoryPreferences {
         audioLevel: audioLevel ?? this.audioLevel,
         reduceMotion: reduceMotion ?? this.reduceMotion,
         muted: muted ?? this.muted,
+        quietMode: quietMode ?? this.quietMode,
         musicEnabled: musicEnabled ?? this.musicEnabled,
         hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
       );
@@ -178,12 +190,13 @@ class SensoryPreferencesNotifier extends StateNotifier<SensoryPreferences> {
                 level.name ==
                 _storage.readString(
                   'audio_level',
-                  fallback: AudioLevel.normal.name,
+                  fallback: AudioLevel.soft.name,
                 ),
-            orElse: () => AudioLevel.normal,
+            orElse: () => AudioLevel.soft,
           ),
           reduceMotion: _storage.readBool('reduce_motion'),
           muted: _storage.readBool('audio_muted'),
+          quietMode: _storage.readBool('quiet_mode'),
           musicEnabled: _storage.readBool('music_enabled'),
           hapticsEnabled: _storage.readBool('haptics_enabled', fallback: true),
         ));
@@ -206,6 +219,11 @@ class SensoryPreferencesNotifier extends StateNotifier<SensoryPreferences> {
   }
 
   Future<void> toggleMuted() => setMuted(!state.muted);
+
+  Future<void> setQuietMode(bool value) async {
+    state = state.copyWith(quietMode: value);
+    await _storage.writeBool('quiet_mode', value);
+  }
 
   Future<void> setMusicEnabled(bool value) async {
     state = state.copyWith(musicEnabled: value);

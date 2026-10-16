@@ -134,7 +134,7 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
 
   Future<void> _speak(String text, {String? emoji, Color color = Colors.white}) async {
     _companion.encourage();
-    HapticFeedback.mediumImpact();
+    TonePlayer.instance.haptic(HapticFeedback.mediumImpact);
     // Mirror the speech visually — this is how Harshiv "hears" it.
     _bloomTimer?.cancel();
     setState(() {
@@ -172,14 +172,14 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
 
   void _backspace() {
     if (_strip.isEmpty) return;
-    HapticFeedback.selectionClick();
+    TonePlayer.instance.haptic(HapticFeedback.selectionClick);
     setState(() => _strip.removeLast());
   }
 
   void _clear() {
     if (_strip.isEmpty) return;
     _companion.calm();
-    HapticFeedback.selectionClick();
+    TonePlayer.instance.haptic(HapticFeedback.selectionClick);
     setState(_strip.clear);
   }
 
@@ -193,6 +193,12 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<double>(
+      sensoryPreferencesProvider.select((value) => value.volumeScale),
+      (_, volume) {
+        if (volume <= 0) _tts.stop();
+      },
+    );
     final items = itemsForCategory(_category);
     final accent = _colorFor(_category);
     return HarshivScaffold(
@@ -230,7 +236,7 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
                       color: accent,
                       favorite: ref.watch(talkFavoritesProvider).contains(item.label),
                       onFavorite: () {
-                        HapticFeedback.mediumImpact();
+                        TonePlayer.instance.haptic(HapticFeedback.mediumImpact);
                         ref.read(talkFavoritesProvider.notifier).toggle(item.label);
                       },
                       onTap: () {
@@ -388,7 +394,7 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
     const accent = Color(0xFFFF8FB1);
     _companion.reactToEvent(ExperienceEvent.aacSelected);
     TonePlayer.instance.playCue(SoundCue.talkAck);
-    HapticFeedback.mediumImpact();
+    TonePlayer.instance.haptic(HapticFeedback.mediumImpact);
     setState(() {
       for (final p in s.parts) {
         _strip.add(_Word(p.label, p.emoji, accent));
@@ -448,7 +454,7 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
                       spokenText: item.phrase);
                 },
                 onLongPress: () {
-                  HapticFeedback.mediumImpact();
+                  TonePlayer.instance.haptic(HapticFeedback.mediumImpact);
                   ref.read(talkFavoritesProvider.notifier).toggle(item.label);
                 },
                 child: Container(
@@ -561,7 +567,7 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
             label: '$cat category',
             child: GestureDetector(
               onTap: () {
-                HapticFeedback.selectionClick();
+                TonePlayer.instance.haptic(HapticFeedback.selectionClick);
                 setState(() => _category = cat);
               },
               child: AnimatedContainer(
