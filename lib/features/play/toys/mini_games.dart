@@ -1793,6 +1793,8 @@ class _SnakeGameState extends State<SnakeGame>
   static const double _spacing = 2.6; // path sample distance
   static const double _seg = 8; // body segment spacing
   static const double _baseSpeed = 165;
+  static const double _physicsStep = 1 / 120;
+  double _physicsAcc = 0;
   // Pool of full-game win phrases so a replaying child doesn't always see
   // the identical "Longest snake in the arena!" line (across-restarts
   // sibling of the per-round praise-variety fixes applied elsewhere this
@@ -1809,16 +1811,25 @@ class _SnakeGameState extends State<SnakeGame>
   // above — a rival takedown can happen many times in one run, and all
   // reinforcement waves fired the exact same literal every time.
   static const List<String> _rivalDownPool = <String>[
-    'Snake down! +3', 'Rival down! +3', 'Takedown! +3', 'Got one! +3',
+    'Snake down! +3',
+    'Rival down! +3',
+    'Takedown! +3',
+    'Got one! +3',
   ];
   static const List<String> _rivalInPool = <String>[
-    'Rival incoming!', 'Another worm joins!', 'New rival ahead!', 'Watch out, newcomer!',
+    'Rival incoming!',
+    'Another worm joins!',
+    'New rival ahead!',
+    'Watch out, newcomer!',
   ];
   // Golden orbs respawn after every catch, so a long run can eat several
   // with a sub-3 combo — the same flat-repeated-banner gap as above, just
   // on the low-combo branch of the golden-orb flash below.
   static const List<String> _goldenPool = <String>[
-    'Golden! +3', 'Shiny! +3', 'Gold orb! +3', 'Sparkly! +3',
+    'Golden! +3',
+    'Shiny! +3',
+    'Gold orb! +3',
+    'Sparkly! +3',
   ];
 
   Offset _head = Offset.zero;
@@ -1877,10 +1888,9 @@ class _SnakeGameState extends State<SnakeGame>
     _head = Offset.zero;
     _angle = 0;
     _target = 0;
-    _path
-      ..clear()
-      ..add(_head);
     _length = 24;
+    _seedTrail(_path, _head, _angle, _length);
+    _physicsAcc = 0;
     _boost = false;
     _boostAcc = 0;
     _score = 0;
@@ -1912,8 +1922,18 @@ class _SnakeGameState extends State<SnakeGame>
     final w = _AiWorm(pos, _rnd.nextDouble() * math.pi * 2,
         _rnd.nextDouble() * 360, 14 + _rnd.nextInt(10));
     w.target = w.angle;
-    w.path.add(w.head);
+    _seedTrail(w.path, w.head, w.angle, w.length);
     return w;
+  }
+
+  void _seedTrail(List<Offset> path, Offset head, double angle, int length) {
+    final forward = Offset(math.cos(angle), math.sin(angle));
+    path.clear();
+    final tailDistance = (length - 1) * _seg;
+    for (double d = 0; d < tailDistance; d += _spacing) {
+      path.add(head - forward * d);
+    }
+    path.add(head - forward * tailDistance);
   }
 
   _Orb _randomOrb() {
@@ -1934,6 +1954,17 @@ class _SnakeGameState extends State<SnakeGame>
   @override
   void onTick(double dt) {
     if (_status != GameStatus.playing) return;
+    // Keep steering, boost cost, trail spacing and contacts independent of
+    // display refresh rate, including boosted movement on slower devices.
+    _physicsAcc += dt;
+    while (
+        _physicsAcc + 1e-9 >= _physicsStep && _status == GameStatus.playing) {
+      _physicsAcc -= _physicsStep;
+      _advanceSnake(_physicsStep);
+    }
+  }
+
+  void _advanceSnake(double dt) {
     _t += dt;
     if (_bannerT > 0) {
       _bannerT -= dt;
@@ -1946,7 +1977,7 @@ class _SnakeGameState extends State<SnakeGame>
     for (var i = _particles.length - 1; i >= 0; i--) {
       final p = _particles[i];
       p.pos += p.vel * dt;
-      p.vel *= 0.88;
+      p.vel *= math.pow(0.88, dt * 60).toDouble();
       p.life -= dt;
       if (p.life <= 0) _particles.removeAt(i);
     }
@@ -1975,7 +2006,7 @@ class _SnakeGameState extends State<SnakeGame>
     if (_path.isEmpty || (_head - _path.first).distance >= _spacing) {
       _path.insert(0, _head);
     }
-    _trimPath(_length * _seg + _seg);
+    _trimSnakeTrail(_path, (_length - 1) * _seg);
 
     // Boost slowly trims length and drops a glowing orb behind.
     if (_boost && _boostUsable) {
@@ -2042,25 +2073,17 @@ class _SnakeGameState extends State<SnakeGame>
 
     // Slither rules: your head hitting another snake's body ends the run.
     for (final w in _ai) {
-      for (var i = 4; i < w.path.length; i += 2) {
-        if ((w.path[i] - _head).distance < 10) {
-          _overReason = 'You ran into another snake!';
-          _gameOver();
-          return;
-        }
+      if ((w.head - _head).distanceSquared < 18 * 18 ||
+          _touchesSnakeTrail(_head, w.path, 18)) {
+        _overReason = 'You ran into another snake!';
+        _gameOver();
+        return;
       }
     }
     // A rival that runs into YOUR body bursts into a shower of orbs to eat.
     for (var wi = _ai.length - 1; wi >= 0; wi--) {
       final w = _ai[wi];
-      var hit = false;
-      for (var i = 10; i < _path.length; i += 2) {
-        if ((_path[i] - w.head).distance < 10) {
-          hit = true;
-          break;
-        }
-      }
-      if (hit) {
+      if (_touchesSnakeTrail(w.head, _path, 14, skipLength: 32)) {
         for (var i = 0; i < w.path.length; i += 6) {
           _orbs.add(_Orb(w.path[i], const Color(0xFF06D6A0), 4.5));
         }
@@ -2099,14 +2122,38 @@ class _SnakeGameState extends State<SnakeGame>
     }
   }
 
-  void _trimPath(double maxLen) {
+  bool _touchesSnakeTrail(Offset point, List<Offset> trail, double radius,
+      {double skipLength = 0}) {
+    double travelled = 0;
+    for (var i = 1; i < trail.length; i++) {
+      final start = trail[i - 1];
+      final delta = trail[i] - start;
+      final distance = delta.distance;
+      if (distance == 0) continue;
+      final minT = ((skipLength - travelled) / distance).clamp(0.0, 1.0);
+      travelled += distance;
+      if (travelled <= skipLength) continue;
+      final t =
+          (((point - start).dx * delta.dx + (point - start).dy * delta.dy) /
+                  delta.distanceSquared)
+              .clamp(minT, 1.0);
+      if ((point - (start + delta * t)).distanceSquared < radius * radius) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  void _trimSnakeTrail(List<Offset> path, double maxLen) {
     double acc = 0;
-    for (var i = 1; i < _path.length; i++) {
-      acc += (_path[i] - _path[i - 1]).distance;
-      if (acc >= maxLen) {
-        _path.removeRange(i + 1, _path.length);
+    for (var i = 1; i < path.length; i++) {
+      final distance = (path[i] - path[i - 1]).distance;
+      if (acc + distance >= maxLen) {
+        path[i] = Offset.lerp(path[i - 1], path[i], (maxLen - acc) / distance)!;
+        path.removeRange(i + 1, path.length);
         return;
       }
+      acc += distance;
     }
   }
 
@@ -2123,8 +2170,8 @@ class _SnakeGameState extends State<SnakeGame>
     // Rivals genuinely get faster and sharper-turning as the run progresses
     // toward the win target, instead of staying at one flat difficulty the
     // whole game — mirrors the player's own speed-up curve below.
-    final difficulty = (math.min(_score, _targetScore) / _targetScore)
-        .clamp(0.0, 1.0);
+    final difficulty =
+        (math.min(_score, _targetScore) / _targetScore).clamp(0.0, 1.0);
     final aiSpeed = 120 * (1.0 + difficulty * 0.5 + _careerAiRamp * 0.15);
     final aiTurnRate = 2.4 * (1.0 + difficulty * 0.4 + _careerAiRamp * 0.1);
     final aiTurnMin = 0.6 - difficulty * 0.25;
@@ -2154,14 +2201,7 @@ class _SnakeGameState extends State<SnakeGame>
           break;
         }
       }
-      double acc = 0;
-      for (var i = 1; i < w.path.length; i++) {
-        acc += (w.path[i] - w.path[i - 1]).distance;
-        if (acc >= w.length * _seg) {
-          w.path.removeRange(i + 1, w.path.length);
-          break;
-        }
-      }
+      _trimSnakeTrail(w.path, (w.length - 1) * _seg);
     }
   }
 
@@ -2254,9 +2294,11 @@ class _SnakeGameState extends State<SnakeGame>
       winEmoji: '🏆',
       winText: _winPraise,
       accent: const Color(0xFF06D6A0),
-      introHow: 'Glide your snake to eat glowing orbs and grow — hold to boost!\n'
+      introHow:
+          'Glide your snake to eat glowing orbs and grow — hold to boost!\n'
           'Gold orbs are worth more, and luring a rival into your body '
-          'defeats it for bonus points. Avoid the edges and their heads!',
+          'defeats it for bonus points. Avoid the edge and every part of '
+          'the other worms!',
       onStart: () => setState(() => _status = GameStatus.playing),
       onPlayAgain: _reset,
       child: LayoutBuilder(
@@ -2276,8 +2318,18 @@ class _SnakeGameState extends State<SnakeGame>
                   onPanDown: (d) => _steerTo(d.localPosition),
                   onPanUpdate: (d) => _steerTo(d.localPosition),
                   child: CustomPaint(
-                    painter: _SnakePainter(_head, _angle, _path, _length, _seg,
-                        _orbs, _ai, _arenaR, _t, _particles, _boost),
+                    painter: _SnakePainter(
+                        _head,
+                        _angle,
+                        _path,
+                        _length,
+                        _seg,
+                        _orbs,
+                        _ai,
+                        _arenaR,
+                        _t,
+                        _particles,
+                        _boost && _boostUsable),
                     size: Size.infinite,
                   ),
                 ),

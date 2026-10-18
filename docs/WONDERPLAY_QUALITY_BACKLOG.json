@@ -7,7 +7,7 @@
     {"id": "pinball", "status": "improved", "commit": "e0f8058", "note": "plunger no longer auto-fires"},
     {"id": "fruit_catch", "status": "improved", "note": "basket eases toward the finger; reduced motion still snaps"},
     {"id": "bowling", "status": "improved", "note": "forward pin carry, directional contacts, substepped fast rolls, and latched gutters; device feel check still pending"},
-    {"id": "snake", "status": "pending", "note": "arena glide; needs device feel check"},
+    {"id": "snake", "status": "improved", "note": "120Hz fixed-step glide and boost, full starting bodies, continuous head/body contacts and exact tail trimming; regression-covered, device steering and child engagement still unverified"},
     {"id": "sky_hop", "status": "pending"},
     {"id": "space_dodge", "status": "pending"},
     {"id": "brick_break", "status": "pending"},
