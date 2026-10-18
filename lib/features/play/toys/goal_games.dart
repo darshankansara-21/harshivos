@@ -1237,6 +1237,21 @@ class _PathFinderGameState extends State<PathFinderGame> with _GoalEmit {
   }
 }
 
+/// Gloves must meet the ball's line and the right height. A chip is only
+/// saved by a committed leap; a ground shot is missed if the keeper is up.
+bool keeperMakesSave({
+  required double ballX,
+  required double keeperX,
+  required double reach,
+  required double shotHeight,
+  required double keeperJump,
+}) {
+  final onLine = (ballX - keeperX).abs() <= reach;
+  final jumped = keeperJump >= 0.5;
+  final heightOk = shotHeight >= 0.5 ? jumped : !jumped;
+  return onLine && heightOk;
+}
+
 class GoalKeeperGame extends StatefulWidget {
   const GoalKeeperGame({super.key});
 
@@ -1322,6 +1337,9 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
   double _curve = 0; // mid-flight deception
   double _flightT = 0;
   double _flightDur = 1.7;
+  // The kicker winds up before the ball moves, so the child can see where
+  // the shot is going instead of reacting to a ball that has already left.
+  double _windup = 0;
   double _ballScale = 0.4;
   double _ballLift = 0; // visual arc height for a chip, read by the painter
 
@@ -1364,6 +1382,7 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
     _shotNum++;
     _phase = 1;
     _flightT = 0;
+    _windup = _shotNum <= 2 ? 0.32 : 0.26;
     _ballPos = const Offset(0.5, _spotY);
     _ballScale = 0.4;
     if (_shotNum <= 2) {
@@ -1437,6 +1456,13 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
     }
 
     if (_phase == 1) {
+      if (_windup > 0) {
+        _windup = math.max(0, _windup - dt);
+        _ballPos = const Offset(0.5, _spotY);
+        _ballScale = 0.4;
+        _ballLift = 0;
+        return;
+      }
       _flightT += dt / _flightDur;
       final t = _flightT.clamp(0.0, 1.0);
       final ease = t * t; // accelerate toward the goal
@@ -1461,16 +1487,16 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
   }
 
   void _resolveShot() {
+    final saved = keeperMakesSave(
+      ballX: _ballTargetX,
+      keeperX: _keeperX,
+      reach: _reach,
+      shotHeight: _shotHeight,
+      keeperJump: _keeperJump,
+    );
     final dist = (_ballTargetX - _keeperX).abs();
-    // Being under the ball's x isn't enough any more: a chip only concedes
-    // if the keeper actually left the ground (`_keeperJump` committed high),
-    // and a ground shot only concedes if the keeper stayed down — leaping
-    // for a shot that never left the turf means the glove sails clean over
-    // it. This is the real height-reading decision a goalkeeper makes every
-    // shot, not just left/right tracking.
-    final jumped = _keeperJump >= 0.5;
-    final heightOk = _shotHeight >= 0.5 ? jumped : !jumped;
-    if (dist <= _reach && heightOk) {
+    final heightOk = _shotHeight >= 0.5 ? _keeperJump >= 0.5 : _keeperJump < 0.5;
+    if (saved) {
       _score++;
       _streak++;
       _lastSaved = true;
@@ -1583,9 +1609,10 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
       title: '🥅 Goal Keeper',
       goal: 'Read the shot, slide and dive · Make 10 saves',
       introHow:
-          'A ball is kicked at your goal — slide left/right to get your gloves in its path, '
-          'and slide up to leap for a high chip or stay low near the spot for a grounded shot. '
-          'Watch how the ball arcs! You have 5 lives, so don\u2019t let too many past.',
+          'Watch the kicker wind up, then slide your keeper onto the ball. '
+          'Stay low for a ground shot and slide up to leap for a chip. '
+          'The first shots are straight and slow so the dive is easy to learn. '
+          'You have 5 lives.',
       onStart: () => setState(() {
         _status = GameStatus.playing;
         _begin();
@@ -1629,6 +1656,8 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
                 sparks: _sparks,
                 aimHint: _score < 3 && _phase == 1 ? _ballTargetX : -1,
                 phaseT: _phaseT,
+                windup: _windup,
+                shotAim: _ballTargetX,
               ),
               size: Size.infinite,
             ),
@@ -1655,6 +1684,8 @@ class _KeeperPainter extends CustomPainter {
     required this.sparks,
     required this.aimHint,
     required this.phaseT,
+    required this.windup,
+    required this.shotAim,
   });
   final double keeperX;
   final double lean;
@@ -1671,6 +1702,8 @@ class _KeeperPainter extends CustomPainter {
   final bool lastSaved;
   final List<_Spark> sparks;
   final double aimHint;
+  final double windup;
+  final double shotAim;
   // Countdown from 0.85s set when a shot resolves (see _resolveShot); used to
   // fade the save/goal result flash in then out instead of either snapping
   // on and off or — before this fix — never using `lastSaved` at all.
@@ -1703,6 +1736,24 @@ class _KeeperPainter extends CustomPainter {
           Rect.fromLTWH(0, sy(0.36) + i * h * 0.1, w, h * 0.1),
           Paint()..color = Colors.white.withOpacity(0.03));
     }
+    final line = Paint()
+      ..color = Colors.white.withOpacity(0.72)
+      ..strokeWidth = 2.5;
+    canvas.drawRect(
+      Rect.fromLTRB(sx(0.22), sy(0.34), sx(0.78), sy(0.62)),
+      line..style = PaintingStyle.stroke,
+    );
+    canvas.drawRect(
+      Rect.fromLTRB(sx(0.32), sy(0.34), sx(0.68), sy(0.48)),
+      line,
+    );
+    canvas.drawArc(
+      Rect.fromCenter(center: Offset(sx(0.5), sy(0.62)), width: w * 0.22, height: h * 0.08),
+      0,
+      math.pi,
+      false,
+      line,
+    );
 
     // Result flash — fades in then out across the 0.85s pause after a shot
     // resolves. `lastSaved` used to be computed and threaded all the way to
@@ -1760,6 +1811,42 @@ class _KeeperPainter extends CustomPainter {
             ..color = const Color(0xFFFFE066).withOpacity(0.7));
     }
 
+    // Kicker at the penalty spot. During the wind-up the planting foot stays
+    // put and the striking leg swings toward the aim, so the child can read
+    // the shot before the ball moves.
+    final kick = (1 - (windup / 0.32).clamp(0.0, 1.0));
+    final aim = ((shotAim - 0.5) / 0.36).clamp(-1.0, 1.0);
+    final kxKick = sx(0.5);
+    final kyKick = sy(0.9);
+    canvas.save();
+    canvas.translate(kxKick, kyKick);
+    canvas.rotate(aim * 0.18);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(center: const Offset(0, -8), width: w * 0.055, height: h * 0.07),
+        const Radius.circular(8),
+      ),
+      Paint()..color = const Color(0xFFF8F9FA),
+    );
+    canvas.drawCircle(Offset(0, -h * 0.055), w * 0.022, Paint()..color = const Color(0xFFFFCDA8));
+    canvas.drawLine(
+      const Offset(0, 0),
+      Offset(aim * 18 + 10, 16 + kick * 10),
+      Paint()
+        ..color = const Color(0xFF212529)
+        ..strokeWidth = 5
+        ..strokeCap = StrokeCap.round,
+    );
+    canvas.drawLine(
+      const Offset(0, -4),
+      Offset(-16 - kick * 22, -2 - kick * 8),
+      Paint()
+        ..color = const Color(0xFF212529)
+        ..strokeWidth = 5
+        ..strokeCap = StrokeCap.round,
+    );
+    canvas.restore();
+
     // Penalty spot + ball shadow. The shadow stays pinned to the ground
     // track while the ball itself lifts for a chip — the gap between them
     // is the real "is this one grounded or airborne?" tell a child reads.
@@ -1795,6 +1882,17 @@ class _KeeperPainter extends CustomPainter {
                 height: h * (0.09 + jump * 0.02)),
             const Radius.circular(10)),
         bodyPaint);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(
+          center: Offset(0, h * 0.025),
+          width: w * 0.062,
+          height: h * 0.028,
+        ),
+        const Radius.circular(4),
+      ),
+      Paint()..color = const Color(0xFF163A86),
+    );
     // Head.
     canvas.drawCircle(
         Offset(0, -h * 0.065), w * 0.028, Paint()..color = const Color(0xFFFFCDA8));

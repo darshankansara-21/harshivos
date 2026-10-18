@@ -1,5 +1,15 @@
 # WonderPlay — Game Factory State
 
+## QUALITY TRANSFORMATION
+
+Stop catalog expansion. Do not restart `scripts/wonderplay_factory.ps1`.
+
+Done this pass:
+- Racing: perspective road, painted cars instead of emoji traffic, start lights, drag steering, and collisions that wait until the car visually leaves the lane. Lane-change clicks removed.
+- Goalkeeper: kicker wind-up so the shot can be read, pitch markings, and one shared save rule for line plus height.
+
+Next: play Bowling, Snake, and Pinball on device and fix the actual feel defect, not another banner.
+
 **Mandatory resume file.** On a new context: READ `CLAUDE.md` FIRST, then this file, then `git log`/`git status`. Resume from `NEXT_ACTION`. Never restart the sprint. Never rely on conversation history.
 
 <!-- ============================================================ -->

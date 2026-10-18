@@ -2603,6 +2603,18 @@ class _SnakePainter extends CustomPainter {
 // Racing — dodge oncoming traffic and grab coins. Tap left/right (or swipe)
 // to change lanes; survive longer and the road speeds up. Endless high score.
 // ===========================================================================
+/// Traffic only hits once the eased car actually overlaps that lane. A tap
+/// starts the slide; it is not a teleport out of danger.
+bool racingTrafficHits({
+  required double playerLane,
+  required int trafficLane,
+  required double trafficY,
+}) {
+  return trafficY >= 0.78 &&
+      trafficY <= 0.92 &&
+      (playerLane - trafficLane).abs() < 0.42;
+}
+
 class RacingGame extends StatefulWidget {
   const RacingGame({super.key});
   @override
@@ -2621,7 +2633,16 @@ class _Racer {
 class _RacingGameState extends State<RacingGame>
     with TickerProviderStateMixin, ToyTicker, _CompanionEmitter {
   static const String _id = 'racing';
-  static const List<double> _laneX = <double>[0.22, 0.5, 0.78];
+  static const List<Color> _rivalTints = <Color>[
+    Color(0xFF4CC9F0),
+    Color(0xFFFFD166),
+    Color(0xFFB388FF),
+  ];
+  static const List<Color> _trafficTints = <Color>[
+    Color(0xFF8D99AE),
+    Color(0xFFEF476F),
+    Color(0xFF06D6A0),
+  ];
   static const List<String> _traffic = <String>['🚗', '🚙', '🚕', '🚚'];
   static const double _raceLen = 1000; // metres to the chequered flag
   static const int _fieldSize = 4; // you + 3 rivals
@@ -2657,6 +2678,10 @@ class _RacingGameState extends State<RacingGame>
   final List<double> _rivalLaneTimer = <double>[];
   int _lane = 1;
   double _lanePos = 1.0; // eased visual lane position — slides, never teleports
+  // 3-2-1 lights. The car can be lined up, but the race does not roll until
+  // green — otherwise the first second is a surprise shunt.
+  double _lights = 2.1;
+  bool _reduceMotion = false;
   double _spawnIn = 0.9;
   double _t = 0;
   double _speed = 0.55; // visual road scroll
@@ -2684,15 +2709,6 @@ class _RacingGameState extends State<RacingGame>
   double _bannerT = 0;
   String? _banner;
   GameStatus _status = GameStatus.ready;
-
-  // Linearly interpolates between the three lane x-positions for a
-  // fractional lane value (e.g. 0.5 is halfway between lane 0 and lane 1).
-  static double _laneX3(double lanePos) {
-    final clamped = lanePos.clamp(0.0, 2.0);
-    final i = clamped.floor().clamp(0, 1);
-    final frac = clamped - i;
-    return _laneX[i] + (_laneX[i + 1] - _laneX[i]) * frac;
-  }
 
   int get _place {
     var ahead = 0;
@@ -2757,6 +2773,7 @@ class _RacingGameState extends State<RacingGame>
     }
     _lane = 1;
     _lanePos = 1.0;
+    _lights = 2.1;
     _distance = 0;
     _speed = 0.55;
     _boostT = 0;
@@ -2789,6 +2806,11 @@ class _RacingGameState extends State<RacingGame>
       _lanePos += laneDiff * ease;
     } else {
       _lanePos = _lane.toDouble();
+    }
+
+    if (_lights > 0) {
+      _lights -= dt;
+      return;
     }
 
     // Advance ourselves and the rival pack down the track.
@@ -2848,7 +2870,8 @@ class _RacingGameState extends State<RacingGame>
       c.y += _speed * dt;
     }
     _cars.removeWhere((c) {
-      if (c.y >= 0.78 && c.y <= 0.92 && c.lane == _lane) {
+      if (racingTrafficHits(
+          playerLane: _lanePos, trafficLane: c.lane, trafficY: c.y)) {
         if (c.boost) {
           _boostT = 3.5 + finishPush * 1.5;
           final pickup = 12 + (finishPush * 10).round();
@@ -2951,7 +2974,6 @@ class _RacingGameState extends State<RacingGame>
   void _move(int delta) {
     if (_status != GameStatus.playing) return;
     setState(() => _lane = (_lane + delta).clamp(0, 2));
-    TonePlayer.instance.playClick(pitch: 1.2);
   }
 
   // A racing game that only ever sounds like clicks, coins and crashes is
@@ -2975,16 +2997,24 @@ class _RacingGameState extends State<RacingGame>
   @override
   Widget build(BuildContext context) {
     drainCompanion(context);
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     final remaining = (_raceLen - _distance).clamp(0, _raceLen);
+    final lightsBanner = _lights > 1.4
+        ? 'Red light — line up'
+        : _lights > 0.7
+            ? 'Yellow — hold your lane'
+            : 'Green — go!';
     return _GameShell(
       title: '🏎️ Street Racer',
       score: _score,
       best: _best,
       status: _status,
       banner: _banner ??
-          (_boostT > 0
-              ? '⚡ BOOST · P$_place'
-              : 'P$_place/$_fieldSize · ${remaining.round()}m to flag'),
+          (_lights > 0
+              ? lightsBanner
+              : _boostT > 0
+                  ? 'BOOST · P$_place'
+                  : 'P$_place/$_fieldSize · ${remaining.round()}m to flag'),
       // A finish is recorded as GameStatus.won only for an outright P1; P2-P4
       // finish as GameStatus.over, but both are a completed race, not a
       // "didn't finish" — show the real placing on the over screen, and the
@@ -3005,10 +3035,10 @@ class _RacingGameState extends State<RacingGame>
               : '$_winPraise ${(_finishMs / 1000).toStringAsFixed(1)}s'
                   '${_bestTimeMs > 0 ? ' (best ${(_bestTimeMs / 1000).toStringAsFixed(1)}s)' : ''}'),
       accent: const Color(0xFFFF6B6B),
-      introHow: 'Reach the 🏁 chequered flag ahead of 3 rivals.\n'
-          'Tap left/right to change lanes, grab 🪙 coins and ⚡ boosts, '
-          'and dodge traffic — late-race pickups are worth more, while a shunt '
-          'costs pace without ending the race.',
+      introHow: 'Beat 3 rivals to the chequered flag.\n'
+          'Line up on the lights, then tap or drag to change lanes. '
+          'The car has to finish the slide before a dodge counts. '
+          'Grab coins and boosts, and a shunt costs pace without ending the race.',
       onStart: () {
         setState(() => _status = GameStatus.playing);
         _playStartVroom();
@@ -3029,60 +3059,50 @@ class _RacingGameState extends State<RacingGame>
               const CustomSemanticsAction(label: 'Move right'): () => _move(1),
             },
             child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapDown: (d) => _move(d.localPosition.dx < w / 2 ? -1 : 1),
-            onHorizontalDragEnd: (d) =>
-                _move((d.primaryVelocity ?? 0) < 0 ? -1 : 1),
-            child: Stack(
-              children: <Widget>[
-                Positioned.fill(
-                  child: CustomPaint(
-                    painter: _RoadPainter(
-                      _t * _speed,
-                      progress: (_distance / _raceLen).clamp(0.0, 1.0),
-                      finishY: finishY,
-                    ),
-                  ),
-                ),
-                // Rival racers, placed by how far ahead/behind us they are.
-                for (var i = 0; i < _rivals.length; i++)
-                  if (() {
-                    final ry = 0.8 - (_rivals[i] - _distance) / 320;
-                    return ry >= -0.02 && ry <= 0.95;
-                  }())
-                    Positioned(
-                      left: _laneX3(_rivalLanePos[i]) * w - 22,
-                      top: (0.8 - (_rivals[i] - _distance) / 320) * h - 26,
-                      child: Opacity(
-                        opacity: 0.9,
-                        child: Transform.rotate(
-                          // Bank into the lane change exactly like the
-                          // player's own car, so an overtaking rival reads
-                          // as actually steering, not just sliding sideways.
-                          angle: (_rivalLane[i] - _rivalLanePos[i]) * 0.5,
-                          child: const Text('🚘', style: TextStyle(fontSize: 42)),
+              behavior: HitTestBehavior.opaque,
+              onTapDown: (d) => _move(d.localPosition.dx < w / 2 ? -1 : 1),
+              onPanUpdate: (d) {
+                final lane =
+                    (d.localPosition.dx / math.max(1, w) * 3).floor().clamp(0, 2);
+                if (lane != _lane) setState(() => _lane = lane);
+              },
+              onHorizontalDragEnd: (d) =>
+                  _move((d.primaryVelocity ?? 0) < 0 ? -1 : 1),
+              child: CustomPaint(
+                size: Size(w, h),
+                painter: _RaceScenePainter(
+                  scroll: _t * _speed,
+                  progress: (_distance / _raceLen).clamp(0.0, 1.0),
+                  finishY: finishY,
+                  lights: _lights,
+                  playerLane: _lanePos,
+                  playerBank: _lane - _lanePos,
+                  boosting: _boostT > 0,
+                  reduceMotion: _reduceMotion,
+                  sprites: <_RaceSprite>[
+                    for (var i = 0; i < _rivals.length; i++)
+                      if (() {
+                        final ry = 0.8 - (_rivals[i] - _distance) / 320;
+                        return ry >= -0.05 && ry <= 1.02;
+                      }())
+                        _RaceSprite(
+                          lane: _rivalLanePos[i],
+                          y: 0.8 - (_rivals[i] - _distance) / 320,
+                          kind: 1,
+                          bank: _rivalLane[i] - _rivalLanePos[i],
+                          tint: _rivalTints[i],
                         ),
+                    for (final car in _cars)
+                      _RaceSprite(
+                        lane: car.lane.toDouble(),
+                        y: car.y,
+                        kind: car.boost ? 4 : (car.coin ? 3 : 2),
+                        bank: 0,
+                        tint: _trafficTints[car.lane],
                       ),
-                    ),
-                for (final car in _cars)
-                  Positioned(
-                    left: _laneX[car.lane] * w - 24,
-                    top: car.y * h - 28,
-                    child:
-                        Text(car.emoji, style: const TextStyle(fontSize: 44)),
-                  ),
-                Positioned(
-                  left: _laneX3(_lanePos) * w - 26,
-                  top: 0.8 * h,
-                  child: Transform.rotate(
-                    // Bank into the turn: tilt proportional to how far the
-                    // eased position still has to travel to the target lane.
-                    angle: (_lane - _lanePos) * 0.5,
-                    child: const Text('🏎️', style: TextStyle(fontSize: 52)),
-                  ),
+                  ],
                 ),
-              ],
-            ),
+              ),
             ),
           );
         },
@@ -3091,66 +3111,261 @@ class _RacingGameState extends State<RacingGame>
   }
 }
 
-class _RoadPainter extends CustomPainter {
-  _RoadPainter(this.scroll, {this.progress = 0, this.finishY = -1});
+class _RaceSprite {
+  const _RaceSprite({
+    required this.lane,
+    required this.y,
+    required this.kind,
+    required this.bank,
+    required this.tint,
+  });
+
+  final double lane;
+  final double y;
+  final int kind; // 1 rival, 2 traffic, 3 coin, 4 boost
+  final double bank;
+  final Color tint;
+}
+
+class _RaceScenePainter extends CustomPainter {
+  _RaceScenePainter({
+    required this.scroll,
+    required this.progress,
+    required this.finishY,
+    required this.lights,
+    required this.playerLane,
+    required this.playerBank,
+    required this.boosting,
+    required this.reduceMotion,
+    required this.sprites,
+  });
+
   final double scroll;
-  final double progress; // 0..1 down the track
-  final double finishY; // normalized y of the finish line, or <0 if hidden
+  final double progress;
+  final double finishY;
+  final double lights;
+  final double playerLane;
+  final double playerBank;
+  final bool boosting;
+  final bool reduceMotion;
+  final List<_RaceSprite> sprites;
+
+  static double _depth(double simY) => ((simY + 0.08) / 0.95).clamp(0.0, 1.12);
+
+  static double _roadY(double depth, double h) => h * (0.18 + 0.80 * depth);
+
+  static double _roadX(double lane, double depth, double w) {
+    final spread = 0.05 + 0.34 * depth;
+    return w * (0.5 + (lane - 1.0) * spread);
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
     canvas.drawRect(
-        Offset.zero & size, Paint()..color = const Color(0xFF23262E));
-    final dash = Paint()
-      ..color = Colors.white54
-      ..strokeWidth = 4;
-    const period = 46.0;
-    final off = (scroll * size.height) % period;
-    for (final fx in <double>[1 / 3, 2 / 3]) {
-      final x = size.width * fx;
-      for (double y = -period + off; y < size.height; y += period) {
-        canvas.drawLine(Offset(x, y + 8), Offset(x, y + 30), dash);
-      }
-    }
-
-    // Chequered finish line sweeping down as we approach the flag.
-    if (finishY >= 0) {
-      final y = finishY * size.height;
-      const cell = 22.0;
-      final cols = (size.width / cell).ceil();
-      for (var cx = 0; cx < cols; cx++) {
-        final dark = cx.isEven;
-        canvas.drawRect(
-          Rect.fromLTWH(cx * cell, y - cell, cell, cell),
-          Paint()..color = dark ? Colors.black : Colors.white,
-        );
-        canvas.drawRect(
-          Rect.fromLTWH(cx * cell, y, cell, cell),
-          Paint()..color = dark ? Colors.white : Colors.black,
-        );
-      }
-    }
-
-    // Slim progress bar down the right edge of the track.
-    final barH = size.height * 0.6;
-    final barTop = size.height * 0.2;
-    final barX = size.width - 10;
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-          Rect.fromLTWH(barX - 3, barTop, 6, barH), const Radius.circular(3)),
-      Paint()..color = Colors.white24,
+      Offset.zero & size,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: <Color>[Color(0xFF7EC8F5), Color(0xFFD7F0C8), Color(0xFF3D6B3A)],
+          stops: <double>[0, 0.42, 1],
+        ).createShader(Offset.zero & size),
     );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-          Rect.fromLTWH(
-              barX - 3, barTop + barH * (1 - progress), 6, barH * progress),
-          const Radius.circular(3)),
+    canvas.drawCircle(
+      Offset(w * 0.78, h * 0.08),
+      w * 0.045,
+      Paint()..color = const Color(0xFFFFF3B0),
+    );
+
+    final road = Path()
+      ..moveTo(_roadX(-0.15, 0, w), _roadY(0, h))
+      ..lineTo(_roadX(2.15, 0, w), _roadY(0, h))
+      ..lineTo(w * 0.98, h)
+      ..lineTo(w * 0.02, h)
+      ..close();
+    canvas.drawPath(road, Paint()..color = const Color(0xFF3A4150));
+    canvas.drawPath(
+      road,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 5
+        ..color = const Color(0xFFF4F1DE),
+    );
+
+    if (!reduceMotion) {
+      final treePaint = Paint()..color = const Color(0xFF2D6A4F);
+      final shift = (scroll * 0.35) % 1.0;
+      for (var i = 0; i < 6; i++) {
+        final depth = ((i / 6) + shift) % 1.0;
+        final y = _roadY(depth, h);
+        final scale = 0.35 + depth * 0.9;
+        for (final side in <double>[-1, 1]) {
+          final x = w * 0.5 + side * (w * (0.10 + 0.46 * depth));
+          canvas.drawCircle(Offset(x, y - 16 * scale), 10 * scale, treePaint);
+          canvas.drawRect(
+            Rect.fromCenter(
+              center: Offset(x, y),
+              width: 4 * scale,
+              height: 16 * scale,
+            ),
+            Paint()..color = const Color(0xFF6B4226),
+          );
+        }
+      }
+    }
+
+    final dash = Paint()
+      ..color = Colors.white70
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.round;
+    final off = (scroll * 6) % 1.0;
+    for (final boundary in <double>[0.5, 1.5]) {
+      for (var i = 0; i < 14; i++) {
+        if ((i + off.floor()).isEven) continue;
+        final d0 = ((i + off) / 14).clamp(0.0, 1.0);
+        final d1 = (d0 + 0.028).clamp(0.0, 1.0);
+        canvas.drawLine(
+          Offset(_roadX(boundary, d0, w), _roadY(d0, h)),
+          Offset(_roadX(boundary, d1, w), _roadY(d1, h)),
+          dash,
+        );
+      }
+    }
+
+    if (finishY >= 0) {
+      final depth = ((finishY - 0.18) / 0.80).clamp(0.05, 0.95);
+      final y = _roadY(depth, h);
+      final left = _roadX(-0.05, depth, w);
+      final right = _roadX(2.05, depth, w);
+      const cells = 10;
+      final cell = (right - left) / cells;
+      for (var cx = 0; cx < cells; cx++) {
+        canvas.drawRect(
+          Rect.fromLTWH(left + cx * cell, y - cell * 0.55, cell, cell * 0.55),
+          Paint()..color = cx.isEven ? Colors.black : Colors.white,
+        );
+      }
+    }
+
+    final ordered = List<_RaceSprite>.from(sprites)
+      ..sort((a, b) => _depth(a.y).compareTo(_depth(b.y)));
+    for (final sprite in ordered) {
+      final depth = _depth(sprite.y);
+      final center = Offset(_roadX(sprite.lane, depth, w), _roadY(depth, h));
+      final scale = 0.34 + 0.7 * depth.clamp(0.0, 1.0);
+      if (sprite.kind == 3) {
+        _token(canvas, center, scale, const Color(0xFFFFD166));
+      } else if (sprite.kind == 4) {
+        _token(canvas, center, scale * 1.1, const Color(0xFF80FFDB));
+      } else {
+        _car(canvas, center, scale, sprite.tint, sprite.bank, player: false);
+      }
+    }
+
+    final playerDepth = _depth(0.8);
+    final player = Offset(_roadX(playerLane, playerDepth, w), _roadY(playerDepth, h));
+    if (boosting && !reduceMotion) {
+      final streak = Paint()
+        ..color = const Color(0xFFFFF3B0).withOpacity(0.7)
+        ..strokeWidth = 3
+        ..strokeCap = StrokeCap.round;
+      for (var i = 0; i < 4; i++) {
+        final x = player.dx - 18 + i * 12;
+        canvas.drawLine(Offset(x, player.dy + 28), Offset(x, player.dy + 52), streak);
+      }
+    }
+    _car(canvas, player, 1.15, const Color(0xFFFF6B6B), playerBank, player: true);
+
+    if (lights > 0) {
+      final housing = RRect.fromRectAndRadius(
+        Rect.fromCenter(center: Offset(w * 0.5, h * 0.12), width: 132, height: 46),
+        const Radius.circular(16),
+      );
+      canvas.drawRRect(housing, Paint()..color = const Color(0xFF1B1E27));
+      final lit = lights > 1.4 ? 0 : (lights > 0.7 ? 1 : 2);
+      const colors = <Color>[Color(0xFFEF476F), Color(0xFFFFD166), Color(0xFF06D6A0)];
+      for (var i = 0; i < 3; i++) {
+        canvas.drawCircle(
+          Offset(w * 0.5 - 40 + i * 40, h * 0.12),
+          12,
+          Paint()..color = i == lit ? colors[i] : const Color(0xFF3A4150),
+        );
+      }
+    }
+
+    canvas.drawCircle(Offset(w - 18, h * 0.22), 7, Paint()..color = Colors.white24);
+    canvas.drawCircle(
+      Offset(w - 18, h * (0.22 + 0.56 * (1 - progress))),
+      6,
       Paint()..color = const Color(0xFFFFD166),
     );
   }
 
+  void _token(Canvas canvas, Offset c, double scale, Color color) {
+    canvas.drawCircle(c, 11 * scale, Paint()..color = Colors.black26);
+    canvas.drawCircle(c.translate(0, -4 * scale), 10 * scale, Paint()..color = color);
+    canvas.drawCircle(
+      c.translate(0, -4 * scale),
+      5 * scale,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = Colors.white,
+    );
+  }
+
+  void _car(
+    Canvas canvas,
+    Offset c,
+    double scale,
+    Color color,
+    double bank, {
+    required bool player,
+  }) {
+    canvas.save();
+    canvas.translate(c.dx, c.dy);
+    canvas.rotate(bank.clamp(-1.0, 1.0) * 0.35);
+    final body = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: Offset(0, -6 * scale), width: 28 * scale, height: 46 * scale),
+      Radius.circular(8 * scale),
+    );
+    canvas.drawRRect(
+      body.shift(Offset(0, 4 * scale)),
+      Paint()..color = Colors.black26,
+    );
+    canvas.drawRRect(body, Paint()..color = color);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(center: Offset(0, -12 * scale), width: 18 * scale, height: 16 * scale),
+        Radius.circular(4 * scale),
+      ),
+      Paint()..color = const Color(0xFFD6F3FF),
+    );
+    final wheel = Paint()..color = const Color(0xFF1B1E27);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(center: Offset(-12 * scale, 8 * scale), width: 6 * scale, height: 12 * scale),
+        Radius.circular(2 * scale),
+      ),
+      wheel,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(center: Offset(12 * scale, 8 * scale), width: 6 * scale, height: 12 * scale),
+        Radius.circular(2 * scale),
+      ),
+      wheel,
+    );
+    if (player) {
+      canvas.drawCircle(Offset(0, 8 * scale), 3 * scale, Paint()..color = Colors.white);
+    }
+    canvas.restore();
+  }
+
   @override
-  bool shouldRepaint(_RoadPainter oldDelegate) => true;
+  bool shouldRepaint(_RaceScenePainter oldDelegate) => true;
 }
 
 // ===========================================================================
