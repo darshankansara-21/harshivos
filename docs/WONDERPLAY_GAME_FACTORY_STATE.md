@@ -12,7 +12,7 @@ Done:
 - Track Racer: gas, brake, steering, road grip versus grass, oval, rivals, two-lap finish. Not a lane dodge.
 - Goalkeeper: kicker wind-up, slower dive so a corner save must start during the wind-up, shared line-and-height save rule.
 
-Next: device-play Track Racer. Pinball no longer launches itself after 1.8s — the child pulls or taps the chute. Screenshot capture hung on a held gesture plus the game ticker, so the oval has not been visually inspected.
+Next game in docs/WONDERPLAY_QUALITY_BACKLOG.json. Run `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/wonderplay_quality_factory.ps1` for status. `-Action Once` launches one Copilot CLI worker and quarantines a no-commit result. Do not start the old wonderplay_factory.ps1 loop.
 
 **Mandatory resume file.** On a new context: READ `CLAUDE.md` FIRST, then this file, then `git log`/`git status`. Resume from `NEXT_ACTION`. Never restart the sprint. Never rely on conversation history.
 

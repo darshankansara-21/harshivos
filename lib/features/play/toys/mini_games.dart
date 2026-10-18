@@ -453,6 +453,19 @@ class _GameShellState extends State<_GameShell> {
   }
 }
 
+/// The basket eases toward the finger. A touch sets the target; it is not
+/// a teleport under the fruit.
+double basketSlide({
+  required double current,
+  required double target,
+  required double dt,
+  required bool reduceMotion,
+}) {
+  if (reduceMotion || dt <= 0) return target;
+  final ease = 1 - math.exp(-dt * 9);
+  return current + (target - current) * ease;
+}
+
 class FruitCatchGame extends StatefulWidget {
   const FruitCatchGame({super.key});
   @override
@@ -510,6 +523,7 @@ class _FruitCatchGameState extends State<FruitCatchGame>
   final List<_Faller> _items = <_Faller>[];
   final List<_Particle> _splash = <_Particle>[];
   double _basketX = 0.5;
+  double _basketTarget = 0.5;
   double _spawnIn = 0.6;
   int _score = 0;
   int _combo = 0;
@@ -572,6 +586,12 @@ class _FruitCatchGameState extends State<FruitCatchGame>
   @override
   void onTick(double dt) {
     if (_status != GameStatus.playing) return;
+    _basketX = basketSlide(
+      current: _basketX,
+      target: _basketTarget,
+      dt: dt,
+      reduceMotion: _reduceMotion,
+    );
     if (_bannerT > 0) {
       _bannerT -= dt;
       if (_bannerT <= 0) _banner = null;
@@ -704,7 +724,7 @@ class _FruitCatchGameState extends State<FruitCatchGame>
   }
 
   void _moveTo(double px, double width) {
-    setState(() => _basketX = (px / width).clamp(0.06, 0.94));
+    setState(() => _basketTarget = (px / width).clamp(0.06, 0.94));
   }
 
   // Screen-reader bridge: every other whole-screen continuous-drag game in
@@ -723,7 +743,7 @@ class _FruitCatchGameState extends State<FruitCatchGame>
       if (target == null || f.y > target.y) target = f;
     }
     if (target == null) return;
-    setState(() => _basketX = target!.x.clamp(0.06, 0.94));
+    setState(() => _basketTarget = target!.x.clamp(0.06, 0.94));
   }
 
   void _reset() {
@@ -736,6 +756,8 @@ class _FruitCatchGameState extends State<FruitCatchGame>
       _banner = null;
       _bannerT = 0;
       _spawnIn = 0.6;
+      _basketX = 0.5;
+      _basketTarget = 0.5;
       _status = GameStatus.playing;
     });
   }

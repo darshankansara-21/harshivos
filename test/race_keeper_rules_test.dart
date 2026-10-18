@@ -53,6 +53,21 @@ void main() {
     expect(grass.speed, lessThan(120));
   });
 
+  test('the fruit basket slides toward a touch instead of teleporting', () {
+    final moved = basketSlide(
+      current: 0.2,
+      target: 0.8,
+      dt: 0.05,
+      reduceMotion: false,
+    );
+    expect(moved, greaterThan(0.2));
+    expect(moved, lessThan(0.8));
+    expect(
+      basketSlide(current: 0.2, target: 0.8, dt: 0.05, reduceMotion: true),
+      0.8,
+    );
+  });
+
   test('goalkeeper saves require both line and height', () {
     expect(
       keeperMakesSave(

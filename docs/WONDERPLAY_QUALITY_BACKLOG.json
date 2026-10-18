@@ -1,0 +1,21 @@
+{
+  "updated": "2026-10-18",
+  "note": "Existing games only. A game marked improved or quarantined is not selected again.",
+  "games": [
+    {"id": "racing", "status": "improved", "commit": "bf8f7c6", "note": "gas, brake, steering, oval"},
+    {"id": "goal_keeper", "status": "improved", "commit": "bf8f7c6", "note": "wind-up and slower dive"},
+    {"id": "pinball", "status": "improved", "commit": "e0f8058", "note": "plunger no longer auto-fires"},
+    {"id": "fruit_catch", "status": "improved", "note": "basket eases toward the finger; reduced motion still snaps"},
+    {"id": "bowling", "status": "pending", "note": "lane exists; needs device feel check"},
+    {"id": "snake", "status": "pending", "note": "arena glide; needs device feel check"},
+    {"id": "sky_hop", "status": "pending"},
+    {"id": "space_dodge", "status": "pending"},
+    {"id": "brick_break", "status": "pending"},
+    {"id": "whack", "status": "pending"},
+    {"id": "basketball", "status": "pending"},
+    {"id": "soccer_kick", "status": "pending"},
+    {"id": "penalty_dash", "status": "pending"},
+    {"id": "air_hockey", "status": "pending"},
+    {"id": "mini_golf", "status": "pending"}
+  ]
+}
