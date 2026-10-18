@@ -3,24 +3,54 @@ import 'package:harshivos/features/play/toys/goal_games.dart';
 import 'package:harshivos/features/play/toys/mini_games.dart';
 
 void main() {
-  test('a lane tap is not a dodge until the car visually overlaps the new lane', () {
-    expect(
-      racingTrafficHits(playerLane: 1.0, trafficLane: 1, trafficY: 0.85),
-      isTrue,
+  test('gas builds speed, brake and grass take it away, steering turns the car', () {
+    const start = DriveStep(x: 0, y: 260, heading: -1.5708, speed: 0, onRoad: true);
+    final gas = stepDrive(
+      x: start.x,
+      y: start.y,
+      heading: start.heading,
+      speed: start.speed,
+      steer: 0,
+      accelerate: true,
+      brake: false,
+      dt: 0.4,
     );
-    // Just after a tap toward the right lane the eased car is still in danger.
-    expect(
-      racingTrafficHits(playerLane: 1.2, trafficLane: 1, trafficY: 0.85),
-      isTrue,
+    expect(gas.speed, greaterThan(40));
+    expect(driveOnRoad(0, 260), isTrue);
+    final braked = stepDrive(
+      x: gas.x,
+      y: gas.y,
+      heading: gas.heading,
+      speed: gas.speed,
+      steer: 0,
+      accelerate: false,
+      brake: true,
+      dt: 0.3,
     );
-    expect(
-      racingTrafficHits(playerLane: 1.7, trafficLane: 1, trafficY: 0.85),
-      isFalse,
+    expect(braked.speed, lessThan(gas.speed));
+    final turned = stepDrive(
+      x: 0,
+      y: 260,
+      heading: 0,
+      speed: 120,
+      steer: 1,
+      accelerate: true,
+      brake: false,
+      dt: 0.3,
     );
-    expect(
-      racingTrafficHits(playerLane: 1.0, trafficLane: 1, trafficY: 0.5),
-      isFalse,
+    expect(turned.heading, greaterThan(0.2));
+    final grass = stepDrive(
+      x: 0,
+      y: 0,
+      heading: 0,
+      speed: 200,
+      steer: 0,
+      accelerate: true,
+      brake: false,
+      dt: 0.5,
     );
+    expect(grass.onRoad, isFalse);
+    expect(grass.speed, lessThan(120));
   });
 
   test('goalkeeper saves require both line and height', () {

@@ -1440,7 +1440,9 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
   void onTick(double dt) {
     if (_status != GameStatus.playing) return;
     // Keeper glides toward the finger.
-    _keeperX += (_keeperTargetX - _keeperX) * math.min(1, dt * 13);
+    // Slow enough that a corner save has to start during the kicker's
+    // wind-up. Tracking the ball at the last instant is not a dive.
+    _keeperX += (_keeperTargetX - _keeperX) * math.min(1, dt * 4.2);
     _keeperX = _keeperX.clamp(_kMin, _kMax);
     // Leap commitment eases in a touch slower than the horizontal slide —
     // a real dive takes a beat to leave the ground — so a last-instant
@@ -1654,7 +1656,9 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
                 phase: _phase,
                 lastSaved: _lastSaved,
                 sparks: _sparks,
-                aimHint: _score < 3 && _phase == 1 ? _ballTargetX : -1,
+                aimHint: (_windup > 0 || _score < 3) && _phase == 1
+                    ? _ballTargetX
+                    : -1,
                 phaseT: _phaseT,
                 windup: _windup,
                 shotAim: _ballTargetX,

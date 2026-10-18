@@ -4,11 +4,15 @@
 
 Stop catalog expansion. Do not restart `scripts/wonderplay_factory.ps1`.
 
-Done this pass:
-- Racing: perspective road, painted cars instead of emoji traffic, start lights, drag steering, and collisions that wait until the car visually leaves the lane. Lane-change clicks removed.
-- Goalkeeper: kicker wind-up so the shot can be read, pitch markings, and one shared save rule for line plus height.
+Engine decision: stay in Flutter. Flame, Godot, and Patrol are not justified yet — the catalog already shares ToyTicker, sensory audio, and widget tests. A second engine would add packaging cost before the driving model is proven. Patrol needs a device; none is connected.
 
-Next: play Bowling, Snake, and Pinball on device and fix the actual feel defect, not another banner.
+Play check: `scripts/wonderplay_playcheck.ps1` runs the racing and goalkeeper tests. It is not a worker loop.
+
+Done:
+- Track Racer: gas, brake, steering, road grip versus grass, oval, rivals, two-lap finish. Not a lane dodge.
+- Goalkeeper: kicker wind-up, slower dive so a corner save must start during the wind-up, shared line-and-height save rule.
+
+Next: device-play Track Racer. If the oval camera feels wrong, fix that before touching another game. Bowling already has a real lane.
 
 **Mandatory resume file.** On a new context: READ `CLAUDE.md` FIRST, then this file, then `git log`/`git status`. Resume from `NEXT_ACTION`. Never restart the sprint. Never rely on conversation history.
 
