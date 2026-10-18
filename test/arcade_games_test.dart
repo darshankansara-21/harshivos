@@ -171,6 +171,14 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('Pinball stays on the plunger until the child launches', (tester) async {
+    await _pump(tester, const PinballGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await _pumpTicker(tester, const Duration(seconds: 3));
+    expect(find.textContaining('Pull back the bottom-right chute'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Basketball builds and shoots', (tester) async {
     await _pump(tester, const BasketballGame());
     await tester.tap(find.widgetWithText(FilledButton, 'Play'));

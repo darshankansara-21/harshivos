@@ -105,11 +105,6 @@ class _PinballGameState extends State<PinballGame>
   double _plungerPull = 0; // 0 (parked) .. 1 (fully pulled back)
   int? _plungerPointer;
   double _plungerStartY = 0;
-  // A child who never discovers the pull-back gesture must still get to
-  // play — same "never a dead end" accessibility convention as bowling's
-  // plain-tap-still-bowls fallback. After a short idle wait with no charge
-  // in progress, auto-fire a medium-strength shot.
-  double _launchIdleT = 0;
 
   @override
   void initState() {
@@ -128,7 +123,6 @@ class _PinballGameState extends State<PinballGame>
     _awaitingLaunch = true;
     _plungerPull = 0;
     _plungerPointer = null;
-    _launchIdleT = 0;
   }
 
   void _firePlunger(double power) {
@@ -136,7 +130,6 @@ class _PinballGameState extends State<PinballGame>
     _awaitingLaunch = false;
     _plungerPull = 0;
     _plungerPointer = null;
-    _launchIdleT = 0;
     _vy = -(0.55 + p * 0.55);
     _vx = -(0.08 + _rnd.nextDouble() * 0.05) * (0.6 + p * 0.6);
     TonePlayer.instance.playCue(SoundCue.metal);
@@ -177,17 +170,7 @@ class _PinballGameState extends State<PinballGame>
       if (s.life <= 0) _sparks.removeAt(i);
     }
 
-    if (_awaitingLaunch) {
-      // Ball sits parked in the chute until the plunger fires it. No charge
-      // currently in progress and the child has waited a bit — auto-fire a
-      // medium shot so a less dextrous (or just-exploring) child is never
-      // stuck staring at a motionless ball.
-      if (_plungerPointer == null) {
-        _launchIdleT += dt;
-        if (_launchIdleT > 1.8) _firePlunger(0.5);
-      }
-      return;
-    }
+    if (_awaitingLaunch) return;
 
     _vy += 0.85 * dt; // gentle gravity
     _bx += _vx * dt;
