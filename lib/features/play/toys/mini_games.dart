@@ -2685,6 +2685,7 @@ class _BowlingGameState extends State<BowlingGame>
   double _vx = 0;
   double _vy = 0;
   double _settleT = 0;
+  bool _inGutter = false;
 
   int _frame = 1;
   int _ballInFrame = 1; // 1, 2, or (frame 10 only) 3
@@ -2749,6 +2750,7 @@ class _BowlingGameState extends State<BowlingGame>
     _ballY = _yFoul;
     _vx = 0;
     _vy = 0;
+    _inGutter = false;
     _phase = _BowlPhase.aim;
   }
 
@@ -2784,11 +2786,27 @@ class _BowlingGameState extends State<BowlingGame>
       p.life -= dt;
       if (p.life <= 0) _confetti.removeAt(i);
     }
-    // Advance any toppling pins: progress the lie-down animation and slide
-    // them along their inherited momentum (with friction) so a chain
-    // reaction keeps unfolding — and can still reach a fresh neighbour —
-    // for as long as a pin is actually moving, not just during the single
-    // tick the ball passed through.
+    // Small physics steps keep fast throws from skipping the pin deck on
+    // slower devices, and let pin-to-pin contacts unfold at the same pace.
+    var remaining = dt;
+    while (remaining > 0 && _phase != _BowlPhase.aim) {
+      final step = math.min(remaining, 1 / 120);
+      remaining -= step;
+      _advancePins(step);
+      _propagateTopple();
+      if (_phase == _BowlPhase.rolling) {
+        _rollBall(step);
+      } else {
+        _settleT -= step;
+        if (_settleT <= 0) {
+          _endBall();
+          break;
+        }
+      }
+    }
+  }
+
+  void _advancePins(double dt) {
     for (final p in _pins) {
       if (p.down && p.fallT < 1) {
         p.fallT = (p.fallT + dt * 3.2).clamp(0.0, 1.0);
@@ -2798,33 +2816,27 @@ class _BowlingGameState extends State<BowlingGame>
         p.vy *= (1 - dt * 2.4);
       }
     }
-    // Run every tick regardless of phase (rolling or settling): a pin that
-    // topples near the end of the ball's roll should still be able to slide
-    // into and knock a neighbour during the settle beat, same as real pins.
-    _propagateTopple();
-    if (_phase != _BowlPhase.rolling) {
-      if (_phase == _BowlPhase.settle) {
-        _settleT -= dt;
-        if (_settleT <= 0) _endBall();
-      }
-      return;
-    }
+  }
 
-    // Roll the ball up the lane with gentle friction and a soft curve.
+  void _rollBall(double dt) {
     _ballX += _vx * dt;
     _ballY += _vy * dt;
     _vx *= (1 - dt * 0.6);
     _vy *= (1 - dt * 0.35);
 
-    // Gutter: rode off the side of the lane.
     final half = _laneHalf(_ballY);
-    if ((_ballX - 0.5).abs() > half) {
-      _ballX = 0.5 + half * (_ballX > 0.5 ? 1 : -1);
+    if (!_inGutter && (_ballX - 0.5).abs() > half) {
+      _inGutter = true;
       _vx = 0;
-      _vy *= 0.4; // drags in the gutter
+      _flash('Gutter — try the next roll');
     }
-
-    _checkPinHits();
+    if (_inGutter) {
+      // Stay outside the lane all the way to the pit. Repeatedly slowing
+      // the ball at the edge used to strand it and still allow pin hits.
+      _ballX = 0.5 + (half + 0.025) * (_ballX > 0.5 ? 1 : -1);
+    } else {
+      _checkPinHits();
+    }
 
     if (_ballY <= _yFar + 0.01 || _vy > -0.02) {
       _phase = _BowlPhase.settle;
@@ -2848,8 +2860,8 @@ class _BowlingGameState extends State<BowlingGame>
         // sends them sliding sideways) instead of an instant fixed-radius
         // same-tick check.
         p.vx = _vx * 0.6 + p.fallDir * 0.12;
-        p.vy = _vy.abs() * 0.5;
-        _vx += p.fallDir * 0.04; // ball deflects a touch
+        p.vy = _vy * 0.5;
+        _vx -= p.fallDir * 0.04; // ball deflects away from the struck pin
         _vy *= 0.9;
         TonePlayer.instance.playThock();
       }
@@ -2867,14 +2879,17 @@ class _BowlingGameState extends State<BowlingGame>
   // topples regardless of rounding direction.
   void _propagateTopple() {
     for (final f in _pins) {
-      if (!f.down) continue;
+      if (!f.down || f.fallT >= 1) continue;
       final fx = f.x + f.ox;
       final fy = f.y + f.oy;
       for (final s in _pins) {
         if (s.down) continue;
+        final dx = s.x - fx;
+        final dy = s.y - fy;
+        if (dx * f.vx + dy * f.vy <= 0) continue;
         if ((s.x - fx).abs() < 0.055 && (s.y - fy).abs() < 0.052) {
           s.down = true;
-          s.fallDir = (s.x >= f.x) ? 1 : -1;
+          s.fallDir = dx >= 0 ? 1 : -1;
           // Inherit a damped share of the striking pin's own momentum so
           // the chain's speed/direction keeps tracking the original
           // impact as it propagates outward.

@@ -6,7 +6,7 @@
     {"id": "goal_keeper", "status": "improved", "commit": "bf8f7c6", "note": "wind-up and slower dive"},
     {"id": "pinball", "status": "improved", "commit": "e0f8058", "note": "plunger no longer auto-fires"},
     {"id": "fruit_catch", "status": "improved", "note": "basket eases toward the finger; reduced motion still snaps"},
-    {"id": "bowling", "status": "pending", "note": "lane exists; needs device feel check"},
+    {"id": "bowling", "status": "improved", "note": "forward pin carry, directional contacts, substepped fast rolls, and latched gutters; device feel check still pending"},
     {"id": "snake", "status": "pending", "note": "arena glide; needs device feel check"},
     {"id": "sky_hop", "status": "pending"},
     {"id": "space_dodge", "status": "pending"},
