@@ -205,4 +205,20 @@ void main() {
       reason: 'leaping over a ground shot is a miss',
     );
   });
+
+  test('landscape goalkeeper pitch stays clear of chrome and the side HUD', () {
+    const phone = Size(914, 411);
+    final pitch = keeperPitchRect(phone);
+    expect(pitch.top, greaterThanOrEqualTo(64));
+    expect(pitch.bottom, lessThan(phone.height - 24));
+    expect(pitch.left, greaterThan(120));
+    expect(pitch.right, lessThan(phone.width - 160));
+    final goalTop = pitch.top + pitch.height * 0.12;
+    final goalLine = pitch.top + pitch.height * 0.34;
+    final kicker = pitch.top + pitch.height * 0.9;
+    expect(goalTop, greaterThan(80));
+    expect(goalLine - goalTop, greaterThan(48));
+    expect(kicker, lessThan(phone.height - 36));
+    expect(keeperPitchRect(const Size(411, 820)), const Offset(0, 0) & const Size(411, 820));
+  });
 }

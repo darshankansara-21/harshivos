@@ -161,11 +161,23 @@ class _GoalShellState extends State<_GoalShell> {
       fit: StackFit.expand,
       children: <Widget>[
         child,
+        if (status == GameStatus.playing)
         SafeArea(
           child: Align(
-            alignment: Alignment.topCenter,
+            alignment: MediaQuery.sizeOf(context).width >
+                    MediaQuery.sizeOf(context).height
+                ? Alignment.centerRight
+                : Alignment.topCenter,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 72, 16, 0),
+              padding: EdgeInsets.fromLTRB(
+                16,
+                MediaQuery.sizeOf(context).width >
+                        MediaQuery.sizeOf(context).height
+                    ? 8
+                    : 72,
+                12,
+                8,
+              ),
               // See _Shell's matching comment in arcade_games.dart: this
               // floating HUD column sits directly over live gameplay with no
               // bottom bound on its available height, so a long title+score
@@ -175,7 +187,14 @@ class _GoalShellState extends State<_GoalShell> {
               // text scale rather than letting it grow unbounded — every
               // other piece of on-screen text still honours the full
               // system scale.
-              child: MediaQuery(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: MediaQuery.sizeOf(context).width >
+                          MediaQuery.sizeOf(context).height
+                      ? 220
+                      : double.infinity,
+                ),
+                child: MediaQuery(
                 data: MediaQuery.of(context).copyWith(
                   textScaler: MediaQuery.textScalerOf(context)
                       .clamp(maxScaleFactor: 1.3),
@@ -251,6 +270,7 @@ class _GoalShellState extends State<_GoalShell> {
                   ],
                 ],
                 ),
+              ),
               ),
             ),
           ),
@@ -357,39 +377,46 @@ class _GoalShellState extends State<_GoalShell> {
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: <Color>[
-                    Colors.black.withOpacity(0.6),
-                    accent.withOpacity(0.3),
-                  ],
-                ),
+                color: Colors.black.withOpacity(0.78),
               ),
-              child: _overlayScroll(Column(
+              child: SafeArea(
+              child: _overlayScroll(ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: MediaQuery.sizeOf(context).height < 500 ? 680 : 460,
+                ),
+                child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    Text(title.split(' ').first,
-                        style: const TextStyle(fontSize: 72)),
-                    const SizedBox(height: 8),
+                    if (MediaQuery.sizeOf(context).height >= 500)
+                      Text(title.split(' ').first,
+                          style: const TextStyle(fontSize: 72)),
+                    if (MediaQuery.sizeOf(context).height >= 500)
+                      const SizedBox(height: 8),
                     Text(title,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
+                        style: TextStyle(
                             color: Colors.white,
-                            fontSize: 28,
+                            fontSize: MediaQuery.sizeOf(context).height < 500
+                                ? 24
+                                : 28,
                             fontWeight: FontWeight.w900)),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 32),
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: Text(introHow ?? goal,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
+                          style: TextStyle(
                               color: Colors.white70,
-                              fontSize: 17,
+                              fontSize: MediaQuery.sizeOf(context).height < 500
+                                  ? 14
+                                  : 17,
                               fontWeight: FontWeight.w600,
-                              height: 1.35)),
+                              height: 1.3)),
                     ),
-                    const SizedBox(height: 22),
+                    SizedBox(
+                        height: MediaQuery.sizeOf(context).height < 500
+                            ? 12
+                            : 22),
                     FilledButton.icon(
                       onPressed: () {
                         TonePlayer.instance.playCue(SoundCue.gameStart);
@@ -416,6 +443,7 @@ class _GoalShellState extends State<_GoalShell> {
                     ),
                   ],
                 ),
+              )),
               ),
             ),
           ),
@@ -1252,6 +1280,23 @@ bool keeperMakesSave({
   return onLine && heightOk;
 }
 
+/// Portrait uses the full canvas. Landscape phones are short, so the same
+/// normalised goal sat under the score pills and the kicker sat on the
+/// gesture bar. This rect keeps the pitch below the title chrome, clear of
+/// the side HUD, and above the system gesture bar.
+Rect keeperPitchRect(Size size) {
+  if (size.width <= size.height) return Offset.zero & size;
+  const top = 72.0;
+  const bottom = 40.0;
+  const left = 148.0;
+  const right = 196.0;
+  final availW = math.max(140.0, size.width - left - right);
+  final availH = math.max(140.0, size.height - top - bottom);
+  final width = math.min(availW, availH * 1.2);
+  final height = availH;
+  return Rect.fromLTWH(left + (availW - width) / 2, top, width, height);
+}
+
 class GoalKeeperGame extends StatefulWidget {
   const GoalKeeperGame({super.key});
 
@@ -1576,13 +1621,16 @@ class _GoalKeeperGameState extends State<GoalKeeperGame>
 
   void _moveTo(double localX, double localY, double width, double height) {
     if (_status != GameStatus.playing) return;
-    _keeperTargetX = (localX / width).clamp(_kMin, _kMax);
+    final pitch = keeperPitchRect(Size(width, height));
+    final nx = ((localX - pitch.left) / pitch.width).clamp(0.0, 1.0);
+    final ny = ((localY - pitch.top) / pitch.height).clamp(0.0, 1.0);
+    _keeperTargetX = nx.clamp(_kMin, _kMax);
     // Sliding the finger up toward the goal commits a leap (for a chip);
     // staying low near the penalty spot keeps the keeper grounded (for a
     // ground shot). Reuses the same continuous drag already used to aim
     // left/right, so there is no second gesture to learn — just a second
     // axis to read and commit.
-    _keeperTargetJump = (1 - (localY / height)).clamp(0.0, 1.0);
+    _keeperTargetJump = (1 - ny).clamp(0.0, 1.0);
   }
 
   // Screen-reader bridge: dives straight to the shot's real target x AND
@@ -1720,9 +1768,10 @@ class _KeeperPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final w = size.width, h = size.height;
-    double sx(double x) => x * w;
-    double sy(double y) => y * h;
+    final pitch = keeperPitchRect(size);
+    final w = pitch.width, h = pitch.height;
+    double sx(double x) => pitch.left + x * w;
+    double sy(double y) => pitch.top + y * h;
 
     // Pitch.
     canvas.drawRect(
