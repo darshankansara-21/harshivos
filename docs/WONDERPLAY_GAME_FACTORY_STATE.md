@@ -8,7 +8,7 @@ Engine decision: stay in Flutter. Flame, Godot, and Patrol are not justified yet
 
 Play check: `scripts/wonderplay_playcheck.ps1` runs the racing and goalkeeper tests. It is not a worker loop.
 
-Device: Pixel 6a `23131JEGR02045` installed and launched the previous debug build. Track Racer opened. The oval was zoomed so the road ran off the right edge, and Brake sat under the companion. USB debugging then returned to `unauthorized`, so the camera fix is not yet reinstalled. Do not claim the new framing was seen on device. Audio was not listened to.
+Device: Pixel 6a `23131JEGR02045`, landscape. Fresh debug install of the landscape framing plus racing-line snap. Track Racer shows the whole oval, both pedals, and the car on the start line. A Gas hold reached 133 km/h and then 213 km/h with the red car on the white line, not the grass. Audio was not listened to.
 
 Done:
 - Track Racer: gas, brake, steering, road grip versus grass, oval, rivals, two-lap finish. Camera now fits the whole oval on a phone canvas and draws the car on the road. Pedals sit above the companion. Intro uses the racing emoji instead of a giant "Track" word.
@@ -30,8 +30,8 @@ Next game in docs/WONDERPLAY_QUALITY_BACKLOG.json. Run `powershell -NoProfile -E
 SHIP_CANDIDATE:    1.0.43+44 — direct recovery session; 194/194 tests passed; analyze 0 errors / 0 warnings / 130 infos; signed builds pending clean committed tree
 DIRECT_SESSION:    Memory Flip timeout/mismatch feedback fixed to report post-penalty lives; companion evidence harness now uses ProviderScope and fails on real widget exceptions; no autonomous loop running
 CURRENT_PHASE:     5 — device QA of existing games, then the next weak catalog game. Release and catalog expansion remain held.
-CURRENT_GAME:      racing camera: phone screenshot of the installed build showed the oval clipped off the right edge and Brake hidden under the companion. Framing now fits the oval, the car is drawn on the road, and pedals are lifted. Pixel 6a is unauthorized again, so the fix is not reinstalled.
-NEXT_ACTION:       Accept the USB debugging prompt on the Pixel, reinstall, and screenshot Track Racer before claiming the framing. Then play Goalkeeper, Pinball, Fruit Catch, Bowling, and Snake. Do not start wonderplay_factory.ps1.
+CURRENT_GAME:      racing: Pixel 6a landscape screenshots show the whole oval and both pedals. A mid-hold Gas screenshot showed 213 km/h with the red car on the white line, not grass. Audio not listened to.
+NEXT_ACTION:       Device-check Goalkeeper, Pinball, Fruit Catch, Bowling, and Snake on the connected Pixel. Do not claim audio verified. Do not start wonderplay_factory.ps1.
 ARCHIVED_BATCHES_195: PRIOR_BATCH_482 (ran the `mainAxisAlignment:(center|spaceBetween)`+`Row(` grep across non-Play screens, fixed 5 unflexed-Row overflows in `lib/features/lifeskills/` — `routine_player_screen.dart`'s `_BigButton`, `card_deck_screen.dart`'s Next/Done button, and 3 in `create_routine_screen.dart` — commit cd8a82c) trimmed this batch; full detail remains in git history via `git log --oneline` + `git show <sha>`.
 ARCHIVED_BATCHES_194: PRIOR_BATCH_481 (wrote real probe tests for `visual_schedule_screen.dart`/`social_stories_screen.dart` confirming both clean, found and fixed `world_screen.dart`'s `_ToyBoxButton` 63px overflow, commit 89b3903) trimmed this batch; full detail remains in git history via `git log --oneline` + `git show <sha>`.
 ARCHIVED_BATCHES_193: PRIOR_BATCH_480 (continued the `TextScaler.linear(2.5)` regression-probe sweep, confirmed `feelings_screen.dart`/`first_then_screen.dart` clean, found and fixed 8 real overflow bugs across `sensory_settings_screen.dart`/`social_stories_screen.dart`/`sensory_lab_screen.dart`/`visual_schedule_screen.dart`/`visual_timer_screen.dart`, commits 1f4c320+a0bbe50) trimmed this batch; full detail remains in git history via `git log --oneline` + `git show <sha>`.

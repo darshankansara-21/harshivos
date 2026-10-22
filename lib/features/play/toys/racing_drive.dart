@@ -24,10 +24,43 @@ DriveStep stepDrive({
   if (v < 0) v = 0;
   final grip = onRoad ? 1.0 : 0.4;
   final turn = steer.clamp(-1.0, 1.0) * (1.1 + v / 220) * grip;
-  final h = heading + turn * dt;
-  final nx = x + math.sin(h) * v * dt;
-  final ny = y - math.cos(h) * v * dt;
+  // A straight hold stays on the racing line. A blend was not enough: on the
+  // Pixel the car was on the grass and nearly stopped after a two-second
+  // gas hold. Steering still leaves the line.
+  var px = x;
+  var py = y;
+  var h = heading;
+  if (steer.abs() < 0.15 && onRoad) {
+    final theta = math.atan2(y / _trackB, x / _trackA);
+    final line = Offset(_trackA * math.cos(theta), _trackB * math.sin(theta));
+    final pull = math.min(1.0, dt * 8);
+    px += (line.dx - px) * pull;
+    py += (line.dy - py) * pull;
+    h = ovalHeading(px, py);
+  } else {
+    h += turn * dt;
+  }
+  final nx = px + math.sin(h) * v * dt;
+  final ny = py - math.cos(h) * v * dt;
   return DriveStep(x: nx, y: ny, heading: h, speed: v, onRoad: driveOnRoad(nx, ny));
+}
+
+/// Racing-line heading at a point on the oval, increasing around the lap.
+double ovalHeading(double x, double y) {
+  final theta = math.atan2(y / _trackB, x / _trackA);
+  final tx = -_trackA * math.sin(theta);
+  final ty = _trackB * math.cos(theta);
+  return math.atan2(tx, -ty);
+}
+
+/// Pedal rectangles. A hold there must not also steer — a Pixel gas hold
+/// was stolen by the full-screen pan and turned the car onto the grass.
+bool raceTouchIsPedal(Offset local, Size size) {
+  const width = 130.0;
+  const height = 120.0;
+  final top = size.height - 158 - height;
+  return (local.dx < width && local.dy > top) ||
+      (local.dx > size.width - width && local.dy > top);
 }
 
 bool driveOnRoad(double x, double y) {
@@ -53,9 +86,13 @@ class DriveFrame {
 }
 
 DriveFrame driveFrame(Size size) {
-  const padTop = 108.0;
-  const padBottom = 248.0;
-  const padX = 28.0;
+  // Portrait keeps the oval above the companion and pedals. Landscape is
+  // short, so those same fixed margins crushed the track into a speck
+  // under the score pill on a Pixel 6a held sideways.
+  final landscape = size.width > size.height;
+  final padTop = landscape ? 64.0 : 96.0;
+  final padBottom = landscape ? 12.0 : 150.0;
+  final padX = landscape ? 118.0 : 20.0;
   final availW = math.max(48.0, size.width - padX * 2);
   final availH = math.max(48.0, size.height - padTop - padBottom);
   const worldW = _trackA * 2 + 210;
@@ -193,7 +230,10 @@ class _RacingGameState extends State<RacingGame>
       }
       return;
     }
-    if (_steerHold > 0) {
+    if (_gas || _brake) {
+      _steer = 0;
+      _steerHold = 0;
+    } else if (_steerHold > 0) {
       _steerHold -= dt;
       if (_steerHold <= 0) _steer = 0;
     }
@@ -291,6 +331,10 @@ class _RacingGameState extends State<RacingGame>
     } else {
       _brake = down;
     }
+    if (down) {
+      _steer = 0;
+      _steerHold = 0;
+    }
   }
 
   void _reset() {
@@ -322,9 +366,8 @@ class _RacingGameState extends State<RacingGame>
       winEmoji: '🏆',
       winText: 'P$_finishPlace — two laps, you drove it',
       accent: const Color(0xFFFF6B6B),
-      introHow: 'Hold Gas to build speed and Brake to slow down.\n'
-          'Drag left or right to steer around the oval. '
-          'Stay on the grey road — grass kills your speed. '
+      introHow: 'Hold Gas to follow the oval. Drag to steer off the line.\n'
+          'Brake to slow down. Stay on the grey road — grass kills speed. '
           'Finish 2 laps ahead of the other cars.',
       onStart: () => setState(() => _status = GameStatus.playing),
       onPlayAgain: _reset,
@@ -348,9 +391,12 @@ class _RacingGameState extends State<RacingGame>
                 Positioned.fill(
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTapDown: (d) => _nudgeSteer(d.localPosition.dx < w / 2 ? -1 : 1),
+                    onTapDown: (d) {
+                      if (raceTouchIsPedal(d.localPosition, Size(w, h))) return;
+                      _nudgeSteer(d.localPosition.dx < w / 2 ? -1 : 1);
+                    },
                     onPanUpdate: (d) {
-                      if (d.localPosition.dy > h - 250) return;
+                      if (raceTouchIsPedal(d.localPosition, Size(w, h))) return;
                       _nudgeSteer((d.delta.dx / 14).clamp(-1.0, 1.0));
                     },
                     child: CustomPaint(
@@ -411,10 +457,11 @@ class _Pedal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => onChanged(true),
-      onTapUp: (_) => onChanged(false),
-      onTapCancel: () => onChanged(false),
+    return Listener(
+      behavior: HitTestBehavior.opaque,
+      onPointerDown: (_) => onChanged(true),
+      onPointerUp: (_) => onChanged(false),
+      onPointerCancel: (_) => onChanged(false),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 80),
         width: 92,

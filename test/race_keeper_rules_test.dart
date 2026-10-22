@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:harshivos/features/play/toys/goal_games.dart';
@@ -55,17 +57,83 @@ void main() {
   });
 
   test('the race camera keeps the whole oval on a phone canvas', () {
-    const size = Size(411, 820);
-    final frame = driveFrame(size);
-    const halfW = (420 + 95) * 1.0;
-    final left = frame.center.dx - halfW * frame.scale;
-    final right = frame.center.dx + halfW * frame.scale;
-    final top = frame.center.dy - (260 + 95) * frame.scale;
-    final bottom = frame.center.dy + (260 + 95) * frame.scale;
-    expect(left, greaterThan(8));
-    expect(right, lessThan(size.width - 8));
-    expect(top, greaterThan(8));
-    expect(bottom, lessThan(size.height - 8));
+    void expectFits(Size size) {
+      final frame = driveFrame(size);
+      const halfW = 420 + 95;
+      const halfH = 260 + 95;
+      final left = frame.center.dx - halfW * frame.scale;
+      final right = frame.center.dx + halfW * frame.scale;
+      final top = frame.center.dy - halfH * frame.scale;
+      final bottom = frame.center.dy + halfH * frame.scale;
+      expect(left, greaterThan(4), reason: '$size left');
+      expect(right, lessThan(size.width - 4), reason: '$size right');
+      expect(top, greaterThan(4), reason: '$size top');
+      expect(bottom, lessThan(size.height - 4), reason: '$size bottom');
+      expect(
+        halfH * 2 * frame.scale,
+        greaterThan(size.shortestSide * 0.45),
+        reason: '$size must not shrink the oval into a speck',
+      );
+    }
+
+    expectFits(const Size(411, 820));
+    expectFits(const Size(914, 411));
+  });
+
+  test('holding gas follows the oval instead of driving onto the grass', () {
+    var x = 0.0;
+    var y = 260.0;
+    var heading = -math.pi / 2;
+    var speed = 0.0;
+    for (var i = 0; i < 40; i++) {
+      final step = stepDrive(
+        x: x,
+        y: y,
+        heading: heading,
+        speed: speed,
+        steer: 0,
+        accelerate: true,
+        brake: false,
+        dt: 0.05,
+      );
+      x = step.x;
+      y = step.y;
+      heading = step.heading;
+      speed = step.speed;
+      expect(step.onRoad, isTrue, reason: 'step $i');
+    }
+    expect(speed, greaterThan(80));
+    for (final dt in <double>[0.016, 0.099]) {
+      x = 0;
+      y = 260;
+      heading = -math.pi / 2;
+      speed = 0;
+      for (var i = 0; i < (6 / dt).floor(); i++) {
+        final step = stepDrive(
+          x: x,
+          y: y,
+          heading: heading,
+          speed: speed,
+          steer: 0,
+          accelerate: true,
+          brake: false,
+          dt: dt,
+        );
+        x = step.x;
+        y = step.y;
+        heading = step.heading;
+        speed = step.speed;
+        expect(step.onRoad, isTrue, reason: 'dt $dt step $i');
+      }
+      expect(speed, greaterThan(150));
+    }
+  });
+
+  test('a gas or brake hold is not also a steer', () {
+    const landscape = Size(914, 411);
+    expect(raceTouchIsPedal(const Offset(850, 216), landscape), isTrue);
+    expect(raceTouchIsPedal(const Offset(40, 220), landscape), isTrue);
+    expect(raceTouchIsPedal(const Offset(457, 200), landscape), isFalse);
   });
 
   test('the fruit basket slides toward a touch instead of teleporting', () {
