@@ -4,13 +4,15 @@
 
 Stop catalog expansion. Do not restart `scripts/wonderplay_factory.ps1`.
 
-Engine decision: stay in Flutter. Flame, Godot, and Patrol are not justified yet — the catalog already shares ToyTicker, sensory audio, and widget tests. A second engine would add packaging cost before the driving model is proven. Patrol needs a device; none is connected.
+Engine decision: stay in Flutter. Flame, Godot, and Patrol are not justified yet — the catalog already shares ToyTicker, sensory audio, and widget tests. A second engine would add packaging cost before the driving model is proven.
 
 Play check: `scripts/wonderplay_playcheck.ps1` runs the racing and goalkeeper tests. It is not a worker loop.
 
+Device: Pixel 6a `23131JEGR02045` installed and launched the previous debug build. Track Racer opened. The oval was zoomed so the road ran off the right edge, and Brake sat under the companion. USB debugging then returned to `unauthorized`, so the camera fix is not yet reinstalled. Do not claim the new framing was seen on device. Audio was not listened to.
+
 Done:
-- Track Racer: gas, brake, steering, road grip versus grass, oval, rivals, two-lap finish. Not a lane dodge.
-- Goalkeeper: kicker wind-up, slower dive so a corner save must start during the wind-up, shared line-and-height save rule.
+- Track Racer: gas, brake, steering, road grip versus grass, oval, rivals, two-lap finish. Camera now fits the whole oval on a phone canvas and draws the car on the road. Pedals sit above the companion. Intro uses the racing emoji instead of a giant "Track" word.
+- Goalkeeper: kicker wind-up, slower dive so a corner save must start during the wind-up, shared line-and-height save rule. Not device-checked this session.
 - Bowling: pins carry up-lane with impact momentum, only approaching pins propagate contacts, fast rolls use small physics steps, and gutter balls stay outside the lane without stalling. Device feel QA is still pending.
 
 Next game in docs/WONDERPLAY_QUALITY_BACKLOG.json. Run `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/wonderplay_quality_factory.ps1` for status. `-Action Once` launches one Copilot CLI worker and quarantines a no-commit result. Do not start the old wonderplay_factory.ps1 loop.
@@ -27,10 +29,9 @@ Next game in docs/WONDERPLAY_QUALITY_BACKLOG.json. Run `powershell -NoProfile -E
 ```
 SHIP_CANDIDATE:    1.0.43+44 — direct recovery session; 194/194 tests passed; analyze 0 errors / 0 warnings / 130 infos; signed builds pending clean committed tree
 DIRECT_SESSION:    Memory Flip timeout/mismatch feedback fixed to report post-penalty lives; companion evidence harness now uses ProviderScope and fails on real widget exceptions; no autonomous loop running
-CURRENT_PHASE:     5 — targeted existing-game quality improvement; this worker was explicitly restricted to snake. Release and catalog expansion remain held.
-CURRENT_GAME:      snake only: fixed 120Hz simulation makes steering, boost cost, and contacts independent of display frame rate. Player and rivals start with full bodies. Continuous trail contacts include rival heads, use world-distance neck clearance for takedowns, and trim tails exactly to visible length. Locked boost no longer draws an active head glow. Instructions now correctly warn against every part of rival worms. Eleven focused gameplay regressions plus the existing large-text test cover starting bodies, head-on/body contacts at 16ms and 80ms, safe near-misses, invisible-tail prevention, takedowns, simultaneous boost/steering, locked boost, and replay reset. No other game's behavior changed.
-SNAKE_VALIDATION:  Full flutter test --no-pub -j 1: 222/222 passed. flutter analyze --no-pub: 0 warnings / 0 errors, 132 existing infos. Device feel and child-delight evidence remain pending; snake is B, not device-verified A. No build, release, dependency change, or catalog expansion.
-NEXT_ACTION:       Snake device QA only: check one-finger drag steering, two-finger boost plus steering, head-on/body contact readability, safe tail near-misses, rival cutoffs, growing/shrinking body feel, glowing-edge loss, 30-point completion, replay, mute, and reduced motion. Do not claim child/device delight or promote snake back to A without that evidence. No release build, new game, or unrelated-game edits.
+CURRENT_PHASE:     5 — device QA of existing games, then the next weak catalog game. Release and catalog expansion remain held.
+CURRENT_GAME:      racing camera: phone screenshot of the installed build showed the oval clipped off the right edge and Brake hidden under the companion. Framing now fits the oval, the car is drawn on the road, and pedals are lifted. Pixel 6a is unauthorized again, so the fix is not reinstalled.
+NEXT_ACTION:       Accept the USB debugging prompt on the Pixel, reinstall, and screenshot Track Racer before claiming the framing. Then play Goalkeeper, Pinball, Fruit Catch, Bowling, and Snake. Do not start wonderplay_factory.ps1.
 ARCHIVED_BATCHES_195: PRIOR_BATCH_482 (ran the `mainAxisAlignment:(center|spaceBetween)`+`Row(` grep across non-Play screens, fixed 5 unflexed-Row overflows in `lib/features/lifeskills/` — `routine_player_screen.dart`'s `_BigButton`, `card_deck_screen.dart`'s Next/Done button, and 3 in `create_routine_screen.dart` — commit cd8a82c) trimmed this batch; full detail remains in git history via `git log --oneline` + `git show <sha>`.
 ARCHIVED_BATCHES_194: PRIOR_BATCH_481 (wrote real probe tests for `visual_schedule_screen.dart`/`social_stories_screen.dart` confirming both clean, found and fixed `world_screen.dart`'s `_ToyBoxButton` 63px overflow, commit 89b3903) trimmed this batch; full detail remains in git history via `git log --oneline` + `git show <sha>`.
 ARCHIVED_BATCHES_193: PRIOR_BATCH_480 (continued the `TextScaler.linear(2.5)` regression-probe sweep, confirmed `feelings_screen.dart`/`first_then_screen.dart` clean, found and fixed 8 real overflow bugs across `sensory_settings_screen.dart`/`social_stories_screen.dart`/`sensory_lab_screen.dart`/`visual_schedule_screen.dart`/`visual_timer_screen.dart`, commits 1f4c320+a0bbe50) trimmed this batch; full detail remains in git history via `git log --oneline` + `git show <sha>`.

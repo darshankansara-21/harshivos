@@ -128,12 +128,13 @@ class _ToyPlayerScreenState extends ConsumerState<ToyPlayerScreen> {
                               alignment: Alignment.centerLeft,
                               child: Text(
                                 '${widget.toy.emoji}  ${widget.toy.title}',
+                                maxLines: 1,
+                                softWrap: false,
                                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
                               ),
                             ),
                           ),
                         ),
-                        const Spacer(),
                         const MuteButton(),
                         const SizedBox(width: 12),
                         _RoundButton(

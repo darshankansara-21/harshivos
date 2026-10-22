@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:harshivos/features/play/toys/goal_games.dart';
 import 'package:harshivos/features/play/toys/mini_games.dart';
@@ -51,6 +52,20 @@ void main() {
     );
     expect(grass.onRoad, isFalse);
     expect(grass.speed, lessThan(120));
+  });
+
+  test('the race camera keeps the whole oval on a phone canvas', () {
+    const size = Size(411, 820);
+    final frame = driveFrame(size);
+    const halfW = (420 + 95) * 1.0;
+    final left = frame.center.dx - halfW * frame.scale;
+    final right = frame.center.dx + halfW * frame.scale;
+    final top = frame.center.dy - (260 + 95) * frame.scale;
+    final bottom = frame.center.dy + (260 + 95) * frame.scale;
+    expect(left, greaterThan(8));
+    expect(right, lessThan(size.width - 8));
+    expect(top, greaterThan(8));
+    expect(bottom, lessThan(size.height - 8));
   });
 
   test('the fruit basket slides toward a touch instead of teleporting', () {

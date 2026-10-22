@@ -42,6 +42,31 @@ double _trackRadius(double x, double y) {
 const double _trackA = 420;
 const double _trackB = 260;
 
+/// Top-down frame that keeps the oval, including the road stroke, inside a
+/// phone canvas. A chase zoom that only showed one clipped bend did not read
+/// as a track.
+class DriveFrame {
+  const DriveFrame({required this.scale, required this.center});
+
+  final double scale;
+  final Offset center;
+}
+
+DriveFrame driveFrame(Size size) {
+  const padTop = 108.0;
+  const padBottom = 248.0;
+  const padX = 28.0;
+  final availW = math.max(48.0, size.width - padX * 2);
+  final availH = math.max(48.0, size.height - padTop - padBottom);
+  const worldW = _trackA * 2 + 210;
+  const worldH = _trackB * 2 + 210;
+  final scale = math.min(availW / worldW, availH / worldH);
+  return DriveFrame(
+    scale: scale,
+    center: Offset(size.width / 2, padTop + availH / 2),
+  );
+}
+
 class DriveStep {
   const DriveStep({
     required this.x,
@@ -287,7 +312,7 @@ class _RacingGameState extends State<RacingGame>
             : 'Lap $_lapShown/2 · ${kmh} km/h · P$_place'
                 '${driveOnRoad(_x, _y) ? '' : ' · grass'}';
     return _GameShell(
-      title: 'Track Racer',
+      title: '🏎️ Track Racer',
       score: _score,
       best: _best,
       status: _status,
@@ -325,7 +350,7 @@ class _RacingGameState extends State<RacingGame>
                     behavior: HitTestBehavior.opaque,
                     onTapDown: (d) => _nudgeSteer(d.localPosition.dx < w / 2 ? -1 : 1),
                     onPanUpdate: (d) {
-                      if (d.localPosition.dy > h - 110) return;
+                      if (d.localPosition.dy > h - 250) return;
                       _nudgeSteer((d.delta.dx / 14).clamp(-1.0, 1.0));
                     },
                     child: CustomPaint(
@@ -344,7 +369,7 @@ class _RacingGameState extends State<RacingGame>
                 ),
                 Positioned(
                   left: 18,
-                  bottom: 22,
+                  bottom: 158,
                   child: _Pedal(
                     label: 'Brake',
                     color: const Color(0xFFEF476F),
@@ -354,7 +379,7 @@ class _RacingGameState extends State<RacingGame>
                 ),
                 Positioned(
                   right: 18,
-                  bottom: 22,
+                  bottom: 158,
                   child: _Pedal(
                     label: 'Gas',
                     color: const Color(0xFF06D6A0),
@@ -438,14 +463,21 @@ class _DrivePainter extends CustomPainter {
       Offset.zero & size,
       Paint()..color = const Color(0xFF7CB342),
     );
+    final frame = driveFrame(size);
     canvas.save();
-    canvas.translate(size.width / 2, size.height * (reduceMotion ? 0.5 : 0.68));
-    canvas.scale(0.42);
-    if (!reduceMotion) canvas.rotate(-heading);
-    canvas.translate(-x, -y);
+    canvas.translate(frame.center.dx, frame.center.dy);
+    canvas.scale(frame.scale);
     canvas.drawOval(
       Rect.fromCenter(center: Offset.zero, width: _trackA * 2.7, height: _trackB * 2.9),
       Paint()..color = const Color(0xFF8BC34A),
+    );
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset.zero,
+        width: _trackA * 2 - 150,
+        height: _trackB * 2 - 150,
+      ),
+      Paint()..color = const Color(0xFF9CCC65),
     );
     canvas.drawOval(
       Rect.fromCenter(center: Offset.zero, width: _trackA * 2, height: _trackB * 2),
@@ -461,13 +493,13 @@ class _DrivePainter extends CustomPainter {
         ..strokeWidth = 4
         ..color = Colors.white70,
     );
-    final finish = Offset(0, _trackB);
+    const finish = Offset(0, _trackB);
     canvas.drawLine(
-      finish + const Offset(-54, 0),
-      finish + const Offset(54, 0),
+      finish + const Offset(-70, 0),
+      finish + const Offset(70, 0),
       Paint()
         ..color = Colors.white
-        ..strokeWidth = 8,
+        ..strokeWidth = 10,
     );
     for (final r in rivals) {
       final p = Offset(
@@ -476,29 +508,25 @@ class _DrivePainter extends CustomPainter {
       );
       final dx = -math.sin(r.theta);
       final dy = math.cos(r.theta);
-      _car(canvas, p, math.atan2(dx, -dy), r.tint, 0.7);
+      _car(canvas, p, math.atan2(dx, -dy), r.tint, 0.85);
     }
-    canvas.restore();
-
-    final car = Offset(size.width / 2, size.height * (reduceMotion ? 0.5 : 0.68));
     canvas.save();
-    canvas.translate(car.dx, car.dy);
-    if (reduceMotion) canvas.rotate(heading);
-    canvas.rotate(steer * 0.12);
-    _body(canvas, const Color(0xFFFF6B6B), 1);
+    canvas.translate(x, y);
+    canvas.rotate(heading + (reduceMotion ? 0 : steer * 0.18));
+    _body(canvas, const Color(0xFFFF6B6B), 1.15);
     canvas.restore();
-
     if (lights > 0) {
-      final lit = lights > 0.9 ? 0 : 2;
+      final lit = lights > 0.9 ? 0 : 1;
       const colors = <Color>[Color(0xFFEF476F), Color(0xFF06D6A0)];
       for (var i = 0; i < 2; i++) {
         canvas.drawCircle(
-          Offset(size.width / 2 - 18 + i * 36, 28),
-          10,
+          Offset(-28 + i * 56, -18),
+          16,
           Paint()..color = i == lit ? colors[i] : const Color(0xFF1B1E27),
         );
       }
     }
+    canvas.restore();
   }
 
   void _car(Canvas canvas, Offset at, double angle, Color color, double scale) {
