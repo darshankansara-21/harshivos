@@ -89,24 +89,33 @@ class _AntistressPlayerScreenState extends State<AntistressPlayerScreen> {
                       },
                     ),
                     const SizedBox(width: 12),
-                    Flexible(
+                    Expanded(
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 8),
+                        height: 46,
+                        alignment: Alignment.centerLeft,
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.35),
-                          borderRadius: BorderRadius.circular(20),
+                          color: const Color(0xF214121C),
+                          borderRadius: BorderRadius.circular(23),
                         ),
-                        child: Text(
-                          '${widget.emoji}  ${widget.title}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              color: Colors.white, fontWeight: FontWeight.w700),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            '${widget.emoji}  ${widget.title}',
+                            maxLines: 1,
+                            softWrap: false,
+                            overflow: TextOverflow.visible,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 16,
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                    const Spacer(),
+                    const SizedBox(width: 12),
                     const MuteButton(),
                   ],
                 ),

@@ -8,7 +8,7 @@ Engine decision: stay in Flutter. Flame, Godot, and Patrol are not justified yet
 
 Play check: `scripts/wonderplay_playcheck.ps1` runs the racing and goalkeeper tests. It is not a worker loop.
 
-Device: Pixel 6a `23131JEGR02045`, landscape. Track Racer Gas hold stayed on the white line at 213 km/h. Goal Keeper now shows the goal, keeper, ball, and kicker clear of the score pills; a played round reached 7/10 and a new best. Audio was not listened to.
+Device: Pixel 6a `23131JEGR02045`, portrait this session. Track Racer chase view held the red car on the road at 190 km/h, lap 1/2, P4. The launcher title chip now reads "Racing", not "Raci...". Goal Keeper portrait pitch sits below the score pills; crowd, goal, keeper, ball, and kicker are on screen. It still looks like a top-down diagram, not a broadcast match. Audio was not listened to.
 
 Done:
 - Track Racer: gas, brake, steering, road grip versus grass, oval, rivals, two-lap finish. Camera now fits the whole oval on a phone canvas and draws the car on the road. Pedals sit above the companion. Intro uses the racing emoji instead of a giant "Track" word.
@@ -30,8 +30,8 @@ Next game in docs/WONDERPLAY_QUALITY_BACKLOG.json. Run `powershell -NoProfile -E
 SHIP_CANDIDATE:    1.0.43+44 — direct recovery session; 194/194 tests passed; analyze 0 errors / 0 warnings / 130 infos; signed builds pending clean committed tree
 DIRECT_SESSION:    Memory Flip timeout/mismatch feedback fixed to report post-penalty lives; companion evidence harness now uses ProviderScope and fails on real widget exceptions; no autonomous loop running
 CURRENT_PHASE:     5 — device QA of existing games, then the next weak catalog game. Release and catalog expansion remain held.
-CURRENT_GAME:      goal_keeper: landscape pitch and side HUD verified on Pixel 6a. Goal, keeper, ball, and kicker are visible. A round reached 7/10 with a new-best result. Audio not listened to.
-NEXT_ACTION:       Device-check Pinball, Fruit Catch, Bowling, and Snake on the connected Pixel. Do not claim audio verified. Do not start wonderplay_factory.ps1.
+CURRENT_GAME:      racing chase camera and goal_keeper portrait framing verified on Pixel 6a. Title chip truncation was the antistress launcher, now fixed. Goal Keeper art is still basic. Audio not listened to.
+NEXT_ACTION:       Keep improving Goal Keeper art so it does not read as a diagram. Then device-check Pinball, Fruit Catch, Bowling, and Snake. Do not claim audio verified. Do not start wonderplay_factory.ps1.
 ARCHIVED_BATCHES_195: PRIOR_BATCH_482 (ran the `mainAxisAlignment:(center|spaceBetween)`+`Row(` grep across non-Play screens, fixed 5 unflexed-Row overflows in `lib/features/lifeskills/` — `routine_player_screen.dart`'s `_BigButton`, `card_deck_screen.dart`'s Next/Done button, and 3 in `create_routine_screen.dart` — commit cd8a82c) trimmed this batch; full detail remains in git history via `git log --oneline` + `git show <sha>`.
 ARCHIVED_BATCHES_194: PRIOR_BATCH_481 (wrote real probe tests for `visual_schedule_screen.dart`/`social_stories_screen.dart` confirming both clean, found and fixed `world_screen.dart`'s `_ToyBoxButton` 63px overflow, commit 89b3903) trimmed this batch; full detail remains in git history via `git log --oneline` + `git show <sha>`.
 ARCHIVED_BATCHES_193: PRIOR_BATCH_480 (continued the `TextScaler.linear(2.5)` regression-probe sweep, confirmed `feelings_screen.dart`/`first_then_screen.dart` clean, found and fixed 8 real overflow bugs across `sensory_settings_screen.dart`/`social_stories_screen.dart`/`sensory_lab_screen.dart`/`visual_schedule_screen.dart`/`visual_timer_screen.dart`, commits 1f4c320+a0bbe50) trimmed this batch; full detail remains in git history via `git log --oneline` + `git show <sha>`.

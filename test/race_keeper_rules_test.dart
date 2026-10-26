@@ -219,6 +219,12 @@ void main() {
     expect(goalTop, greaterThan(80));
     expect(goalLine - goalTop, greaterThan(48));
     expect(kicker, lessThan(phone.height - 36));
-    expect(keeperPitchRect(const Size(411, 820)), const Offset(0, 0) & const Size(411, 820));
+    final portrait = keeperPitchRect(const Size(411, 820));
+    expect(portrait.top, greaterThanOrEqualTo(228));
+    expect(portrait.bottom, lessThan(820 - 90));
+    final portraitKicker = portrait.top + portrait.height * 0.9;
+    final portraitGoal = portrait.top + portrait.height * 0.12;
+    expect(portraitGoal, greaterThan(240));
+    expect(portraitKicker, lessThan(820 - 90));
   });
 }

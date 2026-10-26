@@ -364,85 +364,82 @@ class _GameShellState extends State<_GameShell> {
             Positioned.fill(
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: <Color>[
-                      Colors.black.withOpacity(0.55),
-                      accent.withOpacity(0.28),
-                    ],
-                  ),
+                  color: Colors.black.withOpacity(0.22),
                 ),
-                child: _overlayScroll(Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      // The start card's icon is the game's OWN emoji (every
-                      // title is authored as 'emoji Name'), not `overEmoji` —
-                      // that param is the lose/encourage screen's icon, a
-                      // mismatch for a start-screen first impression. Mirrors
-                      // `_GoalShell`'s existing correct pattern.
-                      Text(title.split(' ').first,
-                          style: const TextStyle(fontSize: 76)),
-                      const SizedBox(height: 6),
-                      Text(
-                        title,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 30,
-                          fontWeight: FontWeight.w900,
+                child: SafeArea(
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(18, 78, 18, 16),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.fromLTRB(18, 14, 18, 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xF0181428),
+                          borderRadius: BorderRadius.circular(24),
                         ),
-                      ),
-                      if (introHow != null) ...<Widget>[
-                        const SizedBox(height: 10),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 32),
-                          child: Text(
-                            introHow,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 17,
-                              fontWeight: FontWeight.w600,
-                              height: 1.35,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            Text(title.split(' ').first,
+                                style: const TextStyle(fontSize: 40)),
+                            const SizedBox(height: 4),
+                            Text(
+                              title,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 26,
+                                fontWeight: FontWeight.w900,
+                              ),
                             ),
-                          ),
+                            if (introHow != null) ...<Widget>[
+                              const SizedBox(height: 8),
+                              Text(
+                                introHow,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  height: 1.3,
+                                ),
+                              ),
+                            ],
+                            if (best > 0) ...<Widget>[
+                              const SizedBox(height: 8),
+                              Text('Best  ★ $best',
+                                  style: TextStyle(
+                                      color: accent,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w800)),
+                            ],
+                            const SizedBox(height: 12),
+                            FilledButton.icon(
+                              onPressed: () {
+                                TonePlayer.instance.playCue(SoundCue.gameStart);
+                                onStart();
+                              },
+                              style: FilledButton.styleFrom(
+                                backgroundColor: accent,
+                                foregroundColor: Colors.black,
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 28, vertical: 12),
+                                textStyle: const TextStyle(
+                                    fontSize: 20, fontWeight: FontWeight.w900),
+                              ),
+                              icon: const Icon(Icons.play_arrow_rounded, size: 28),
+                              label: const Text('Play'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.of(context).maybePop(),
+                              child: const Text('Back to games',
+                                  style: TextStyle(color: Colors.white60)),
+                            ),
+                          ],
                         ),
-                      ],
-                      if (best > 0) ...<Widget>[
-                        const SizedBox(height: 12),
-                        Text('Best  ★ $best',
-                            style: TextStyle(
-                                color: accent,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800)),
-                      ],
-                      const SizedBox(height: 22),
-                      FilledButton.icon(
-                        onPressed: () {
-                          TonePlayer.instance.playCue(SoundCue.gameStart);
-                          onStart();
-                        },
-                        style: FilledButton.styleFrom(
-                          backgroundColor: accent,
-                          foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 30, vertical: 14),
-                          textStyle: const TextStyle(
-                              fontSize: 20, fontWeight: FontWeight.w900),
-                        ),
-                        icon: const Icon(Icons.play_arrow_rounded, size: 28),
-                        label: const Text('Play'),
                       ),
-                      const SizedBox(height: 8),
-                      Builder(
-                        builder: (context) => TextButton(
-                          onPressed: () => Navigator.of(context).maybePop(),
-                          child: const Text('Back to games',
-                              style: TextStyle(color: Colors.white60)),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),

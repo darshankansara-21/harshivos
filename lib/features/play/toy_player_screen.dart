@@ -116,21 +116,28 @@ class _ToyPlayerScreenState extends ConsumerState<ToyPlayerScreen> {
                         // overflows the Row — the chip shrinks to fit the
                         // space the Spacer leaves it instead of forcing a
                         // fixed-width RenderFlex overflow.
-                        Flexible(
+                        Expanded(
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            height: 46,
+                            alignment: Alignment.centerLeft,
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
                             decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.35),
-                              borderRadius: BorderRadius.circular(20),
+                              color: const Color(0xF214121C),
+                              borderRadius: BorderRadius.circular(23),
                             ),
                             child: FittedBox(
                               fit: BoxFit.scaleDown,
                               alignment: Alignment.centerLeft,
                               child: Text(
-                                '${widget.toy.emoji}  ${widget.toy.title}',
+                                widget.toy.title,
                                 maxLines: 1,
                                 softWrap: false,
-                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                                overflow: TextOverflow.visible,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 16,
+                                ),
                               ),
                             ),
                           ),

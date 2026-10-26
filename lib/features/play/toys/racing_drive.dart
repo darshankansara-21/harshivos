@@ -63,6 +63,13 @@ bool raceTouchIsPedal(Offset local, Size size) {
       (local.dx > size.width - width && local.dy > top);
 }
 
+/// Pedals and the center steer arrows. A drag there must not also steer.
+bool raceTouchIsControl(Offset local, Size size) {
+  if (raceTouchIsPedal(local, size)) return true;
+  return local.dy > size.height - 250 &&
+      (local.dx - size.width / 2).abs() < 96;
+}
+
 bool driveOnRoad(double x, double y) {
   final r = _trackRadius(x, y);
   return (r - 1).abs() <= 0.16;
@@ -230,10 +237,7 @@ class _RacingGameState extends State<RacingGame>
       }
       return;
     }
-    if (_gas || _brake) {
-      _steer = 0;
-      _steerHold = 0;
-    } else if (_steerHold > 0) {
+    if (_steerHold > 0 && _steerHold < 10) {
       _steerHold -= dt;
       if (_steerHold <= 0) _steer = 0;
     }
@@ -331,10 +335,14 @@ class _RacingGameState extends State<RacingGame>
     } else {
       _brake = down;
     }
-    if (down) {
-      _steer = 0;
-      _steerHold = 0;
-    }
+  }
+
+  void _holdSteer(double value) {
+    setState(() {
+      _steer = value;
+      _steerHold = value == 0 ? 0 : 99;
+      if (value == 0) _steer = 0;
+    });
   }
 
   void _reset() {
@@ -350,7 +358,7 @@ class _RacingGameState extends State<RacingGame>
     _reduceMotion = MediaQuery.disableAnimationsOf(context);
     final kmh = (_speed * 0.85).round();
     final banner = _lights > 0.9
-        ? 'Red — hold the wheel'
+        ? 'Red — get ready'
         : _lights > 0
             ? 'Green soon'
             : 'Lap $_lapShown/2 · ${kmh} km/h · P$_place'
@@ -366,7 +374,7 @@ class _RacingGameState extends State<RacingGame>
       winEmoji: '🏆',
       winText: 'P$_finishPlace — two laps, you drove it',
       accent: const Color(0xFFFF6B6B),
-      introHow: 'Hold Gas to follow the oval. Drag to steer off the line.\n'
+      introHow: 'Hold Gas. Use the arrows to pass.\n'
           'Brake to slow down. Stay on the grey road — grass kills speed. '
           'Finish 2 laps ahead of the other cars.',
       onStart: () => setState(() => _status = GameStatus.playing),
@@ -392,11 +400,11 @@ class _RacingGameState extends State<RacingGame>
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTapDown: (d) {
-                      if (raceTouchIsPedal(d.localPosition, Size(w, h))) return;
+                      if (raceTouchIsControl(d.localPosition, Size(w, h))) return;
                       _nudgeSteer(d.localPosition.dx < w / 2 ? -1 : 1);
                     },
                     onPanUpdate: (d) {
-                      if (raceTouchIsPedal(d.localPosition, Size(w, h))) return;
+                      if (raceTouchIsControl(d.localPosition, Size(w, h))) return;
                       _nudgeSteer((d.delta.dx / 14).clamp(-1.0, 1.0));
                     },
                     child: CustomPaint(
@@ -407,6 +415,7 @@ class _RacingGameState extends State<RacingGame>
                         heading: _heading,
                         steer: _steer,
                         lights: _lights,
+                        speed: _speed,
                         reduceMotion: _reduceMotion,
                         rivals: _rivals,
                       ),
@@ -421,6 +430,27 @@ class _RacingGameState extends State<RacingGame>
                     color: const Color(0xFFEF476F),
                     down: _brake,
                     onChanged: (down) => _setPedal(gas: false, down: down),
+                  ),
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 168,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget>[
+                      _SteerPad(
+                        icon: Icons.chevron_left_rounded,
+                        down: _steer < -0.2,
+                        onChanged: (down) => _holdSteer(down ? -1 : 0),
+                      ),
+                      const SizedBox(width: 14),
+                      _SteerPad(
+                        icon: Icons.chevron_right_rounded,
+                        down: _steer > 0.2,
+                        onChanged: (down) => _holdSteer(down ? 1 : 0),
+                      ),
+                    ],
                   ),
                 ),
                 Positioned(
@@ -485,6 +515,40 @@ class _Pedal extends StatelessWidget {
   }
 }
 
+class _SteerPad extends StatelessWidget {
+  const _SteerPad({
+    required this.icon,
+    required this.down,
+    required this.onChanged,
+  });
+
+  final IconData icon;
+  final bool down;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      behavior: HitTestBehavior.opaque,
+      onPointerDown: (_) => onChanged(true),
+      onPointerUp: (_) => onChanged(false),
+      onPointerCancel: (_) => onChanged(false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 80),
+        width: 64,
+        height: 64,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: down ? const Color(0xFFFFF3BF) : const Color(0xF21B1E27),
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 2),
+        ),
+        child: Icon(icon, color: down ? Colors.black : Colors.white, size: 36),
+      ),
+    );
+  }
+}
+
 class _DrivePainter extends CustomPainter {
   _DrivePainter({
     required this.x,
@@ -492,6 +556,7 @@ class _DrivePainter extends CustomPainter {
     required this.heading,
     required this.steer,
     required this.lights,
+    required this.speed,
     required this.reduceMotion,
     required this.rivals,
   });
@@ -501,53 +566,174 @@ class _DrivePainter extends CustomPainter {
   final double heading;
   final double steer;
   final double lights;
+  final double speed;
   final bool reduceMotion;
   final List<_CupRival> rivals;
 
   @override
   void paint(Canvas canvas, Size size) {
-    canvas.drawRect(
-      Offset.zero & size,
-      Paint()..color = const Color(0xFF7CB342),
+    canvas.drawRect(Offset.zero & size, Paint()..color = const Color(0xFF3E7D2C));
+    for (var i = 0.0; i < size.width; i += 36) {
+      canvas.drawRect(
+        Rect.fromLTWH(i, 0, 18, size.height),
+        Paint()..color = const Color(0xFF4C9A38).withOpacity(0.28),
+      );
+    }
+    if (reduceMotion) {
+      final frame = driveFrame(size);
+      canvas.save();
+      canvas.translate(frame.center.dx, frame.center.dy);
+      canvas.scale(frame.scale);
+      _drawWorld(canvas);
+      _drawCars(canvas);
+      canvas.restore();
+      return;
+    }
+    final landscape = size.width > size.height;
+    final focus = Offset(
+      size.width / 2,
+      landscape ? size.height * 0.46 : size.height * 0.54,
     );
-    final frame = driveFrame(size);
+    final scale = landscape
+        ? (size.height / 560).clamp(0.48, 0.95)
+        : (size.shortestSide / 420).clamp(0.85, 1.35);
     canvas.save();
-    canvas.translate(frame.center.dx, frame.center.dy);
-    canvas.scale(frame.scale);
+    canvas.translate(focus.dx, focus.dy);
+    canvas.scale(scale);
+    canvas.rotate(-heading);
+    canvas.translate(-x, -y);
+    _drawWorld(canvas);
+    _drawCars(canvas);
+    canvas.restore();
+    _minimap(canvas, size);
+  }
+
+  void _drawWorld(Canvas canvas) {
     canvas.drawOval(
-      Rect.fromCenter(center: Offset.zero, width: _trackA * 2.7, height: _trackB * 2.9),
-      Paint()..color = const Color(0xFF8BC34A),
+      Rect.fromCenter(center: Offset.zero, width: _trackA * 2.8, height: _trackB * 3.1),
+      Paint()..color = const Color(0xFF2F6B28),
     );
     canvas.drawOval(
       Rect.fromCenter(
         center: Offset.zero,
-        width: _trackA * 2 - 150,
+        width: _trackA * 2 - 170,
         height: _trackB * 2 - 150,
       ),
-      Paint()..color = const Color(0xFF9CCC65),
+      Paint()..color = const Color(0xFF7CB342),
+    );
+    canvas.drawCircle(Offset.zero, 78, Paint()..color = const Color(0xFF2E7D4F));
+    canvas.drawCircle(
+      Offset.zero,
+      46,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 6
+        ..color = Colors.white24,
     );
     canvas.drawOval(
       Rect.fromCenter(center: Offset.zero, width: _trackA * 2, height: _trackB * 2),
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 150
-        ..color = const Color(0xFF3A4150),
+        ..strokeWidth = 188
+        ..color = Colors.white,
     );
     canvas.drawOval(
       Rect.fromCenter(center: Offset.zero, width: _trackA * 2, height: _trackB * 2),
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 4
-        ..color = Colors.white70,
+        ..strokeWidth = 168
+        ..color = const Color(0xFF2C313C),
     );
+    for (var i = 0; i < 42; i++) {
+      if (i.isOdd) continue;
+      final t = i / 42 * math.pi * 2;
+      final p = Offset(_trackA * math.cos(t), _trackB * math.sin(t));
+      canvas.save();
+      canvas.translate(p.dx, p.dy);
+      canvas.rotate(math.atan2(-_trackA * math.sin(t), _trackB * math.cos(t)));
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromCenter(center: Offset.zero, width: 28, height: 6),
+          const Radius.circular(2),
+        ),
+        Paint()..color = Colors.white70,
+      );
+      canvas.restore();
+    }
+    for (var i = 0; i < 56; i++) {
+      final t = i / 56 * math.pi * 2;
+      final outer = Offset(_trackA * 1.2 * math.cos(t), _trackB * 1.28 * math.sin(t));
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromCenter(center: outer, width: 16, height: 8),
+          const Radius.circular(2),
+        ),
+        Paint()..color = i.isEven ? const Color(0xFFE53935) : Colors.white,
+      );
+    }
+    const trees = <Offset>[
+      Offset(-520, -80),
+      Offset(-470, 180),
+      Offset(500, -40),
+      Offset(460, 200),
+      Offset(-80, -390),
+      Offset(160, -370),
+      Offset(-200, 390),
+      Offset(220, 400),
+    ];
+    for (final tree in trees) {
+      canvas.drawCircle(tree.translate(3, 8), 16, Paint()..color = const Color(0xFF1B3A1A));
+      canvas.drawCircle(tree, 22, Paint()..color = const Color(0xFF1B5E20));
+      canvas.drawCircle(tree.translate(-6, -8), 14, Paint()..color = const Color(0xFF43A047));
+    }
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(center: const Offset(0, -390), width: 260, height: 42),
+        const Radius.circular(8),
+      ),
+      Paint()..color = const Color(0xFF37474F),
+    );
+    for (var seat = -90.0; seat <= 90; seat += 22) {
+      canvas.drawCircle(
+        Offset(seat, -390),
+        6,
+        Paint()..color = seat.abs() < 30 ? const Color(0xFFFFD166) : const Color(0xFF90A4AE),
+      );
+    }
     const finish = Offset(0, _trackB);
-    canvas.drawLine(
-      finish + const Offset(-70, 0),
-      finish + const Offset(70, 0),
-      Paint()
-        ..color = Colors.white
-        ..strokeWidth = 10,
-    );
+    for (var i = 0; i < 8; i++) {
+      canvas.drawRect(
+        Rect.fromLTWH(finish.dx - 56 + i * 14, finish.dy - 8, 14, 8),
+        Paint()..color = i.isEven ? Colors.white : Colors.black,
+      );
+      canvas.drawRect(
+        Rect.fromLTWH(finish.dx - 56 + i * 14, finish.dy, 14, 8),
+        Paint()..color = i.isEven ? Colors.black : Colors.white,
+      );
+    }
+    if (lights > 0) {
+      const gantry = Offset(-70, _trackB);
+      canvas.drawLine(
+        gantry + const Offset(0, -70),
+        gantry + const Offset(0, 70),
+        Paint()
+          ..color = Colors.white
+          ..strokeWidth = 8
+          ..strokeCap = StrokeCap.round,
+      );
+      final lit = lights > 0.9 ? 0 : 1;
+      const colors = <Color>[Color(0xFFEF476F), Color(0xFF06D6A0)];
+      for (var i = 0; i < 2; i++) {
+        canvas.drawCircle(
+          gantry + Offset(0, -28 + i * 36),
+          12,
+          Paint()..color = i == lit ? colors[i] : const Color(0xFF1B1E27),
+        );
+      }
+    }
+  }
+
+  void _drawCars(Canvas canvas) {
     for (final r in rivals) {
       final p = Offset(
         _trackA * r.scale * math.cos(r.theta),
@@ -555,25 +741,56 @@ class _DrivePainter extends CustomPainter {
       );
       final dx = -math.sin(r.theta);
       final dy = math.cos(r.theta);
-      _car(canvas, p, math.atan2(dx, -dy), r.tint, 0.85);
+      _car(canvas, p, math.atan2(dx, -dy), r.tint, 1);
     }
-    canvas.save();
-    canvas.translate(x, y);
-    canvas.rotate(heading + (reduceMotion ? 0 : steer * 0.18));
-    _body(canvas, const Color(0xFFFF6B6B), 1.15);
-    canvas.restore();
-    if (lights > 0) {
-      final lit = lights > 0.9 ? 0 : 1;
-      const colors = <Color>[Color(0xFFEF476F), Color(0xFF06D6A0)];
-      for (var i = 0; i < 2; i++) {
-        canvas.drawCircle(
-          Offset(-28 + i * 56, -18),
-          16,
-          Paint()..color = i == lit ? colors[i] : const Color(0xFF1B1E27),
+    if (!reduceMotion && speed > 70) {
+      canvas.save();
+      canvas.translate(x, y);
+      canvas.rotate(heading);
+      final streak = Paint()
+        ..color = Colors.white.withOpacity(0.35)
+        ..strokeWidth = 3
+        ..strokeCap = StrokeCap.round;
+      for (var i = 0; i < 3; i++) {
+        canvas.drawLine(
+          Offset(-16 + i * 16, 36),
+          Offset(-16 + i * 16, 36 + 18 + speed / 18),
+          streak,
         );
       }
+      canvas.restore();
     }
-    canvas.restore();
+    _car(canvas, Offset(x, y), heading + (reduceMotion ? 0 : steer * 0.18), const Color(0xFFFF5252), 1.15);
+  }
+
+  void _minimap(Canvas canvas, Size size) {
+    final map = Rect.fromLTWH(16, size.height * 0.30, 108, 68);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(map, const Radius.circular(12)),
+      Paint()..color = const Color(0xCC102016),
+    );
+    final center = map.center;
+    final sx = map.width / (_trackA * 2.4);
+    final sy = map.height / (_trackB * 2.6);
+    canvas.drawOval(
+      Rect.fromCenter(center: center, width: _trackA * 2 * sx, height: _trackB * 2 * sy),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 5
+        ..color = const Color(0xFF90A4AE),
+    );
+    for (final r in rivals) {
+      canvas.drawCircle(
+        center + Offset(_trackA * r.scale * math.cos(r.theta) * sx, _trackB * r.scale * math.sin(r.theta) * sy),
+        3,
+        Paint()..color = r.tint,
+      );
+    }
+    canvas.drawCircle(
+      center + Offset(x * sx, y * sy),
+      4,
+      Paint()..color = const Color(0xFFFF5252),
+    );
   }
 
   void _car(Canvas canvas, Offset at, double angle, Color color, double scale) {
@@ -585,19 +802,56 @@ class _DrivePainter extends CustomPainter {
   }
 
   void _body(Canvas canvas, Color color, double scale) {
+    final s = scale * 1.7;
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(0, 6 * s), width: 28 * s, height: 12 * s),
+      Paint()..color = Colors.black38,
+    );
+    final wheel = Paint()..color = const Color(0xFF1A1A1A);
+    final rim = Paint()..color = const Color(0xFFECEFF1);
+    for (final spot in <Offset>[
+      Offset(-13 * s, -16 * s),
+      Offset(13 * s, -16 * s),
+      Offset(-14 * s, 14 * s),
+      Offset(14 * s, 14 * s),
+    ]) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromCenter(center: spot, width: 8 * s, height: 12 * s),
+          Radius.circular(3 * s),
+        ),
+        wheel,
+      );
+      canvas.drawCircle(spot, 2.2 * s, rim);
+    }
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromCenter(center: const Offset(0, 0), width: 28 * scale, height: 48 * scale),
-        Radius.circular(8 * scale),
+        Rect.fromCenter(center: Offset(0, 18 * s), width: 30 * s, height: 6 * s),
+        Radius.circular(2 * s),
       ),
       Paint()..color = color,
     );
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromCenter(center: Offset(0, -8 * scale), width: 16 * scale, height: 14 * scale),
-        Radius.circular(3 * scale),
+        Rect.fromCenter(center: Offset.zero, width: 22 * s, height: 40 * s),
+        Radius.circular(8 * s),
       ),
-      Paint()..color = const Color(0xFFD6F3FF),
+      Paint()..color = color,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(center: Offset(0, 2 * s), width: 12 * s, height: 12 * s),
+        Radius.circular(4 * s),
+      ),
+      Paint()..color = const Color(0xFF102027),
+    );
+    canvas.drawCircle(Offset(0, 1 * s), 3.2 * s, Paint()..color = const Color(0xFFFFE082));
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(center: Offset(0, -20 * s), width: 16 * s, height: 8 * s),
+        Radius.circular(2 * s),
+      ),
+      Paint()..color = Colors.white,
     );
   }
 

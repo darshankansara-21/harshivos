@@ -1280,12 +1280,16 @@ bool keeperMakesSave({
   return onLine && heightOk;
 }
 
-/// Portrait uses the full canvas. Landscape phones are short, so the same
-/// normalised goal sat under the score pills and the kicker sat on the
-/// gesture bar. This rect keeps the pitch below the title chrome, clear of
-/// the side HUD, and above the system gesture bar.
+/// Keeps the goal below the score pills and the kicker above the companion
+/// and gesture bar. Portrait used to take the full canvas, which put the
+/// crossbar under the HUD and the kicker on the home indicator.
 Rect keeperPitchRect(Size size) {
-  if (size.width <= size.height) return Offset.zero & size;
+  if (size.width <= size.height) {
+    final top = math.max(228.0, size.height * 0.30);
+    final bottom = math.max(120.0, size.height * 0.14);
+    final height = math.max(220.0, size.height - top - bottom);
+    return Rect.fromLTWH(10, top, math.max(120.0, size.width - 20), height);
+  }
   const top = 72.0;
   const bottom = 40.0;
   const left = 148.0;
@@ -1773,15 +1777,37 @@ class _KeeperPainter extends CustomPainter {
     double sx(double x) => pitch.left + x * w;
     double sy(double y) => pitch.top + y * h;
 
-    // Pitch.
     canvas.drawRect(
-        Offset.zero & size,
+      Offset.zero & size,
+      Paint()..color = const Color(0xFF0B3A28),
+    );
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.width, pitch.top),
+      Paint()..color = const Color(0xFF14324C),
+    );
+    for (var row = 0; row < 2; row++) {
+      final y = pitch.top - 16 - row * 13;
+      if (y < 64) continue;
+      for (var seat = 8.0; seat < size.width; seat += 14) {
+        canvas.drawCircle(
+          Offset(seat + (row.isOdd ? 6 : 0), y),
+          4.2,
+          Paint()
+            ..color = ((seat + row * 9) ~/ 14).isEven
+                ? const Color(0xFFFFD166)
+                : const Color(0xFFEF476F),
+        );
+      }
+    }
+    // Pitch sits below the stand so the crowd is not painted over.
+    canvas.drawRect(
+        pitch,
         Paint()
           ..shader = const LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: <Color>[Color(0xFF1E8A5C), Color(0xFF0C3E2B)],
-          ).createShader(Offset.zero & size));
+          ).createShader(pitch));
     // Mown stripes.
     for (var i = 0; i < 6; i++) {
       if (i.isEven) continue;
@@ -1874,28 +1900,36 @@ class _KeeperPainter extends CustomPainter {
     canvas.save();
     canvas.translate(kxKick, kyKick);
     canvas.rotate(aim * 0.18);
+    final shirt = Paint()..color = const Color(0xFFE63946);
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromCenter(center: const Offset(0, -8), width: w * 0.055, height: h * 0.07),
+        Rect.fromCenter(center: Offset(0, -h * 0.03), width: w * 0.07, height: h * 0.055),
         const Radius.circular(8),
+      ),
+      shirt,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(center: Offset(0, h * 0.012), width: w * 0.05, height: h * 0.028),
+        const Radius.circular(4),
       ),
       Paint()..color = const Color(0xFFF8F9FA),
     );
-    canvas.drawCircle(Offset(0, -h * 0.055), w * 0.022, Paint()..color = const Color(0xFFFFCDA8));
+    canvas.drawCircle(Offset(0, -h * 0.07), w * 0.028, Paint()..color = const Color(0xFFFFCDA8));
     canvas.drawLine(
-      const Offset(0, 0),
-      Offset(aim * 18 + 10, 16 + kick * 10),
+      Offset(0, h * 0.02),
+      Offset(aim * 16 + 8, h * 0.045 + kick * 12),
       Paint()
         ..color = const Color(0xFF212529)
-        ..strokeWidth = 5
+        ..strokeWidth = 6
         ..strokeCap = StrokeCap.round,
     );
     canvas.drawLine(
-      const Offset(0, -4),
-      Offset(-16 - kick * 22, -2 - kick * 8),
+      Offset(0, h * 0.01),
+      Offset(-14 - kick * 20, -kick * 6),
       Paint()
         ..color = const Color(0xFF212529)
-        ..strokeWidth = 5
+        ..strokeWidth = 6
         ..strokeCap = StrokeCap.round,
     );
     canvas.restore();
@@ -1905,7 +1939,7 @@ class _KeeperPainter extends CustomPainter {
     // is the real "is this one grounded or airborne?" tell a child reads.
     canvas.drawCircle(Offset(sx(0.5), sy(0.88)), 4,
         Paint()..color = Colors.white.withOpacity(0.7));
-    final ballR = w * 0.03 * ballScale;
+    final ballR = w * 0.046 * ballScale;
     final liftPx = ballLift * h * 0.14;
     canvas.drawOval(
         Rect.fromCenter(
@@ -1931,8 +1965,8 @@ class _KeeperPainter extends CustomPainter {
         RRect.fromRectAndRadius(
             Rect.fromCenter(
                 center: const Offset(0, 0),
-                width: w * 0.07,
-                height: h * (0.09 + jump * 0.02)),
+                width: w * 0.11,
+                height: h * (0.12 + jump * 0.02)),
             const Radius.circular(10)),
         bodyPaint);
     canvas.drawRRect(
@@ -1948,7 +1982,7 @@ class _KeeperPainter extends CustomPainter {
     );
     // Head.
     canvas.drawCircle(
-        Offset(0, -h * 0.065), w * 0.028, Paint()..color = const Color(0xFFFFCDA8));
+        Offset(0, -h * 0.08), w * 0.04, Paint()..color = const Color(0xFFFFCDA8));
     // Arms + gloves — low and wide for a grounded save, raised overhead for
     // a committed leap, so the pose itself telegraphs which height the
     // keeper is actually covering right now.
