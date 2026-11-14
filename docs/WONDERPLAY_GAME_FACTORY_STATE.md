@@ -1,18 +1,65 @@
-# WonderPlay — Game Factory State
+all other games r very generic too. # WonderPlay — Game Factory State
+
+## 30-Game Quality Sprint - 2026-11-14
+
+Status: implementation and release artifacts are complete for 30 existing
+games, with the exact collection featured first in WonderPlay. Automated tests,
+analysis, flagship ordering, and one real-device launch/back journey are
+verified. Do not treat those checks as evidence that all games are world-class.
+
+Initial five: Sky Hop, Space Dodge, Brick Break, Whack, Basketball. The sprint
+adds precision rewards, a charged dash, a piercing fireball, golden targets,
+and clearer basketball aim feedback. Follow-up fixes address dash timing,
+golden target cadence, fireball duration, and misleading aim certainty.
+
+Additional 25: Shape Scout, Bigger Number, Number Splash, Feelings Match,
+Kindness Match, Balloon Bounce, Balance Ball, Maze Marble, Steady Hand,
+Target Toss, Ball Sort, Slide Puzzle, Memory Flip, Pattern Weaver, Odd One
+Out, Quick Tap, Bug Catch, Count & Pop, Star Path, Sorting Train, Air Hockey,
+Mini Golf, Soccer Kick, Rhythm Clap, and Echo Drums. Changes vary in depth:
+some add new decisions or controls, while others repair or improve existing
+play. They should not all be graded as complete redesigns.
+
+Validation: full Flutter suite 310 passed. The existing Jigsaw Four smoke test
+still reports a nonfatal missed-hit-test warning. Whole-project analyzer:
+0 errors, 0 warnings, 134 informational lints. Pixel 6a Android 17 installed
+1.0.44 (45) in place with Level 7 data preserved; Flagship 30 appeared first,
+Sky Hop opened from its first card, live play rendered, Back returned to the
+same rail, and the crash buffer was empty. The other 29 games, audio,
+screen-reader flows, reduced motion, and child delight have not been verified
+on hardware or with players.
+
+Release matrix, built from the same source with `--build-name=1.0.44`
+`--build-number=45`:
+- Web `build/web/main.dart.js`, 4,589,928 bytes, SHA-256
+	`8C08E4B105338B6CA4719781712C5458D120BAF0DD675A552115081D16ECC329`.
+- APK `build/app/outputs/flutter-apk/app-release.apk`, 67,847,253 bytes,
+	package `com.darshankansara.harshivos`, version `1.0.44 (45)`, SHA-256
+	`05AD9668AED1C6C7581433FAE42386D962651BCC19F7B1C4359BBECE5DB46AAB`.
+- AAB `build/app/outputs/bundle/release/app-release.aab`, 63,976,493 bytes,
+	SHA-256 `A360060C07E9C5F4FD24A00D180189A514C3625196BEA3AAE0536F3B31642D29`.
+- APK and AAB signatures verified against the DK Labs upload certificate
+	SHA-256 `D8:98:96:26:50:76:38:79:66:2D:15:8A:AC:18:49:F7:FF:60:EE:15:E2:84:39:24:E0:D6:46:78:D9:82:31:6D`.
+
+Remaining: manually play all 30 games through onboarding, core interactions,
+end states, replay, Quiet Mode/reduced motion, large text, and screen-reader
+actions; assess pacing and delight with children/caregivers. Quick Tap scores
+saved during a brief experimental bonus build were not migrated; their origin
+cannot be distinguished safely. No other confirmed critical defect remains.
+Commits and remote verification are tracked below after the validated changes
+are committed.
 
 ## QUALITY TRANSFORMATION
 
 Stop catalog expansion. Do not restart `scripts/wonderplay_factory.ps1`.
 
-Engine decision: stay in Flutter. Flame, Godot, and Patrol are not justified yet — the catalog already shares ToyTicker, sensory audio, and widget tests. A second engine would add packaging cost before the driving model is proven.
+Engine decision: stay in Flutter. Flame, Godot, and Patrol are not justified yet — the catalog already shares ToyTicker, sensory audio, and widget tests. A second engine would add packaging cost before the driving model is proven. Patrol needs a device; none is connected.
 
 Play check: `scripts/wonderplay_playcheck.ps1` runs the racing and goalkeeper tests. It is not a worker loop.
 
-Device: Pixel 6a `23131JEGR02045`, portrait this session. Track Racer chase view held the red car on the road at 190 km/h, lap 1/2, P4. The launcher title chip now reads "Racing", not "Raci...". Goal Keeper portrait pitch sits below the score pills; crowd, goal, keeper, ball, and kicker are on screen. It still looks like a top-down diagram, not a broadcast match. Audio was not listened to.
-
 Done:
-- Track Racer: gas, brake, steering, road grip versus grass, oval, rivals, two-lap finish. Camera now fits the whole oval on a phone canvas and draws the car on the road. Pedals sit above the companion. Intro uses the racing emoji instead of a giant "Track" word.
-- Goalkeeper: kicker wind-up, slower dive so a corner save must start during the wind-up, shared line-and-height save rule. Not device-checked this session.
+- Track Racer: gas, brake, steering, road grip versus grass, oval, rivals, two-lap finish. Not a lane dodge.
+- Goalkeeper: kicker wind-up, slower dive so a corner save must start during the wind-up, shared line-and-height save rule.
 - Bowling: pins carry up-lane with impact momentum, only approaching pins propagate contacts, fast rolls use small physics steps, and gutter balls stay outside the lane without stalling. Device feel QA is still pending.
 
 Next game in docs/WONDERPLAY_QUALITY_BACKLOG.json. Run `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/wonderplay_quality_factory.ps1` for status. `-Action Once` launches one Copilot CLI worker and quarantines a no-commit result. Do not start the old wonderplay_factory.ps1 loop.
@@ -27,11 +74,14 @@ Next game in docs/WONDERPLAY_QUALITY_BACKLOG.json. Run `powershell -NoProfile -E
 ## FACTORY STATUS
 
 ```
-SHIP_CANDIDATE:    1.0.43+44 — direct recovery session; 194/194 tests passed; analyze 0 errors / 0 warnings / 130 infos; signed builds pending clean committed tree
-DIRECT_SESSION:    Memory Flip timeout/mismatch feedback fixed to report post-penalty lives; companion evidence harness now uses ProviderScope and fails on real widget exceptions; no autonomous loop running
-CURRENT_PHASE:     5 — device QA of existing games, then the next weak catalog game. Release and catalog expansion remain held.
-CURRENT_GAME:      racing chase camera and goal_keeper portrait framing verified on Pixel 6a. Title chip truncation was the antistress launcher, now fixed. Goal Keeper art is still basic. Audio not listened to.
-NEXT_ACTION:       Keep improving Goal Keeper art so it does not read as a diagram. Then device-check Pinball, Fruit Catch, Bowling, and Snake. Do not claim audio verified. Do not start wonderplay_factory.ps1.
+SHIP_CANDIDATE:    Source version 1.0.44+45; web, release APK, and signed AAB built and verified from combined source; not uploaded to Play
+DIRECT_SESSION:    Existing 30-game implementation preserved; added eight distinct Shape Scout silhouettes, corrected zero-valued lower-score records, exact flagship ordering and app launch coverage. No autonomous loop running.
+CURRENT_PHASE:     5 — targeted existing-game quality sprint and release validation; no catalog expansion.
+CURRENT_GAME:      30-game flagship collection: Sky Hop, Space Dodge, Brick Break, Whack, Basketball, Shape Scout, Bigger Number, Number Splash, Feelings Match, Kindness Match, Balloon Bounce, Balance Ball, Maze Marble, Steady Hand, Target Toss, Ball Sort, Slide Puzzle, Memory Flip, Pattern Weaver, Odd One Out, Quick Tap, Bug Catch, Count & Pop, Star Path, Sorting Train, Air Hockey, Mini Golf, Soccer Kick, Rhythm Clap, Echo Drums. Implementations range from new mechanics to correctness/accessibility upgrades; do not grade them all as complete redesigns without player review.
+VALIDATION:         Final full suite 310 passed. Final whole-project analyzer: 0 errors / 0 warnings / 134 infos. Web, APK, and AAB release builds passed at source version 1.0.44+45. APK package/version/SDK metadata and APK/AAB DK Labs signatures verified. Jigsaw Four test still emits a non-fatal missed-hit-test warning.
+DEVICE_QA_STATUS:  Pixel 6a Android 17 was connected for QA and installed a debug-signed 1.0.44+45 before the final Shape Scout variation and zero-record fixes; Level 7 data persisted. Flagship rail photographed, Sky Hop launched and live screen captured, Back returned to the same rail; crash buffer empty. Rebuild of the final-source debug APK succeeded, but ADB disconnected during Gradle; install aborted without clearing data. Final-source install QA and the other 29 games, audio, reduced motion, large text, screen-reader use, and child delight remain pending.
+KNOWN_DEFECTS:     Historical Quick Tap best scores from the brief score-bonus experiment are not migrated because their origin cannot be distinguished safely. Test suite retains a non-fatal Jigsaw Four drag hit-test warning. No confirmed critical defect remains from automated review.
+NEXT_ACTION:       Commit the validated 30-game implementation, flagship collection/version, and evidence in logical commits; push without force and verify HEAD/origin/status. When the Pixel is reconnected, install the final-source debug APK in place and complete remaining device/player QA. Do not claim world-class quality before device and child play evaluation.
 ARCHIVED_BATCHES_195: PRIOR_BATCH_482 (ran the `mainAxisAlignment:(center|spaceBetween)`+`Row(` grep across non-Play screens, fixed 5 unflexed-Row overflows in `lib/features/lifeskills/` — `routine_player_screen.dart`'s `_BigButton`, `card_deck_screen.dart`'s Next/Done button, and 3 in `create_routine_screen.dart` — commit cd8a82c) trimmed this batch; full detail remains in git history via `git log --oneline` + `git show <sha>`.
 ARCHIVED_BATCHES_194: PRIOR_BATCH_481 (wrote real probe tests for `visual_schedule_screen.dart`/`social_stories_screen.dart` confirming both clean, found and fixed `world_screen.dart`'s `_ToyBoxButton` 63px overflow, commit 89b3903) trimmed this batch; full detail remains in git history via `git log --oneline` + `git show <sha>`.
 ARCHIVED_BATCHES_193: PRIOR_BATCH_480 (continued the `TextScaler.linear(2.5)` regression-probe sweep, confirmed `feelings_screen.dart`/`first_then_screen.dart` clean, found and fixed 8 real overflow bugs across `sensory_settings_screen.dart`/`social_stories_screen.dart`/`sensory_lab_screen.dart`/`visual_schedule_screen.dart`/`visual_timer_screen.dart`, commits 1f4c320+a0bbe50) trimmed this batch; full detail remains in git history via `git log --oneline` + `git show <sha>`.
