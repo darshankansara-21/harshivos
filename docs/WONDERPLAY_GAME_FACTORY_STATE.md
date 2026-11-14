@@ -46,8 +46,8 @@ end states, replay, Quiet Mode/reduced motion, large text, and screen-reader
 actions; assess pacing and delight with children/caregivers. Quick Tap scores
 saved during a brief experimental bonus build were not migrated; their origin
 cannot be distinguished safely. No other confirmed critical defect remains.
-Commits and remote verification are tracked below after the validated changes
-are committed.
+Commits pushed to `origin/main`: `428222b` (game mechanics/tests), `111f499`
+(flagship collection/version), and `fd3ec05` (evidence and QA status).
 
 ## QUALITY TRANSFORMATION
 
@@ -81,7 +81,8 @@ CURRENT_GAME:      30-game flagship collection: Sky Hop, Space Dodge, Brick Brea
 VALIDATION:         Final full suite 310 passed. Final whole-project analyzer: 0 errors / 0 warnings / 134 infos. Web, APK, and AAB release builds passed at source version 1.0.44+45. APK package/version/SDK metadata and APK/AAB DK Labs signatures verified. Jigsaw Four test still emits a non-fatal missed-hit-test warning.
 DEVICE_QA_STATUS:  Pixel 6a Android 17 was connected for QA and installed a debug-signed 1.0.44+45 before the final Shape Scout variation and zero-record fixes; Level 7 data persisted. Flagship rail photographed, Sky Hop launched and live screen captured, Back returned to the same rail; crash buffer empty. Rebuild of the final-source debug APK succeeded, but ADB disconnected during Gradle; install aborted without clearing data. Final-source install QA and the other 29 games, audio, reduced motion, large text, screen-reader use, and child delight remain pending.
 KNOWN_DEFECTS:     Historical Quick Tap best scores from the brief score-bonus experiment are not migrated because their origin cannot be distinguished safely. Test suite retains a non-fatal Jigsaw Four drag hit-test warning. No confirmed critical defect remains from automated review.
-NEXT_ACTION:       Commit the validated 30-game implementation, flagship collection/version, and evidence in logical commits; push without force and verify HEAD/origin/status. When the Pixel is reconnected, install the final-source debug APK in place and complete remaining device/player QA. Do not claim world-class quality before device and child play evaluation.
+LAST_COMMITS:      428222b feat(play): upgrade 30 flagship games and add regressions; 111f499 feat(home): feature the flagship 30 game collection; fd3ec05 docs(play): record flagship sprint validation and QA limits. Pushed normally; origin/main equals HEAD.
+NEXT_ACTION:       When the Pixel reconnects, install the final-source debug APK in place and complete QA for all 30 games, audio/Quiet Mode, reduced motion, large text, and screen-reader actions. Evaluate pacing and delight with children/caregivers. Do not claim world-class quality before that evaluation.
 ARCHIVED_BATCHES_195: PRIOR_BATCH_482 (ran the `mainAxisAlignment:(center|spaceBetween)`+`Row(` grep across non-Play screens, fixed 5 unflexed-Row overflows in `lib/features/lifeskills/` — `routine_player_screen.dart`'s `_BigButton`, `card_deck_screen.dart`'s Next/Done button, and 3 in `create_routine_screen.dart` — commit cd8a82c) trimmed this batch; full detail remains in git history via `git log --oneline` + `git show <sha>`.
 ARCHIVED_BATCHES_194: PRIOR_BATCH_481 (wrote real probe tests for `visual_schedule_screen.dart`/`social_stories_screen.dart` confirming both clean, found and fixed `world_screen.dart`'s `_ToyBoxButton` 63px overflow, commit 89b3903) trimmed this batch; full detail remains in git history via `git log --oneline` + `git show <sha>`.
 ARCHIVED_BATCHES_193: PRIOR_BATCH_480 (continued the `TextScaler.linear(2.5)` regression-probe sweep, confirmed `feelings_screen.dart`/`first_then_screen.dart` clean, found and fixed 8 real overflow bugs across `sensory_settings_screen.dart`/`social_stories_screen.dart`/`sensory_lab_screen.dart`/`visual_schedule_screen.dart`/`visual_timer_screen.dart`, commits 1f4c320+a0bbe50) trimmed this batch; full detail remains in git history via `git log --oneline` + `git show <sha>`.
