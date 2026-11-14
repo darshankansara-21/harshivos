@@ -12,7 +12,9 @@ import 'package:harshivos/app.dart';
 import 'package:harshivos/features/calm/calm_me_screen.dart';
 import 'package:harshivos/features/learn/learn_screen.dart';
 import 'package:harshivos/features/lifeskills/profile_wizard_screen.dart';
+import 'package:harshivos/features/play/toys/arcade_games.dart' show SkyHopGame;
 import 'package:harshivos/features/talk/talk_screen.dart';
+import 'package:harshivos/features/antistress/antistress_player_screen.dart';
 import 'package:harshivos/services/storage/local_storage.dart';
 import 'package:harshivos/state/providers.dart';
 
@@ -46,6 +48,8 @@ void main() {
   });
 
   testWidgets('Returning child sees the toybox destinations', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 1800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     SharedPreferences.setMockInitialValues(<String, Object>{
       'profile_complete': true,
     });
@@ -65,7 +69,6 @@ void main() {
 
     expect(find.text('WONDERPLAY'), findsOneWidget);
     expect(find.textContaining('Play. Learn. Calm. Connect.'), findsOneWidget);
-    expect(find.textContaining('Featured'), findsOneWidget);
     expect(find.byTooltip('My avatar'), findsOneWidget);
   });
 
@@ -97,6 +100,45 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.text('Help Me Talk'), findsOneWidget);
+  });
+
+  testWidgets('first flagship card opens its game and remaining catalog stays reachable',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 1800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'profile_complete': true,
+    });
+    final storage = LocalStorage(await SharedPreferences.getInstance());
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: <Override>[
+          localStorageProvider.overrideWithValue(storage),
+          profileCompleteProvider.overrideWith((ref) => true),
+        ],
+        child: const HarshivApp(),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.drag(find.byType(CustomScrollView).first, const Offset(0, -900));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.tap(find.text('Sky Hop').first);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byType(AntistressPlayerScreen), findsOneWidget);
+    expect(find.byType(SkyHopGame), findsOneWidget);
+
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.scrollUntilVisible(
+      find.text('All Toys'),
+      400,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('All Toys'), findsOneWidget);
   });
 
   testWidgets('Smoke journey: avatar + core destinations', (tester) async {

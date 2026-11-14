@@ -98,6 +98,26 @@ void main() {
     });
   });
 
+  test('flagship collection is exactly 30 games and preserves the full catalog', () {
+    const expected = <String>[
+      'sky_hop', 'space_dodge', 'brick_break', 'whack', 'basketball',
+      'shape_scout', 'bigger_number', 'number_splash', 'feelings_match',
+      'kindness_match', 'balloon_bounce', 'balance_ball', 'maze_marble',
+      'steady_hand', 'target_toss', 'ball_sort', 'slide_puzzle', 'memory_flip',
+      'pattern_weaver', 'odd_one_out', 'quick_tap', 'bug_catch', 'count_pop',
+      'star_path', 'sorting_train', 'air_hockey', 'mini_golf', 'soccer_kick',
+      'rhythm_clap', 'echo_drums',
+    ];
+    final featuredIds = featuredToys().map((toy) => toy.id).toList();
+    final allIds = curatedAllToys().map((toy) => toy.id).toList();
+
+    expect(featuredIds, expected);
+    expect(featuredIds.toSet(), hasLength(30));
+    expect(allIds.take(30), expected);
+    expect(allIds.toSet(), hasLength(kToyUniverse.where((toy) => toy.working).length));
+    expect(allIds.toSet(), containsAll(kToyUniverse.where((toy) => toy.working).map((toy) => toy.id)));
+  });
+
   test('the three newest games appear in their rails', () {
     expect(gamesToys().map((t) => t.id), containsAll(<String>[
       'brick_break', 'space_dodge', 'memory_flip',
