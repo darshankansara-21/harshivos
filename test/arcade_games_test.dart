@@ -28,6 +28,86 @@ void main() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
   });
 
+  test('Sky Hop rewards true center-line precision and earns rescue at three', () {
+    expect(
+      isPerfectSkyHopClear(birdY: 0.5, gapY: 0.5, gapSize: 0.28),
+      isTrue,
+    );
+    expect(
+      isPerfectSkyHopClear(birdY: 0.56, gapY: 0.5, gapSize: 0.28),
+      isFalse,
+    );
+    expect(skyHopEarnsFeather(2), isFalse);
+    expect(skyHopEarnsFeather(3), isTrue);
+  });
+
+  test('Space Dodge distinguishes a close call and gates phase dash', () {
+    expect(
+      isSpaceDodgeNearMiss(
+        meteorX: 0.61,
+        meteorY: 0.85,
+        meteorRadius: 0.03,
+        shipX: 0.5,
+        shipRadius: 0.045,
+        aspect: 2.0,
+      ),
+      isTrue,
+    );
+    expect(
+      isSpaceDodgeNearMiss(
+        meteorX: 0.54,
+        meteorY: 0.85,
+        meteorRadius: 0.03,
+        shipX: 0.5,
+        shipRadius: 0.045,
+        aspect: 2.0,
+      ),
+      isFalse,
+    );
+    expect(spaceDodgeDashReady(0.99), isFalse);
+    expect(spaceDodgeDashReady(1.0), isTrue);
+  });
+
+  test('Brick Break clean chains ignite a heavy-brick piercing fireball', () {
+    expect(brickBreakFireballReady(4), isFalse);
+    expect(brickBreakFireballReady(5), isTrue);
+    expect(brickBreakDamage(brickHp: 2, fireball: false), 1);
+    expect(brickBreakDamage(brickHp: 2, fireball: true), 2);
+  });
+
+  test('Whack telegraphs every seventh golden target with a real reward', () {
+    expect(whackSpawnIsGolden(6), isFalse);
+    expect(whackSpawnIsGolden(7), isTrue);
+    expect(whackSpawnIsGolden(14), isTrue);
+    expect(whackTargetReward(golden: false, combo: 1), 1);
+    expect(whackTargetReward(golden: true, combo: 1), 4);
+    expect(whackTargetReward(golden: true, combo: 9), 6);
+  });
+
+  test('Basketball grades the real descending hoop intersection', () {
+    expect(
+      basketballReleaseGrade(
+        launchVelocity: const Offset(0, -2),
+        hoopX: 0.5,
+      ),
+      BasketballReleaseGrade.green,
+    );
+    expect(
+      basketballReleaseGrade(
+        launchVelocity: const Offset(0.2, -2),
+        hoopX: 0.5,
+      ),
+      BasketballReleaseGrade.offLine,
+    );
+    expect(
+      basketballReleaseGrade(
+        launchVelocity: const Offset(0, -0.5),
+        hoopX: 0.5,
+      ),
+      BasketballReleaseGrade.offLine,
+    );
+  });
+
   testWidgets('Whack builds and accepts taps', (tester) async {
     await _pump(tester, const WhackGame());
     await tester.tap(find.widgetWithText(FilledButton, 'Play'));
@@ -117,7 +197,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Space Dodge'), findsOneWidget);
     expect(find.textContaining('0 / 180'), findsOneWidget);
-    expect(find.text('Ships: 3'), findsOneWidget);
+    expect(find.textContaining('Ships: 3'), findsOneWidget);
     await tester.dragFrom(const Offset(400, 1900), const Offset(180, 0));
     await tester.pump(const Duration(milliseconds: 500));
     await tester.pump(const Duration(milliseconds: 500));
@@ -729,6 +809,45 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('Bigger Number scores only a complete ordered placement',
+      (tester) async {
+    await _pump(tester, const BiggerNumberGame());
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final prompt = tester.widget<Text>(
+      find.byKey(const ValueKey('bigger-number-order-prompt')),
+    ).data!;
+    final values = <int>[];
+    for (var index = 0; index < 3; index++) {
+      final option = find.byKey(ValueKey('bigger-number-option-$index'));
+      final text = tester.widget<Text>(
+        find.descendant(of: option, matching: find.byType(Text)),
+      );
+      values.add(int.parse(text.data!));
+    }
+    final sorted = List<int>.of(values)..sort();
+    final order = prompt.startsWith('Biggest')
+      ? sorted.reversed.toList()
+      : sorted;
+
+    for (var slot = 0; slot < order.length; slot++) {
+      final optionIndex = values.indexOf(order[slot]);
+      await tester.tap(
+        find.byKey(ValueKey('bigger-number-option-$optionIndex')),
+      );
+      await tester.pump(const Duration(milliseconds: 16));
+      final slotFinder = find.byKey(ValueKey('bigger-number-slot-$slot'));
+      final placed = tester.widget<Text>(
+        find.descendant(of: slotFinder, matching: find.byType(Text)),
+      );
+      expect(placed.data, '${order[slot]}');
+      await tester.pump(const Duration(milliseconds: 220));
+    }
+
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Balance Ball builds and drags', (tester) async {
     await _pump(tester, const BalanceBallGame());
     await tester.tap(find.widgetWithText(FilledButton, 'Play'));
@@ -845,12 +964,35 @@ void main() {
     await _pump(tester, const ShapeScoutGame());
     await tester.tap(find.widgetWithText(FilledButton, 'Play'));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.textContaining('8 matches wins'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('shape_scout-option-0')));
-    await tester.pump(const Duration(milliseconds: 100));
-    // A wrong choice auto-clears its red flash via a 450ms timer; pump past
-    // it so the timer fires and is flushed before teardown.
+
+    String direction(String prefix) => tester
+        .widget<Semantics>(find.byWidgetPredicate(
+          (widget) => widget is Semantics &&
+              (widget.properties.label?.startsWith(prefix) ?? false),
+        ))
+        .properties.label!.split(' ').last;
+
+    const directions = <String>['up', 'right', 'down', 'left'];
+    final targetTurn = directions.indexOf(direction('Target silhouette'));
+    final playerTurn = directions.indexOf(direction('Your shape'));
+    expect(targetTurn, isNonNegative);
+    expect(playerTurn, isNonNegative);
+    expect(playerTurn, isNot(targetTurn));
+    await tester.tap(find.byKey(const ValueKey('shape-scout-match')));
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(find.text('Aligned: 0 / 8'), findsOneWidget);
     await tester.pump(const Duration(milliseconds: 500));
+
+    final turns = (targetTurn - playerTurn + directions.length) %
+        directions.length;
+    for (var turn = 0; turn < turns; turn++) {
+      await tester.tap(find.byKey(const ValueKey('shape-scout-turn-right')));
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    await tester.tap(find.byKey(const ValueKey('shape-scout-match')));
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(find.text('Aligned: 1 / 8'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 700));
     expect(tester.takeException(), isNull);
   });
 

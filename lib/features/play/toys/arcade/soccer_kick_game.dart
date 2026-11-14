@@ -148,7 +148,7 @@ class _SoccerKickGameState extends State<SoccerKickGame>
       }
       _resetBall();
     } else {
-      _missShot(saved ? 'Saved!' : 'Wide!');
+      _missShot(onTarget && saved ? 'Saved!' : 'Wide!');
     }
   }
 
@@ -186,10 +186,11 @@ class _SoccerKickGameState extends State<SoccerKickGame>
   }
 
   void _launch() {
+    if (_status != GameStatus.playing || _flying) return;
     final dx = _bx - _aimX;
     final dy = _by - _aimY;
     final power = math.sqrt(dx * dx + dy * dy);
-    if (power < 0.03 || dy <= 0) return; // must pull back/down
+    if (power < 0.03 || dy >= 0) return;
     final v = _launchVel(dx, dy);
     _bvx = v.dx;
     _bvy = v.dy;
@@ -213,10 +214,10 @@ class _SoccerKickGameState extends State<SoccerKickGame>
   // slingshot pull: the ball flies *opposite* the pulled-back point).
   void _kickToCorner() {
     if (_flying || _status != GameStatus.playing) return;
-    // Keeper on the right → pull back right so the ball flies left, and
-    // vice versa, so the shot aims for the corner the keeper isn't in.
-    _aimX = _keeperX >= 0.5 ? _bx + 0.22 : _bx - 0.22;
-    _aimY = _by - 0.14;
+    _aimY = _by + 0.14;
+    final targetX = _keeperX >= 0.5 ? 0.38 : 0.62;
+    final flightTime = (_by - _goalY) / (0.14 * 3.2 + 0.2);
+    _aimX = _bx - (targetX - _bx) / (3.2 * flightTime);
     _launch();
   }
 
@@ -395,10 +396,7 @@ class _SoccerPainter extends CustomPainter {
       // which way the vertical pull actually points. The preview used to
       // show the raw (ball - aim) vector unconditionally, so for the only
       // drag direction that actually fires a shot (finger above the ball)
-      // the arrow pointed straight down, away from the goal, while the ball
-      // flew up — telling the child the opposite of what was about to
-      // happen. Mirror the same unconditional abs() here so they can never
-      // disagree.
+      // the arrow pointed away from the goal. Mirror the launch direction.
       final dir = Offset(rawDir.dx, -rawDir.dy.abs());
       final tip = b + dir * 2.2;
       canvas.drawLine(

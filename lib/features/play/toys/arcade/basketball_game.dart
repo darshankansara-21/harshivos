@@ -1,5 +1,30 @@
 part of '../arcade_games.dart';
 
+enum BasketballReleaseGrade { offLine, onLine, green }
+
+@visibleForTesting
+BasketballReleaseGrade basketballReleaseGrade({
+  required Offset launchVelocity,
+  required double hoopX,
+  double startX = 0.5,
+  double startY = 0.82,
+  double hoopY = 0.30,
+  double gravity = 1.3,
+}) {
+  final a = gravity / 2;
+  final b = launchVelocity.dy;
+  final c = startY - hoopY;
+  final discriminant = b * b - 4 * a * c;
+  if (discriminant < 0) return BasketballReleaseGrade.offLine;
+  final descendingTime = (-b + math.sqrt(discriminant)) / (2 * a);
+  if (descendingTime <= 0) return BasketballReleaseGrade.offLine;
+  final crossingX = startX + launchVelocity.dx * descendingTime;
+  final error = (crossingX - hoopX).abs();
+  if (error <= 0.025) return BasketballReleaseGrade.green;
+  if (error <= 0.065) return BasketballReleaseGrade.onLine;
+  return BasketballReleaseGrade.offLine;
+}
+
 class BasketballGame extends StatefulWidget {
   const BasketballGame({super.key});
   @override
@@ -209,7 +234,7 @@ class _BasketballGameState extends State<BasketballGame>
       // catalog (target_toss/skee_ball-style gentleRetry + incorrectAnswer).
       TonePlayer.instance.playCue(SoundCue.gentleRetry);
       emit(ExperienceEvent.incorrectAnswer);
-      _flash('Miss — try again');
+      _flash('Missed! Try another shot.');
     }
   }
 
@@ -351,10 +376,12 @@ class _BasketballGameState extends State<BasketballGame>
       best: _best,
       target: _target,
       status: _status,
-      banner: _banner ??
-          (_shots > 0
+        banner: (_aim != null && _aim!.dy < -0.03)
+          ? 'Aim preview only: hoop can move and shots can bounce.'
+          : _banner ??
+            (_shots > 0
               ? 'Baskets $_score/$_target · shots $_shots'
-                  '${_bestShots > 0 ? ' · best round $_bestShots' : ''}'
+                '${_bestShots > 0 ? ' · best round $_bestShots' : ''}'
               : 'Aim and shoot!'),
       winEmoji: '🏀',
       winText: roundWinText,
@@ -367,7 +394,7 @@ class _BasketballGameState extends State<BasketballGame>
           return Semantics(
             button: true,
             label: 'Baskets $_score of $_target. Tap to shoot toward the '
-                'hoop.',
+                'hoop. Aim preview only: hoop can move and shots can bounce.',
             onTap: _shootAtHoop,
             excludeSemantics: true,
             child: GestureDetector(
@@ -481,7 +508,7 @@ class _BasketPainter extends CustomPainter {
     if (aim != null && aim!.dy < -0.03) {
       var px = bx, py = by;
       var vx = launch.dx, vy = launch.dy;
-      final dot = Paint()..color = Colors.white.withOpacity(0.55);
+      final dot = Paint()..color = Colors.white.withOpacity(0.72);
       for (var i = 0; i < 24; i++) {
         vy += 1.3 * 0.05;
         px += vx * 0.05;

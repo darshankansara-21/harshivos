@@ -1,5 +1,24 @@
 part of '../arcade_games.dart';
 
+@visibleForTesting
+bool isSpaceDodgeNearMiss({
+  required double meteorX,
+  required double meteorY,
+  required double meteorRadius,
+  required double shipX,
+  required double shipRadius,
+  required double aspect,
+}) {
+  final dx = meteorX - shipX;
+  final dy = (meteorY - 0.85) * aspect;
+  final distance = math.sqrt(dx * dx + dy * dy);
+  final collisionDistance = meteorRadius + shipRadius;
+  return distance >= collisionDistance && distance <= collisionDistance + 0.065;
+}
+
+@visibleForTesting
+bool spaceDodgeDashReady(double energy) => energy >= 0.999;
+
 class SpaceDodgeGame extends StatefulWidget {
   const SpaceDodgeGame({super.key});
   @override
@@ -12,6 +31,7 @@ class _Meteor {
   final int kind; // 0 = rock, 1 = gem (+bonus), 2 = shield pickup,
   // 3 = seeker (homing, steers toward the ship), 4 = splitter (forks in two)
   bool split = false; // splitter: already forked
+  bool nearMissed = false;
 }
 
 class _SpaceDodgeGameState extends State<SpaceDodgeGame>
@@ -45,6 +65,12 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
   bool _invulnerable = false;
   double _hitCooldown = 0;
   bool _shield = false;
+  double _dashEnergy = 0;
+  double _dashT = 0;
+  int? _steeringPointer;
+  Offset? _pointerPosition;
+  Duration? _pointerTime;
+  bool _dashUsedInGesture = false;
   bool _seenSeeker = false;
   bool _seenSplitter = false;
   String? _banner;
@@ -117,6 +143,7 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
         _bannerT = 0.9;
       }
     }
+    if (_dashT > 0) _dashT = math.max(0, _dashT - dt);
 
     // The one-off hit/pickup bursts below already thin themselves under
     // Reduce Motion via `_burstAt`'s `effectiveN`, but this continuous
@@ -234,6 +261,7 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
     final toSpawn = <_Meteor>[];
     for (var i = _meteors.length - 1; i >= 0; i--) {
       final m = _meteors[i];
+      final previousY = m.y;
       if (m.kind == 3) {
         // Seeker: steers toward the ship's x position with a capped turn rate.
         final dxToShip = _shipX - m.x;
@@ -244,6 +272,28 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
       }
       m.x += m.vx * dt;
       m.y += m.vy * dt;
+
+      if (!m.nearMissed &&
+          m.kind != 1 &&
+          m.kind != 2 &&
+          previousY < 0.85 &&
+          m.y >= 0.85 &&
+          isSpaceDodgeNearMiss(
+            meteorX: m.x,
+            meteorY: m.y,
+            meteorRadius: m.r,
+            shipX: _shipX,
+            shipRadius: _shipR,
+            aspect: _aspect,
+          )) {
+        m.nearMissed = true;
+        _dashEnergy = math.min(1, _dashEnergy + 0.34);
+        _bonus += 5;
+        TonePlayer.instance.playCue(SoundCue.laser);
+        _flash(spaceDodgeDashReady(_dashEnergy)
+            ? 'Phase dash ready — swipe fast! ⚡'
+            : 'Close call! Phase ${(100 * _dashEnergy).round()}%');
+      }
 
       if (m.kind == 4 && !m.split && m.y > 0.45) {
         m.split = true;
@@ -284,6 +334,11 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
           // identical "good grab" moment — Hari/Pico had nothing to react
           // to here.
           emit(ExperienceEvent.bubblePopped);
+          continue;
+        }
+        if (_dashT > 0) {
+          _meteors.removeAt(i);
+          _breakMeteor(m);
           continue;
         }
         if (_shield) {
@@ -342,9 +397,91 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
     }
   }
 
-  void _steer(double localX, double width) {
-    _shipX = (localX / width).clamp(_shipR, 1 - _shipR);
+  void _breakMeteor(_Meteor meteor) {
+    _bonus += 8;
+    _burstAt(meteor.x, meteor.y, const Color(0xFF80FFDB), 18);
+    TonePlayer.instance.playCue(SoundCue.laser);
+    emit(ExperienceEvent.bubblePopped);
+    _flash('Phase break! +8');
   }
+
+  void _steer(double localX, double width) {
+    if (_status != GameStatus.playing || width <= 0) return;
+    final nextX = (localX / width).clamp(_shipR, 1 - _shipR);
+    if (_dashT > 0) {
+      final left = math.min(_shipX, nextX);
+      final right = math.max(_shipX, nextX);
+      for (var index = _meteors.length - 1; index >= 0; index--) {
+        final meteor = _meteors[index];
+        if (meteor.kind == 1 || meteor.kind == 2) continue;
+        final dx = meteor.x - meteor.x.clamp(left, right);
+        final dy = (meteor.y - 0.85) * _aspect;
+        final radius = meteor.r + _shipR;
+        if (dx * dx + dy * dy < radius * radius) {
+          _meteors.removeAt(index);
+          _breakMeteor(meteor);
+        }
+      }
+    }
+    _shipX = nextX;
+  }
+
+  void _activateDash() {
+    if (_status != GameStatus.playing || !spaceDodgeDashReady(_dashEnergy)) {
+      return;
+    }
+    setState(() {
+      _dashEnergy = 0;
+      _dashT = 0.7;
+      _flash('PHASE DASH! ⚡');
+    });
+    TonePlayer.instance.playCue(SoundCue.laser);
+  }
+
+  void _pointerDown(PointerDownEvent event) {
+    if (_steeringPointer != null || _status != GameStatus.playing) return;
+    _steeringPointer = event.pointer;
+    _pointerPosition = event.position;
+    _pointerTime = event.timeStamp;
+    _dashUsedInGesture = false;
+  }
+
+  void _pointerMove(PointerMoveEvent event) {
+    if (event.pointer != _steeringPointer) return;
+    final previousPosition = _pointerPosition;
+    final previousTime = _pointerTime;
+    if (previousPosition == null || previousTime == null) return;
+    final seconds = (event.timeStamp - previousTime).inMicroseconds / 1000000;
+    final distance = (event.position.dx - previousPosition.dx).abs();
+    if (distance >= 12 || seconds > 0.15) {
+      _pointerPosition = event.position;
+      _pointerTime = event.timeStamp;
+      if (!_dashUsedInGesture && seconds > 0 && distance >= 12 &&
+          distance / seconds >= 650 && spaceDodgeDashReady(_dashEnergy)) {
+        _dashUsedInGesture = true;
+        _activateDash();
+      }
+    }
+  }
+
+  void _clearPointer() {
+    _steeringPointer = null;
+    _pointerPosition = null;
+    _pointerTime = null;
+    _dashUsedInGesture = false;
+  }
+
+  @visibleForTesting
+  void debugSpaceDodgeSetup({double energy = 0, double? meteorX}) {
+    _dashEnergy = energy;
+    _meteors.clear();
+    _spawnIn = 100;
+    if (meteorX != null) _meteors.add(_Meteor(meteorX, 0.85, 0.03, 0));
+  }
+
+  @visibleForTesting
+  (double, double, int, int, int) get debugSpaceDodgeState =>
+      (_dashEnergy, _dashT, _lives, _bonus, _meteors.length);
 
   void _reset() {
     setState(() {
@@ -361,6 +498,9 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
       _invulnerable = false;
       _hitCooldown = 0;
       _shield = false;
+      _dashEnergy = 0;
+      _dashT = 0;
+      _clearPointer();
       _seenSeeker = false;
       _seenSplitter = false;
       _beatBest = false;
@@ -377,7 +517,7 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
     return _Shell(
       title: '🚀 Space Dodge',
       introHow:
-          'Steer to dodge the meteors, grab gems, and reach 180 points before all 3 ships are gone.',
+          'Steer to dodge meteors. Close calls charge a phase dash — when full, swipe fast to smash through danger.',
       onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,
@@ -385,7 +525,7 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
       status: _status,
       banner: _banner ??
           (_status == GameStatus.playing
-              ? 'Ships: $_lives${_shield ? ' | Shielded' : ''}'
+            ? 'Ships: $_lives${_shield ? ' | Shielded' : ''} | Phase ${(100 * _dashEnergy).round()}%'
               : null),
       overEmoji: '💥',
       // _wave only ever surfaces as a transient 'Wave N!' banner during
@@ -410,8 +550,8 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
           // ever moves horizontally (see _steer), so a fixed-size
           // left/right nudge of its own position reproduces the same
           // effect onPanUpdate drives every frame, clamped the same way.
-          void nudge(double dx) =>
-              setState(() => _shipX = (_shipX + dx).clamp(_shipR, 1 - _shipR));
+            void nudge(double dx) => setState(() =>
+              _steer((_shipX + dx) * constraints.maxWidth, constraints.maxWidth));
           return Semantics(
             label: 'Meteor field. Drag or use the nudge actions to steer '
                 'your ship left and right and dodge the meteors.',
@@ -420,17 +560,35 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
                   nudge(-0.12),
               const CustomSemanticsAction(label: 'Nudge ship right'): () =>
                   nudge(0.12),
+              const CustomSemanticsAction(label: 'Activate phase dash'):
+                  _activateDash,
             },
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onPanUpdate: (d) =>
-                  _steer(d.localPosition.dx, constraints.maxWidth),
-              onPanDown: (d) =>
-                  _steer(d.localPosition.dx, constraints.maxWidth),
-              child: CustomPaint(
-                painter: _SpacePainter(
-                    _meteors, _stars, _shipX, _shipR, _shield, _shards),
-                size: Size.infinite,
+              onPanUpdate: (d) {
+                if (_steeringPointer != null) {
+                  _steer(d.localPosition.dx, constraints.maxWidth);
+                }
+              },
+              onPanDown: (d) {
+                if (_steeringPointer != null) {
+                  _steer(d.localPosition.dx, constraints.maxWidth);
+                }
+              },
+              child: Listener(
+                onPointerDown: _pointerDown,
+                onPointerMove: _pointerMove,
+                onPointerUp: (event) {
+                  if (event.pointer == _steeringPointer) _clearPointer();
+                },
+                onPointerCancel: (event) {
+                  if (event.pointer == _steeringPointer) _clearPointer();
+                },
+                child: CustomPaint(
+                  painter: _SpacePainter(
+                    _meteors, _stars, _shipX, _shipR, _shield, _dashT, _shards),
+                  size: Size.infinite,
+                ),
               ),
             ),
           );
@@ -442,12 +600,13 @@ class _SpaceDodgeGameState extends State<SpaceDodgeGame>
 
 class _SpacePainter extends CustomPainter {
   _SpacePainter(this.meteors, this.stars, this.shipX, this.shipR, this.shield,
-      this.shards);
+  this.dashT, this.shards);
   final List<_Meteor> meteors;
   final List<Offset> stars;
   final double shipX;
   final double shipR;
   final bool shield;
+  final double dashT;
   final List<_Shard> shards;
 
   @override
@@ -535,6 +694,15 @@ class _SpacePainter extends CustomPainter {
     canvas.drawPath(path, Paint()..color = const Color(0xFF4CC9F0));
     canvas.drawCircle(
         Offset(sx, sy), shipR * w * 0.35, Paint()..color = Colors.white);
+    if (dashT > 0) {
+      canvas.drawCircle(
+          Offset(sx, sy),
+          shipR * w * (1.8 + dashT),
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 5
+            ..color = const Color(0xFF80FFDB).withOpacity(dashT.clamp(0, 1)));
+    }
     if (shield) {
       canvas.drawCircle(
           Offset(sx, sy),

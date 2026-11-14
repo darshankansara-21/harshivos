@@ -33,9 +33,11 @@ class _OddOneOutGameState extends State<OddOneOutGame>
 
   int _cols = 2;
   int _oddIndex = 0;
+  int _shapeDecoy = -1, _colorDecoy = -1;
   int _baseShape = 0, _oddShape = 0;
   Color _baseColor = _palette[0], _oddColor = _palette[1];
   int _score = 0, _lives = 3, _best = 0;
+  int _oddOneOutStreak = 0;
   bool _beatBest = false;
   int _wrong = -1;
   String? _banner;
@@ -94,6 +96,7 @@ class _OddOneOutGameState extends State<OddOneOutGame>
   }
 
   int get _count => _cols * _cols;
+  bool get _bothChallenge => _score >= 4;
 
   // Screen-reader users can't see shape/colour, so expose the same
   // description a sighted child reads visually (shape + colour per tile)
@@ -148,6 +151,18 @@ class _OddOneOutGameState extends State<OddOneOutGame>
     _baseShape = _rnd.nextInt(6);
     _baseColor = _palette[_rnd.nextInt(_palette.length)];
     _oddIndex = _rnd.nextInt(_count);
+    _shapeDecoy = -1;
+    _colorDecoy = -1;
+    if (_bothChallenge) {
+      _oddShape = (_baseShape + 1 + _rnd.nextInt(5)) % 6;
+      _oddColor = _subtleOddColor(_baseColor);
+      final positions = List<int>.generate(_count, (index) => index)
+        ..remove(_oddIndex)
+        ..shuffle(_rnd);
+      _shapeDecoy = positions[0];
+      _colorDecoy = positions[1];
+      return;
+    }
     // Half the time differ by shape, half by colour.
     if (_rnd.nextBool()) {
       _oddShape = (_baseShape + 1 + _rnd.nextInt(5)) % 6;
@@ -162,9 +177,20 @@ class _OddOneOutGameState extends State<OddOneOutGame>
     if (_status != GameStatus.playing) return;
     if (i == _oddIndex) {
       _score++;
+      _oddOneOutStreak++;
       TonePlayer.instance.playCue(SoundCue.correct);
       emit(ExperienceEvent.bubblePopped);
       _banner = _foundPool[_rnd.nextInt(_foundPool.length)];
+      final restoredLife = _oddOneOutStreak == 3 && _lives < 3;
+      if (_oddOneOutStreak == 3) {
+        _oddOneOutStreak = 0;
+        if (_lives < 3) {
+          _lives++;
+          _banner = 'Three in a row! Life restored';
+        } else {
+          _banner = 'Three in a row!';
+        }
+      }
       _bannerT = 1.1;
       final gx = i % _cols, gy = i ~/ _cols;
       _burst((gx + 0.5) / _cols, 0.14 + (gy + 0.5) / _cols * 0.82, _oddColor);
@@ -177,7 +203,9 @@ class _OddOneOutGameState extends State<OddOneOutGame>
       });
       if (crossedBest) {
         _beatBest = true;
-        _banner = 'New personal best! 🏆';
+        _banner = restoredLife
+          ? 'Life restored! New personal best! 🏆'
+          : 'New personal best! 🏆';
         _bannerT = 1.3;
         TonePlayer.instance.playCue(SoundCue.milestone);
         emit(ExperienceEvent.personalBest);
@@ -195,10 +223,15 @@ class _OddOneOutGameState extends State<OddOneOutGame>
         emit(ExperienceEvent.gameCompleted);
       } else {
         _newRound();
+        if (_score == 4) {
+          _banner = 'Different shape AND colour';
+          _bannerT = 1.8;
+        }
       }
     } else {
       _wrong = i;
       _lives--;
+      _oddOneOutStreak = 0;
       // Every wrong tap deserves the companion's gentle encouraging
       // reaction, not just the one that happens to end the game.
       emit(ExperienceEvent.incorrectAnswer);
@@ -228,6 +261,7 @@ class _OddOneOutGameState extends State<OddOneOutGame>
     setState(() {
       _score = 0;
       _lives = 3;
+      _oddOneOutStreak = 0;
       _beatBest = false;
       _banner = null;
       _bannerT = 0;
@@ -245,7 +279,7 @@ class _OddOneOutGameState extends State<OddOneOutGame>
       title: '🧐 Odd One Out',
       introHow:
           'Every tile is the same except one. Tap the one that is different. '
-          'Ten right to win!',
+          'Later, find the one different in both shape and colour. Ten right to win!',
       onStart: () => setState(() {
         _newRound();
         _status = GameStatus.playing;
@@ -254,7 +288,7 @@ class _OddOneOutGameState extends State<OddOneOutGame>
       best: _best,
       target: _target,
       status: _status,
-      banner: _banner ?? 'Spot the different one  ·  ${'💛' * _lives}',
+      banner: _banner ?? '${_bothChallenge ? 'Different shape AND colour' : 'Spot the different one'} · ${'💛' * _lives} · $_oddOneOutStreak/3 streak',
       overEmoji: '💪',
       overText: _overPraise,
       winEmoji: '🧐',
@@ -273,16 +307,18 @@ class _OddOneOutGameState extends State<OddOneOutGame>
           final tiles = <Widget>[];
           for (var i = 0; i < _count; i++) {
             final gx = i % _cols, gy = i ~/ _cols;
-            final isOdd = i == _oddIndex;
-            final shapeName = _shapeNames[isOdd ? _oddShape : _baseShape];
-            final colorName = _colorName(isOdd ? _oddColor : _baseColor);
+            final differentShape = i == _oddIndex || i == _shapeDecoy;
+            final differentColor = i == _oddIndex || i == _colorDecoy;
+            final shapeName = _shapeNames[differentShape ? _oddShape : _baseShape];
+            final colorName = _colorName(differentColor ? _oddColor : _baseColor);
             tiles.add(Positioned(
               left: gx * cellW,
               top: top + gy * cellH,
               width: cellW,
               height: cellH,
               child: Semantics(
-                label: 'Row ${gy + 1} column ${gx + 1}: $colorName $shapeName',
+                label: 'Row ${gy + 1} column ${gx + 1}: $colorName $shapeName'
+                  '${_bothChallenge ? '. Find different shape and colour' : ''}',
                 button: true,
                 onTap: () => _tap(i),
                 child: const SizedBox.expand(),
@@ -306,6 +342,8 @@ class _OddOneOutGameState extends State<OddOneOutGame>
                     cols: _cols,
                     count: _count,
                     oddIndex: _oddIndex,
+                    shapeDecoy: _shapeDecoy,
+                    colorDecoy: _colorDecoy,
                     baseShape: _baseShape,
                     oddShape: _oddShape,
                     baseColor: _baseColor,
@@ -330,6 +368,8 @@ class _OddOneOutPainter extends CustomPainter {
     required this.cols,
     required this.count,
     required this.oddIndex,
+    required this.shapeDecoy,
+    required this.colorDecoy,
     required this.baseShape,
     required this.oddShape,
     required this.baseColor,
@@ -337,7 +377,7 @@ class _OddOneOutPainter extends CustomPainter {
     required this.wrong,
     required this.bits,
   });
-  final int cols, count, oddIndex, baseShape, oddShape, wrong;
+  final int cols, count, oddIndex, shapeDecoy, colorDecoy, baseShape, oddShape, wrong;
   final Color baseColor, oddColor;
   final List<_Shard> bits;
 
@@ -366,9 +406,10 @@ class _OddOneOutPainter extends CustomPainter {
                 const Radius.circular(10)),
             Paint()..color = const Color(0xFFE23B3B).withOpacity(0.4));
       }
-      final isOdd = i == oddIndex;
-      _paintPolyShape(canvas, c, r, isOdd ? oddShape : baseShape,
-          Paint()..color = isOdd ? oddColor : baseColor);
+        final differentShape = i == oddIndex || i == shapeDecoy;
+        final differentColor = i == oddIndex || i == colorDecoy;
+        _paintPolyShape(canvas, c, r, differentShape ? oddShape : baseShape,
+          Paint()..color = differentColor ? oddColor : baseColor);
     }
 
     for (final b in bits) {

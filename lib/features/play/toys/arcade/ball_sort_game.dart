@@ -31,6 +31,7 @@ class _BallSortGameState extends State<BallSortGame> with _Emit {
   final math.Random _rnd = math.Random();
   late List<List<int>> _tubes;
   int _selected = -1;
+  final List<(int, int)> _ballSortMoves = <(int, int)>[];
   int _level = 0;
   int _colorsN = 3;
   int _score = 0;
@@ -102,6 +103,7 @@ class _BallSortGameState extends State<BallSortGame> with _Emit {
   // verify after is the only approach that both can produce a real puzzle and
   // guarantees it's solvable.)
   void _deal() {
+    _ballSortMoves.clear();
     _colorsN = math.min(6, 3 + _level ~/ 2);
     const maxAttempts = 60;
     for (var attempt = 0; attempt < maxAttempts; attempt++) {
@@ -181,6 +183,7 @@ class _BallSortGameState extends State<BallSortGame> with _Emit {
     final ball = from.isNotEmpty ? from.last : -1;
     if (ball != -1 && to.length < _cap && (to.isEmpty || to.last == ball)) {
       setState(() {
+        _ballSortMoves.add((_selected, i));
         from.removeLast();
         to.add(ball);
         _selected = -1;
@@ -224,6 +227,16 @@ class _BallSortGameState extends State<BallSortGame> with _Emit {
     }
   }
 
+  void _undoBallSortMove() {
+    if (_status != GameStatus.playing || _ballSortMoves.isEmpty) return;
+    setState(() {
+      final (from, to) = _ballSortMoves.removeLast();
+      _tubes[from].add(_tubes[to].removeLast());
+      _selected = -1;
+    });
+    TonePlayer.instance.playCue(SoundCue.water);
+  }
+
   void _reset() {
     setState(() {
       _level = _careerSkillRamp;
@@ -249,28 +262,56 @@ class _BallSortGameState extends State<BallSortGame> with _Emit {
       banner: _banner,
       accent: const Color(0xFF06D6A0),
       onPlayAgain: _reset,
-      child: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: <Color>[Color(0xFF1A2036), Color(0xFF0E1424)],
-          ),
-        ),
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 120, 16, 40),
-            child: FittedBox(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: <Widget>[
-                  for (var i = 0; i < _tubes.length; i++) _tube(i),
-                ],
+      child: Stack(
+        children: <Widget>[
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: <Color>[Color(0xFF1A2036), Color(0xFF0E1424)],
+                ),
+              ),
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 120, 16, 40),
+                  child: FittedBox(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: <Widget>[
+                        for (var i = 0; i < _tubes.length; i++) _tube(i),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
-        ),
+          if (_status == GameStatus.playing)
+            Positioned(
+              bottom: 24,
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  IconButton.filledTonal(
+                    tooltip: 'Undo last pour',
+                    onPressed: _ballSortMoves.isEmpty ? null : _undoBallSortMove,
+                    icon: const Icon(Icons.undo),
+                  ),
+                  const SizedBox(width: 12),
+                  IconButton.filledTonal(
+                    tooltip: 'New puzzle',
+                    onPressed: () => setState(_deal),
+                    icon: const Icon(Icons.refresh),
+                  ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }

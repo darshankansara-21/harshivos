@@ -28,6 +28,7 @@ class _RhythmClapGameState extends State<RhythmClapGame>
   double _barTime = 2.6;
   int _score = 0;
   int _lives = 3;
+  int _streak = 0;
   int _best = 0;
   bool _beatBest = false;
   double _padFlash = 0;
@@ -89,11 +90,14 @@ class _RhythmClapGameState extends State<RhythmClapGame>
     _head += dt / _barTime;
     // Mark missed markers the playhead passed without a hit.
     for (var i = 0; i < _markers.length; i++) {
-      if (!_hit[i] && !_missed[i] && prev < _markers[i] &&
+        if (!_hit[i] && !_missed[i] && prev < _markers[i] + _window &&
           _head >= _markers[i] + _window) {
         _missed[i] = true; // resolved as a miss, NOT a hit — keep the two
         // visually distinct so a missed beat never looks like a success.
         _lives--;
+        _streak = 0;
+        _banner = 'Missed beat';
+        _bannerT = 1.0;
         // Every missed beat deserves the companion's gentle encouraging
         // reaction, not just the one that happens to end the game.
         emit(ExperienceEvent.incorrectAnswer);
@@ -103,6 +107,7 @@ class _RhythmClapGameState extends State<RhythmClapGame>
           _status = GameStatus.over;
           _overPraise = _gentleTryAgainPool[_rnd.nextInt(_gentleTryAgainPool.length)];
           TonePlayer.instance.playCue(SoundCue.gameOver);
+          break;
         } else {
           TonePlayer.instance.playCue(SoundCue.gentleRetry);
         }
@@ -118,6 +123,11 @@ class _RhythmClapGameState extends State<RhythmClapGame>
       if (!_hit[i] && !_missed[i] && (_head - _markers[i]).abs() <= _window) {
         _hit[i] = true;
         _score++;
+        _streak++;
+        final timing = (_head - _markers[i]).abs();
+        _banner = timing <= _window / 3 ? 'On beat! Streak $_streak' :
+          (_head < _markers[i] ? 'Early hit' : 'Late hit');
+        _bannerT = 1.0;
         final bitCount = _reduceMotion ? 3 : 8;
         for (var j = 0; j < bitCount; j++) {
           final a = _rnd.nextDouble() * math.pi * 2;
@@ -157,6 +167,8 @@ class _RhythmClapGameState extends State<RhythmClapGame>
         return;
       }
     }
+    _banner = 'Wait for the beat';
+    _bannerT = 0.8;
     TonePlayer.instance.playThock();
   }
 
@@ -164,6 +176,7 @@ class _RhythmClapGameState extends State<RhythmClapGame>
     setState(() {
       _score = 0;
       _lives = 3;
+      _streak = 0;
       _beatBest = false;
       _bits.clear();
       _banner = null;

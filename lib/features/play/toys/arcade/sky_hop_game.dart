@@ -1,5 +1,16 @@
 part of '../arcade_games.dart';
 
+@visibleForTesting
+bool isPerfectSkyHopClear({
+  required double birdY,
+  required double gapY,
+  required double gapSize,
+}) =>
+    (birdY - gapY).abs() <= gapSize * 0.18;
+
+@visibleForTesting
+bool skyHopEarnsFeather(int perfectStreak) => perfectStreak > 0 && perfectStreak % 3 == 0;
+
 class SkyHopGame extends StatefulWidget {
   const SkyHopGame({super.key});
   @override
@@ -43,6 +54,8 @@ class _SkyHopGameState extends State<SkyHopGame>
   int _best = 0;
   int _coinCombo = 0;
   int _bestCoinCombo = 0;
+  int _perfectStreak = 0;
+  bool _featherShield = false;
   bool _started = false;
   // Same "flat-forever difficulty never fed by career `_best`" bug class
   // already fixed catalog-wide (brick_break/hoop_toss/piano_tiles/
@@ -151,9 +164,24 @@ class _SkyHopGameState extends State<SkyHopGame>
         // already grabbed on this pass must survive into the next pipe, or
         // the "Coin streak" bonus could mathematically never exceed x1.
         if (!p.coinTaken) _coinCombo = 0;
-        _score++;
-        _banner = _hopPraise[_rnd.nextInt(_hopPraise.length)];
-        _bannerT = 0.8;
+        final perfect = isPerfectSkyHopClear(
+          birdY: _birdY,
+          gapY: p.gapY,
+          gapSize: _gap,
+        );
+        _perfectStreak = perfect ? _perfectStreak + 1 : 0;
+        _score += perfect ? 2 : 1;
+        if (skyHopEarnsFeather(_perfectStreak)) {
+          _featherShield = true;
+          _banner = 'Perfect x$_perfectStreak · feather rescue ready! 🪶';
+          _bannerT = 1.4;
+          TonePlayer.instance.playCue(SoundCue.milestone);
+        } else {
+          _banner = perfect
+              ? 'Perfect line! +2'
+              : _hopPraise[_rnd.nextInt(_hopPraise.length)];
+          _bannerT = perfect ? 1.0 : 0.8;
+        }
         TonePlayer.instance.playCue(SoundCue.coin);
         emit(ExperienceEvent.bubblePopped);
       }
@@ -181,6 +209,17 @@ class _SkyHopGameState extends State<SkyHopGame>
       }
       if ((p.x - 0.3).abs() < 0.11 &&
           (_birdY < p.gapY - _gap / 2 || _birdY > p.gapY + _gap / 2)) {
+        if (_featherShield) {
+          _featherShield = false;
+          _perfectStreak = 0;
+          _birdY = p.gapY;
+          _vy = -0.18;
+          p.scored = true;
+          _banner = 'Feather rescue! 🪶';
+          _bannerT = 1.2;
+          TonePlayer.instance.playCue(SoundCue.success);
+          continue;
+        }
         _over();
         return;
       }
@@ -198,7 +237,19 @@ class _SkyHopGameState extends State<SkyHopGame>
       emit(ExperienceEvent.personalBest);
     }
     _pipes.removeWhere((p) => p.x < -0.2);
-    if (_birdY > 0.98 || _birdY < 0.02) _over();
+    if (_birdY > 0.98 || _birdY < 0.02) {
+      if (_featherShield) {
+        _featherShield = false;
+        _perfectStreak = 0;
+        _birdY = _birdY.clamp(0.12, 0.88);
+        _vy = _birdY > 0.5 ? -0.35 : 0.2;
+        _banner = 'Feather rescue! 🪶';
+        _bannerT = 1.2;
+        TonePlayer.instance.playCue(SoundCue.success);
+      } else {
+        _over();
+      }
+    }
   }
 
   void _flap() {
@@ -237,6 +288,8 @@ class _SkyHopGameState extends State<SkyHopGame>
       _pipeSpeed = _basePipeSpeed;
       _score = 0;
       _coinCombo = 0;
+      _perfectStreak = 0;
+      _featherShield = false;
       // `_bestCoinCombo` is now the persisted all-time record (see
       // `_comboId`/`GameScores.submit` above) and must survive replays the
       // same way `_best` does — only `_coinCombo` (the live in-run streak)
@@ -265,7 +318,9 @@ class _SkyHopGameState extends State<SkyHopGame>
           // "Tap to flap" was painted only onto the canvas before the first
           // flap, so it was silent to screen readers. Mirroring it into the
           // shared, semantics-announced banner closes that gap.
-          (!_started && _status == GameStatus.playing ? 'Tap to flap' : null),
+            (!_started && _status == GameStatus.playing
+              ? 'Tap to flap'
+              : (_featherShield ? 'Feather rescue ready 🪶' : null)),
       overEmoji: '🐤',
       overText: _bestCoinCombo > 1
           ? 'Splash! Best coin streak x$_bestCoinCombo'

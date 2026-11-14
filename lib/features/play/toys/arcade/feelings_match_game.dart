@@ -115,11 +115,13 @@ class _FeelingsMatchGameState extends State<FeelingsMatchGame> with _Emit {
   int get _careerSkillRamp => (_best ~/ 3).clamp(0, 4);
   int get _optionCount =>
       (3 + (_score + _careerSkillRamp) ~/ 3).clamp(3, _feelings.length);
+  bool _chooseWord = false;
 
   void _newRound() {
     _wrong = -1;
     _correct = -1;
     _locked = false;
+    _chooseWord = _score.isOdd;
     _prompt = _feelings[_drawPrompt()];
     final count = _optionCount;
     final set = <_Feeling>{_prompt};
@@ -219,8 +221,8 @@ class _FeelingsMatchGameState extends State<FeelingsMatchGame> with _Emit {
     return _Shell(
       title: '😊 Feelings Match',
       introHow:
-          'Read the feeling word, then tap the face that shows it. Learn your '
-          'feelings — ten right to win, with 3 💛 hearts so a few misses are okay!',
+          'Match feelings and faces in both directions. Ten right to win, '
+          'with 3 💛 hearts so a few misses are okay!',
       onStart: () => setState(() {
         _bag.clear();
         _newRound();
@@ -254,15 +256,17 @@ class _FeelingsMatchGameState extends State<FeelingsMatchGame> with _Emit {
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               Text(
-                _status == GameStatus.playing ? _prompt.name : 'Feelings',
+                _status == GameStatus.playing
+                    ? (_chooseWord ? _prompt.face : _prompt.name)
+                    : 'Feelings',
                 style: const TextStyle(
                     color: Colors.white,
                     fontSize: 46,
                     fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 6),
-              const Text('Which face feels like this?',
-                  style: TextStyle(color: Colors.white60, fontSize: 16)),
+                Text(_chooseWord ? 'Which feeling fits this face?' : 'Which face feels like this?',
+                  style: const TextStyle(color: Colors.white60, fontSize: 16)),
               const SizedBox(height: 40),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -278,6 +282,7 @@ class _FeelingsMatchGameState extends State<FeelingsMatchGame> with _Emit {
                       _FaceOption(
                         face: _options[i].face,
                         name: _options[i].name,
+                        showName: _chooseWord,
                         wrong: _wrong == i,
                         correct: _correct == i,
                         onTap: () => _pick(_options[i], i),
@@ -297,11 +302,13 @@ class _FaceOption extends StatelessWidget {
   const _FaceOption(
       {required this.face,
       required this.name,
+      required this.showName,
       required this.wrong,
       required this.correct,
       required this.onTap});
   final String face;
   final String name;
+  final bool showName;
   final bool wrong;
   final bool correct;
   final VoidCallback onTap;
@@ -315,7 +322,7 @@ class _FaceOption extends StatelessWidget {
     // the inner emoji glyph from being separately (and redundantly) read.
     return Semantics(
       button: true,
-      label: '$name face',
+      label: showName ? name : '$name face',
       onTap: onTap,
       excludeSemantics: true,
       child: GestureDetector(
@@ -344,7 +351,10 @@ class _FaceOption extends StatelessWidget {
           // silent clipping at large accessibility text scale.
           child: FittedBox(
             fit: BoxFit.scaleDown,
-            child: Text(face, style: const TextStyle(fontSize: 48)),
+            child: Text(showName ? name : face,
+              style: TextStyle(
+                fontSize: showName ? 20 : 48,
+                color: correct ? Colors.black87 : Colors.white)),
           ),
         ),
       ),

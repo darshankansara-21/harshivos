@@ -744,6 +744,7 @@ class _ChoiceGoalGameState extends State<_ChoiceGoalGame> with _GoalEmit {
                     return Semantics(
                       button: true,
                       label: _round.options[index],
+                      onTap: () => _choose(index),
                       // The tile's own name `Text` below (always shown now,
                       // swatch or not) forms a second, redundant semantics
                       // node with the exact same string as this button's
@@ -930,36 +931,345 @@ class ColorQuestGame extends StatelessWidget {
       );
 }
 
-class ShapeScoutGame extends StatelessWidget {
+class ShapeScoutGame extends StatefulWidget {
   const ShapeScoutGame({super.key});
 
-  static const List<String> _shapes = <String>[
-    '●', '■', '▲', '◆', '★', '♥', '♠', '♣'
+  @override
+  State<ShapeScoutGame> createState() => _ShapeScoutGameState();
+}
+
+class _ShapeScoutGameState extends State<ShapeScoutGame> with _GoalEmit {
+  static const int _target = 8;
+  static const List<String> _directions = <String>['up', 'right', 'down', 'left'];
+  static const List<String> _shapeNames = <String>[
+    'Arrow', 'House', 'Lightning', 'Boot', 'Key', 'Flag', 'Crown', 'Shield',
+  ];
+  final math.Random _random = math.Random();
+  final List<int> _shapeDeck = List<int>.generate(8, (index) => index);
+  int _score = 0;
+  int _best = 0;
+  int _wrong = 0;
+  int _streak = 0;
+  int _targetTurn = 0;
+  int _playerTurn = 0;
+  int _shapeIndex = 0;
+  int _run = 0;
+  bool _awaitingNextShape = false;
+  GameStatus _status = GameStatus.ready;
+  String? _message;
+
+  int get _stars => _wrong == 0 ? 3 : (_wrong <= 2 ? 2 : 1);
+
+  @override
+  void initState() {
+    super.initState();
+    GameScores.instance.ensureLoaded().then((_) {
+      if (mounted) setState(() => _best = GameScores.instance.best('shape_scout'));
+    });
+    _nextShape();
+  }
+
+  void _nextShape() {
+    _shapeIndex = _shapeDeck[_score % _shapeDeck.length];
+    _targetTurn = _random.nextInt(4);
+    _playerTurn = (_targetTurn + 1 + _random.nextInt(3)) % 4;
+  }
+
+  void _turn(int amount) {
+    if (_status != GameStatus.playing || _awaitingNextShape) return;
+    setState(() {
+      _playerTurn = (_playerTurn + amount + 4) % 4;
+      _message = null;
+    });
+    TonePlayer.instance.playCue(SoundCue.wood);
+  }
+
+  void _match() {
+    if (_status != GameStatus.playing || _awaitingNextShape) return;
+    if (_playerTurn != _targetTurn) {
+      setState(() {
+        _wrong++;
+        _streak = 0;
+        _message = 'Not aligned yet. Turn it a little.';
+      });
+      TonePlayer.instance.playCue(SoundCue.gentleRetry);
+      emit(ExperienceEvent.incorrectAnswer);
+      return;
+    }
+
+    final nextScore = _score + 1;
+    final won = nextScore >= _target;
+    setState(() {
+      _score = nextScore;
+      _streak++;
+      _message = _streak >= 3 ? 'Perfect alignment! Streak x$_streak' : 'Aligned!';
+      if (won) _status = GameStatus.won;
+      if (!won) _awaitingNextShape = true;
+    });
+    TonePlayer.instance.playCue(won ? SoundCue.success : SoundCue.correct);
+    emit(won ? ExperienceEvent.gameCompleted : ExperienceEvent.correctAnswer);
+    GameScores.instance.submit('shape_scout', _score).then((best) {
+      if (mounted && best != _best) setState(() => _best = best);
+    });
+    if (!won) {
+      final run = _run;
+      Future<void>.delayed(const Duration(milliseconds: 320), () {
+        if (!mounted || _status != GameStatus.playing || run != _run) return;
+        setState(() {
+          _nextShape();
+          _message = null;
+          _awaitingNextShape = false;
+        });
+      });
+    }
+  }
+
+  void _reset() {
+    setState(() {
+      _run++;
+      _awaitingNextShape = false;
+      _score = 0;
+      _wrong = 0;
+      _streak = 0;
+      _message = null;
+      _status = GameStatus.playing;
+      _shapeDeck.shuffle(_random);
+      _nextShape();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    drainCompanion(context);
+    return _GoalShell(
+      title: '🔷 Shape Scout',
+      goal: 'Rotate the solid shape to match the silhouette · 8 to win',
+      introHow: 'Turn the shape left or right, then lock in the match.',
+      onStart: () => setState(() => _status = GameStatus.playing),
+      score: _score,
+      target: _target,
+      best: _best,
+      stars: _stars,
+      status: _status,
+      accent: const Color(0xFF4CC9F0),
+      message: _message,
+      onReset: _reset,
+      winEmoji: '🔷',
+      winText: 'Spatial scout! Eight clean matches.',
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: <Color>[Color(0xFF123A52), Color(0xFF081D2E)],
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 150, 20, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                const Text('Match the silhouette',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 8),
+                Text('Aligned: $_score / $_target',
+                    key: const ValueKey<String>('shape-scout-progress'),
+                    style: const TextStyle(color: Color(0xFFB8E8F7), fontSize: 18, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 24),
+                Row(
+                  children: <Widget>[
+                    Expanded(child: _shapeCard(
+                      label: 'Target silhouette',
+                      semantics: 'Target silhouette pointing ${_directions[_targetTurn]}',
+                      shapeName: _shapeNames[_shapeIndex],
+                      shapeIndex: _shapeIndex,
+                      turns: _targetTurn,
+                      outline: true,
+                    )),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: Icon(Icons.arrow_forward_rounded, color: Colors.white54),
+                    ),
+                    Expanded(child: _shapeCard(
+                      label: 'Your shape',
+                      semantics: 'Your shape pointing ${_directions[_playerTurn]}',
+                      shapeName: _shapeNames[_shapeIndex],
+                      shapeIndex: _shapeIndex,
+                      turns: _playerTurn,
+                      outline: false,
+                    )),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    IconButton.filledTonal(
+                      key: const ValueKey<String>('shape-scout-turn-left'),
+                      tooltip: 'Turn left',
+                      onPressed: _status == GameStatus.playing && !_awaitingNextShape ? () => _turn(-1) : null,
+                      icon: const Icon(Icons.rotate_left_rounded),
+                    ),
+                    const SizedBox(width: 20),
+                    IconButton.filledTonal(
+                      key: const ValueKey<String>('shape-scout-turn-right'),
+                      tooltip: 'Turn right',
+                      onPressed: _status == GameStatus.playing && !_awaitingNextShape ? () => _turn(1) : null,
+                      icon: const Icon(Icons.rotate_right_rounded),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                FilledButton.icon(
+                  key: const ValueKey<String>('shape-scout-match'),
+                  onPressed: _status == GameStatus.playing && !_awaitingNextShape ? _match : null,
+                  icon: const Icon(Icons.check_rounded),
+                  label: const Text('Match'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _shapeCard({
+    required String label,
+    required String semantics,
+    required String shapeName,
+    required int shapeIndex,
+    required int turns,
+    required bool outline,
+  }) {
+    final color = outline ? Colors.white70 : const Color(0xFF4CC9F0);
+    return Semantics(
+      label: semantics,
+      child: Column(
+        children: <Widget>[
+          Text(label, textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w700)),
+            Text(shapeName,
+              key: label == 'Target silhouette'
+                ? const ValueKey<String>('shape-scout-target-name')
+                : const ValueKey<String>('shape-scout-player-name'),
+              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 10),
+          AspectRatio(
+            aspectRatio: 1,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.06),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: Colors.white24),
+              ),
+              padding: const EdgeInsets.all(24),
+              child: AnimatedRotation(
+                turns: turns / 4,
+                duration: const Duration(milliseconds: 170),
+                curve: Curves.easeOutCubic,
+                child: CustomPaint(
+                  painter: _ShapeScoutPainter(
+                    color: color,
+                    outline: outline,
+                    shapeIndex: shapeIndex,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShapeScoutPainter extends CustomPainter {
+  const _ShapeScoutPainter({
+    required this.color,
+    required this.outline,
+    required this.shapeIndex,
+  });
+
+  final Color color;
+  final bool outline;
+  final int shapeIndex;
+
+  static const List<List<Offset>> _points = <List<Offset>>[
+    <Offset>[
+      Offset(0, -0.55), Offset(0.52, -0.06), Offset(0.18, -0.06),
+      Offset(0.18, 0.5), Offset(-0.18, 0.5), Offset(-0.18, -0.06),
+      Offset(-0.52, -0.06),
+    ],
+    <Offset>[
+      Offset(-0.48, -0.08), Offset(0, -0.5), Offset(0.42, -0.08),
+      Offset(0.34, -0.08), Offset(0.34, 0.42), Offset(-0.34, 0.42),
+      Offset(-0.34, -0.08), Offset(-0.48, -0.08), Offset(-0.22, -0.24),
+      Offset(-0.22, -0.42), Offset(-0.08, -0.42), Offset(-0.08, -0.24),
+    ],
+    <Offset>[
+      Offset(0.02, -0.55), Offset(0.38, -0.16), Offset(0.12, -0.16),
+      Offset(0.3, 0.02), Offset(-0.06, 0.02), Offset(0.12, 0.2),
+      Offset(-0.18, 0.2), Offset(-0.02, 0.55), Offset(-0.38, 0.08),
+      Offset(-0.12, 0.08), Offset(-0.3, -0.1),
+    ],
+    <Offset>[
+      Offset(-0.46, -0.38), Offset(0.12, -0.38), Offset(0.12, -0.12),
+      Offset(0.42, 0.02), Offset(0.42, 0.32), Offset(0.18, 0.32),
+      Offset(0.08, 0.48), Offset(-0.4, 0.48), Offset(-0.4, 0.26),
+      Offset(-0.25, 0.12), Offset(-0.46, 0.12),
+    ],
+    <Offset>[
+      Offset(-0.3, -0.48), Offset(-0.06, -0.55), Offset(0.18, -0.44),
+      Offset(0.24, -0.2), Offset(0.1, 0.02), Offset(0.44, 0.02),
+      Offset(0.44, 0.2), Offset(0.25, 0.2), Offset(0.25, 0.48),
+      Offset(0.06, 0.48), Offset(0.06, 0.2), Offset(-0.13, 0.2),
+      Offset(-0.4, 0.02), Offset(-0.42, -0.22),
+    ],
+    <Offset>[
+      Offset(-0.42, -0.48), Offset(-0.26, -0.48), Offset(-0.26, 0.45),
+      Offset(-0.42, 0.45), Offset(-0.42, -0.48), Offset(-0.26, -0.4),
+      Offset(0.44, -0.4), Offset(0.2, -0.05), Offset(0.44, 0.22),
+      Offset(-0.26, 0.22),
+    ],
+    <Offset>[
+      Offset(-0.48, 0.35), Offset(-0.42, -0.2), Offset(-0.2, 0.02),
+      Offset(0, -0.48), Offset(0.18, 0.02), Offset(0.46, -0.34),
+      Offset(0.4, 0.35), Offset(0.1, 0.48), Offset(-0.25, 0.42),
+    ],
+    <Offset>[
+      Offset(-0.4, -0.45), Offset(0.08, -0.45), Offset(0.42, -0.2),
+      Offset(0.35, 0.18), Offset(0.02, 0.52), Offset(-0.36, 0.24),
+      Offset(-0.48, -0.04),
+    ],
   ];
 
   @override
-  Widget build(BuildContext context) => _ChoiceGoalGame(
-        id: 'shape_scout',
-        title: '🔷 Shape Scout',
-        goal: 'Match the shape shown above · 8 matches wins',
-        accent: const Color(0xFF4CC9F0),
-        background: const <Color>[Color(0xFF123A52), Color(0xFF081D2E)],
-        winEmoji: '🔷',
-        winTextPool: const <String>[
-          'Shape Scout champion!', 'Shape master!', 'Great matching!', 'Sharp eyes!',
-        ],
-        buildRound: (round, random) {
-          // Same flat-4-choices difficulty-curve gap fixed in ColorQuestGame
-          // above — grows from 3 up to the full 8-shape pool as the round
-          // count climbs toward the 8-correct target.
-          final optionCount =
-              (3 + round ~/ 3).clamp(3, _shapes.length);
-          final choices = List<String>.of(_shapes)..shuffle(random);
-          final options = choices.take(optionCount).toList();
-          final answer = random.nextInt(optionCount);
-          return _ChoiceRound('Match  ${options[answer]}', options, answer);
-        },
-      );
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final scale = size.shortestSide * 0.43;
+    final shape = _points[shapeIndex];
+    final path = Path()..moveTo(center.dx + shape.first.dx * scale,
+        center.dy + shape.first.dy * scale);
+    for (final point in shape.skip(1)) {
+      path.lineTo(center.dx + point.dx * scale, center.dy + point.dy * scale);
+    }
+    path.close();
+    final paint = Paint()
+      ..color = color
+      ..style = outline ? PaintingStyle.stroke : PaintingStyle.fill
+      ..strokeWidth = 6
+      ..strokeJoin = StrokeJoin.round;
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(_ShapeScoutPainter oldDelegate) =>
+      oldDelegate.color != color ||
+      oldDelegate.outline != outline ||
+      oldDelegate.shapeIndex != shapeIndex;
 }
 
 class NumberSplashGame extends StatelessWidget {
@@ -969,7 +1279,7 @@ class NumberSplashGame extends StatelessWidget {
   Widget build(BuildContext context) => _ChoiceGoalGame(
         id: 'number_splash',
         title: '➕ Number Splash',
-        goal: 'Solve the sum · 8 correct answers wins',
+        goal: 'Solve the equation · 8 correct answers wins',
         accent: const Color(0xFF43E97B),
         background: const <Color>[Color(0xFF174D3A), Color(0xFF092A28)],
         winEmoji: '➕',
@@ -984,7 +1294,9 @@ class NumberSplashGame extends StatelessWidget {
           final sub = round >= 3 && random.nextBool();
           final left = sub ? math.max(a, b) : a;
           final right = sub ? math.min(a, b) : b;
-          final answer = sub ? left - right : left + right;
+          final result = sub ? left - right : left + right;
+          final missing = round < 3 ? 0 : (round % 3) + 1;
+          final answer = missing == 1 ? left : missing == 2 ? right : result;
           final op = sub ? '−' : '+';
           // Same flat-choice-count difficulty-curve gap already fixed in
           // ColorQuestGame/ShapeScoutGame above, missed in this third sibling:
@@ -1004,8 +1316,12 @@ class NumberSplashGame extends StatelessWidget {
           }
           final options = values.map((value) => '$value').toList()
             ..shuffle(random);
-          return _ChoiceRound(
-              '$left $op $right = ?', options, options.indexOf('$answer'));
+            final prompt = missing == 1
+              ? '? $op $right = $result'
+              : missing == 2
+                ? '$left $op ? = $result'
+                : '$left $op $right = ?';
+            return _ChoiceRound(prompt, options, options.indexOf('$answer'));
         },
       );
 }

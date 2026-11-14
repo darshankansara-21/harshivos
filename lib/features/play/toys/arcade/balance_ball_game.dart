@@ -31,6 +31,8 @@ class _BalanceBallGameState extends State<BalanceBallGame>
   double _s = 0; // ball position along beam (-1..1)
   double _v = 0;
   bool _dragging = false;
+  double _steadyTime = 0;
+  bool _safetyCatch = false;
   // Tracks whether the near-edge warning cue has already fired for the
   // current excursion toward an end, so it plays once per approach instead
   // of spamming every frame while the ball lingers out there.
@@ -71,7 +73,27 @@ class _BalanceBallGameState extends State<BalanceBallGame>
     _v += -math.sin(_beam) * 2.4 * dt;
     _v *= (1 - 0.6 * dt);
     _s += _v * dt;
+    if (!_safetyCatch) {
+      _steadyTime = _s.abs() < 0.3 ? _steadyTime + dt : 0;
+      if (_steadyTime >= 3) {
+        _safetyCatch = true;
+        _banner = 'Safety catch ready!';
+        _bannerT = 1.4;
+        TonePlayer.instance.playCue(SoundCue.coin);
+      }
+    }
     if (_s.abs() > 1.0) {
+      if (_safetyCatch) {
+        _safetyCatch = false;
+        _steadyTime = 0;
+        _s = _s.sign * 0.7;
+        _v = -_s.sign * 0.25;
+        _banner = 'Safety catch!';
+        _bannerT = 1.4;
+        TonePlayer.instance.playCue(SoundCue.wood);
+        setState(() {});
+        return;
+      }
       _status = GameStatus.over;
       _overPraise = _gentleTryAgainPool[_rnd.nextInt(_gentleTryAgainPool.length)];
       TonePlayer.instance.playCue(SoundCue.gameOver);
@@ -125,6 +147,9 @@ class _BalanceBallGameState extends State<BalanceBallGame>
       _beam = 0;
       _s = 0;
       _v = 0;
+      _dragging = false;
+      _steadyTime = 0;
+      _safetyCatch = false;
       _score = 0;
       _edgeWarned = false;
       _beatBest = false;
@@ -141,11 +166,14 @@ class _BalanceBallGameState extends State<BalanceBallGame>
       title: '⚖️ Balance Ball',
       introHow:
           'Drag left or right to tilt the beam and keep the ball from rolling '
-          'off. Stay balanced for twenty seconds to win!',
+          'off. Stay centred to earn a safety catch. Balance for twenty seconds!',
       onStart: () => setState(() {
         _t = 0;
         _s = 0;
         _v = 0;
+        _dragging = false;
+        _steadyTime = 0;
+        _safetyCatch = false;
         _beam = 0;
         _tilt = 0;
         _edgeWarned = false;
@@ -158,7 +186,7 @@ class _BalanceBallGameState extends State<BalanceBallGame>
       best: _best,
       target: _target,
       status: _status,
-      banner: _banner ?? 'Keep it centred  ·  ${_score}s',
+      banner: _banner ?? 'Keep it centred  ·  ${_score}s${_safetyCatch ? '  ·  Catch ready' : ''}',
       overEmoji: '⚖️',
       overText: _overPraise,
       winEmoji: '🏆',

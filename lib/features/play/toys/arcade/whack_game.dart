@@ -1,7 +1,16 @@
 part of '../arcade_games.dart';
 
+@visibleForTesting
+bool whackSpawnIsGolden(int spawnCount) => spawnCount > 0 && spawnCount % 7 == 0;
+
+@visibleForTesting
+int whackTargetReward({required bool golden, required int combo}) =>
+  (golden ? 4 : 1) + (combo >= 5 ? 1 : 0) + (combo >= 9 ? 1 : 0);
+
 class WhackGame extends StatefulWidget {
-  const WhackGame({super.key});
+  const WhackGame({super.key, this.random});
+  @visibleForTesting
+  final math.Random? random;
   @override
   State<WhackGame> createState() => _WhackGameState();
 }
@@ -48,9 +57,11 @@ class _WhackGameState extends State<WhackGame>
     'Bombs hurt!',
     'Watch for bombs!',
   ];
-  final math.Random _rnd = math.Random();
+  late final math.Random _rnd = widget.random ?? math.Random();
   final List<double> _mole = List<double>.filled(_holes, 0); // seconds left
   final List<bool> _isBomb = List<bool>.filled(_holes, false);
+  final List<bool> _isGolden = List<bool>.filled(_holes, false);
+  final List<int> _hitsLeft = List<int>.filled(_holes, 0);
   final List<double> _splat = List<double>.filled(_holes, 0); // hit burst timer
   double _spawnIn = 0.7;
   int _score = 0;
@@ -60,6 +71,7 @@ class _WhackGameState extends State<WhackGame>
   int _round = 1;
   int _roundTarget = 10;
   int _dangerLevel = 0;
+  int _moleSpawnCount = 0;
   double _bannerT = 0;
   String? _banner;
   GameStatus _status = GameStatus.ready;
@@ -109,6 +121,8 @@ class _WhackGameState extends State<WhackGame>
             _loseLife(_missPool[_rnd.nextInt(_missPool.length)]);
           }
           _isBomb[i] = false;
+          _isGolden[i] = false;
+          _hitsLeft[i] = 0;
         }
       }
     }
@@ -129,8 +143,11 @@ class _WhackGameState extends State<WhackGame>
         // push bomb odds as high as 44%; it's capped at 36% here, tied
         // purely to round progression.
         _isBomb[h] = _rnd.nextDouble() < (0.12 + _dangerLevel * 0.08);
+        if (!_isBomb[h]) _moleSpawnCount++;
+        _isGolden[h] = !_isBomb[h] && whackSpawnIsGolden(_moleSpawnCount);
+        _hitsLeft[h] = _isGolden[h] ? 2 : 1;
         _mole[h] = math.max(0.42, 1.05 - _round * 0.06 - _dangerLevel * 0.04) +
-            _rnd.nextDouble() * 0.35;
+          _rnd.nextDouble() * 0.35 + (_isGolden[h] ? 0.35 : 0);
       }
     }
   }
@@ -204,9 +221,12 @@ class _WhackGameState extends State<WhackGame>
     if (_status != GameStatus.playing) return;
     if (_mole[i] > 0) {
       final wasBomb = _isBomb[i];
-      _mole[i] = 0;
+      final wasGolden = _isGolden[i];
       _isBomb[i] = false;
       if (wasBomb) {
+        _mole[i] = 0;
+        _isGolden[i] = false;
+        _hitsLeft[i] = 0;
         // Apply the bomb's score penalty BEFORE ending the run: _loseLife
         // reads `_score` directly to decide the final-run emit (gameCompleted
         // vs incorrectAnswer) and to submit the leaderboard entry when this
@@ -218,10 +238,22 @@ class _WhackGameState extends State<WhackGame>
         _loseLife(_bombPool[_rnd.nextInt(_bombPool.length)]);
         return;
       }
+      if (wasGolden && _hitsLeft[i] > 1) {
+        _hitsLeft[i]--;
+        _mole[i] = 0.55;
+        _splat[i] = 0.24;
+        _banner = 'Golden mole cracked — one more!';
+        _bannerT = 0.8;
+        TonePlayer.instance.playCue(SoundCue.metal);
+        return;
+      }
+      _mole[i] = 0;
+      _isGolden[i] = false;
+      _hitsLeft[i] = 0;
       _combo++;
-      _score += 1 + (_combo >= 5 ? 1 : 0) + (_combo >= 9 ? 1 : 0);
+      _score += whackTargetReward(golden: wasGolden, combo: _combo);
       _splat[i] = 0.35;
-      TonePlayer.instance.playCue(SoundCue.wood);
+      TonePlayer.instance.playCue(wasGolden ? SoundCue.coin : SoundCue.wood);
       emit(ExperienceEvent.bubblePopped);
       if (_score >= _winTarget) {
         _checkWin();
@@ -234,7 +266,10 @@ class _WhackGameState extends State<WhackGame>
         _bannerT = 1.3;
         TonePlayer.instance.playCue(SoundCue.milestone);
       } else if (_combo >= 5) {
-        _banner = 'Combo x$_combo!';
+        _banner = wasGolden ? 'Golden whack! +4 👑' : 'Combo x$_combo!';
+        _bannerT = 1.0;
+      } else if (wasGolden) {
+        _banner = 'Golden whack! +4 👑';
         _bannerT = 1.0;
       }
       if (_status == GameStatus.playing &&
@@ -263,6 +298,8 @@ class _WhackGameState extends State<WhackGame>
       for (var i = 0; i < _holes; i++) {
         _mole[i] = 0;
         _isBomb[i] = false;
+        _isGolden[i] = false;
+        _hitsLeft[i] = 0;
         _splat[i] = 0;
       }
       _score = 0;
@@ -271,6 +308,7 @@ class _WhackGameState extends State<WhackGame>
       _round = 1;
       _roundTarget = 10;
       _dangerLevel = _careerDangerRamp;
+      _moleSpawnCount = 0;
       _beatBest = false;
       _overPraise = _gentleTryAgainPool[0];
       _banner = 'Whack 35 points to win!';
@@ -286,7 +324,7 @@ class _WhackGameState extends State<WhackGame>
     return _Shell(
       title: '🔨 Whack',
       introHow:
-          'Tap the moles as they pop up, dodge bombs, and reach 35 points before your 3 lives run out!',
+          'Tap moles, dodge bombs, and watch for every seventh golden mole — hit it twice for +4. Reach 35 points!',
       onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,
@@ -325,7 +363,9 @@ class _WhackGameState extends State<WhackGame>
                       ? 'Hole ${i + 1}, empty.'
                       : (_isBomb[i]
                           ? 'Hole ${i + 1}, bomb! Avoid it.'
-                          : 'Hole ${i + 1}, mole. Tap to whack.'),
+                          : (_isGolden[i]
+                            ? 'Hole ${i + 1}, golden mole. ${_hitsLeft[i]} hits left.'
+                            : 'Hole ${i + 1}, mole. Tap to whack.')),
                   onTap: () => _hit(i),
                   excludeSemantics: true,
                   child: GestureDetector(
@@ -346,7 +386,9 @@ class _WhackGameState extends State<WhackGame>
                             duration: const Duration(milliseconds: 120),
                             child: FittedBox(
                               fit: BoxFit.scaleDown,
-                              child: Text(_isBomb[i] ? '💣' : '🐹',
+                                child: Text(_isBomb[i]
+                                  ? '💣'
+                                  : (_isGolden[i] ? '👑' : '🐹'),
                                   maxLines: 1,
                                   style: const TextStyle(fontSize: 46)),
                             ),

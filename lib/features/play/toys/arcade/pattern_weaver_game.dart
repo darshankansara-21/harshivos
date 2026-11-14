@@ -41,6 +41,7 @@ class _PatternWeaverGameState extends State<PatternWeaverGame>
   String _beadName(int c) => '${_colorNames[c]} ${_shapeNames[c]}';
   List<int> _pattern = <int>[0, 1];
   int _visible = 4;
+  int _missingIndex = 4;
   int _answer = 0;
   int _score = 0;
   int _lives = 3;
@@ -82,28 +83,47 @@ class _PatternWeaverGameState extends State<PatternWeaverGame>
   int get _effScore => _score + _careerSkillRamp;
 
   void _newRound() {
-    final period = 2 + _rnd.nextInt(_maxPeriod - 1); // 2.._maxPeriod
-    _pattern = <int>[];
-    for (var i = 0; i < period; i++) {
-      int c;
-      do {
-        c = _rnd.nextInt(_colorCount);
-      } while (i > 0 && c == _pattern[i - 1] && period > 2);
-      _pattern.add(c);
+    final repair = _score >= 2 && _score.isOdd;
+    for (var attempt = 0; attempt < 30; attempt++) {
+      final period = 2 + _rnd.nextInt(_maxPeriod - 1);
+      _pattern = <int>[];
+      for (var index = 0; index < period; index++) {
+        int color;
+        do {
+          color = _rnd.nextInt(_colorCount);
+        } while (index > 0 && color == _pattern[index - 1]);
+        _pattern.add(color);
+      }
+      final offset = _rnd.nextInt(period);
+      _visible = period * 2 + offset;
+      _missingIndex = repair ? _rnd.nextInt(period) : _visible;
+      _answer = _pattern[_missingIndex % period];
+      final possibleAnswers = <int>{};
+      for (var candidate = 2; candidate <= 5; candidate++) {
+        final known = List<int?>.filled(candidate, null);
+        var consistent = true;
+        for (var index = 0; index <= _visible; index++) {
+          if (index == _missingIndex) continue;
+          final bead = _pattern[index % period];
+          final slot = index % candidate;
+          if (known[slot] != null && known[slot] != bead) {
+            consistent = false;
+            break;
+          }
+          known[slot] = bead;
+        }
+        if (consistent && known[_missingIndex % candidate] != null) {
+          possibleAnswers.add(known[_missingIndex % candidate]!);
+        }
+      }
+      if (possibleAnswers.length == 1 && possibleAnswers.contains(_answer)) {
+        return;
+      }
     }
-    // `_visible` used to always equal exactly `period * 2`, so the missing
-    // bead's index-within-period (`_visible % period`) was always 0 — the
-    // correct answer was always, mathematically, whatever colour/shape sat
-    // in the very first slot of the pattern. A child could learn "the
-    // answer always matches the leftmost bead" after a few rounds and win
-    // without ever actually tracking the repeat, defeating the whole
-    // pattern-recognition premise. Showing two full cycles plus a random
-    // partial-cycle offset keeps the repeat genuinely visible (so it's still
-    // solvable) while moving the missing slot around the period, so the
-    // answer is sometimes pattern[1], pattern[2], etc. — not always [0].
-    final offset = _rnd.nextInt(period);
-    _visible = period * 2 + offset;
-    _answer = _pattern[offset];
+    _pattern = <int>[0, 1];
+    _visible = 4;
+    _missingIndex = repair ? 0 : _visible;
+    _answer = _pattern[_missingIndex % 2];
   }
 
   @override
@@ -131,7 +151,7 @@ class _PatternWeaverGameState extends State<PatternWeaverGame>
     if (_status != GameStatus.playing) return;
     if (color == _answer) {
       _score++;
-      _pop = 0.4;
+      _pop = _reduceMotion ? 0 : 0.4;
       final bitCount = _reduceMotion ? 4 : 12;
       for (var i = 0; i < bitCount; i++) {
         final a = _rnd.nextDouble() * math.pi * 2;
@@ -208,7 +228,7 @@ class _PatternWeaverGameState extends State<PatternWeaverGame>
     return _Shell(
       title: '🧶 Pattern Weaver',
       introHow:
-          'Look at the repeating colours, then tap the one that comes next in the pattern! '
+          'Look at the repeating colours, then tap the missing bead, at the end or inside the pattern! '
           'A wrong tap costs one of your 3 lives.',
       onStart: () => setState(() {
         _newRound();
@@ -218,7 +238,8 @@ class _PatternWeaverGameState extends State<PatternWeaverGame>
       best: _best,
       target: _target,
       status: _status,
-      banner: _banner ?? 'What comes next? · ${'💛' * _lives}',
+        banner: _banner ??
+          '${_missingIndex == _visible ? 'What comes next?' : 'Fix the missing bead!'} · ${'💛' * _lives}',
       overEmoji: '💪',
       overText: _overPraise,
       winEmoji: '🧶',
@@ -234,10 +255,11 @@ class _PatternWeaverGameState extends State<PatternWeaverGame>
           // told the answer outright.
           final period = _pattern.length;
           final beadDesc = <String>[];
-          for (var i = 0; i < _visible; i++) {
-            beadDesc.add(_beadName(_pattern[i % period]));
+          for (var i = 0; i <= _visible; i++) {
+            beadDesc.add(i == _missingIndex
+                ? 'missing bead'
+                : _beadName(_pattern[i % period]));
           }
-          beadDesc.add('missing bead');
           final overlays = <Widget>[
             Positioned(
               left: 0,
@@ -281,6 +303,7 @@ class _PatternWeaverGameState extends State<PatternWeaverGame>
                     palette: _palette,
                     pattern: _pattern,
                     visible: _visible,
+                    missingIndex: _missingIndex,
                     colorCount: _colorCount,
                     wrongFlash: _wrongFlash,
                     pop: _pop,
@@ -303,6 +326,7 @@ class _PatternPainter extends CustomPainter {
     required this.palette,
     required this.pattern,
     required this.visible,
+    required this.missingIndex,
     required this.colorCount,
     required this.wrongFlash,
     required this.pop,
@@ -310,7 +334,7 @@ class _PatternPainter extends CustomPainter {
   });
   final List<Color> palette;
   final List<int> pattern;
-  final int visible, colorCount, wrongFlash;
+  final int visible, missingIndex, colorCount, wrongFlash;
   final double pop;
   final List<_Shard> bits;
 
@@ -345,7 +369,7 @@ class _PatternPainter extends CustomPainter {
           ..strokeWidth = 2);
     for (var i = 0; i < n; i++) {
       final cx = slot * (i + 1);
-      if (i < visible) {
+      if (i != missingIndex) {
         final colIdx = pattern[i % period];
         canvas.drawCircle(Offset(cx, y), r, Paint()..color = palette[colIdx]);
         _paintPolyShape(canvas, Offset(cx, y), r * 0.45, _shapeForColor[colIdx],
@@ -359,10 +383,12 @@ class _PatternPainter extends CustomPainter {
               ..strokeWidth = 3
               ..color = Colors.white70);
         final tp = TextPainter(
-          text: const TextSpan(
+            text: TextSpan(
               text: '?',
               style: TextStyle(
-                  color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
+                color: Colors.white,
+                fontSize: math.min(28, r * 1.6),
+                fontWeight: FontWeight.bold)),
           textDirection: TextDirection.ltr,
         )..layout();
         tp.paint(canvas, Offset(cx - tp.width / 2, y - tp.height / 2));

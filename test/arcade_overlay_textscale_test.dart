@@ -67,13 +67,24 @@ void main() {
     expect(tester.takeException(), isNull,
         reason: 'ready overlay must not overflow at 2.5x text scale');
 
-    // Repeatedly tap the first tile: whichever round it is wrong in costs a
-    // life (the round doesn't advance on a miss), so looping guarantees
-    // reaching GameStatus.over within 3 misses, deterministically, without
-    // depending on which number is randomly the correct answer.
-    for (var i = 0; i < 12 && find.text('Play again').evaluate().isEmpty; i++) {
-      await tester.tap(find.byType(GestureDetector).first, warnIfMissed: false);
-      await tester.pump(const Duration(milliseconds: 260));
+    final prompt = tester.widget<Text>(
+      find.byKey(const ValueKey('bigger-number-order-prompt')),
+    ).data!;
+    final values = <int>[];
+    for (var index = 0; index < 3; index++) {
+      final option = find.byKey(ValueKey('bigger-number-option-$index'));
+      values.add(int.parse(tester.widget<Text>(
+        find.descendant(of: option, matching: find.byType(Text)),
+      ).data!));
+    }
+    final sorted = List<int>.of(values)..sort();
+    final wrongValue = prompt.startsWith('Biggest') ? sorted.first : sorted.last;
+    final wrongOption = find.byKey(
+      ValueKey('bigger-number-option-${values.indexOf(wrongValue)}'),
+    );
+    for (var attempt = 0; attempt < 3; attempt++) {
+      await _tapScrolledIntoView(tester, wrongOption);
+      await tester.pump(const Duration(milliseconds: 600));
     }
 
     expect(find.text('Play again'), findsOneWidget,

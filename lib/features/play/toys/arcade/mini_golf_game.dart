@@ -29,6 +29,7 @@ class _MiniGolfGameState extends State<MiniGolfGame>
   double _vx = 0, _vy = 0;
   double _cupX = 0.5, _cupY = 0.2;
   double _cupPulse = 0;
+  bool _insideCup = false;
   Rect? _wall;
   // A second obstacle joins from hole 6 onward so the back half of the round
   // keeps getting harder instead of plateauing at the hole-3 difficulty.
@@ -61,7 +62,10 @@ class _MiniGolfGameState extends State<MiniGolfGame>
   static const String _strokesId = '${_id}_strokes';
   int _totalStrokes = 0;
   int _bestStrokes = 0;
+  bool _newBestRound = false;
   Offset? _aim;
+  int _semanticAimDegrees = 0;
+  int _semanticPower = 60;
   String? _banner;
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
@@ -109,7 +113,10 @@ class _MiniGolfGameState extends State<MiniGolfGame>
     _vx = 0;
     _vy = 0;
     _moving = false;
+    _insideCup = false;
     _aim = null;
+    _semanticAimDegrees = 0;
+    _semanticPower = 60;
     _cupX = 0.2 + _rnd.nextDouble() * 0.6;
     _cupY = 0.13 + _rnd.nextDouble() * 0.18;
     // A rail obstacle appears from hole 3 onward to force bank shots — a
@@ -182,6 +189,7 @@ class _MiniGolfGameState extends State<MiniGolfGame>
     }
     if (!_moving) return;
 
+    final previousBall = Offset(_bx, _by * _aspect);
     _bx += _vx * dt;
     _by += _vy * dt;
     final damp = (1 - 1.5 * dt).clamp(0.0, 1.0);
@@ -235,17 +243,30 @@ class _MiniGolfGameState extends State<MiniGolfGame>
     // The cup — sink only when rolling slowly, otherwise a thrilling lip-out.
     // Scale the y delta by the aspect ratio so the sink distance matches the
     // true pixel circle the painter draws, regardless of device aspect.
-    final dx = _bx - _cupX, dy = (_by - _cupY) * _aspect;
-    final d = math.sqrt(dx * dx + dy * dy);
+    final currentBall = Offset(_bx, _by * _aspect);
+    final cup = Offset(_cupX, _cupY * _aspect);
+    final travel = currentBall - previousBall;
+    final travelSquared = travel.distanceSquared;
+    final along = travelSquared == 0
+        ? 0.0
+        : (((cup - previousBall).dx * travel.dx +
+                    (cup - previousBall).dy * travel.dy) /
+                travelSquared)
+            .clamp(0.0, 1.0);
+    final d = (previousBall + travel * along - cup).distance;
     final speed = math.sqrt(_vx * _vx + _vy * _vy);
     if (d < _cupR) {
       if (speed < _sinkSpeedLimit) {
         _sink();
         return;
-      } else {
+      } else if (!_insideCup) {
+        _insideCup = true;
         _cupPulse = 0.3;
+        _flash('Too fast - try a softer putt');
         TonePlayer.instance.playCue(SoundCue.metal);
       }
+    } else {
+      _insideCup = false;
     }
 
     if (speed < 0.02) {
@@ -284,6 +305,7 @@ class _MiniGolfGameState extends State<MiniGolfGame>
       // beat-your-best moment in the catalog gets, layered onto (not
       // replacing) the win fanfare.
       final beatStrokes = _bestStrokes > 0 && _totalStrokes < _bestStrokes;
+      _newBestRound = beatStrokes;
       GameScores.instance.submitLow(_strokesId, _totalStrokes).then((b) {
         if (mounted) setState(() => _bestStrokes = b);
       });
@@ -309,15 +331,45 @@ class _MiniGolfGameState extends State<MiniGolfGame>
     _aim = Offset(p.dx / w - _bx, p.dy / h - _by);
   }
 
-  // Screen-reader bridge: see basketball_game.dart's _shootAtHoop — putts
-  // straight at the cup through the same _aimAt + _putt path the drag
-  // gesture already uses (a straight line can still clip a rail, same risk
-  // a sighted child takes misjudging the angle).
-  void _puttAtCup() {
-    if (_moving || _nextT > 0 || _status != GameStatus.playing) return;
-    _aimAt(Offset(_cupX, _cupY), 1, 1);
+  bool get _canPutt =>
+      !_moving && _nextT <= 0 && _status == GameStatus.playing;
+
+  void _adjustSemanticAim(int degrees) {
+    if (!_canPutt) return;
+    setState(() {
+      _semanticAimDegrees = (_semanticAimDegrees + degrees + 360) % 360;
+    });
+  }
+
+  void _adjustSemanticPower(int amount) {
+    if (!_canPutt) return;
+    setState(() {
+      _semanticPower = (_semanticPower + amount).clamp(10, 100);
+    });
+  }
+
+  void _resetSemanticAim() {
+    if (!_canPutt) return;
+    setState(() => _semanticAimDegrees = 0);
+  }
+
+  void _semanticPutt() {
+    if (!_canPutt) return;
+    final direction = Offset(_cupX - _bx, (_cupY - _by) * _aspect);
+    final angle = math.atan2(direction.dy, direction.dx) +
+        _semanticAimDegrees * math.pi / 180;
+    final speed = 1.9 * _semanticPower / 100;
+    final normalizedDirection = Offset(math.cos(angle), math.sin(angle) / _aspect);
+    _aim = normalizedDirection / normalizedDirection.distance * (speed / 3);
     _putt();
   }
+
+  String _semanticPosition(double x, double y) =>
+      '${(x * 100).round()} percent from left, ${(y * 100).round()} percent from top';
+
+  String _semanticRail(Rect wall) =>
+      'from ${_semanticPosition(wall.left, wall.top)} to '
+      '${_semanticPosition(wall.right, wall.bottom)}';
 
   void _putt() {
     final a = _aim;
@@ -338,6 +390,7 @@ class _MiniGolfGameState extends State<MiniGolfGame>
       _strokes = 0;
       _score = 0;
       _totalStrokes = 0;
+      _newBestRound = false;
       _nextT = 0;
       _bits.clear();
       _banner = null;
@@ -351,10 +404,7 @@ class _MiniGolfGameState extends State<MiniGolfGame>
   Widget build(BuildContext context) {
     drain(context);
     _reduceMotion = MediaQuery.disableAnimationsOf(context);
-    final beatStrokes = _status == GameStatus.won &&
-        _bestStrokes > 0 &&
-        _totalStrokes < _bestStrokes;
-    final roundWinText = beatStrokes
+    final roundWinText = _newBestRound
         ? '$_winPraise New best round: $_totalStrokes strokes! 🏆'
         : '$_winPraise $_totalStrokes strokes'
             '${_bestStrokes > 0 ? ' (best $_bestStrokes)' : ''}';
@@ -382,11 +432,43 @@ class _MiniGolfGameState extends State<MiniGolfGame>
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
           if (w > 0) _aspect = h / w;
+            final heading = ((math.atan2(_cupX - _bx, (_by - _cupY) * _aspect) *
+                      180 / math.pi +
+                    _semanticAimDegrees +
+                    360) %
+                  360)
+                .round() %
+              360;
+            final railDescription = <Rect>[
+            if (_wall != null) _wall!,
+            if (_wall2 != null) _wall2!,
+            ].map(_semanticRail).join('; ');
           return Semantics(
             button: true,
-            label: 'Hole $_hole of $_target. Strokes $_strokes. Tap to putt '
-                'straight at the cup.',
-            onTap: _puttAtCup,
+            label: 'Hole $_hole of $_target. Strokes $_strokes. '
+              'Ball ${_semanticPosition(_bx, _by)}. '
+              'Cup ${_semanticPosition(_cupX, _cupY)}. '
+              '${railDescription.isEmpty ? 'No obstacle rails' : 'Obstacle rails $railDescription'}. '
+              'Aim $heading degrees clockwise from up. Power $_semanticPower percent. '
+              '${_canPutt ? 'Ready to putt' : _moving ? 'Ball moving' : 'Putt unavailable'}.',
+            hint: _canPutt
+              ? 'Use actions to turn aim or change power, then tap to putt.'
+              : null,
+            onTap: _canPutt ? _semanticPutt : null,
+            customSemanticsActions: _canPutt
+              ? <CustomSemanticsAction, VoidCallback>{
+                const CustomSemanticsAction(label: 'Turn aim left 15 degrees'):
+                  () => _adjustSemanticAim(-15),
+                const CustomSemanticsAction(label: 'Turn aim right 15 degrees'):
+                  () => _adjustSemanticAim(15),
+                const CustomSemanticsAction(label: 'Increase power 10 percent'):
+                  () => _adjustSemanticPower(10),
+                const CustomSemanticsAction(label: 'Decrease power 10 percent'):
+                  () => _adjustSemanticPower(-10),
+                const CustomSemanticsAction(label: 'Aim at cup'):
+                  _resetSemanticAim,
+                }
+              : null,
             excludeSemantics: true,
             child: GestureDetector(
             behavior: HitTestBehavior.opaque,

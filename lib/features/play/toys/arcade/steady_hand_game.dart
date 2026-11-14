@@ -50,6 +50,7 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
   ];
   bool _holding = false;
   double _dotX = 0.12, _dotY = 0.8;
+  double _grabOffsetX = 0, _grabOffsetY = 0;
   String? _banner;
   // Every miss/best/next-path banner was only ever cleared by `_reset()`,
   // so the first message stayed glued on screen for the rest of the run.
@@ -90,6 +91,7 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
   // level's end and feel the win, rather than the game being entirely
   // closed off to them.
   double _advance = 0;
+  int _checkpoint = 0;
 
   @override
   void initState() {
@@ -108,6 +110,7 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
     _holding = false;
     _edgeWarned = false;
     _advance = 0;
+    _checkpoint = 0;
   }
 
   // Moves the dot a fixed step further along the path's own centreline,
@@ -123,9 +126,10 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
     final t = (scaled - segIdx).clamp(0.0, 1.0);
     final a = _path[segIdx], b = _path[segIdx + 1];
     setState(() {
-      _holding = true;
+      _holding = false;
       _dotX = a[0] + (b[0] - a[0]) * t;
       _dotY = a[1] + (b[1] - a[1]) * t;
+      _checkpoint = math.max(_checkpoint, scaled.floor().clamp(0, segs));
     });
     if (_advance >= 1.0) _levelDone();
   }
@@ -152,11 +156,19 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
     final ax = a[0], ay = a[1] * aspect, bx = b[0], by = b[1] * aspect;
     final pys = py * aspect;
     final dx = bx - ax, dy = by - ay;
-    final len2 = dx * dx + dy * dy;
-    var t = len2 == 0 ? 0.0 : ((px - ax) * dx + (pys - ay) * dy) / len2;
-    t = t.clamp(0.0, 1.0);
+    final t = _projectToSeg(px, py, a, b, aspect);
     final cx = ax + t * dx, cy = ay + t * dy;
     return math.sqrt(math.pow(px - cx, 2) + math.pow(pys - cy, 2)).toDouble();
+  }
+
+  double _projectToSeg(
+      double px, double py, List<double> a, List<double> b, double aspect) {
+    final dx = b[0] - a[0], dy = (b[1] - a[1]) * aspect;
+    final len2 = dx * dx + dy * dy;
+    return len2 == 0
+        ? 0.0
+        : (((px - a[0]) * dx + (py - a[1]) * aspect * dy) / len2)
+            .clamp(0.0, 1.0);
   }
 
   void _fail() {
@@ -165,6 +177,8 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
     _edgeWarned = false;
     _dotX = _path.first[0];
     _dotY = _path.first[1];
+    _advance = 0;
+    _checkpoint = 0;
     // Every wall-touch deserves the companion's gentle encouraging
     // reaction, not just the one that happens to end the game.
     emit(ExperienceEvent.incorrectAnswer);
@@ -205,7 +219,7 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
       TonePlayer.instance.playCue(SoundCue.success);
       emit(ExperienceEvent.gameCompleted);
     } else {
-      _level++;
+      _level = (_level + 1) % _paths.length;
       if (!crossedBest) {
         _flashBanner(_nextPathPool[_rnd.nextInt(_nextPathPool.length)]);
       }
@@ -267,27 +281,48 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
             child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onPanStart: (d) {
+              if (_status != GameStatus.playing) return;
               final nx = d.localPosition.dx / w, ny = d.localPosition.dy / h;
               // Both axes of this grab box are width-calibrated (matching the
               // drawn start marker's pixel radius), so the y-threshold must be
               // divided by aspect to mean the same real pixel distance as x.
-              if ((nx - _path.first[0]).abs() < _halfW * 1.6 &&
-                  (ny - _path.first[1]).abs() < _halfW * 1.6 / aspect) {
+                if ((nx - _dotX).abs() < _halfW * 1.6 &&
+                  (ny - _dotY).abs() < _halfW * 1.6 / aspect) {
                 setState(() {
                   _holding = true;
-                  _dotX = nx;
-                  _dotY = ny;
+                  _grabOffsetX = nx - _dotX;
+                  _grabOffsetY = ny - _dotY;
                 });
               }
             },
             onPanUpdate: (d) {
               if (!_holding || _status != GameStatus.playing) return;
-              final nx = d.localPosition.dx / w, ny = d.localPosition.dy / h;
-              final dist = _distToPath(nx, ny, aspect);
-              if (dist > _halfW) {
-                _fail();
-                return;
+              final nx = d.localPosition.dx / w - _grabOffsetX;
+              final ny = d.localPosition.dy / h - _grabOffsetY;
+              final dx = nx - _dotX, dy = ny - _dotY;
+              final distance = math.sqrt(dx * dx + dy * dy * aspect * aspect);
+              final steps = math.max(1, (distance / (_halfW * 0.4)).ceil());
+              for (var index = 1; index <= steps; index++) {
+                final x = _dotX + dx * index / steps;
+                final y = _dotY + dy * index / steps;
+                if (_distToPath(x, y, aspect) > _halfW) {
+                  _fail();
+                  return;
+                }
+                if (_checkpoint < _path.length - 1) {
+                  final projection = _projectToSeg(x, y, _path[_checkpoint],
+                      _path[_checkpoint + 1], aspect);
+                  _advance = math.max(_advance,
+                      (_checkpoint + projection) / (_path.length - 1));
+                  final next = _path[_checkpoint + 1];
+                  final nextX = x - next[0], nextY = (y - next[1]) * aspect;
+                  if (nextX * nextX + nextY * nextY < _halfW * _halfW) {
+                    _checkpoint++;
+                    _advance = math.max(_advance, _checkpoint / (_path.length - 1));
+                  }
+                }
               }
+              final dist = _distToPath(nx, ny, aspect);
               if (dist > _halfW * 0.72) {
                 if (!_edgeWarned) {
                   _edgeWarned = true;
@@ -301,7 +336,8 @@ class _SteadyHandGameState extends State<SteadyHandGame> with _Emit {
                 _dotY = ny;
               });
               final end = _path.last;
-              if ((nx - end[0]).abs() < _halfW &&
+                if (_checkpoint == _path.length - 1 &&
+                  (nx - end[0]).abs() < _halfW &&
                   (ny - end[1]).abs() < _halfW / aspect) {
                 _levelDone();
               }

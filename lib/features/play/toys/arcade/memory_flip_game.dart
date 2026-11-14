@@ -61,6 +61,9 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
   int _lives = 3;
   bool _previewing = false;
   double _previewLeft = 0;
+  bool _accessibleNavigation = false;
+  bool _peekAvailable = true;
+  static const double _peekCost = 5;
   String? _banner;
   GameStatus _status = GameStatus.ready;
   // Mirrors whack_game/fruit_catch_game's live "beat your own all-time best"
@@ -142,6 +145,12 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
+  }
+
+  @override
   void onTick(double dt) {
     if (_status != GameStatus.playing) return;
     // Shards keep animating through the preview/locked beats below (a
@@ -155,14 +164,18 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
       if (b.life <= 0) _bits.removeAt(i);
     }
     if (_previewing) {
-      _previewLeft -= dt;
-      if (_previewLeft <= 0) _previewing = false;
+      if (!_accessibleNavigation) {
+        _previewLeft -= dt;
+        if (_previewLeft <= 0) _previewing = false;
+      }
       return;
     }
     if (_locked) return;
     _timeLeft -= dt;
     if (_timeLeft <= 0) {
       _timeLeft = _timeLimit;
+      _first = -1;
+      _second = -1;
       _loseLife('Too slow!');
     }
   }
@@ -183,12 +196,24 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
     _pairs = 0;
     _timeLimit = _levelTimeLimit;
     _timeLeft = _timeLimit;
+    _peekAvailable = true;
   }
 
   void _startPreview() {
     setState(() {
       _previewing = true;
       _previewLeft = _previewDuration;
+    });
+  }
+
+  void _peek() {
+    if (!_peekAvailable || _previewing || _locked || _first != -1 ||
+        _status != GameStatus.playing || _timeLeft <= _peekCost) return;
+    setState(() {
+      _peekAvailable = false;
+      _timeLeft -= _peekCost;
+      _previewing = true;
+      _previewLeft = 1.5;
     });
   }
 
@@ -375,7 +400,7 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
     return _Shell(
       title: '🧠 Memory Flip',
       introHow:
-          'Flip two cards to find matching pairs before the timer runs out. You have 3 lives — wrong matches and timeouts cost one. Clear every level, bank leftover time as bonus points!',
+          'Flip two cards to find matching pairs before the timer runs out. You have 3 lives — wrong matches and timeouts cost one. Spend 5 seconds for one peek per level. Clear every level, bank leftover time as bonus points!',
       onStart: () {
         setState(() {
           _status = GameStatus.playing;
@@ -390,7 +415,7 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
       banner: _banner ??
           (_previewing
               ? 'Memorize the pairs!'
-              : 'Level $_level · ⏱ ${_timeLeft.ceil()}s · $_lives❤'),
+              : 'Level $_level · $_pairs/$_pairsThisLevel pairs · ⏱ ${_timeLeft.ceil()}s · $_lives❤'),
       overEmoji: '💔',
       // Reaching level 3 of 5 before running out of lives is real progress a
       // child earned — the old static text threw it away and said nothing
@@ -448,9 +473,9 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
                             ? '$name card'
                             : 'Hidden card';
                     return Semantics(
-                      button: true,
+                      button: !_previewing,
                       label: label,
-                      onTap: () => _tap(i),
+                      onTap: _previewing ? null : () => _tap(i),
                       excludeSemantics: true,
                       child: GestureDetector(
                         onTapDown: (_) => _tap(i),
@@ -459,12 +484,16 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
                           key: ValueKey('mem-$i-${_matched[i]}'),
                           tween: Tween<double>(
                               begin: _matched[i] ? 1.35 : 1.0, end: 1.0),
-                          duration: const Duration(milliseconds: 300),
+                            duration: _reduceMotion
+                              ? Duration.zero
+                              : const Duration(milliseconds: 300),
                           curve: Curves.easeOutBack,
                           builder: (context, scale, child) =>
                               Transform.scale(scale: scale, child: child),
                           child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 150),
+                            duration: _reduceMotion
+                              ? Duration.zero
+                              : const Duration(milliseconds: 150),
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
                               color: _matched[i]
@@ -511,6 +540,32 @@ class _MemoryFlipGameState extends State<MemoryFlipGame>
                 Positioned.fill(
                   child: IgnorePointer(
                     child: CustomPaint(painter: _MemoryShardPainter(_bits)),
+                  ),
+                ),
+                Positioned(
+                  bottom: 10,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: _previewing && _accessibleNavigation &&
+                            _status == GameStatus.playing
+                        ? TextButton.icon(
+                            onPressed: () => setState(() {
+                              _previewing = false;
+                              _previewLeft = 0;
+                            }),
+                            icon: const Icon(Icons.visibility_off_outlined),
+                            label: const Text('Hide cards'),
+                          )
+                        : TextButton.icon(
+                            onPressed: _peekAvailable && !_previewing && !_locked &&
+                                    _first == -1 && _status == GameStatus.playing &&
+                                    _timeLeft > _peekCost
+                                ? _peek
+                                : null,
+                            icon: const Icon(Icons.visibility_outlined),
+                            label: Text(_peekAvailable ? 'Peek (5s)' : 'Peek used'),
+                          ),
                   ),
                 ),
               ],

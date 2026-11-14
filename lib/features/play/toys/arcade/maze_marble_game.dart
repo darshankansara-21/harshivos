@@ -52,6 +52,8 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
   // aspect ratio so physics matches the rendering, the same fix already
   // applied to space_dodge's hit test.
   double _aspect = 1.0; // height / width of the last laid-out canvas
+  double get _sizeScale => math.min(1.0, _aspect);
+  double get _radius => _r * _sizeScale;
   int _level = 1;
   int _score = 0;
   int _best = 0;
@@ -94,6 +96,18 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
     _vy = 0;
     _tx = _mx;
     _ty = _my;
+    _dragging = false;
+  }
+
+  void _brakeMarble() {
+    if (_status != GameStatus.playing) return;
+    setState(() {
+      _vx = 0;
+      _vy = 0;
+      _dragging = false;
+      _banner = 'Brake!';
+      _bannerT = 0.8;
+    });
   }
 
   @override
@@ -137,7 +151,8 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
       }
     }
     final dx = _mx - _goalX, dy = (_my - _goalY) * _aspect;
-    if (dx * dx + dy * dy < 0.07 * 0.07) {
+    final goalRadius = 0.07 * _sizeScale;
+    if (dx * dx + dy * dy < goalRadius * goalRadius) {
       _reachGoal();
     }
     setState(() {});
@@ -154,14 +169,14 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
   static const double _bounceSpeed = 0.18;
 
   void _resolveEdges() {
-    if (_mx < _r) {
-      _mx = _r;
+    if (_mx < _radius) {
+      _mx = _radius;
       if (_vx.abs() > _bounceSpeed) {
         TonePlayer.instance.playCue(SoundCue.marble);
       }
       _vx = -_vx * 0.4;
-    } else if (_mx > 1 - _r) {
-      _mx = 1 - _r;
+    } else if (_mx > 1 - _radius) {
+      _mx = 1 - _radius;
       if (_vx.abs() > _bounceSpeed) {
         TonePlayer.instance.playCue(SoundCue.marble);
       }
@@ -170,7 +185,7 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
     // The vertical margin must shrink by the aspect ratio so the real pixel
     // gap kept from the top/bottom matches the marble's rendered radius
     // (which is scaled only by width), instead of leaving a visible gap.
-    final ry = _r / _aspect;
+    final ry = _radius / _aspect;
     if (_my < ry) {
       _my = ry;
       if (_vy.abs() > _bounceSpeed) {
@@ -188,7 +203,7 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
 
   // Circle-vs-bar collision for each solid half of a gated wall.
   void _resolveWall(_MazeWall w) {
-    const t = 0.014;
+    final t = 0.014 * _sizeScale;
     _collideBar(0, w.gapX, w.y, t);
     _collideBar(w.gapX + w.gapW, 1, w.y, t);
   }
@@ -201,7 +216,7 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
     // draws, regardless of device aspect ratio.
     final dy = (_my - y) * _aspect;
     final d2 = dx * dx + dy * dy;
-    final rr = _r + t;
+    final rr = _radius + t;
     if (d2 < rr * rr && d2 > 1e-9) {
       final d = math.sqrt(d2);
       final nx = dx / d, ny = dy / d;
@@ -282,7 +297,7 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
       title: '🔵 Maze Marble',
       introHow:
           'Drag to roll the marble down through the gate in each wall and into '
-          'the goal cup. Six boards to win!',
+          'the goal cup. Double-tap to brake. Six boards to win!',
       onStart: () => setState(() {
         // `_best` only finishes loading asynchronously after `initState`, so
         // the very first play of a session (unlike every later `_reset()`
@@ -323,7 +338,8 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
               });
           return Semantics(
             label: 'Maze marble board. Drag or use the nudge actions to '
-                'roll the marble through the gates toward the goal cup.',
+              'roll the marble through the gates toward the goal cup. '
+              'Double-tap or use Brake to stop.',
             customSemanticsActions: <CustomSemanticsAction, VoidCallback>{
               const CustomSemanticsAction(label: 'Nudge left'): () =>
                   nudge(-0.18, 0),
@@ -335,9 +351,11 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
                   nudge(0, 0.18),
               const CustomSemanticsAction(label: 'Release'): () =>
                   setState(() => _dragging = false),
+                const CustomSemanticsAction(label: 'Brake'): _brakeMarble,
             },
             child: GestureDetector(
             behavior: HitTestBehavior.opaque,
+            onDoubleTap: _brakeMarble,
             onPanStart: (d) {
               _dragging = true;
               _tx = (d.localPosition.dx / w).clamp(0.0, 1.0);
@@ -364,6 +382,7 @@ class _MazeMarbleGameState extends State<MazeMarbleGame>
                 tx: _tx,
                 ty: _ty,
                 bits: _bits,
+                sizeScale: _sizeScale,
               ),
               size: Size.infinite,
             ),
@@ -386,9 +405,11 @@ class _MazeMarblePainter extends CustomPainter {
     required this.tx,
     required this.ty,
     required this.bits,
+    required this.sizeScale,
   });
   final List<_MazeWall> walls;
   final double mx, my, goalX, goalY, tx, ty;
+  final double sizeScale;
   final bool dragging;
   final List<_Shard> bits;
 
@@ -409,7 +430,7 @@ class _MazeMarblePainter extends CustomPainter {
     for (final wa in walls) {
       final y = wa.y * h;
       final gx0 = wa.gapX * w, gx1 = (wa.gapX + wa.gapW) * w;
-      final th = 0.028 * h;
+      final th = 0.028 * w * sizeScale;
       canvas.drawRRect(
           RRect.fromRectAndRadius(
               Rect.fromLTRB(0, y - th / 2, gx0, y + th / 2),
@@ -424,11 +445,11 @@ class _MazeMarblePainter extends CustomPainter {
 
     // Goal cup.
     final gc = Offset(goalX * w, goalY * h);
-    canvas.drawCircle(gc, 0.062 * w,
+    canvas.drawCircle(gc, 0.062 * w * sizeScale,
         Paint()..color = const Color(0xFF2EC4B6).withOpacity(0.3));
     canvas.drawCircle(
         gc,
-        0.052 * w,
+        0.052 * w * sizeScale,
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = 4
@@ -457,7 +478,7 @@ class _MazeMarblePainter extends CustomPainter {
 
     // Marble.
     final mc = Offset(mx * w, my * h);
-    final mr = 0.045 * w;
+    final mr = 0.045 * w * sizeScale;
     canvas.drawCircle(mc + const Offset(0, 3),
         mr, Paint()..color = Colors.black.withOpacity(0.35));
     canvas.drawCircle(

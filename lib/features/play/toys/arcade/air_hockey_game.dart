@@ -59,6 +59,9 @@ class _AirHockeyGameState extends State<AirHockeyGame>
   // celebration at all, unlike every sibling score-with-a-fail-state game.
   bool _beatBest = false;
   double _resetT = 0;
+  double _stallT = 0;
+  bool _playerTouched = false;
+  bool _bankShot = false;
   double _goalGlow = 0; // >0 player glow, <0 ai glow
   String? _banner;
   double _bannerT = 0;
@@ -78,6 +81,8 @@ class _AirHockeyGameState extends State<AirHockeyGame>
   }
 
   void _serve({required bool towardPlayer}) {
+    _playerTouched = false;
+    _bankShot = false;
     _px = 0.5;
     _py = 0.5;
     final ang = (_rnd.nextDouble() - 0.5) * 0.7;
@@ -117,10 +122,18 @@ class _AirHockeyGameState extends State<AirHockeyGame>
     if (_px < _puckR) {
       _px = _puckR;
       _pvx = _pvx.abs() * 0.92;
+      if (_playerTouched && !_bankShot) {
+        _bankShot = true;
+        _flash('Bank in play! Goal earns 2');
+      }
       TonePlayer.instance.playCue(SoundCue.wood);
     } else if (_px > 1 - _puckR) {
       _px = 1 - _puckR;
       _pvx = -_pvx.abs() * 0.92;
+      if (_playerTouched && !_bankShot) {
+        _bankShot = true;
+        _flash('Bank in play! Goal earns 2');
+      }
       TonePlayer.instance.playCue(SoundCue.wood);
     }
     if (_py < _puckR) {
@@ -145,7 +158,10 @@ class _AirHockeyGameState extends State<AirHockeyGame>
     final ppvy = (_ppy - _prevPpy) / math.max(dt, 1e-3);
     _prevPpx = _ppx;
     _prevPpy = _ppy;
-    _collide(_ppx, _ppy, ppvx, ppvy);
+    if (_collide(_ppx, _ppy, ppvx, ppvy)) {
+      _playerTouched = true;
+      _bankShot = false;
+    }
 
     _updateAi(dt);
     // Mirror the player mallet's own real-velocity momentum transfer above
@@ -160,16 +176,25 @@ class _AirHockeyGameState extends State<AirHockeyGame>
     final aivy = (_aiy - _prevAiy) / math.max(dt, 1e-3);
     _prevAix = _aix;
     _prevAiy = _aiy;
-    _collide(_aix, _aiy, aivx, aivy);
+    if (_collide(_aix, _aiy, aivx, aivy)) {
+      _playerTouched = false;
+      _bankShot = false;
+    }
 
     final sp = math.sqrt(_pvx * _pvx + _pvy * _pvy);
     if (sp > 1.5) {
       _pvx *= 1.5 / sp;
       _pvy *= 1.5 / sp;
     }
+    _stallT = sp < 0.035 ? _stallT + dt : 0;
+    if (_stallT >= 2.0) {
+      _stallT = 0;
+      _serve(towardPlayer: true);
+      _flash('Puck stopped - new serve');
+    }
   }
 
-  void _collide(double cx, double cy, double vx, double vy) {
+  bool _collide(double cx, double cy, double vx, double vy) {
     final dx = _px - cx;
     // Scale the y delta into the same width-normalized units as dx/minD so
     // the collision distance matches the true pixel circles the painter
@@ -186,7 +211,9 @@ class _AirHockeyGameState extends State<AirHockeyGame>
       _pvx = nx * push + vx * 0.3;
       _pvy = (ny * push + vyScaled * 0.3) / _aspect;
       TonePlayer.instance.playCue(SoundCue.ball);
+      return true;
     }
+    return false;
   }
 
   // Unlike every sibling physics game (basketball's hoop speed, mini_golf's
@@ -234,8 +261,9 @@ class _AirHockeyGameState extends State<AirHockeyGame>
   }
 
   void _goal({required bool player}) {
+    final bankGoal = player && _playerTouched && _bankShot;
     if (player) {
-      _playerScore++;
+      _playerScore = math.min(_target, _playerScore + (bankGoal ? 2 : 1));
       _goalGlow = 0.8;
     } else {
       _aiScore++;
@@ -253,11 +281,14 @@ class _AirHockeyGameState extends State<AirHockeyGame>
     _py = 0.5;
     _pvx = 0;
     _pvy = 0;
+    _stallT = 0;
     emit(ExperienceEvent.bubblePopped);
     if (player) {
       TonePlayer.instance.playCue(SoundCue.success);
       final crossedBest = _playerScore > _best && !_beatBest && _best > 0;
-      _flash('GOAL! $_playerScore–$_aiScore');
+        _flash(bankGoal
+          ? 'Bank shot! +2 · $_playerScore–$_aiScore'
+          : 'GOAL! $_playerScore–$_aiScore');
       GameScores.instance.submit(_id, _playerScore).then((b) {
         if (mounted) setState(() => _best = b);
       });
@@ -308,6 +339,9 @@ class _AirHockeyGameState extends State<AirHockeyGame>
       _banner = null;
       _bannerT = 0;
       _resetT = 0;
+      _stallT = 0;
+      _playerTouched = false;
+      _bankShot = false;
       _goalGlow = 0;
       _px = 0.5;
       _py = 0.5;
@@ -315,6 +349,8 @@ class _AirHockeyGameState extends State<AirHockeyGame>
       _pvy = 0;
       _ppx = 0.5;
       _ppy = 0.84;
+      _prevPpx = 0.5;
+      _prevPpy = 0.84;
       _aix = 0.5;
       _aiy = 0.16;
       _prevAix = 0.5;
@@ -331,7 +367,7 @@ class _AirHockeyGameState extends State<AirHockeyGame>
     return _Shell(
       title: '🏒 Air Hockey',
       introHow:
-          'Drag your mallet at the bottom to slam the puck into the top goal. First to 7!',
+          'Drag to hit the puck into the top goal. Bank it off a side wall for 2 points! First to 7.',
       onStart: () => setState(() {
         _status = GameStatus.playing;
         _serve(towardPlayer: true);
@@ -358,12 +394,13 @@ class _AirHockeyGameState extends State<AirHockeyGame>
           // the same "slide that way" effect the real onPanUpdate drives
           // every frame, clamped to the same bottom-half play area.
           void nudge(double dx, double dy) => setState(() {
+                if (_status != GameStatus.playing) return;
                 _ppx = (_ppx + dx).clamp(_paddleR, 1 - _paddleR);
                 _ppy = (_ppy + dy).clamp(0.52, 1 - _paddleR);
               });
           return Semantics(
             label: 'Air hockey table. Drag or use the nudge actions to '
-                'slide your mallet and slam the puck into the top goal.',
+              'slide your mallet. A goal off a side wall scores 2 points.',
             customSemanticsActions: <CustomSemanticsAction, VoidCallback>{
               const CustomSemanticsAction(label: 'Nudge left'): () =>
                   nudge(-0.12, 0),

@@ -325,14 +325,18 @@ class _ShellState extends State<_Shell> {
                               : overEmoji,
                           style: const TextStyle(fontSize: 72)),
                       const SizedBox(height: 8),
-                      Text(
+                        Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Text(
                           status == GameStatus.won
-                              ? (winText ?? 'You did it!')
-                              : overText,
+                            ? (winText ?? 'You did it!')
+                            : overText,
+                          textAlign: TextAlign.center,
                           style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 28,
-                              fontWeight: FontWeight.w800)),
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.w800)),
+                        ),
                       const SizedBox(height: 6),
                       Text(
                           best > 0

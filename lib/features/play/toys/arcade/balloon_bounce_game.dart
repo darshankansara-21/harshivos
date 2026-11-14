@@ -29,6 +29,8 @@ class _BalloonBounceGameState extends State<BalloonBounceGame>
   double _x = 0.5, _y = 0.4, _vx = 0.1, _vy = 0;
   int _score = 0, _best = 0;
   double _squash = 0;
+  bool _bounceReady = true;
+  bool _bonusOnLeft = true;
   // Tracks whether the near-floor warning cue has already fired for the
   // current descent, same pattern as balance_ball/steady_hand's
   // `_edgeWarned`. A sighted child can see the balloon sinking toward the
@@ -69,6 +71,8 @@ class _BalloonBounceGameState extends State<BalloonBounceGame>
     _y = 0.4;
     _vx = (_rnd.nextDouble() - 0.5) * 0.3;
     _vy = 0;
+    _bounceReady = true;
+    _bonusOnLeft = true;
   }
 
   @override
@@ -100,6 +104,7 @@ class _BalloonBounceGameState extends State<BalloonBounceGame>
       _y = _r;
       _vy = _vy.abs() * 0.5;
     }
+    if (_vy >= 0) _bounceReady = true;
     // Fire a one-shot warning as the balloon sinks into the danger zone,
     // well before the actual floor-touch loss, so there is real time to
     // react; re-arm once it rises back to safety so a later descent warns
@@ -127,12 +132,31 @@ class _BalloonBounceGameState extends State<BalloonBounceGame>
   void _tapAt(double nx, double ny) {
     if (_status != GameStatus.playing) return;
     if ((nx - _x).abs() < _r * 1.4 && (ny - _y).abs() < _r * 1.4) {
-      _vy = -0.78;
+      if (!_bounceReady) {
+        _banner = 'Wait for it to fall';
+        _bannerT = 0.8;
+        setState(() {});
+        return;
+      }
+      _bounceReady = false;
+      final powerBounce = ny - _y > _r * 0.35;
+      _vy = powerBounce ? -1.02 : -0.78;
+      if (powerBounce) {
+        _banner = 'Power bounce!';
+        _bannerT = 1.0;
+      }
       _vx += (_x - nx) * 1.6; // bop away from the finger
       _vx = _vx.clamp(-0.6, 0.6);
       _squash = 0.3;
       _floorWarned = false;
-      _score++;
+      final bonusX = _bonusOnLeft ? 0.24 : 0.76;
+      final bonus = (_x - bonusX).abs() < 0.14 && _y >= 0.5 && _y <= 0.83;
+      _score += bonus ? 2 : 1;
+      if (bonus) {
+        _bonusOnLeft = !_bonusOnLeft;
+        _banner = 'Star zone! +2';
+        _bannerT = 1.3;
+      }
       TonePlayer.instance.playCue(SoundCue.balloon);
       emit(ExperienceEvent.bubblePopped);
       _color = _colors[_score % _colors.length];
@@ -146,7 +170,7 @@ class _BalloonBounceGameState extends State<BalloonBounceGame>
         emit(ExperienceEvent.gameCompleted);
       } else if (!_beatBest && _best > 0 && _score > _best) {
         _beatBest = true;
-        _banner = 'New personal best! 🏆';
+        _banner = bonus ? 'Star zone! +2 · New personal best! 🏆' : 'New personal best! 🏆';
         _bannerT = 1.6;
         TonePlayer.instance.playCue(SoundCue.milestone);
         emit(ExperienceEvent.personalBest);
@@ -174,7 +198,8 @@ class _BalloonBounceGameState extends State<BalloonBounceGame>
       title: '🎈 Balloon Bounce',
       introHow:
           'Tap the balloon to bop it up before it reaches the floor. Keep it '
-          'up for twenty bounces to win!',
+          'up for 20 points. Tap as it falls; tap low for lift, or tap a '
+          'side to steer into the star zone for 2 points.',
       onStart: () => setState(() {
         _floorWarned = false;
         _launch();
@@ -202,7 +227,8 @@ class _BalloonBounceGameState extends State<BalloonBounceGame>
                     _tapAt(d.localPosition.dx / w, d.localPosition.dy / h),
                 child: CustomPaint(
                   painter: _BalloonBouncePainter(
-                      x: _x, y: _y, r: _r, squash: _squash.clamp(0.0, 1.0), color: _color),
+                      x: _x, y: _y, r: _r, squash: _squash.clamp(0.0, 1.0), color: _color,
+                      bonusX: _bonusOnLeft ? 0.24 : 0.76),
                   size: Size.infinite,
                 ),
               ),
@@ -215,8 +241,19 @@ class _BalloonBounceGameState extends State<BalloonBounceGame>
                 height: _r * 2.8 * h,
                 child: Semantics(
                   label: 'Balloon',
+                    hint: 'Star zone on the ${_bonusOnLeft ? 'left' : 'right'}. '
+                      '${_bounceReady ? 'Bounce now' : 'Wait for it to fall'}. '
+                      'Use actions to steer or add lift.',
                   button: true,
                   onTap: () => _tapAt(_x, _y),
+                    customSemanticsActions: <CustomSemanticsAction, VoidCallback>{
+                    const CustomSemanticsAction(label: 'Bounce left'): () =>
+                      _tapAt(_x + _r * 0.8, _y),
+                    const CustomSemanticsAction(label: 'Bounce right'): () =>
+                      _tapAt(_x - _r * 0.8, _y),
+                    const CustomSemanticsAction(label: 'Power bounce'): () =>
+                      _tapAt(_x, _y + _r * 0.8),
+                    },
                   child: const SizedBox.expand(),
                 ),
               ),
@@ -235,8 +272,9 @@ class _BalloonBouncePainter extends CustomPainter {
     required this.r,
     required this.squash,
     required this.color,
+    required this.bonusX,
   });
-  final double x, y, r, squash;
+  final double x, y, r, squash, bonusX;
   final Color color;
 
   @override
@@ -254,6 +292,18 @@ class _BalloonBouncePainter extends CustomPainter {
     // Floor line.
     canvas.drawRect(Rect.fromLTWH(0, h * 0.97, w, h * 0.03),
         Paint()..color = const Color(0xFF52B788));
+
+    final zone = Rect.fromLTRB((bonusX - 0.14) * w, h * 0.5,
+      (bonusX + 0.14) * w, h * 0.83);
+    canvas.drawRRect(RRect.fromRectAndRadius(zone, const Radius.circular(8)),
+      Paint()..color = Colors.white.withOpacity(0.25));
+    canvas.drawRRect(RRect.fromRectAndRadius(zone, const Radius.circular(8)),
+      Paint()..color = Colors.white70..style = PaintingStyle.stroke..strokeWidth = 2);
+    final star = TextPainter(
+      text: const TextSpan(text: '★ +2', style: TextStyle(color: Color(0xFF604B00), fontSize: 16, fontWeight: FontWeight.bold)),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    star.paint(canvas, Offset(zone.center.dx - star.width / 2, zone.top + 4));
 
     final c = Offset(x * w, y * h);
     final rw = r * w * (1 + squash * 0.25);

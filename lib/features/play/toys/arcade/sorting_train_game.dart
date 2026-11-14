@@ -85,6 +85,8 @@ class _SortingTrainGameState extends State<SortingTrainGame>
   int _item = 0;
   double _bob = 0;
   int _score = 0;
+  final List<int> _wagonLoads = List<int>.filled(6, 0);
+  int _deliveries = 0;
   int _best = 0;
   bool _beatBest = false;
   int _wrongFlash = -1;
@@ -133,8 +135,27 @@ class _SortingTrainGameState extends State<SortingTrainGame>
 
   void _drop(int wagon) {
     if (_status != GameStatus.playing) return;
+    if (_wagonLoads[wagon] == 2 ||
+        (_score >= _target && _wagonLoads[wagon] > 0)) {
+      final sent = _wagonLoads[wagon];
+      setState(() {
+        _wagonLoads[wagon] = 0;
+        _deliveries++;
+        _banner = 'Sent $sent parcels!';
+        _bannerT = 1.0;
+        if (_score >= _target && _wagonLoads.every((load) => load == 0)) {
+          _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
+          _status = GameStatus.won;
+          TonePlayer.instance.playCue(SoundCue.success);
+          emit(ExperienceEvent.gameCompleted);
+        }
+      });
+      return;
+    }
+    if (_score >= _target) return;
     if (wagon == _item) {
       _score++;
+      _wagonLoads[wagon]++;
       final bitCount = _reduceMotion ? 4 : 12;
       for (var i = 0; i < bitCount; i++) {
         final a = _rnd.nextDouble() * math.pi * 2;
@@ -163,13 +184,11 @@ class _SortingTrainGameState extends State<SortingTrainGame>
         _banner = _loadedPool[_rnd.nextInt(_loadedPool.length)];
         _bannerT = 1.0;
       }
-      if (_score >= _target) {
-        _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
-        _status = GameStatus.won;
-        TonePlayer.instance.playCue(SoundCue.success);
-        emit(ExperienceEvent.gameCompleted);
-      } else {
+      if (_score < _target) {
         _item = _drawItem();
+      } else {
+        _banner = 'Send the remaining wagons!';
+        _bannerT = 1.5;
       }
     } else {
       _wrongFlash = wagon;
@@ -185,6 +204,8 @@ class _SortingTrainGameState extends State<SortingTrainGame>
   void _reset() {
     setState(() {
       _score = 0;
+      _wagonLoads.fillRange(0, _wagonLoads.length, 0);
+      _deliveries = 0;
       _beatBest = false;
       _bag.clear();
       _item = _drawItem();
@@ -202,13 +223,15 @@ class _SortingTrainGameState extends State<SortingTrainGame>
     return _Shell(
       title: '🚂 Sorting Train',
       introHow:
-          'A coloured parcel floats on top. Tap the wagon with the same colour to load it!',
+          'Match parcels to wagons. Tap a full wagon to send it, then send the rest!',
       onStart: () => setState(() => _status = GameStatus.playing),
       score: _score,
       best: _best,
       target: _target,
       status: _status,
-      banner: _banner ?? 'Load $_score/$_target parcels',
+        banner: _banner ?? (_score >= _target
+          ? 'Send the remaining wagons! · $_deliveries deliveries'
+          : 'Load $_score/$_target · Tap full wagons to send'),
       winEmoji: '🚂',
       winText: _winPraise,
       accent: const Color(0xFF63E6BE),
@@ -223,7 +246,9 @@ class _SortingTrainGameState extends State<SortingTrainGame>
               width: w,
               height: h * 0.62,
               child: Semantics(
-                label: 'Parcel to load: ${_parcelName(_item)}',
+                label: _score >= _target
+                  ? 'All parcels loaded. Send the remaining wagons.'
+                  : 'Parcel to load: ${_parcelName(_item)}',
                 child: const SizedBox.expand(),
               ),
             ),
@@ -237,7 +262,9 @@ class _SortingTrainGameState extends State<SortingTrainGame>
               width: lw,
               height: h * 0.38,
               child: Semantics(
-                label: 'Wagon ${i + 1}: ${_parcelName(i)}',
+                label: 'Wagon ${i + 1}: ${_parcelName(i)}, '
+                  '${_wagonLoads[i]} of 2 parcels'
+                  '${_wagonLoads[i] == 2 || (_score >= _target && _wagonLoads[i] > 0) ? ', tap to send' : ''}',
                 button: true,
                 onTap: () => _drop(i),
                 child: const SizedBox.expand(),
@@ -259,6 +286,8 @@ class _SortingTrainGameState extends State<SortingTrainGame>
                   painter: _TrainPainter(
                     colors: _activeColors,
                     item: _item,
+                    loads: _wagonLoads,
+                    allLoaded: _score >= _target,
                     bob: _bob,
                     wrongFlash: _wrongFlash,
                     bits: _bits,
@@ -279,12 +308,16 @@ class _TrainPainter extends CustomPainter {
   _TrainPainter({
     required this.colors,
     required this.item,
+    required this.loads,
+    required this.allLoaded,
     required this.bob,
     required this.wrongFlash,
     required this.bits,
   });
   final List<Color> colors;
   final int item;
+  final List<int> loads;
+  final bool allLoaded;
   final double bob;
   final int wrongFlash;
   final List<_Shard> bits;
@@ -304,10 +337,12 @@ class _TrainPainter extends CustomPainter {
     // Parcel floating on top.
     final pc = Offset(w * 0.5, h * 0.3 + math.sin(bob) * 8);
     final box = Rect.fromCenter(center: pc, width: w * 0.18, height: w * 0.18);
-    canvas.drawRRect(RRect.fromRectAndRadius(box, const Radius.circular(10)),
+    if (!allLoaded) {
+      canvas.drawRRect(RRect.fromRectAndRadius(box, const Radius.circular(10)),
         Paint()..color = colors[item]);
-    _paintPolyShape(canvas, pc, w * 0.05, _shapeForColor[item],
+      _paintPolyShape(canvas, pc, w * 0.05, _shapeForColor[item],
         Paint()..color = Colors.white.withOpacity(0.92));
+    }
     // Wagons.
     final lw = w / colors.length;
     for (var i = 0; i < colors.length; i++) {
@@ -321,6 +356,14 @@ class _TrainPainter extends CustomPainter {
           lw * 0.14,
           _shapeForColor[i],
           Paint()..color = Colors.white.withOpacity(0.92));
+      final loadText = TextPainter(
+        text: TextSpan(
+          text: '${loads[i]}/2${loads[i] == 2 || (allLoaded && loads[i] > 0) ? ' ↑' : ''}',
+          style: const TextStyle(color: Colors.black87, fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout(maxWidth: lw - 16);
+      loadText.paint(canvas, Offset(rect.center.dx - loadText.width / 2, rect.bottom - loadText.height - 4));
       // wheels
       canvas.drawCircle(Offset(rect.left + lw * 0.25, rect.bottom + 8), 7,
           Paint()..color = Colors.black54);

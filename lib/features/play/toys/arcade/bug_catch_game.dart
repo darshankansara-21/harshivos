@@ -42,6 +42,8 @@ class _BugCatchGameState extends State<BugCatchGame>
   int _targetColor = 0;
   int _score = 0;
   int _lives = 3;
+  int _catchStreak = 0;
+  bool _shield = false;
   int _best = 0;
   bool _beatBest = false;
   String? _banner;
@@ -75,6 +77,8 @@ class _BugCatchGameState extends State<BugCatchGame>
   double get _speedBoost => 1 + _careerPaceRamp + _score * 0.035;
 
   void _spawn() {
+    final needsTarget = !_bugs.any((bug) => bug.colorIndex == _targetColor);
+    final needsOther = !_bugs.any((bug) => bug.colorIndex != _targetColor);
     final edge = _rnd.nextInt(4);
     double x, y;
     switch (edge) {
@@ -91,10 +95,19 @@ class _BugCatchGameState extends State<BugCatchGame>
         x = -0.05;
         y = _rnd.nextDouble();
     }
+    if (needsTarget || needsOther) {
+      x = 0.15 + _rnd.nextDouble() * 0.7;
+      y = 0.2 + _rnd.nextDouble() * 0.6;
+    }
     final a = _rnd.nextDouble() * math.pi * 2;
     final sp = (0.08 + _rnd.nextDouble() * 0.1) * _speedBoost;
     _bugs.add(_Bug(x, y, math.cos(a) * sp, math.sin(a) * sp,
-        _rnd.nextInt(_colors.length), _rnd.nextDouble() * math.pi * 2));
+        needsTarget
+          ? _targetColor
+          : needsOther
+            ? (_targetColor + 1 + _rnd.nextInt(_colors.length - 1)) % _colors.length
+            : _rnd.nextInt(_colors.length),
+        _rnd.nextDouble() * math.pi * 2));
   }
 
   @override
@@ -103,6 +116,14 @@ class _BugCatchGameState extends State<BugCatchGame>
     if (_bannerT > 0) {
       _bannerT -= dt;
       if (_bannerT <= 0) _banner = null;
+    }
+    if (_bugs.length >= _maxBugs &&
+        !_bugs.any((bug) => bug.colorIndex == _targetColor)) {
+      _bugs.removeAt(0);
+    }
+    if (_bugs.length >= _maxBugs &&
+        !_bugs.any((bug) => bug.colorIndex != _targetColor)) {
+      _bugs.removeAt(0);
     }
     while (_bugs.length < _maxBugs) {
       _spawn();
@@ -147,77 +168,87 @@ class _BugCatchGameState extends State<BugCatchGame>
       final dx = p.dx - b.x * w;
       final dy = p.dy - b.y * h;
       if (dx.abs() < w * 0.09 && dy.abs() < w * 0.09) {
-        if (b.colorIndex == _targetColor) {
-          _score++;
-          final bitCount = _reduceMotion ? 4 : 10;
-          for (var j = 0; j < bitCount; j++) {
-            final a = _rnd.nextDouble() * math.pi * 2;
-            final sp = 0.15 + _rnd.nextDouble() * 0.3;
-            _bits.add(_Shard(b.x, b.y, math.cos(a) * sp, math.sin(a) * sp,
-                _colors[b.colorIndex]));
-          }
-          _bugs.removeAt(i);
-          TonePlayer.instance.playCue(SoundCue.success);
-          emit(ExperienceEvent.bubblePopped);
-          // A child who runs out of lives right after this catch still
-          // deserves the companion's loudest celebration if it's a genuine
-          // all-time record, not just the routine correct-catch chime.
-          final crossedBest = _score > _best && !_beatBest && _best > 0;
-          if (_score % 4 == 0) {
-            _targetColor = _rnd.nextInt(_colors.length);
-            _banner = 'Now catch ${_names[_targetColor]}!';
-            _bannerT = 1.4;
-          }
-          GameScores.instance.submit(_id, _score).then((v) {
-            if (mounted) setState(() => _best = v);
-          });
-          if (crossedBest) {
-            _beatBest = true;
-            _banner = 'New personal best! 🏆';
-            TonePlayer.instance.playCue(SoundCue.milestone);
-            emit(ExperienceEvent.personalBest);
-          }
-          if (_score >= _target) {
-            _status = GameStatus.won;
-            _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
-            TonePlayer.instance.playCue(SoundCue.success);
-            emit(ExperienceEvent.gameCompleted);
-          }
-        } else {
-          _lives--;
-          // Every wrong catch deserves the companion's gentle encouraging
-          // reaction, not just the one that happens to end the game.
-          emit(ExperienceEvent.incorrectAnswer);
-          if (_lives <= 0) {
-            // Distinct terminal cue — the catching run really ends here.
-            _status = GameStatus.over;
-            _overPraise = _gentleTryAgainPool[_rnd.nextInt(_gentleTryAgainPool.length)];
-            TonePlayer.instance.playCue(SoundCue.gameOver);
-            // A run that ends in a loss of lives can still be this child's
-            // best-ever catch count — every sibling lives-based game
-            // (whack/memory_flip/stack/pinball/sky_hop) celebrates that with
-            // gameCompleted instead of flatly repeating the sad miss cue, so
-            // a genuinely record-setting run here shouldn't feel identical
-            // to a plain loss.
-            emit(_score > _best
-                ? ExperienceEvent.gameCompleted
-                : ExperienceEvent.incorrectAnswer);
-          } else {
-            TonePlayer.instance.playCue(SoundCue.gentleRetry);
-          }
-          _banner = 'Only ${_names[_targetColor]} bugs!';
-          _bannerT = 1.2;
-        }
-        setState(() {});
+        _catchBug(b);
         return;
       }
     }
+  }
+
+  void _catchBug(_Bug b) {
+    if (_status != GameStatus.playing || !_bugs.contains(b)) return;
+    if (b.colorIndex == _targetColor) {
+      _score++;
+      _catchStreak++;
+      if (_catchStreak >= 3) {
+        _shield = true;
+        _catchStreak = 0;
+        _banner = 'Shield earned!';
+        _bannerT = 1.4;
+      }
+      final bitCount = _reduceMotion ? 4 : 10;
+      for (var j = 0; j < bitCount; j++) {
+        final a = _rnd.nextDouble() * math.pi * 2;
+        final sp = 0.15 + _rnd.nextDouble() * 0.3;
+        _bits.add(_Shard(b.x, b.y, math.cos(a) * sp, math.sin(a) * sp,
+            _colors[b.colorIndex]));
+      }
+      _bugs.remove(b);
+      TonePlayer.instance.playCue(SoundCue.success);
+      emit(ExperienceEvent.bubblePopped);
+      final crossedBest = _score > _best && !_beatBest && _best > 0;
+      if (_score % 4 == 0) {
+        _targetColor = _rnd.nextInt(_colors.length);
+        _banner = 'Now catch ${_names[_targetColor]}!';
+        _bannerT = 1.4;
+      }
+      GameScores.instance.submit(_id, _score).then((v) {
+        if (mounted) setState(() => _best = v);
+      });
+      if (crossedBest) {
+        _beatBest = true;
+        _banner = 'New personal best! 🏆';
+        TonePlayer.instance.playCue(SoundCue.milestone);
+        emit(ExperienceEvent.personalBest);
+      }
+      if (_score >= _target) {
+        _status = GameStatus.won;
+        _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
+        TonePlayer.instance.playCue(SoundCue.success);
+        emit(ExperienceEvent.gameCompleted);
+      }
+    } else {
+      _catchStreak = 0;
+      final protected = _shield;
+      if (protected) {
+        _shield = false;
+      } else {
+        _lives--;
+      }
+      emit(ExperienceEvent.incorrectAnswer);
+      if (_lives <= 0) {
+        _status = GameStatus.over;
+        _overPraise = _gentleTryAgainPool[_rnd.nextInt(_gentleTryAgainPool.length)];
+        TonePlayer.instance.playCue(SoundCue.gameOver);
+        emit(_score > _best
+            ? ExperienceEvent.gameCompleted
+            : ExperienceEvent.incorrectAnswer);
+      } else {
+        TonePlayer.instance.playCue(SoundCue.gentleRetry);
+      }
+      _banner = protected
+          ? 'Shield saved a life!'
+          : 'Only ${_names[_targetColor]} bugs!';
+      _bannerT = 1.2;
+    }
+    setState(() {});
   }
 
   void _reset() {
     setState(() {
       _score = 0;
       _lives = 3;
+      _catchStreak = 0;
+      _shield = false;
       _beatBest = false;
       _targetColor = _rnd.nextInt(_colors.length);
       _bugs.clear();
@@ -236,7 +267,7 @@ class _BugCatchGameState extends State<BugCatchGame>
       title: '🐞 Bug Catch',
       introHow:
           'Catch only the colour of bug you are asked for! Tap them before they scurry off the screen. '
-          'Catching the wrong colour costs one of your 3 lives.',
+          'Three correct catches earn a shield for one wrong catch.',
       onStart: () => setState(() {
         _targetColor = _rnd.nextInt(_colors.length);
         _status = GameStatus.playing;
@@ -245,7 +276,8 @@ class _BugCatchGameState extends State<BugCatchGame>
       best: _best,
       target: _target,
       status: _status,
-      banner: _banner ?? 'Catch the ${_names[_targetColor]} bugs! · ${'💛' * _lives}',
+        banner: '${_banner ?? 'Catch the ${_names[_targetColor]} bugs!'} · '
+          '${'💛' * _lives} · ${_shield ? 'Shield ready' : 'Streak $_catchStreak/3'}',
       overEmoji: '💪',
       overText: _overPraise,
       winEmoji: '🐞',
@@ -286,7 +318,7 @@ class _BugCatchGameState extends State<BugCatchGame>
                   child: Semantics(
                     label: '${_names[bug.colorIndex]} bug',
                     button: true,
-                    onTap: () => _tap(Offset(bug.x * w, bug.y * h), w, h),
+                    onTap: () => _catchBug(bug),
                     child: const SizedBox.expand(),
                   ),
                 ),

@@ -79,6 +79,7 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
   int _lit = -1;
   double _flashT = 0;
   int _lives = 3;
+  int _completed = 0;
   int _best = 0;
   bool _beatBest = false;
   String? _banner;
@@ -88,7 +89,7 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
   double _bannerT = 0;
   GameStatus _status = GameStatus.ready;
 
-  int get _score => (_seq.length - 1).clamp(0, _winLen);
+  int get _score => _completed;
 
   @override
   void initState() {
@@ -101,6 +102,7 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
   void _begin() {
     _seq.clear();
     _lives = 3;
+    _completed = 0;
     _beatBest = false;
     _nextRound();
   }
@@ -173,6 +175,7 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
     if (pad == _seq[_inputIdx]) {
       _inputIdx++;
       if (_inputIdx >= _seq.length) {
+        _completed++;
         if (_seq.length >= _winLen) {
           _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
           _status = GameStatus.won;
@@ -240,6 +243,15 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
     setState(() {});
   }
 
+  void _replayPhrase() {
+    if (_status != GameStatus.playing || _showing) return;
+    setState(() {
+      _banner = 'Listen again';
+      _bannerT = 1.1;
+      _startShow();
+    });
+  }
+
   void _reset() {
     setState(() {
       _banner = null;
@@ -266,14 +278,17 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
       best: _best,
       target: _winLen,
       status: _status,
-      banner: _banner ?? 'Phrase of ${_seq.length}  ·  ${'💛' * _lives}',
+        banner: _banner ?? (_showing
+          ? 'Listen: ${_seq.length} notes · ${'💛' * _lives}'
+          : 'Your turn: $_inputIdx/${_seq.length} · ${'💛' * _lives}'),
       overEmoji: '💪',
       overText: _overPraise,
       winEmoji: '🪘',
       winText: _winPraise,
       accent: const Color(0xFFFFD166),
       onPlayAgain: _reset,
-      child: Container(
+      child: Stack(children: <Widget>[
+      Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -332,6 +347,16 @@ class _EchoDrumsGameState extends State<EchoDrumsGame>
           ),
         ),
       ),
+      Positioned(
+        bottom: 20,
+        right: 20,
+        child: IconButton(
+          tooltip: 'Replay phrase',
+          onPressed: _status == GameStatus.playing && !_showing ? _replayPhrase : null,
+          icon: const Icon(Icons.replay, color: Colors.white),
+        ),
+      ),
+      ]),
     );
   }
 }

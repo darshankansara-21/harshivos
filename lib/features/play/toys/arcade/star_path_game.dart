@@ -61,6 +61,8 @@ class _StarPathGameState extends State<StarPathGame>
   int _shapeIdx = 0;
   int _linked = 1; // stars connected so far (first is the start)
   int _score = 0;
+  int _perfectPaths = 0;
+  bool _cleanPath = true;
   int _best = 0;
   // `_score` (constellations completed) always tops out at `_target` the
   // moment a round is actually finished, so `_best` goes permanently static
@@ -166,6 +168,7 @@ class _StarPathGameState extends State<StarPathGame>
     _shapeIdx = _order[_orderPos];
     _stars = _shapes[_shapeIdx];
     _linked = 1;
+    _cleanPath = true;
   }
 
   // height/width of the drawing canvas, refreshed on every touch so the
@@ -203,6 +206,7 @@ class _StarPathGameState extends State<StarPathGame>
       TonePlayer.instance.playNote((_linked * 2) % 12, seconds: 0.2);
       if (_linked >= _stars.length) {
         _score++;
+        if (_cleanPath) _perfectPaths++;
         TonePlayer.instance.playCue(SoundCue.success);
         emit(ExperienceEvent.bubblePopped);
         GameScores.instance.submit(_id, _score).then((v) {
@@ -236,12 +240,25 @@ class _StarPathGameState extends State<StarPathGame>
         }
       }
       setState(() {});
+    } else if (_cleanPath && !_stars.take(_linked).any((star) =>
+      (star[0] - nx).abs() < tol &&
+      ((star[1] - ny) * _aspect).abs() < tol) &&
+      _stars.skip(_linked + 1).any((star) =>
+        (star[0] - nx).abs() < tol &&
+        ((star[1] - ny) * _aspect).abs() < tol)) {
+      _cleanPath = false;
+      _flashBanner('Follow the glowing star');
+      TonePlayer.instance.playCue(SoundCue.gentleRetry);
+      emit(ExperienceEvent.incorrectAnswer);
+      setState(() {});
     }
   }
 
   void _reset() {
     setState(() {
       _score = 0;
+      _perfectPaths = 0;
+      _cleanPath = true;
       _order = _pickOrder();
       _orderPos = 0;
       _shapeIdx = _order[0];
@@ -264,7 +281,7 @@ class _StarPathGameState extends State<StarPathGame>
       title: '⭐ Star Path',
       introHow:
           'Drag from star to star, in order, to draw the constellation. Reach '
-          'the next star to connect it. Five to win!',
+          'the glowing star in order. Complete a path without skipping for a star badge!',
       onStart: () => setState(() {
         _linked = 1;
         _finishMs = 0;
@@ -275,44 +292,29 @@ class _StarPathGameState extends State<StarPathGame>
       best: _best,
       target: _target,
       status: _status,
-      banner: _banner ??
+        banner: _banner ??
           (_status == GameStatus.playing
-              ? 'Connect the stars  ·  $_linked/${_stars.length}'
+            ? 'Connect $_linked/${_stars.length} · $_perfectPaths star badges'
               : 'Trace the star paths'),
       winEmoji: '⭐',
       // Mirrors mini_golf/jigsaw_four's roundWinText convention: show this
       // round's own time plus (once one exists) the all-time best, and call
       // out a genuine new record distinctly from a routine finish.
       winText: _finishMs <= 0
-          ? _winPraise
+          ? '$_winPraise $_perfectPaths star badges'
           : (_bestTimeMs > 0 && _finishMs < _bestTimeMs
-              ? '$_winPraise New fastest: ${(_finishMs / 1000).toStringAsFixed(1)}s! 🏆'
-              : '$_winPraise ${(_finishMs / 1000).toStringAsFixed(1)}s'
+              ? '$_winPraise $_perfectPaths star badges · New fastest: ${(_finishMs / 1000).toStringAsFixed(1)}s! 🏆'
+              : '$_winPraise $_perfectPaths star badges · ${(_finishMs / 1000).toStringAsFixed(1)}s'
                   '${_bestTimeMs > 0 ? ' (best ${(_bestTimeMs / 1000).toStringAsFixed(1)}s)' : ''}'),
       accent: const Color(0xFFFFE066),
       onPlayAgain: _reset,
       child: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
+          final currentStars = _stars;
           void handle(Offset p) {
             _aspect = h / w;
             _touch((p.dx / w).clamp(0.0, 1.0), (p.dy / h).clamp(0.0, 1.0));
-          }
-          Widget? nextStarOverlay;
-          if (_status == GameStatus.playing && _linked < _stars.length) {
-            final s = _stars[_linked];
-            const r = 24.0;
-            nextStarOverlay = Positioned(
-              left: s[0] * w - r,
-              top: s[1] * h - r,
-              width: r * 2,
-              height: r * 2,
-              child: Semantics(
-                label: 'Next star, ${_linked + 1} of ${_stars.length}',
-                onTap: () => _touch(s[0], s[1]),
-                child: const SizedBox.expand(),
-              ),
-            );
           }
           return Stack(
             children: <Widget>[
@@ -326,7 +328,27 @@ class _StarPathGameState extends State<StarPathGame>
                   size: Size.infinite,
                 ),
               ),
-              if (nextStarOverlay != null) nextStarOverlay,
+              if (_status == GameStatus.playing)
+                for (var index = _stars.length - 1; index >= _linked; index--)
+                  Positioned(
+                    left: _stars[index][0] * w - 24,
+                    top: _stars[index][1] * h - 24,
+                    width: 48,
+                    height: 48,
+                    child: Semantics(
+                      button: true,
+                      label: index == _linked
+                          ? 'Next star, ${index + 1} of ${_stars.length}'
+                          : 'Star ${index + 1} of ${_stars.length}',
+                      onTap: () {
+                        if (identical(currentStars, _stars) &&
+                            index >= _linked && index < currentStars.length) {
+                          _touch(currentStars[index][0], currentStars[index][1]);
+                        }
+                      },
+                      child: const SizedBox.expand(),
+                    ),
+                  ),
             ],
           );
         },

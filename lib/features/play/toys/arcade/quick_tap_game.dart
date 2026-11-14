@@ -26,6 +26,7 @@ class _QuickTapGameState extends State<QuickTapGame>
   String _rating = '';
   int _round = 0;
   int _score = 0;
+  int _streak = 0;
   int _best = 0;
   bool _beatBest = false;
   int _lastMs = 0;
@@ -85,6 +86,7 @@ class _QuickTapGameState extends State<QuickTapGame>
     }
     if (_phase == 0) {
       _phase = 2; // tapped before green
+      _streak = 0;
       TonePlayer.instance.playCue(SoundCue.gentleRetry);
       // Tapping early is this game's one and only mistake — the whole point
       // of a reaction-time game — yet it previously only played a sound with
@@ -97,7 +99,8 @@ class _QuickTapGameState extends State<QuickTapGame>
     }
     // Green — score by reaction speed.
     _lastMs = (_reactT * 1000).round();
-    _rating = _ratingFor(_lastMs);
+    _streak++;
+    _rating = '${_ratingFor(_lastMs)} · Streak $_streak';
     _flashT = 0.3;
     final pts = math.max(5, 120 - _lastMs ~/ 10);
     _score += pts;
@@ -145,6 +148,7 @@ class _QuickTapGameState extends State<QuickTapGame>
     setState(() {
       _round = 0;
       _score = 0;
+      _streak = 0;
       _beatBest = false;
       _lastMs = 0;
       _rating = '';
@@ -172,7 +176,7 @@ class _QuickTapGameState extends State<QuickTapGame>
                 ? '${_lastMs}ms'
                 : 'Wait…';
     final String sub = _phase == 2
-        ? 'Tap to try this round again'
+        ? 'Streak reset · tap to try again'
         : _phase == 3
             ? _rating
             : _phase == 1

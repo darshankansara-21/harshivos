@@ -10,7 +10,8 @@ class KindnessMatchGame extends StatefulWidget {
 }
 
 class _KindScene {
-  const _KindScene(this.situation, this.kind, this.other1, this.other2, this.other3);
+  const _KindScene(this.situation, this.kind, this.other1, this.other2, this.other3,
+      this.followUp, this.followOther1, this.followOther2);
   final String situation;
   final String kind;
   final String other1;
@@ -18,22 +19,25 @@ class _KindScene {
   // Third distractor, only shown once the active option count grows past 3
   // (see _optionCount) — keeps later rounds genuinely harder than early ones.
   final String other3;
+  final String followUp;
+  final String followOther1;
+  final String followOther2;
 }
 
 class _KindnessMatchGameState extends State<KindnessMatchGame> with _Emit {
   static const String _id = 'kindness_match';
   static const int _target = 10;
   static const List<_KindScene> _scenes = <_KindScene>[
-    _KindScene('Your friend falls down.', 'Are you okay?', "You're silly", 'Go away', 'Clumsy!'),
-    _KindScene('Someone is new at school.', 'Want to play with us?', "That's my spot", "You can't sit here", 'Not my friend'),
-    _KindScene('Your friend looks sad.', "I'm here for you", 'Stop crying', "That's boring", 'So dramatic'),
-    _KindScene('Someone drops their books.', 'Let me help you', 'Watch out!', 'So clumsy!', 'Not my problem'),
-    _KindScene('A friend shares their toy.', 'Thank you so much!', 'I want more', "It's mine now", 'Give me that'),
-    _KindScene('Someone makes a mistake.', "It's okay, try again", "You're bad at this", 'Ha ha ha', 'You always mess up'),
-    _KindScene('Your friend wins a game.', 'Well done!', 'No fair', 'You cheated', "I'm still better"),
-    _KindScene('Someone feels left out.', 'Come join us!', 'Not you', 'Go away', 'Find your own group'),
-    _KindScene('A friend is scared.', "I'll stay with you", "Don't be a baby", 'Scaredy cat', 'Just get over it'),
-    _KindScene('Someone is tired.', 'Have a rest', 'Keep going', 'Too slow', "Don't be lazy"),
+    _KindScene('Your friend falls down.', 'Are you okay?', "You're silly", 'Go away', 'Clumsy!', 'Ask if they want help getting up', 'Pull them up without asking', 'Walk away'),
+    _KindScene('Someone is new at school.', 'Want to play with us?', "That's my spot", "You can't sit here", 'Not my friend', 'Let them choose whether to join', 'Make them play', 'Hide the game'),
+    _KindScene('Your friend looks sad.', "I'm here for you", 'Stop crying', "That's boring", 'So dramatic', 'Ask if they want company', 'Demand that they smile', 'Tell everyone their news'),
+    _KindScene('Someone drops their books.', 'Let me help you', 'Watch out!', 'So clumsy!', 'Not my problem', 'Ask before picking up their books', 'Take their books away', 'Kick the books'),
+    _KindScene('A friend shares their toy.', 'Thank you so much!', 'I want more', "It's mine now", 'Give me that', 'Give the toy back when asked', 'Keep the toy forever', 'Hide the toy'),
+    _KindScene('Someone makes a mistake.', "It's okay, try again", "You're bad at this", 'Ha ha ha', 'You always mess up', 'Ask if they want help', 'Do it for them without asking', 'Laugh at them'),
+    _KindScene('Your friend wins a game.', 'Well done!', 'No fair', 'You cheated', "I'm still better", 'Celebrate with them', 'Take away their prize', 'Tell them not to play'),
+    _KindScene('Someone feels left out.', 'Come join us!', 'Not you', 'Go away', 'Find your own group', 'Make room if they want to join', 'Force them to join', 'Ignore their answer'),
+    _KindScene('A friend is scared.', "I'll stay with you", "Don't be a baby", 'Scaredy cat', 'Just get over it', 'Ask what would help them feel safe', 'Make the scary thing louder', 'Leave them alone without asking'),
+    _KindScene('Someone is tired.', 'Have a rest', 'Keep going', 'Too slow', "Don't be lazy", 'Give them time to rest', 'Make them keep playing', 'Take away their seat'),
   ];
   final math.Random _rnd = math.Random();
   static const List<String> _winPraisePool = <String>[
@@ -69,6 +73,7 @@ class _KindnessMatchGameState extends State<KindnessMatchGame> with _Emit {
   // force it back to GameStatus.won a beat later. Lock input for that one
   // beat, same convention as weather_sort_game's `_locked`.
   bool _locked = false;
+  bool _followUp = false;
   String? _banner;
   // Every correct/miss/best banner was only ever cleared by `_reset()`, so
   // the very first pick's text glued itself on screen for the rest of the run.
@@ -124,6 +129,7 @@ class _KindnessMatchGameState extends State<KindnessMatchGame> with _Emit {
     _wrong = -1;
     _correct = -1;
     _locked = false;
+    _followUp = false;
     _scene = _scenes[_drawScene()];
     final List<String> distractors = <String>[_scene.other1, _scene.other2, _scene.other3]
       ..shuffle(_rnd);
@@ -132,7 +138,17 @@ class _KindnessMatchGameState extends State<KindnessMatchGame> with _Emit {
 
   void _pick(String choice, int idx) {
     if (_status != GameStatus.playing || _locked) return;
-    if (choice == _scene.kind) {
+    final answer = _followUp ? _scene.followUp : _scene.kind;
+    if (choice == answer && !_followUp) {
+      _followUp = true;
+      _wrong = -1;
+      _options = <String>[_scene.followUp, _scene.followOther1, _scene.followOther2]
+        ..shuffle(_rnd);
+      TonePlayer.instance.playCue(SoundCue.correct);
+      setState(() {});
+      return;
+    }
+    if (choice == answer) {
       _score++;
       _correct = idx;
       _locked = true;
@@ -220,8 +236,8 @@ class _KindnessMatchGameState extends State<KindnessMatchGame> with _Emit {
     return _Shell(
       title: '💛 Kindness Match',
       introHow:
-          'Read what happens, then tap the kind thing to say or do. Ten kind '
-          'choices to win — you have 3 💛 hearts, so a few wrong guesses are okay!',
+          'Choose a kind response, then decide what to do next. Ten scenes '
+          'to win — you have 3 💛 hearts, so a few wrong guesses are okay!',
       onStart: () => setState(() {
         _bag.clear();
         _newRound();
@@ -269,6 +285,12 @@ class _KindnessMatchGameState extends State<KindnessMatchGame> with _Emit {
                         color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800),
                   ),
                 ),
+                if (_status == GameStatus.playing && _followUp) ...<Widget>[
+                  const SizedBox(height: 12),
+                  const Text('What could you do next?',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white, fontSize: 18)),
+                ],
                 const SizedBox(height: 28),
                 for (var i = 0; i < _options.length; i++)
                   Padding(

@@ -1,5 +1,12 @@
 part of '../arcade_games.dart';
 
+@visibleForTesting
+bool brickBreakFireballReady(int combo) => combo >= 5;
+
+@visibleForTesting
+int brickBreakDamage({required int brickHp, required bool fireball}) =>
+  fireball ? brickHp : 1;
+
 class BrickBreakGame extends StatefulWidget {
   const BrickBreakGame({super.key});
   @override
@@ -50,6 +57,7 @@ class _BrickBreakGameState extends State<BrickBreakGame>
   double _speedMul = 1;
   double _wideT = 0; // seconds left of widened paddle
   double _slowT = 0; // seconds left of slowed ball (time-dilated, not re-scaled)
+  double _fireT = 0;
   bool _started = false;
   int _score = 0;
   int _best = 0;
@@ -120,6 +128,18 @@ class _BrickBreakGameState extends State<BrickBreakGame>
     _started = false;
   }
 
+  @visibleForTesting
+  void debugSetBrickBreakBall({required double x, required double y,
+      required double vx, required double vy, required int combo}) {
+    setState(() {
+      _bx = x;
+      _by = y;
+      _vx = vx;
+      _vy = vy;
+      _combo = combo;
+    });
+  }
+
   void _flash(String s) {
     _banner = s;
     _bannerT = 1.2;
@@ -128,6 +148,7 @@ class _BrickBreakGameState extends State<BrickBreakGame>
   void _loseLife() {
     _lives--;
     _combo = 0;
+    _fireT = 0;
     // Every lost ball deserves the companion's gentle encouraging
     // reaction, not just the one that happens to end the game.
     emit(ExperienceEvent.incorrectAnswer);
@@ -183,6 +204,7 @@ class _BrickBreakGameState extends State<BrickBreakGame>
     }
     if (_wideT > 0) _wideT -= dt;
     if (_slowT > 0) _slowT -= dt;
+    if (_started && _fireT > 0) _fireT = math.max(0, _fireT - dt);
     for (var i = _powerUps.length - 1; i >= 0; i--) {
       final p = _powerUps[i];
       p.y += 0.22 * dt;
@@ -249,10 +271,14 @@ class _BrickBreakGameState extends State<BrickBreakGame>
           _bx < rect.right + _ballR &&
           _by > rect.top - ballRY &&
           _by < rect.bottom + ballRY) {
-        final remaining = _bricks[i] - 1;
+        final fireball = _fireT > 0;
+        final remaining = math.max(
+          0,
+          _bricks[i] - brickBreakDamage(brickHp: _bricks[i], fireball: fireball),
+        );
         _bricks[i] = remaining;
         _combo = remaining <= 0 ? _combo + 1 : 0;
-        _vy = -_vy.abs();
+        if (!fireball) _vy = -_vy.abs();
         _vx += (_bx - (c + 0.5) * bw) * 1.2;
         _vx = _vx.clamp(-0.8, 0.8);
         _score += remaining <= 0 ? 10 + _level * 3 + _combo : 4 + _level;
@@ -270,9 +296,17 @@ class _BrickBreakGameState extends State<BrickBreakGame>
               cx, cy, math.cos(a) * sp, math.sin(a) * sp - 0.1, col));
         }
         if (remaining <= 0) {
-          _flash(_combo > 1
-              ? 'Combo x$_combo!'
-              : _hitPraise[_rnd.nextInt(_hitPraise.length)]);
+          if (brickBreakFireballReady(_combo) && _fireT <= 0) {
+            _fireT = 4.5;
+            _flash('FIREBALL! Pierce the wall 🔥');
+            TonePlayer.instance.playCue(SoundCue.milestone);
+          } else {
+            _flash(fireball
+                ? 'Pierced! 🔥'
+                : (_combo > 1
+                    ? 'Combo x$_combo!'
+                    : _hitPraise[_rnd.nextInt(_hitPraise.length)]));
+          }
           TonePlayer.instance.playCue(SoundCue.brick);
           // A destroyed brick has a chance to drop a helpful capsule — turns
           // clearing the field into a real risk/reward decision, not just aim.
@@ -351,6 +385,7 @@ class _BrickBreakGameState extends State<BrickBreakGame>
       _combo = 0;
       _wideT = 0;
       _slowT = 0;
+      _fireT = 0;
       _powerUps.clear();
       _buildBricks();
       _shards.clear();
@@ -371,12 +406,13 @@ class _BrickBreakGameState extends State<BrickBreakGame>
     final activeIcons = <String>[
       if (_wideT > 0) '↔️',
       if (_slowT > 0) '🐢',
+      if (_fireT > 0) '🔥',
     ].join(' ');
     return _Shell(
       title: '🧱 Brick Break',
       introHow: 'Move the paddle to bounce the ball and smash every brick! '
           'Golden bricks need two hits. Catch falling capsules for a helpful boost. '
-          'Missing the ball costs one of your 3 lives.',
+          'Chain 5 clean breaks to ignite a piercing fireball. Missing costs one of your 3 lives.',
       onStart: () => setState(() {
         _speedMul = 1 + _careerPaceRamp;
         _serveBall();
@@ -431,7 +467,7 @@ class _BrickBreakGameState extends State<BrickBreakGame>
               child: CustomPaint(
                 painter: _BrickPainter(_bricks, _cols, _paddleX,
                     _effectivePaddleW, _bx, _by, _ballR, _started, _shards,
-                    _powerUps),
+                  _powerUps, _fireT),
                 size: Size.infinite,
               ),
             ),
@@ -444,7 +480,7 @@ class _BrickBreakGameState extends State<BrickBreakGame>
 
 class _BrickPainter extends CustomPainter {
   _BrickPainter(this.bricks, this.cols, this.paddleX, this.paddleW, this.bx,
-      this.by, this.ballR, this.started, this.shards, this.powerUps);
+  this.by, this.ballR, this.started, this.shards, this.powerUps, this.fireT);
   final List<int> bricks;
   final int cols;
   final double paddleX;
@@ -455,6 +491,7 @@ class _BrickPainter extends CustomPainter {
   final bool started;
   final List<_Shard> shards;
   final List<_PowerUp> powerUps;
+  final double fireT;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -536,8 +573,16 @@ class _BrickPainter extends CustomPainter {
       Paint()..color = const Color(0xFF4CC9F0),
     );
     // Ball.
-    canvas.drawCircle(
-        Offset(bx * w, by * h), ballR * w, Paint()..color = Colors.white);
+    if (fireT > 0) {
+      canvas.drawCircle(
+        Offset(bx * w, by * h),
+        ballR * w * 1.8,
+        Paint()
+        ..color = const Color(0xFFFF6B00).withOpacity(0.35)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8));
+    }
+    canvas.drawCircle(Offset(bx * w, by * h), ballR * w,
+      Paint()..color = fireT > 0 ? const Color(0xFFFFD166) : Colors.white);
     // Brick shards.
     for (final s in shards) {
       final k = (s.life / 0.5).clamp(0.0, 1.0);

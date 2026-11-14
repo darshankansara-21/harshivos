@@ -30,6 +30,7 @@ class _TargetTossGameState extends State<TargetTossGame>
   double _resetT = 0;
   int _score = 0;
   int _throws = 0;
+  int _hitStreak = 0;
   int _best = 0;
   bool _beatBest = false;
   Offset? _aim;
@@ -61,10 +62,21 @@ class _TargetTossGameState extends State<TargetTossGame>
   }
 
   Offset _throwVel(Offset aim) {
-    var v = aim * 3.4;
-    final m = v.distance;
-    if (m > 2.1) v = v * (2.1 / m);
-    return v;
+    final vertical = (-aim.dy * 3.4).clamp(0.85, 2.1);
+    final horizontal = (aim.dx / -aim.dy * vertical).clamp(-1.3, 1.3);
+    return Offset(horizontal, -vertical);
+  }
+
+  double _flightTime(Offset velocity) {
+    final speed = -velocity.dy;
+    return (speed - math.sqrt(speed * speed - 2 * 0.35 * (0.86 - _targetY))) / 0.35;
+  }
+
+  double _targetAt(double x, double direction, double seconds) {
+    const left = 0.16, width = 0.68;
+    final phase = ((direction > 0 ? x - left : 2 * width - (x - left)) +
+            _tSpeed * seconds) % (2 * width);
+    return left + (phase <= width ? phase : 2 * width - phase);
   }
 
   void _resetBall() {
@@ -85,12 +97,14 @@ class _TargetTossGameState extends State<TargetTossGame>
     }
     if (_hitPulse > 0) _hitPulse -= dt;
     // Slide the target.
+    final previousTargetX = _tx;
+    final previousDirection = _tDir;
     _tx += _tDir * _tSpeed * dt;
     if (_tx < 0.16) {
-      _tx = 0.16;
+      _tx = 0.32 - _tx;
       _tDir = 1;
     } else if (_tx > 0.84) {
-      _tx = 0.84;
+      _tx = 1.68 - _tx;
       _tDir = -1;
     }
     for (var i = _bits.length - 1; i >= 0; i--) {
@@ -109,12 +123,16 @@ class _TargetTossGameState extends State<TargetTossGame>
     if (!_flying) return;
 
     final prevY = _by;
+    final prevX = _bx;
     _vy += 0.35 * dt; // gentle gravity
     _bx += _vx * dt;
     _by += _vy * dt;
 
     if (prevY > _targetY && _by <= _targetY) {
-      final d = (_bx - _tx).abs();
+      final fraction = (prevY - _targetY) / (prevY - _by);
+      final ballX = prevX + (_bx - prevX) * fraction;
+      final targetX = _targetAt(previousTargetX, previousDirection, dt * fraction);
+      final d = (ballX - targetX).abs();
       if (d < 0.14) {
         _registerHit(d);
         return;
@@ -123,6 +141,7 @@ class _TargetTossGameState extends State<TargetTossGame>
     if (_by < -0.05 || _bx < -0.05 || _bx > 1.05 || _by > 1.1) {
       _flying = false;
       _resetT = 0.3;
+      _hitStreak = 0;
       // This score-based game has no lives/retry structure — a missed toss
       // is the only mistake type, so it must get the same sound + companion
       // emit every other no-lives mistake (e.g. quick_tap's too-soon tap)
@@ -149,6 +168,11 @@ class _TargetTossGameState extends State<TargetTossGame>
     } else {
       pts = 1;
       label = '+1';
+    }
+    _hitStreak++;
+    if (_hitStreak >= 3) {
+      pts++;
+      label = '$label · streak +1';
     }
     _score += pts;
     _hitPulse = 0.5;
@@ -196,7 +220,9 @@ class _TargetTossGameState extends State<TargetTossGame>
   // the same _aimAt + _toss path the drag gesture already uses.
   void _tossAtTarget() {
     if (_flying || _resetT > 0 || _status != GameStatus.playing) return;
-    _aimAt(Offset(_tx, _targetY), 1, 1);
+    final flight = _flightTime(_throwVel(const Offset(0, _targetY - 0.86)));
+    final leadX = _targetAt(_tx, _tDir, flight);
+    _aimAt(Offset(leadX, _targetY), 1, 1);
     _toss();
   }
 
@@ -217,6 +243,7 @@ class _TargetTossGameState extends State<TargetTossGame>
     setState(() {
       _score = 0;
       _throws = 0;
+      _hitStreak = 0;
       _tSpeed = 0.18 + _careerPaceRamp;
       _tx = 0.5;
       _tDir = 1;
@@ -237,7 +264,8 @@ class _TargetTossGameState extends State<TargetTossGame>
     return _Shell(
       title: '🎯 Target Toss',
       introHow:
-          'Drag from the bean bag toward the moving target, then let go. Hit the centre for 5!',
+          'Drag up to toss. Longer drags fly faster; aim the dots at the '
+          'outlined future target. Centre scores 5; three hits earn a bonus!',
       onStart: () => setState(() {
         // `_best` only finishes loading asynchronously after `initState`, so
         // the very first play of a session (unlike every later `_reset()`
@@ -250,7 +278,7 @@ class _TargetTossGameState extends State<TargetTossGame>
       best: _best,
       target: _target,
       status: _status,
-      banner: _banner ?? 'Points $_score/$_target · tosses $_throws',
+      banner: _banner ?? 'Points $_score/$_target · tosses $_throws · streak $_hitStreak',
       winEmoji: '🎯',
       winText: _winPraise,
       accent: const Color(0xFFE23B5B),
@@ -283,7 +311,10 @@ class _TargetTossGameState extends State<TargetTossGame>
                 hitPulse: _hitPulse,
                 bits: _bits,
                 aim: _flying ? null : _aim,
-                launch: _aim == null ? Offset.zero : _throwVel(_aim!),
+                launch: _aim == null || _aim!.dy >= -0.03 ? Offset.zero : _throwVel(_aim!),
+                predictedX: _aim == null || _aim!.dy >= -0.03
+                  ? null
+                  : _targetAt(_tx, _tDir, _flightTime(_throwVel(_aim!))),
               ),
               size: Size.infinite,
             ),
@@ -306,11 +337,13 @@ class _TargetPainter extends CustomPainter {
     required this.bits,
     required this.aim,
     required this.launch,
+    required this.predictedX,
   });
   final double bx, by, ballR, tx, targetY, hitPulse;
   final List<_Shard> bits;
   final Offset? aim;
   final Offset launch;
+  final double? predictedX;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -340,6 +373,11 @@ class _TargetPainter extends CustomPainter {
       canvas.drawCircle(tc, radii[i] * w * pulse, Paint()..color = rings[i]);
     }
     canvas.drawCircle(tc, 0.012 * w * pulse, Paint()..color = Colors.yellow);
+
+    if (predictedX != null) {
+      canvas.drawCircle(Offset(sx(predictedX!), sy(targetY)), 0.14 * w,
+          Paint()..color = Colors.yellowAccent..style = PaintingStyle.stroke..strokeWidth = 3);
+    }
 
     // Aim preview.
     if (aim != null && aim!.dy < -0.03) {

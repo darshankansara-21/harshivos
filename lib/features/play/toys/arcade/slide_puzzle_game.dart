@@ -29,6 +29,7 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
   List<int> _tiles = <int>[1, 2, 3, 4, 5, 6, 7, 8, 0];
   int _score = 0;
   int _moves = 0;
+  final List<int> _slidePuzzleMoves = <int>[];
   int _best = 0;
   // `_moves` is shown live in the banner every round ("Board X · Y moves"),
   // dangling a "fewer moves is better" promise exactly like mini_golf's
@@ -123,7 +124,9 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
   void _shuffle() {
     _tiles = <int>[1, 2, 3, 4, 5, 6, 7, 8, 0];
     _moves = 0;
+    _slidePuzzleMoves.clear();
     var blank = 8;
+    var previousBlank = -1;
     // All 3 boards used the exact same 80-move scramble, so the "challenge
     // curve" CLAUDE.md asks for was flat: board 3 never felt any harder to
     // untangle than board 1, unlike every other multi-round game in this
@@ -133,10 +136,11 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
     // scramble length with the board already solved (_score).
     final scrambleMoves = 70 + _score * 35 + _careerSkillRamp.round();
     for (var i = 0; i < scrambleMoves; i++) {
-      final n = _neighbours(blank);
+      final n = _neighbours(blank)..remove(previousBlank);
       final pick = n[_rnd.nextInt(n.length)];
       _tiles[blank] = _tiles[pick];
       _tiles[pick] = 0;
+      previousBlank = blank;
       blank = pick;
     }
     if (_solved) _shuffle();
@@ -165,6 +169,7 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
       if (_tiles[p] != 0) TonePlayer.instance.playCue(SoundCue.tap);
       return;
     }
+    _slidePuzzleMoves.add(blank);
     _tiles[blank] = _tiles[p];
     _tiles[p] = 0;
     _moves++;
@@ -204,6 +209,19 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
       }
     }
     setState(() {});
+  }
+
+  void _undoSlidePuzzleMove() {
+    if (_status != GameStatus.playing || _slidePuzzleMoves.isEmpty) return;
+    setState(() {
+      final previousBlank = _slidePuzzleMoves.removeLast();
+      final blank = _tiles.indexOf(0);
+      _tiles[blank] = _tiles[previousBlank];
+      _tiles[previousBlank] = 0;
+      _moves++;
+      _totalMoves++;
+    });
+    TonePlayer.instance.playCue(SoundCue.wood);
   }
 
   void _reset() {
@@ -294,6 +312,17 @@ class _SlidePuzzleGameState extends State<SlidePuzzleGame>
                     onTap: () => _tapCell(p),
                     child: const SizedBox.expand(),
                   ),
+                ),
+              if (_status == GameStatus.playing)
+                Positioned(
+                  bottom: 24,
+                  left: 0,
+                  right: 0,
+                  child: Center(child: IconButton.filledTonal(
+                    tooltip: 'Undo last slide',
+                    onPressed: _slidePuzzleMoves.isEmpty ? null : _undoSlidePuzzleMove,
+                    icon: const Icon(Icons.undo),
+                  )),
                 ),
               if (_bits.isNotEmpty)
                 IgnorePointer(

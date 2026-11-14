@@ -34,7 +34,9 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
   ];
 
   List<int> _nums = <int>[2, 5, 8];
-  bool _biggest = true;
+  bool _ascending = true;
+  final List<int> _placedOrder = <int>[];
+  final Set<int> _placed = <int>{};
   int _score = 0, _lives = 3, _best = 0;
   bool _beatBest = false;
   int _wrong = -1;
@@ -84,7 +86,9 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
     _wrong = -1;
     _correct = -1;
     _locked = false;
-    _biggest = _rnd.nextBool();
+    _placedOrder.clear();
+    _placed.clear();
+    _ascending = _rnd.nextBool();
     final max = _maxForScore(_score + _careerSkillRamp);
     final set = <int>{};
     while (set.length < 3) {
@@ -113,61 +117,61 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
     return max.clamp(9, 99);
   }
 
-  int get _answer {
-    var best = _nums[0];
-    for (final n in _nums) {
-      if (_biggest ? n > best : n < best) best = n;
-    }
-    return best;
+  List<int> get _answerOrder {
+    final ordered = List<int>.of(_nums)..sort();
+    return _ascending ? ordered : ordered.reversed.toList();
   }
 
   void _tap(int i) {
-    if (_status != GameStatus.playing || _locked) return;
-    if (_nums[i] == _answer) {
-      _score++;
+    if (_status != GameStatus.playing || _locked || _placed.contains(i)) return;
+    if (_nums[i] == _answerOrder[_placedOrder.length]) {
+      _placed.add(i);
+      _placedOrder.add(i);
       _correct = i;
       _locked = true;
       TonePlayer.instance.playCue(SoundCue.correct);
       emit(ExperienceEvent.bubblePopped);
-      _flashBanner(_correctPool[_rnd.nextInt(_correctPool.length)]);
-      // A child who runs out of lives right after this tap still deserves
-      // the companion's loudest celebration if it's a genuine all-time
-      // record, not just the routine correct-tap chime.
-      final crossedBest = _score > _best && !_beatBest && _best > 0;
-      GameScores.instance.submit(_id, _score).then((v) {
-        if (mounted) setState(() => _best = v);
-      });
-      if (crossedBest) {
-        _beatBest = true;
-        _flashBanner('New personal best! 🏆', duration: const Duration(milliseconds: 1300));
-        TonePlayer.instance.playCue(SoundCue.milestone);
-        emit(ExperienceEvent.personalBest);
-      }
-      if (_score >= _target) {
-        _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
-        // The final correct tap used to jump straight to the win overlay in
-        // the same frame, so the green tile flash above was set but never
-        // actually rendered before the whole game view was replaced. Give it
-        // the same 220ms beat as every other correct tap before declaring
-        // the win, so the last answer is visibly confirmed too.
-        Future.delayed(const Duration(milliseconds: 220), () {
-          if (!mounted) return;
-          setState(() => _status = GameStatus.won);
-          TonePlayer.instance.playCue(SoundCue.success);
-          emit(ExperienceEvent.gameCompleted);
-        });
-      } else {
-        // Let the green flash above actually be seen before the tiles swap
-        // out for the next round.
+      if (_placedOrder.length < _nums.length) {
+        _flashBanner('Placed ${_placedOrder.length} of 3');
         Future.delayed(const Duration(milliseconds: 220), () {
           if (mounted && _status == GameStatus.playing) {
+            setState(() => _locked = false);
+          }
+        });
+      } else {
+        _score++;
+        _flashBanner(_correctPool[_rnd.nextInt(_correctPool.length)]);
+        final crossedBest = _score > _best && !_beatBest && _best > 0;
+        GameScores.instance.submit(_id, _score).then((v) {
+          if (mounted) setState(() => _best = v);
+        });
+        if (crossedBest) {
+          _beatBest = true;
+          _flashBanner('New personal best! 🏆', duration: const Duration(milliseconds: 1300));
+          TonePlayer.instance.playCue(SoundCue.milestone);
+          emit(ExperienceEvent.personalBest);
+        }
+        Future.delayed(const Duration(milliseconds: 220), () {
+          if (!mounted || _status != GameStatus.playing) return;
+          if (_score >= _target) {
+            setState(() {
+              _winPraise = _winPraisePool[_rnd.nextInt(_winPraisePool.length)];
+              _status = GameStatus.won;
+            });
+            TonePlayer.instance.playCue(SoundCue.success);
+            emit(ExperienceEvent.gameCompleted);
+          } else {
             setState(_newRound);
           }
         });
       }
     } else {
       _wrong = i;
+      _correct = -1;
       _lives--;
+      _placedOrder.clear();
+      _placed.clear();
+      _locked = true;
       // Every wrong tap deserves the companion's gentle encouraging
       // reaction, not just the one that happens to end the game.
       emit(ExperienceEvent.incorrectAnswer);
@@ -187,7 +191,12 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
         // do, gated so a later miss on a different tile can't be stomped by
         // a stale timer.
         Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted && _wrong == i) setState(() => _wrong = -1);
+          if (mounted && _wrong == i) {
+            setState(() {
+              _wrong = -1;
+              _locked = false;
+            });
+          }
         });
       }
     }
@@ -212,8 +221,8 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
     return _Shell(
       title: '🥇 Bigger Number',
       introHow:
-          'Read whether to find the biggest or the smallest number, then tap '
-          'it. Twelve right to win!',
+          'Place all three numbers from low to high or high to low. A wrong '
+          'pick clears the row; keep three hearts to finish twelve rounds.',
       onStart: () => setState(() {
         _newRound();
         _status = GameStatus.playing;
@@ -222,7 +231,7 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
       best: _best,
       target: _target,
       status: _status,
-      banner: _banner ?? 'Which one?  ·  ${'💛' * _lives}',
+      banner: _banner ?? 'Place ${_placedOrder.length + 1} of 3  ·  ${'💛' * _lives}',
       overEmoji: '💪',
       overText: _overPraise,
       winEmoji: '🥇',
@@ -253,23 +262,63 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
             children: <Widget>[
               Text(
                 _status == GameStatus.playing
-                    ? (_biggest ? 'Tap the BIGGEST' : 'Tap the SMALLEST')
-                    : 'Biggest or smallest?',
+                  ? (_ascending ? 'Smallest to biggest' : 'Biggest to smallest')
+                  : 'Put the numbers in order',
+                key: const ValueKey<String>('bigger-number-order-prompt'),
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                     color: Colors.white, fontSize: 30, fontWeight: FontWeight.w900),
               ),
-              const SizedBox(height: 56),
+              const SizedBox(height: 24),
+              Row(
+                children: <Widget>[
+                  for (var slot = 0; slot < _nums.length; slot++)
+                    Expanded(
+                      child: Semantics(
+                        label: slot < _placedOrder.length
+                            ? 'Position ${slot + 1}: ${_nums[_placedOrder[slot]]}'
+                            : 'Empty position ${slot + 1}',
+                        child: AnimatedContainer(
+                          key: ValueKey<String>('bigger-number-slot-$slot'),
+                          duration: const Duration(milliseconds: 160),
+                          margin: const EdgeInsets.symmetric(horizontal: 5),
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: slot < _placedOrder.length
+                                ? const Color(0xFF527A45)
+                                : Colors.white.withOpacity(0.06),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.white24),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            slot < _placedOrder.length
+                                ? '${_nums[_placedOrder[slot]]}'
+                                : '${slot + 1}',
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: <Widget>[
                   for (var i = 0; i < _nums.length; i++)
                     Semantics(
                       button: true,
-                      label: 'Number ${_nums[i]}',
+                      label: _placed.contains(i)
+                          ? 'Number ${_nums[i]} already placed'
+                          : 'Place ${_nums[i]} next',
                       onTap: () => _tap(i),
                       excludeSemantics: true,
                       child: GestureDetector(
+                        key: ValueKey<String>('bigger-number-option-$i'),
                         onTap: () => _tap(i),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 140),
@@ -278,7 +327,7 @@ class _BiggerNumberGameState extends State<BiggerNumberGame> with _Emit {
                           decoration: BoxDecoration(
                             color: _wrong == i
                                 ? const Color(0xFFE23B3B)
-                                : _correct == i
+                                : _placed.contains(i) || _correct == i
                                     ? const Color(0xFF80ED99)
                                     : Colors.white12,
                             borderRadius: BorderRadius.circular(18),
